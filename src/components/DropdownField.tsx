@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   value: { fontSize: 14, color: Colors.textDark },
-  placeholder: { fontSize: 14, color: Colors.border },
+  placeholder: { fontSize: 14, color: Colors.textLight },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,

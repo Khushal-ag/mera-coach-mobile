@@ -18,7 +18,7 @@ import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { getCoachCategories, registerCoach } from '../api/coachApi';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
-import { ApiError } from '../api/client';
+import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
 import type { CoachCategory } from '../types/models';
 
@@ -70,15 +70,13 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         const session = await login({ userName: trimmedEmail, password: result.plainPassword });
         await saveSession(session);
         Alert.alert('Welcome to Mera Coach!', 'Your coach account is ready to go.');
-        navigation.replace('Main');
       } catch {
-        // Account was created successfully even if auto-login fails for some reason —
-        // fall back to sending them to Login rather than losing the registration.
+        // Registration still succeeded even if auto-login failed — send to Login instead.
         Alert.alert('Registration Successful', 'Your login password has been emailed to you.');
         navigation.replace('Login');
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -119,7 +117,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Create Your Account</Text>
-              <Text style={styles.cardSub}>Just 4 fields — your account is ready instantly</Text>
+              <Text style={styles.cardSub}>Just 4 fields, your account is ready instantly</Text>
             </View>
             <View style={styles.requiredBadge}>
               <Text style={styles.requiredText}>* Required</Text>
@@ -144,7 +142,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <TextInput
               style={styles.input}
               placeholder="Your full name"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textLight}
               value={name}
               onChangeText={setName}
             />
@@ -166,7 +164,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <TextInput
               style={styles.input}
               placeholder="10-digit mobile number"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textLight}
               keyboardType="phone-pad"
               value={mobile}
               onChangeText={setMobile}
@@ -181,7 +179,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}

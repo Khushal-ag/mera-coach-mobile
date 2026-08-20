@@ -1,32 +1,62 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import { COACH_CATEGORIES } from '../data/homeContent';
-import { COACHES, SORT_OPTIONS } from '../data/coachDirectory';
+import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
+import { SORT_OPTIONS } from '../data/coachDirectory';
+import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
+import { queryKeys } from '../api/queryKeys';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useRefreshControl } from '../hooks/useRefreshControl';
 import DropdownField from '../components/DropdownField';
+import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function CoachListScreen({ navigation, route }: RootScreenProps<'CoachList'>) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(route.params?.categoryCode || '');
   const [sort, setSort] = useState('Top Rated');
+  const debouncedSearch = useDebouncedValue(search, 400);
+
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.coachCategories,
+    queryFn: getCoachCategories,
+  });
+  const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
+
+  const coachesQuery = useQuery({
+    queryKey: queryKeys.coachPublicList({ coachTypeCode: activeCategory, search: debouncedSearch }),
+    queryFn: () =>
+      getCoachPublicList({
+        coachTypeCode: activeCategory || undefined,
+        search: debouncedSearch || undefined,
+      }),
+  });
 
   const filtered = useMemo(() => {
-    let list = COACHES.filter(
-      c =>
-        (!activeCategory || c.categoryCode === activeCategory) &&
-        (!search ||
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.city.toLowerCase().includes(search.toLowerCase()) ||
-          c.category.toLowerCase().includes(search.toLowerCase())),
-    );
+    let list = coachesQuery.data?.coaches ?? [];
     if (sort === 'Top Rated') list = [...list].sort((a, b) => b.rating - a.rating);
     else if (sort === 'Most Reviewed') list = [...list].sort((a, b) => b.reviews - a.reviews);
     else if (sort === 'Most Experience')
       list = [...list].sort((a, b) => b.experience - a.experience);
     return list;
-  }, [activeCategory, search, sort]);
+  }, [coachesQuery.data, sort]);
+
+  const errorMessage = coachesQuery.isError
+    ? getErrorMessage(coachesQuery.error, 'Could not load coaches. Pull down to try again.')
+    : null;
+
+  const refreshControl = useRefreshControl(coachesQuery);
 
   return (
     <View style={styles.container}>
@@ -55,7 +85,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             />
             <Text style={[styles.pillText, !activeCategory && styles.pillTextActive]}>All</Text>
           </TouchableOpacity>
-          {COACH_CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <TouchableOpacity
               key={cat.code}
               style={[styles.pill, activeCategory === cat.code && styles.pillActive]}
@@ -78,6 +108,13 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshControl.refreshing}
+            onRefresh={refreshControl.onRefresh}
+            tintColor={Colors.secondary}
+          />
+        }
       >
         {/* Search */}
         <View style={styles.searchWrap}>
@@ -90,89 +127,99 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name, city or specialty..."
-            placeholderTextColor={Colors.border}
+            placeholderTextColor={Colors.textLight}
             value={search}
             onChangeText={setSearch}
           />
         </View>
 
         {/* Result info + sort */}
-        <View style={styles.resultRow}>
-          <Text style={styles.resultText}>
-            Showing <Text style={styles.resultBold}>{filtered.length}</Text> coaches
-          </Text>
-        </View>
-        <DropdownField label="Sort By" value={sort} options={SORT_OPTIONS} onChange={setSort} />
-
-        {/* Coach cards */}
-        {filtered.map(coach => (
-          <View key={coach.id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {coach.name
-                    .split(' ')
-                    .map(w => w[0])
-                    .slice(0, 2)
-                    .join('')}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.coachName}>{coach.name}</Text>
-                <Text style={styles.coachCategory}>{coach.category}</Text>
-              </View>
-              {coach.online && (
-                <View style={styles.onlineBadge}>
-                  <View style={styles.onlineDot} />
-                  <Text style={styles.onlineText}>Online</Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.metaRow}>
-              <View style={styles.metaItem}>
-                <Ionicons name="star" size={12} color={Colors.accent} />
-                <Text style={styles.metaText}>
-                  {coach.rating} ({coach.reviews})
-                </Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="briefcase-outline" size={12} color={Colors.textLight} />
-                <Text style={styles.metaText}>{coach.experience} Yrs</Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={12} color={Colors.textLight} />
-                <Text style={styles.metaText}>{coach.city}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.bio} numberOfLines={2}>
-              {coach.bio}
-            </Text>
-
-            <View style={styles.tagsWrap}>
-              {coach.tags.map(tag => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.cardFooter}>
-              <Text style={styles.clientsText}>
-                Clients: <Text style={styles.clientsBold}>{coach.clients}+</Text>
+        {coachesQuery.isPending ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
+        ) : errorMessage ? (
+          <Text style={styles.empty}>{errorMessage}</Text>
+        ) : (
+          <>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultText}>
+                Showing <Text style={styles.resultBold}>{filtered.length}</Text> coaches
               </Text>
-              <TouchableOpacity
-                style={styles.viewBtn}
-                onPress={() => navigation.navigate('CoachPublicProfile', { coach })}
-              >
-                <Text style={styles.viewBtnText}>View Profile</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        ))}
+            <DropdownField label="Sort By" value={sort} options={SORT_OPTIONS} onChange={setSort} />
 
-        {filtered.length === 0 && <Text style={styles.empty}>No coaches match your search.</Text>}
+            {/* Coach cards */}
+            {filtered.map(coach => (
+              <View key={coach.id} style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {coach.name
+                        .split(' ')
+                        .map(w => w[0])
+                        .slice(0, 2)
+                        .join('')}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.coachName}>{coach.name}</Text>
+                    <Text style={styles.coachCategory}>{coach.category}</Text>
+                  </View>
+                  {coach.online && (
+                    <View style={styles.onlineBadge}>
+                      <View style={styles.onlineDot} />
+                      <Text style={styles.onlineText}>Online</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.metaRow}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="star" size={12} color={Colors.accent} />
+                    <Text style={styles.metaText}>
+                      {coach.rating} ({coach.reviews})
+                    </Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="briefcase-outline" size={12} color={Colors.textLight} />
+                    <Text style={styles.metaText}>{coach.experience} Yrs</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="location-outline" size={12} color={Colors.textLight} />
+                    <Text style={styles.metaText}>{coach.city}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.bio} numberOfLines={2}>
+                  {coach.bio}
+                </Text>
+
+                <View style={styles.tagsWrap}>
+                  {coach.tags.map(tag => (
+                    <View key={tag} style={styles.tag}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.cardFooter}>
+                  <Text style={styles.clientsText}>
+                    Clients: <Text style={styles.clientsBold}>{coach.clients}+</Text>
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.viewBtn}
+                    onPress={() => navigation.navigate('CoachPublicProfile', { coach })}
+                  >
+                    <Text style={styles.viewBtnText}>View Profile</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {filtered.length === 0 && (
+              <Text style={styles.empty}>No coaches match your search.</Text>
+            )}
+          </>
+        )}
 
         {/* Become a Coach CTA */}
         <View style={styles.ctaCard}>

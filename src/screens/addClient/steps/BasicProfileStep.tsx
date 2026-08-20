@@ -24,7 +24,7 @@ function Field({ label, icon, field, placeholder, keyboardType, form, update }: 
         <TextInput
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor={Colors.border}
+          placeholderTextColor={Colors.textLight}
           keyboardType={keyboardType || 'default'}
           value={String(form[field] ?? '')}
           onChangeText={v => update(field, v as ClientProfile[typeof field])}

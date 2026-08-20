@@ -154,5 +154,5 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   notifTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark },
   notifMessage: { fontSize: 12, color: Colors.textLight, marginTop: 3, lineHeight: 18 },
-  time: { fontSize: 11, color: Colors.border, marginTop: 6, fontWeight: '600' },
+  time: { fontSize: 11, color: Colors.textLight, marginTop: 6, fontWeight: '600' },
 });

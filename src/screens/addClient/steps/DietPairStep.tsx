@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     padding: 14,
     ...Shadow.sm,
   },
-  empty: { fontSize: 13, color: Colors.border, marginBottom: 8, fontStyle: 'italic' },
+  empty: { fontSize: 13, color: Colors.textLight, marginBottom: 8, fontStyle: 'italic' },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   moreBtn: {
     borderRadius: Radius.pill,

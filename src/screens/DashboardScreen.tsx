@@ -1,7 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { getClientList } from '../api/clientApi';
+import { queryKeys } from '../api/queryKeys';
+import { getCurrentCoachCode } from '../auth/session';
+import { useRefreshControl } from '../hooks/useRefreshControl';
+import { getErrorMessage } from '../api/client';
 import type { MainTabScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
@@ -13,60 +19,62 @@ interface StatCard {
   bg: string;
 }
 
-const stats: StatCard[] = [
-  {
-    label: 'Total Clients',
-    value: '48',
-    icon: 'people',
-    color: Colors.secondary,
-    bg: Colors.secondaryLight,
-  },
-  {
-    label: 'Active Leads',
-    value: '12',
-    icon: 'funnel',
-    color: Colors.accent,
-    bg: Colors.accentLight,
-  },
-  {
-    label: 'Re-Checkups',
-    value: '7',
-    icon: 'clipboard',
-    color: Colors.primary,
-    bg: Colors.primaryLight,
-  },
-  { label: 'This Month', value: '5', icon: 'calendar', color: '#7c3aed', bg: '#ede9fe' },
-];
-
-const recentClients = [
-  { name: 'Priya Sharma', goal: 'Weight Loss', status: 'Active', initials: 'PS' },
-  { name: 'Rahul Verma', goal: 'Muscle Gain', status: 'Active', initials: 'RV' },
-  { name: 'Anjali Mehta', goal: 'Diabetes Care', status: 'Checkup Due', initials: 'AM' },
+// Only "Total Clients" is wired to real data — the rest have no backend support yet.
+const PLACEHOLDER_STATS: Omit<StatCard, 'value'>[] = [
+  { label: 'Total Clients', icon: 'people', color: Colors.secondary, bg: Colors.secondaryLight },
+  { label: 'Active Leads', icon: 'funnel', color: Colors.accent, bg: Colors.accentLight },
+  { label: 'Re-Checkups', icon: 'clipboard', color: Colors.primary, bg: Colors.primaryLight },
+  { label: 'This Month', icon: 'calendar', color: '#7c3aed', bg: '#ede9fe' },
 ];
 
 export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dashboard'>) {
+  const clientsQuery = useQuery({
+    queryKey: queryKeys.clientList(getCurrentCoachCode()),
+    queryFn: () => getClientList(),
+  });
+  const refreshControl = useRefreshControl(clientsQuery);
+  const clients = clientsQuery.data ?? null;
+
+  const clientsErrorMessage =
+    clientsQuery.isError && !clients
+      ? getErrorMessage(clientsQuery.error, 'Could not load client count.')
+      : null;
+
+  const stats: StatCard[] = PLACEHOLDER_STATS.map((s, i) =>
+    i === 0 ? { ...s, value: clients ? String(clients.length) : '—' } : { ...s, value: '—' },
+  );
+  const recentClients = (clients ?? []).slice(0, 3);
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshControl.refreshing}
+          onRefresh={refreshControl.onRefresh}
+          tintColor={Colors.secondary}
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.coachName}>Coach Amit 👋</Text>
+          <Text style={styles.coachName}>Coach 👋</Text>
         </View>
         <TouchableOpacity
           style={styles.notifBtn}
           onPress={() => navigation.navigate('Notifications')}
         >
           <Ionicons name="notifications-outline" size={22} color={Colors.white} />
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>3</Text>
-          </View>
         </TouchableOpacity>
       </View>
 
       <View style={styles.body}>
         {/* Stats Grid */}
         <Text style={styles.sectionTitle}>Overview</Text>
+        {clientsErrorMessage ? <Text style={styles.statsError}>{clientsErrorMessage}</Text> : null}
         <View style={styles.statsGrid}>
           {stats.map((s, i) => (
             <View key={i} style={[styles.statCard, { backgroundColor: s.bg }]}>
@@ -115,42 +123,48 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
         </View>
 
         {/* Recent Clients */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Clients</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Clients')}>
-            <Text style={styles.seeAll}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        {recentClients.map((c, i) => (
-          <TouchableOpacity
-            key={i}
-            style={styles.clientRow}
-            onPress={() => navigation.navigate('ClientDetail', { client: c })}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{c.initials}</Text>
+        {recentClients.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Clients</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Clients')}>
+                <Text style={styles.seeAll}>See All</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.clientInfo}>
-              <Text style={styles.clientName}>{c.name}</Text>
-              <Text style={styles.clientGoal}>{c.goal}</Text>
-            </View>
-            <View
-              style={[
-                styles.statusBadge,
-                c.status === 'Active' ? styles.statusActive : styles.statusWarning,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  c.status === 'Active' ? styles.statusActiveText : styles.statusWarningText,
-                ]}
+            {recentClients.map((c, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.clientRow}
+                onPress={() => navigation.navigate('ClientDetail', { client: c })}
               >
-                {c.status}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{c.initials || '?'}</Text>
+                </View>
+                <View style={styles.clientInfo}>
+                  <Text style={styles.clientName}>{c.name}</Text>
+                  {c.goal ? <Text style={styles.clientGoal}>{c.goal}</Text> : null}
+                </View>
+                {c.status ? (
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      c.status === 'Active' ? styles.statusActive : styles.statusWarning,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        c.status === 'Active' ? styles.statusActiveText : styles.statusWarningText,
+                      ]}
+                    >
+                      {c.status}
+                    </Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -177,18 +191,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { color: Colors.white, fontSize: 9, fontWeight: '700' },
   body: { padding: 20 },
   sectionTitle: {
     fontSize: 16,
@@ -204,6 +206,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   seeAll: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+  statsError: { fontSize: 12, color: Colors.accent, marginBottom: 10, marginTop: -6 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   statCard: {
     width: '47%',

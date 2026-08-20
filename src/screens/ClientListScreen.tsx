@@ -1,29 +1,38 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { getClientList } from '../api/clientApi';
+import { queryKeys } from '../api/queryKeys';
+import { getCurrentCoachCode } from '../auth/session';
+import { useRefreshControl } from '../hooks/useRefreshControl';
+import { getErrorMessage } from '../api/client';
 import type { MainTabScreenProps } from '../types/navigation';
-import type { ClientSummary } from '../types/models';
-
-const clients: Required<ClientSummary>[] = [
-  { id: '1', name: 'Priya Sharma', goal: 'Weight Loss', age: 28, status: 'Active', initials: 'PS' },
-  { id: '2', name: 'Rahul Verma', goal: 'Muscle Gain', age: 32, status: 'Active', initials: 'RV' },
-  {
-    id: '3',
-    name: 'Anjali Mehta',
-    goal: 'Diabetes Care',
-    age: 45,
-    status: 'Checkup Due',
-    initials: 'AM',
-  },
-  { id: '4', name: 'Suresh Patel', goal: 'Weight Loss', age: 38, status: 'Active', initials: 'SP' },
-  { id: '5', name: 'Neha Singh', goal: 'PCOD Management', age: 26, status: 'New', initials: 'NS' },
-  { id: '6', name: 'Vikram Rao', goal: 'Heart Health', age: 52, status: 'Active', initials: 'VR' },
-];
 
 export default function ClientListScreen({ navigation }: MainTabScreenProps<'Clients'>) {
   const [search, setSearch] = useState('');
+
+  const clientsQuery = useQuery({
+    queryKey: queryKeys.clientList(getCurrentCoachCode()),
+    queryFn: () => getClientList(),
+  });
+  const refreshControl = useRefreshControl(clientsQuery);
+  const clients = clientsQuery.data ?? [];
   const filtered = clients.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+
+  const errorMessage = clientsQuery.isError
+    ? getErrorMessage(clientsQuery.error, 'Could not load clients. Pull down to try again.')
+    : null;
 
   return (
     <View style={styles.container}>
@@ -45,60 +54,80 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
           <TextInput
             style={styles.searchInput}
             placeholder="Search clients..."
-            placeholderTextColor={Colors.border}
+            placeholderTextColor={Colors.textLight}
             value={search}
             onChangeText={setSearch}
           />
         </View>
 
-        <Text style={styles.count}>{filtered.length} clients</Text>
+        {clientsQuery.isPending ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
+        ) : errorMessage ? (
+          <Text style={styles.empty}>{errorMessage}</Text>
+        ) : (
+          <>
+            <Text style={styles.count}>{filtered.length} clients</Text>
 
-        <FlatList
-          data={filtered}
-          keyExtractor={item => item.id}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => navigation.navigate('ClientDetail', { client: item })}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{item.initials}</Text>
-              </View>
-              <View style={styles.info}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.meta}>
-                  {item.goal} · Age {item.age}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.badge,
-                  item.status === 'Active' && styles.badgeActive,
-                  item.status === 'Checkup Due' && styles.badgeWarning,
-                  item.status === 'New' && styles.badgeNew,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.badgeText,
-                    item.status === 'Active' && styles.badgeActiveText,
-                    item.status === 'Checkup Due' && styles.badgeWarningText,
-                    item.status === 'New' && styles.badgeNewText,
-                  ]}
+            <FlatList
+              data={filtered}
+              keyExtractor={item => item.id ?? item.name}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshControl.refreshing}
+                  onRefresh={refreshControl.onRefresh}
+                  tintColor={Colors.primary}
+                />
+              }
+              ListEmptyComponent={
+                <Text style={styles.empty}>No clients yet. Tap + to add your first one.</Text>
+              }
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.card}
+                  onPress={() => navigation.navigate('ClientDetail', { client: item })}
                 >
-                  {item.status}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={Colors.border}
-                style={{ marginLeft: 6 }}
-              />
-            </TouchableOpacity>
-          )}
-        />
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{item.initials || '?'}</Text>
+                  </View>
+                  <View style={styles.info}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.meta}>
+                      {item.age ? `Age ${item.age}` : item.goal || ''}
+                    </Text>
+                  </View>
+                  {item.status ? (
+                    <View
+                      style={[
+                        styles.badge,
+                        item.status === 'Active' && styles.badgeActive,
+                        item.status === 'Checkup Due' && styles.badgeWarning,
+                        item.status === 'New' && styles.badgeNew,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          item.status === 'Active' && styles.badgeActiveText,
+                          item.status === 'Checkup Due' && styles.badgeWarningText,
+                          item.status === 'New' && styles.badgeNewText,
+                        ]}
+                      >
+                        {item.status}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={Colors.border}
+                    style={{ marginLeft: 6 }}
+                  />
+                </TouchableOpacity>
+              )}
+            />
+          </>
+        )}
       </View>
     </View>
   );
@@ -167,4 +196,5 @@ const styles = StyleSheet.create({
   badgeActiveText: { color: Colors.secondary },
   badgeWarningText: { color: Colors.accent },
   badgeNewText: { color: Colors.primary },
+  empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

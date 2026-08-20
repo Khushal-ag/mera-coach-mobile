@@ -29,9 +29,7 @@ interface PhaseWizardProps {
   finishButtons?: FinishButtonConfig[];
 }
 
-// A small, self-contained multi-page wizard for a single phase (e.g. Lifestyle's 2 screens,
-// Diet's 3 screens) — same per-screen layout AddClientScreen uses (floating back button,
-// title banner, inline Next/Finish button), just scoped to one phase and one initial form.
+// Self-contained multi-page wizard for a single phase, reusing AddClientScreen's layout.
 export default function PhaseWizard({
   screens,
   initialForm,

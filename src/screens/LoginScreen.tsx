@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
-import { ApiError } from '../api/client';
+import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
@@ -33,9 +33,8 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
     try {
       const session = await login({ userName: email.trim(), password });
       await saveSession(session);
-      navigation.replace('Main');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
+      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +83,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
               <TextInput
                 style={styles.input}
                 placeholder="coach@meracoach.com"
-                placeholderTextColor={Colors.border}
+                placeholderTextColor={Colors.textLight}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -105,7 +104,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Enter your password"
-                placeholderTextColor={Colors.border}
+                placeholderTextColor={Colors.textLight}
                 secureTextEntry={!showPass}
                 value={password}
                 onChangeText={setPassword}

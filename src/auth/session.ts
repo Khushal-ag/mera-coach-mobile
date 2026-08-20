@@ -11,8 +11,7 @@ interface SessionStorage {
   deleteItem(key: string): Promise<void>;
 }
 
-// expo-secure-store isn't available on web; fall back to localStorage there
-// (fine for browser-preview testing — native builds always use SecureStore).
+// expo-secure-store isn't available on web; fall back to localStorage there.
 const storage: SessionStorage =
   Platform.OS === 'web'
     ? {
@@ -30,36 +29,76 @@ const storage: SessionStorage =
         deleteItem: SecureStore.deleteItemAsync,
       };
 
-// In-memory mirror so apiFetch can read the token synchronously without an await on every call.
+// In-memory mirrors so apiFetch can read identity synchronously.
 let currentToken: string | null = null;
+let currentCoachCode: string | undefined;
+let currentCoachId: string | undefined;
 
 export function getCurrentToken(): string | null {
   return currentToken;
 }
 
+export function getCurrentCoachCode(): string | undefined {
+  return currentCoachCode;
+}
+
+export function getCurrentCoachId(): string | undefined {
+  return currentCoachId;
+}
+
+// Minimal pub-sub so AppNavigator can reactively swap screen trees — see useAuthState.ts.
+type Listener = () => void;
+const listeners = new Set<Listener>();
+let initialized = false;
+
+export function subscribeToAuthState(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function isAuthInitialized(): boolean {
+  return initialized;
+}
+
+export function isAuthenticated(): boolean {
+  return currentToken !== null;
+}
+
+function setCurrentIdentity(session: Session | null): void {
+  currentToken = session?.token ?? null;
+  currentCoachCode = session?.coachCode;
+  currentCoachId = session?.coachId;
+  initialized = true;
+  listeners.forEach(listener => listener());
+}
+
 export async function saveSession(session: Session): Promise<void> {
-  currentToken = session.token;
+  setCurrentIdentity(session);
   await storage.setItem(KEY, JSON.stringify(session));
 }
 
 export async function restoreSession(): Promise<Session | null> {
   const raw = await storage.getItem(KEY);
-  if (!raw) return null;
+  if (!raw) {
+    setCurrentIdentity(null);
+    return null;
+  }
   try {
     const session: Session = JSON.parse(raw);
     if (isExpired(session.token)) {
       await clearSession();
       return null;
     }
-    currentToken = session.token;
+    setCurrentIdentity(session);
     return session;
   } catch {
+    setCurrentIdentity(null);
     return null;
   }
 }
 
 export async function clearSession(): Promise<void> {
-  currentToken = null;
+  setCurrentIdentity(null);
   await storage.deleteItem(KEY);
 }
 

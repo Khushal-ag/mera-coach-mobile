@@ -52,7 +52,7 @@ export default function HealthGoalsStep({ form, update }: StepProps<ClientProfil
         <TextInput
           style={styles.textarea}
           placeholder="Any specific preferences, dislikes, meal timing constraints, etc."
-          placeholderTextColor={Colors.border}
+          placeholderTextColor={Colors.textLight}
           multiline
           numberOfLines={4}
           value={form.notes}

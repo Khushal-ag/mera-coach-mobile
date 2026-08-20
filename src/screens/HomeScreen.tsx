@@ -1,13 +1,51 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import { HOME_STATS, COACH_CATEGORIES } from '../data/homeContent';
+import { HOME_STATS, COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
+import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
+import { queryKeys } from '../api/queryKeys';
 import type { RootScreenProps } from '../types/navigation';
+import type { HomeStat } from '../data/homeContent';
 
 export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.coachCategories,
+    queryFn: getCoachCategories,
+  });
+  const coachesQuery = useQuery({
+    queryKey: queryKeys.coachPublicList({}),
+    queryFn: () => getCoachPublicList(),
+  });
+
+  const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
+  const avgRating = useMemo(() => {
+    const rated = (coachesQuery.data?.coaches ?? []).filter(c => c.rating > 0);
+    return rated.length ? rated.reduce((sum, c) => sum + c.rating, 0) / rated.length : null;
+  }, [coachesQuery.data]);
+
+  const stats: HomeStat[] = [
+    ...HOME_STATS,
+    { value: String(categories.length), label: 'Categories' },
+    { value: avgRating != null ? `${avgRating.toFixed(1)}/5` : '—', label: 'Avg. Rating' },
+  ];
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={categoriesQuery.isRefetching || coachesQuery.isRefetching}
+          onRefresh={() => {
+            categoriesQuery.refetch();
+            coachesQuery.refetch();
+          }}
+          tintColor={Colors.secondary}
+        />
+      }
+    >
       {/* Hero */}
       <View style={styles.hero}>
         <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
@@ -26,7 +64,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
           <Text style={styles.heroTitleItalic}>Business</Text>
         </Text>
         <Text style={styles.heroSubtitle}>
-          Manage clients, track progress and build your coaching brand — all in one powerful
+          Manage clients, track progress and build your coaching brand, all in one powerful
           platform.
         </Text>
 
@@ -50,7 +88,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 
       {/* Stats strip */}
       <View style={styles.statsStrip}>
-        {HOME_STATS.map((s, i) => (
+        {stats.map((s, i) => (
           <React.Fragment key={i}>
             {i > 0 && <View style={styles.statDivider} />}
             <View style={styles.statItem}>
@@ -69,11 +107,11 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
         <Text style={styles.sectionTitle}>Coaching for Every Goal</Text>
         <Text style={styles.sectionSubtitle}>
-          Whether it&apos;s weight loss, strength, yoga or dance — find the right coach type.
+          Whether it&apos;s weight loss, strength, yoga or dance, find the right coach type.
         </Text>
 
         <View style={styles.categoryGrid}>
-          {COACH_CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <TouchableOpacity
               key={cat.code}
               style={styles.categoryCard}

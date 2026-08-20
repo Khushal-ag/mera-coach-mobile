@@ -1,7 +1,21 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { getClientDetail } from '../api/clientApi';
+import { queryKeys } from '../api/queryKeys';
+import { useRefreshControl } from '../hooks/useRefreshControl';
+import { getErrorMessage } from '../api/client';
+import { getBmi, getBmiCategory } from '../utils/bmi';
 import type { RootScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
@@ -11,27 +25,72 @@ interface InfoRow {
   value: string;
 }
 
-const infoRows: InfoRow[] = [
-  { label: 'Goal', icon: 'trophy-outline', value: 'Weight Loss' },
-  { label: 'Age', icon: 'calendar-outline', value: '28 years' },
-  { label: 'Height', icon: 'resize-outline', value: '162 cm' },
-  { label: 'Weight', icon: 'scale-outline', value: '72 kg' },
-  { label: 'BMI', icon: 'body-outline', value: '27.4 (Overweight)' },
-  { label: 'Diet Type', icon: 'restaurant-outline', value: 'Vegetarian' },
-  { label: 'Activity', icon: 'walk-outline', value: 'Moderately Active' },
-  { label: 'Next Checkup', icon: 'time-outline', value: '15 Jun 2024' },
-];
-
 export default function ClientDetailScreen({ navigation, route }: RootScreenProps<'ClientDetail'>) {
-  const client = route.params?.client || {
-    name: 'Priya Sharma',
-    initials: 'PS',
-    goal: 'Weight Loss',
-    status: 'Active',
-  };
+  const client = route.params?.client || { name: 'Client', initials: 'CL' };
+
+  const detailQuery = useQuery({
+    queryKey: queryKeys.clientDetail(client.clientCode, client.assessmentCode),
+    queryFn: () =>
+      getClientDetail({ clientCode: client.clientCode, assessmentCode: client.assessmentCode }),
+    enabled: !!client.clientCode,
+  });
+  const refreshControl = useRefreshControl(detailQuery);
+
+  // Only shown with no cached detail — a background refetch failure leaves stale data as-is.
+  const errorMessage =
+    detailQuery.isError && !detailQuery.data
+      ? getErrorMessage(detailQuery.error, 'Could not load client details. Pull down to try again.')
+      : null;
+
+  const infoRows = useMemo<InfoRow[]>(() => {
+    const detail = detailQuery.data;
+    if (!detail) return [];
+    const bmi = getBmi(detail.height ?? '', detail.weight ?? '');
+    const category = getBmiCategory(bmi);
+    return [
+      { label: 'Goal', icon: 'trophy-outline', value: detail.lifestyle?.primaryGoal || '—' },
+      {
+        label: 'Age',
+        icon: 'calendar-outline',
+        value: detail.age != null ? `${detail.age} years` : '—',
+      },
+      {
+        label: 'Height',
+        icon: 'resize-outline',
+        value: detail.height != null ? `${detail.height} cm` : '—',
+      },
+      {
+        label: 'Weight',
+        icon: 'scale-outline',
+        value: detail.weight != null ? `${detail.weight} kg` : '—',
+      },
+      {
+        label: 'BMI',
+        icon: 'body-outline',
+        value: bmi ? `${bmi.toFixed(1)} (${category?.label ?? '—'})` : '—',
+      },
+      {
+        label: 'Diet Type',
+        icon: 'restaurant-outline',
+        value: detail.lifestyle?.foodPreference || '—',
+      },
+      { label: 'Activity', icon: 'walk-outline', value: detail.lifestyle?.physicalActivity || '—' },
+      { label: 'Next Checkup', icon: 'time-outline', value: '—' },
+    ];
+  }, [detailQuery.data]);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshControl.refreshing}
+          onRefresh={refreshControl.onRefresh}
+          tintColor={Colors.secondary}
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -49,24 +108,34 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
           <Text style={styles.avatarText}>{client.initials || 'CL'}</Text>
         </View>
         <Text style={styles.clientName}>{client.name}</Text>
-        <Text style={styles.clientGoal}>{client.goal}</Text>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{client.status || 'Active'}</Text>
-        </View>
+        {client.goal ? <Text style={styles.clientGoal}>{client.goal}</Text> : null}
+        {client.status ? (
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>{client.status}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Info */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Client Information</Text>
-        {infoRows.map((row, i) => (
-          <View key={i} style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name={row.icon} size={16} color={Colors.secondary} />
+        {client.clientCode && detailQuery.isPending ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: 10 }} />
+        ) : errorMessage ? (
+          <Text style={styles.empty}>{errorMessage}</Text>
+        ) : infoRows.length === 0 ? (
+          <Text style={styles.empty}>Details unavailable.</Text>
+        ) : (
+          infoRows.map((row, i) => (
+            <View key={i} style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Ionicons name={row.icon} size={16} color={Colors.secondary} />
+              </View>
+              <Text style={styles.infoLabel}>{row.label}</Text>
+              <Text style={styles.infoValue}>{row.value}</Text>
             </View>
-            <Text style={styles.infoLabel}>{row.label}</Text>
-            <Text style={styles.infoValue}>{row.value}</Text>
-          </View>
-        ))}
+          ))
+        )}
       </View>
 
       {/* Actions */}
@@ -185,6 +254,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: { flex: 1, fontSize: 13, color: Colors.textLight },
   infoValue: { fontSize: 13, fontWeight: '700', color: Colors.textDark },
+  empty: { fontSize: 13, color: Colors.textLight, marginTop: 6 },
   actionRow: { flexDirection: 'row', gap: 8 },
   actionBtn: {
     flex: 1,

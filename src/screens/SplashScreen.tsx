@@ -2,10 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Shadow } from '../constants/theme';
-import { restoreSession } from '../auth/session';
-import type { RootScreenProps } from '../types/navigation';
 
-export default function SplashScreen({ navigation }: RootScreenProps<'Splash'>) {
+export default function SplashScreen() {
   const [fadeAnim] = useState(() => new Animated.Value(0));
   const [scaleAnim] = useState(() => new Animated.Value(0.8));
 
@@ -14,13 +12,7 @@ export default function SplashScreen({ navigation }: RootScreenProps<'Splash'>) 
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }),
     ]).start();
-
-    const timer = setTimeout(async () => {
-      const session = await restoreSession();
-      navigation.replace(session ? 'Main' : 'Home');
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [fadeAnim, navigation, scaleAnim]);
+  }, [fadeAnim, scaleAnim]);
 
   return (
     <View style={styles.container}>

@@ -1,8 +1,21 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { clearSession } from '../auth/session';
+import { getCoachProfile } from '../api/coachApi';
+import { queryKeys } from '../api/queryKeys';
+import { useRefreshControl } from '../hooks/useRefreshControl';
+import { getErrorMessage } from '../api/client';
 import type { MainTabScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
@@ -10,10 +23,11 @@ interface MenuItem {
   icon: IoniconName;
   label: string;
   color: string;
+  disabled?: boolean;
 }
 
 const menuItems: MenuItem[] = [
-  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
+  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary, disabled: true },
   { icon: 'notifications-outline', label: 'Notifications', color: Colors.primary },
   { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7c3aed' },
   { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.accent },
@@ -21,15 +35,39 @@ const menuItems: MenuItem[] = [
   { icon: 'log-out-outline', label: 'Logout', color: '#dc2626' },
 ];
 
-const stats = [
-  { label: 'Clients', value: '48' },
-  { label: 'Leads', value: '12' },
-  { label: 'Experience', value: '5 yrs' },
-];
+export default function CoachProfileScreen(_props: MainTabScreenProps<'Profile'>) {
+  const profileQuery = useQuery({
+    queryKey: queryKeys.coachProfile,
+    queryFn: getCoachProfile,
+  });
+  const profile = profileQuery.data;
+  const refreshControl = useRefreshControl(profileQuery);
 
-export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'Profile'>) {
+  // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
+  const errorMessage =
+    profileQuery.isError && !profile
+      ? getErrorMessage(profileQuery.error, 'Could not load profile. Pull down to try again.')
+      : null;
+
+  const initials =
+    profile?.name
+      .split(' ')
+      .map(w => w[0])
+      .slice(0, 2)
+      .join('') || '?';
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshControl.refreshing}
+          onRefresh={refreshControl.onRefresh}
+          tintColor={Colors.secondary}
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Profile</Text>
@@ -38,42 +76,60 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
         </TouchableOpacity>
       </View>
 
-      {/* Profile Card */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>AC</Text>
-        </View>
-        <Text style={styles.name}>Amit Chaudhary</Text>
-        <Text style={styles.role}>Certified Health Coach</Text>
-        <Text style={styles.location}>
-          <Ionicons name="location-outline" size={12} color={Colors.textLight} /> Mumbai, India
-        </Text>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          {stats.map((s, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <View style={styles.statDivider} />}
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            </React.Fragment>
-          ))}
-        </View>
-      </View>
-
-      {/* Specializations */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Specializations</Text>
-        <View style={styles.tags}>
-          {['Weight Loss', 'Diabetes', 'PCOD', 'Heart Health', 'Sports Nutrition'].map((tag, i) => (
-            <View key={i} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
+      {profileQuery.isPending ? (
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+      ) : errorMessage ? (
+        <Text style={styles.empty}>{errorMessage}</Text>
+      ) : (
+        <>
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
-          ))}
-        </View>
-      </View>
+            <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
+            <Text style={styles.role}>{profile?.category || ''}</Text>
+            {profile?.city ? (
+              <Text style={styles.location}>
+                <Ionicons name="location-outline" size={12} color={Colors.textLight} />{' '}
+                {profile.city}
+              </Text>
+            ) : null}
+
+            {/* Stats Row */}
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{profile?.clients ?? 0}</Text>
+                <Text style={styles.statLabel}>Clients</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{profile?.experience ?? 0} yrs</Text>
+                <Text style={styles.statLabel}>Experience</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{profile?.rating ?? '—'}</Text>
+                <Text style={styles.statLabel}>Rating</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Specializations */}
+          {profile?.tags.length ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Specializations</Text>
+              <View style={styles.tags}>
+                {profile.tags.map(tag => (
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+        </>
+      )}
 
       {/* Menu */}
       <View style={styles.section}>
@@ -81,11 +137,17 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
         {menuItems.map((item, i) => (
           <TouchableOpacity
             key={i}
-            style={[styles.menuItem, item.label === 'Logout' && styles.menuItemLast]}
+            style={[
+              styles.menuItem,
+              item.label === 'Logout' && styles.menuItemLast,
+              item.disabled && styles.menuItemDisabled,
+            ]}
+            disabled={item.disabled}
             onPress={async () => {
               if (item.label !== 'Logout') return;
+              // AppNavigator's useAuthState reacts to the session store and swaps back to
+              // the public screen tree on its own — no navigation call needed here.
               await clearSession();
-              navigation.replace('Login');
             }}
           >
             <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
@@ -94,7 +156,7 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
             <Text style={[styles.menuLabel, item.label === 'Logout' && { color: '#dc2626' }]}>
               {item.label}
             </Text>
-            {item.label !== 'Logout' && (
+            {item.label !== 'Logout' && !item.disabled && (
               <Ionicons name="chevron-forward" size={16} color={Colors.border} />
             )}
           </TouchableOpacity>
@@ -144,7 +206,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarText: { color: Colors.white, fontSize: 28, fontWeight: '800' },
-  name: { fontSize: 20, fontWeight: '800', color: Colors.textDark },
+  name: { fontSize: 20, fontWeight: '800', color: Colors.textDark, textAlign: 'center' },
   role: { fontSize: 13, color: Colors.primary, fontWeight: '600', marginTop: 4 },
   location: { fontSize: 12, color: Colors.textLight, marginTop: 6 },
   statsRow: {
@@ -179,6 +241,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   menuItemLast: { marginTop: 8 },
+  menuItemDisabled: { opacity: 0.5 },
   menuIcon: {
     width: 36,
     height: 36,
@@ -189,4 +252,5 @@ const styles = StyleSheet.create({
   },
   menuLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.textDark },
   version: { textAlign: 'center', color: Colors.textLight, fontSize: 12, paddingVertical: 20 },
+  empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 40 },
 });

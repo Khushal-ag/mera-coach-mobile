@@ -5,9 +5,11 @@
   "dependencies": {
     "@expo/metro-runtime": "~57.0.11",
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/netinfo": "12.0.1",
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.26",
+    "@tanstack/react-query": "^5.101.4",
     "expo": "^57.0.0",
     "expo-crypto": "~57.0.1",
     "expo-font": "~57.0.1",
@@ -41,8 +43,8 @@
     "prebuild": "expo prebuild",
     "doctor": "expo-doctor",
     "lint": "expo lint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check ."
   },
   "private": true
 }

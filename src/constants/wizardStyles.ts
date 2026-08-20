@@ -1,10 +1,7 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 import { Colors, Radius, Shadow } from './theme';
 
-// Shared chrome for the multi-step "wizard" screens (AddClientScreen and PhaseWizard):
-// the floating back button, scrollable body, step title banner and primary Next button.
-// Kept as plain style objects (not StyleSheet.create) so each consumer can spread them
-// into its own StyleSheet.create alongside screen-specific styles.
+// Plain objects, not StyleSheet.create, so consumers can spread these into their own.
 export const wizardShellStyles = {
   container: { flex: 1, backgroundColor: Colors.background },
   floatingBack: {

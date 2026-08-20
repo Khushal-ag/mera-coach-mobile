@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
@@ -23,6 +24,8 @@ import {
   SERVICE_INQUIRY_FALLBACK,
   DUMMY_WHATSAPP_NUMBER,
 } from '../data/coachProfileContent';
+import { submitCoachEnquiry } from '../api/coachApi';
+import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
 
 interface EnquiryForm {
@@ -32,12 +35,15 @@ interface EnquiryForm {
   service: string;
 }
 
+const BLANK_FORM: EnquiryForm = { name: '', mobile: '', email: '', service: '' };
+
 export default function CoachPublicProfileScreen({
   navigation,
   route,
 }: RootScreenProps<'CoachPublicProfile'>) {
   const coach = route.params?.coach || COACHES[0]!;
-  const [form, setForm] = useState<EnquiryForm>({ name: '', mobile: '', email: '', service: '' });
+  const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
+  const [submitting, setSubmitting] = useState(false);
   const update = <K extends keyof EnquiryForm>(key: K, val: EnquiryForm[K]) =>
     setForm(f => ({ ...f, [key]: val }));
 
@@ -54,15 +60,30 @@ export default function CoachPublicProfileScreen({
     });
   };
 
-  const submitEnquiry = () => {
+  const submitEnquiry = async () => {
     if (!form.name.trim()) return Alert.alert('Name is required.');
     if (!form.mobile.trim()) return Alert.alert('Mobile number is required.');
     if (!form.service) return Alert.alert('Please select what you are looking for.');
-    Alert.alert(
-      'Enquiry Sent!',
-      `Your enquiry has been sent to ${coach.name}. They usually reply within 24 hours.`,
-    );
-    setForm({ name: '', mobile: '', email: '', service: '' });
+
+    setSubmitting(true);
+    try {
+      await submitCoachEnquiry({
+        coachCode: coach.id,
+        clientName: form.name.trim(),
+        clientMobile: form.mobile.trim(),
+        clientEmail: form.email.trim() || undefined,
+        lookingFor: form.service,
+      });
+      Alert.alert(
+        'Enquiry Sent!',
+        `Your enquiry has been sent to ${coach.name}. They usually reply within 24 hours.`,
+      );
+      setForm(BLANK_FORM);
+    } catch (err) {
+      Alert.alert('Something went wrong', getErrorMessage(err, 'Please try again.'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -118,7 +139,7 @@ export default function CoachPublicProfileScreen({
           </View>
 
           <View style={styles.heroCtas}>
-            <TouchableOpacity style={styles.bookBtn} onPress={submitEnquiry}>
+            <TouchableOpacity style={styles.bookBtn} onPress={submitEnquiry} disabled={submitting}>
               <Ionicons name="calendar-outline" size={16} color={Colors.white} />
               <Text style={styles.bookBtnText}>Book Free Consultation</Text>
             </TouchableOpacity>
@@ -198,7 +219,7 @@ export default function CoachPublicProfileScreen({
           </View>
           <Text style={styles.sectionTitle}>Book Your Free Consultation</Text>
           <Text style={styles.sectionSubtitle}>
-            {coach.name} personally responds within 24 hours — zero cost, zero commitment.
+            {coach.name} personally responds within 24 hours, zero cost, zero commitment.
           </Text>
 
           <View style={styles.field}>
@@ -206,7 +227,7 @@ export default function CoachPublicProfileScreen({
             <TextInput
               style={styles.input}
               placeholder="Full name"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textLight}
               value={form.name}
               onChangeText={v => update('name', v)}
             />
@@ -216,7 +237,7 @@ export default function CoachPublicProfileScreen({
             <TextInput
               style={styles.input}
               placeholder="+91 98765 00000"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textLight}
               keyboardType="phone-pad"
               value={form.mobile}
               onChangeText={v => update('mobile', v)}
@@ -227,7 +248,7 @@ export default function CoachPublicProfileScreen({
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
               value={form.email}
               onChangeText={v => update('email', v)}
@@ -241,9 +262,15 @@ export default function CoachPublicProfileScreen({
             placeholder="Select a service..."
           />
 
-          <TouchableOpacity style={styles.submitBtn} onPress={submitEnquiry}>
-            <Ionicons name="paper-plane-outline" size={16} color={Colors.white} />
-            <Text style={styles.submitText}>Send My Request — It&apos;s Free!</Text>
+          <TouchableOpacity style={styles.submitBtn} onPress={submitEnquiry} disabled={submitting}>
+            {submitting ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <>
+                <Ionicons name="paper-plane-outline" size={16} color={Colors.white} />
+                <Text style={styles.submitText}>Send My Request, It&apos;s Free!</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.trustRow}>

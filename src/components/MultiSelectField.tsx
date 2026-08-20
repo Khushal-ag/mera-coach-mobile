@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   value: { fontSize: 14, color: Colors.textDark },
-  placeholder: { fontSize: 14, color: Colors.border },
+  placeholder: { fontSize: 14, color: Colors.textLight },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   chip: {
     flexDirection: 'row',

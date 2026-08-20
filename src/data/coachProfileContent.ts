@@ -29,12 +29,12 @@ export const PROCESS_STEPS: ProcessStep[] = [
   {
     num: '01',
     title: 'Free Discovery Call',
-    text: 'We start with a 30-minute call — no cost, no commitment. I understand your goals, lifestyle and any limitations.',
+    text: 'We start with a free 30-minute call, no cost or commitment. I understand your goals, lifestyle and any limitations.',
   },
   {
     num: '02',
     title: 'Personalised Plan',
-    text: 'I build your custom programme from scratch — tailored to your body, schedule and targets.',
+    text: 'I build your custom programme from scratch, tailored to your body, schedule and targets.',
   },
   {
     num: '03',
@@ -76,6 +76,6 @@ export const TESTIMONIALS: Testimonial[] = [
   },
 ];
 
-export const SERVICE_INQUIRY_FALLBACK = 'Not sure yet — need advice';
+export const SERVICE_INQUIRY_FALLBACK = 'Not sure yet, need advice';
 
 export const DUMMY_WHATSAPP_NUMBER = '918218841701';

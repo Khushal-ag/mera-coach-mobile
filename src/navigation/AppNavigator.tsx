@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from '../constants/theme';
+import { useAuthState } from '../auth/useAuthState';
 import type { MainTabParamList, RootStackParamList } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
@@ -51,13 +53,28 @@ function MainTabs() {
           paddingTop: 6,
           height: 62,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { paddingHorizontal: 0 },
+        tabBarIconStyle: { marginBottom: -2 },
         tabBarIcon: ({ focused, color, size }) => {
           const icons = TAB_ICONS[route.name];
           return (
-            <Ionicons name={focused ? icons.active : icons.inactive} size={size} color={color} />
+            <Ionicons
+              name={focused ? icons.active : icons.inactive}
+              size={size - 2}
+              color={color}
+            />
           );
         },
+        tabBarLabel: ({ color }) => (
+          <Text
+            style={{ fontSize: 10, fontWeight: '600', color }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            {route.name}
+          </Text>
+        ),
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
@@ -70,21 +87,43 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
+  const authStatus = useAuthState();
+
+  // Keep splash up for at least 2.5s regardless of how fast the session check resolves.
+  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setMinSplashElapsed(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (authStatus === 'loading' || !minSplashElapsed) {
+    return <SplashScreen />;
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Splash" component={SplashScreen} />
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="CoachList" component={CoachListScreen} />
-      <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen name="Main" component={MainTabs} />
-      <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
-      <Stack.Screen name="AddClient" component={AddClientScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="ClientLifestyle" component={ClientLifestyleScreen} />
-      <Stack.Screen name="ClientDiet" component={ClientDietScreen} />
-      <Stack.Screen name="ClientBmi" component={ClientBmiScreen} />
+      {authStatus === 'signedIn' ? (
+        // Protected screens only register while signed in, so they're unreachable (not just
+        // hidden) when signed out. Must be inlined here, not returned from a sub-component —
+        // React Navigation only reads direct JSX children.
+        <>
+          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
+          <Stack.Screen name="AddClient" component={AddClientScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="ClientLifestyle" component={ClientLifestyleScreen} />
+          <Stack.Screen name="ClientDiet" component={ClientDietScreen} />
+          <Stack.Screen name="ClientBmi" component={ClientBmiScreen} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="CoachList" component={CoachListScreen} />
+          <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }

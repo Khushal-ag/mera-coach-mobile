@@ -13,7 +13,6 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
-  Splash: undefined;
   Home: undefined;
   CoachList: { categoryCode?: string } | undefined;
   CoachPublicProfile: { coach?: Coach } | undefined;

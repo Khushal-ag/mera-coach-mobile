@@ -27,6 +27,8 @@ export interface CoachCategory {
 
 export interface ClientSummary {
   id?: string;
+  clientCode?: string;
+  assessmentCode?: string;
   name: string;
   goal?: string;
   age?: number;
