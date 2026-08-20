@@ -20,7 +20,7 @@ export function createBlankProfile(): ClientProfile {
     physicalActivity: '',
     workType: '',
     sleepDuration: '',
-    pregnancyBf: 'Not Applicable / NA',
+    pregnancyBf: 'Not Applicable',
     foodPreference: '',
     regionalCuisine: '',
     medicalConditions: [],

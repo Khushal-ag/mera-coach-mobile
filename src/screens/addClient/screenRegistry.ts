@@ -3,6 +3,7 @@ import LifestylePreferencesStep from './steps/LifestylePreferencesStep';
 import HealthGoalsStep from './steps/HealthGoalsStep';
 import DietPairStep from './steps/DietPairStep';
 import BmiResultStep from './steps/BmiResultStep';
+import DietPlanStep from './steps/DietPlanStep';
 import type { WizardScreen } from '../../types/wizard';
 
 export interface DietScreenConfig {
@@ -79,5 +80,13 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     subtitle: 'Auto-calculated from height & weight',
     icon: 'checkbox',
     Component: BmiResultStep,
+  },
+  dietPlanGenerate: {
+    id: 'dietPlanGenerate',
+    phaseId: 'dietPlan',
+    title: 'AI Diet Plan',
+    subtitle: 'Optional — generate a suggested weekly plan',
+    icon: 'sparkles',
+    Component: DietPlanStep,
   },
 };

@@ -1,6 +1,8 @@
 import { apiFetch } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
+import { hashPassword } from '../utils/hash';
 import type { Coach, CoachCategory } from '../types/models';
+import type { MasterOption } from './masterApi';
 
 interface MasterItem {
   itemCode: string;
@@ -60,6 +62,7 @@ interface RawPublicCoach {
   coachTypeCode: string;
   coachTypeName: string;
   city_Cd?: string;
+  country_Cd?: string;
   experienceYears?: number;
   happyClientCount?: number;
   coachDesc?: string;
@@ -83,6 +86,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     reviews: raw.reviewCount ?? 0,
     experience: raw.experienceYears ?? 0,
     city: raw.city_Cd ?? '',
+    country: raw.country_Cd,
     online: false, // no live presence field on the backend
 
     bio: raw.coachDesc ?? '',
@@ -112,10 +116,84 @@ export async function getCoachPublicList(
   };
 }
 
-// VERIFY: response shape assumed to match /Coach/public — not independently confirmed.
 export async function getCoachProfile(): Promise<Coach> {
   const raw = await apiFetch<RawPublicCoach>('/v{version}/Coach/profile');
   return mapPublicCoach(raw);
+}
+
+// Confirmed against a live GET /Coach/profile response — carries the edit-relevant fields
+// (mobile, address, service codes, image URLs) that mapPublicCoach's public-facing Coach
+// model deliberately leaves out.
+interface RawCoachProfileFull {
+  coachId?: number;
+  coachCode?: string;
+  coachName?: string;
+  coachTypeCode?: string;
+  mobile?: string;
+  email?: string;
+  businessName?: string;
+  serviceCodes?: string[];
+  experienceYears?: number;
+  happyClientCount?: number;
+  tagline?: string;
+  locality?: string;
+  add_Line?: string;
+  city_Cd?: string;
+  state_Cd?: string;
+  pinCode?: string;
+  country_Cd?: string;
+  logo_Url?: string;
+  profile_Pic_Url?: string;
+  coachDesc?: string;
+}
+
+export interface CoachProfileFull {
+  coachId: number;
+  coachCode: string;
+  coachName: string;
+  coachTypeCode: string;
+  mobile: string;
+  email: string;
+  businessName: string;
+  serviceCodes: string[];
+  experienceYears: number;
+  happyClientCount: number;
+  tagline: string;
+  locality: string;
+  addLine: string;
+  cityCd: string;
+  stateCd: string;
+  pinCode: string;
+  countryCd: string;
+  logoUrl: string;
+  profilePicUrl: string;
+  coachDesc: string;
+}
+
+export async function getCoachProfileFull(): Promise<CoachProfileFull> {
+  const raw = await apiFetch<RawCoachProfileFull>('/v{version}/Coach/profile');
+  return {
+    coachId: raw.coachId ?? 0,
+    coachCode: raw.coachCode ?? '',
+    coachName: raw.coachName ?? '',
+    coachTypeCode: raw.coachTypeCode ?? '',
+    mobile: raw.mobile ?? '',
+    email: raw.email ?? '',
+    businessName: raw.businessName ?? '',
+    serviceCodes: raw.serviceCodes ?? [],
+    experienceYears: raw.experienceYears ?? 0,
+    happyClientCount: raw.happyClientCount ?? 0,
+    tagline: raw.tagline ?? '',
+    locality: raw.locality ?? '',
+    addLine: raw.add_Line ?? '',
+    cityCd: raw.city_Cd ?? '',
+    stateCd: raw.state_Cd ?? '',
+    pinCode: raw.pinCode ?? '',
+    countryCd: raw.country_Cd ?? '',
+    logoUrl: raw.logo_Url ?? '',
+    profilePicUrl: raw.profile_Pic_Url ?? '',
+    coachDesc: raw.coachDesc ?? '',
+  };
 }
 
 export interface CoachEnquiryParams {
@@ -130,5 +208,61 @@ export async function submitCoachEnquiry(params: CoachEnquiryParams): Promise<vo
   await apiFetch('/v{version}/Coach/enquiry', {
     method: 'POST',
     body: JSON.stringify(params),
+  });
+}
+
+export async function getServicesForCategory(categoryCode: string): Promise<MasterOption[]> {
+  if (!categoryCode) return [];
+  const query = new URLSearchParams({ itemType: 'Service', filterText: categoryCode });
+  const items = await apiFetch<MasterItem[]>(
+    `/v{version}/Master/GetMasterItem?${query.toString()}`,
+  );
+  return (items || []).map(i => ({ code: i.itemCode, label: i.itemName }));
+}
+
+export interface SaveCoachProfileParams {
+  coachId: number;
+  coachName: string;
+  coachTypeCode: string;
+  mobile: string;
+  email: string;
+  businessName?: string;
+  serviceCodes: string[];
+  experienceYears?: number;
+  happyClientCount?: number;
+  tagline?: string;
+  locality?: string;
+  add_Line?: string;
+  city_Cd?: string;
+  state_Cd?: string;
+  pinCode?: string;
+  country_Cd?: string;
+  logo_Url?: string;
+  profile_Pic_Url?: string;
+  coachDesc?: string;
+}
+
+export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
+  await apiFetch('/v{version}/Coach/save', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export interface ChangePasswordParams {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// VERIFY: currentPassword/newPassword are hashed the same way login() hashes its password
+// (matching CoachBLL.HashPassword) — not independently confirmed against a real call, since
+// that needs a bearer token and a real current password to test.
+export async function changePassword(params: ChangePasswordParams): Promise<void> {
+  await apiFetch('/v{version}/Coach/change-password', {
+    method: 'PUT',
+    body: JSON.stringify({
+      currentPassword: await hashPassword(params.currentPassword),
+      newPassword: await hashPassword(params.newPassword),
+    }),
   });
 }

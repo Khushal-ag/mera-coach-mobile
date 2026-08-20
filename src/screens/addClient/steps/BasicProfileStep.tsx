@@ -15,6 +15,13 @@ interface FieldProps {
   update: UpdateFn<ClientProfile>;
 }
 
+// Stored as 'M'/'F' — the backend's gender field (save-client-detail, generate-diet-plan) and
+// this app's own BMI formulas (utils/bmi.ts) both expect these codes, not the display words.
+const GENDER_OPTIONS = [
+  { value: 'M', label: 'Male' },
+  { value: 'F', label: 'Female' },
+];
+
 function Field({ label, icon, field, placeholder, keyboardType, form, update }: FieldProps) {
   return (
     <View style={styles.field}>
@@ -79,14 +86,14 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
         <View style={styles.half}>
           <Text style={styles.label}>Gender</Text>
           <View style={styles.pickerRow}>
-            {['Male', 'Female'].map(opt => (
+            {GENDER_OPTIONS.map(opt => (
               <TouchableOpacity
-                key={opt}
-                style={[styles.pill, form.gender === opt && styles.pillActive]}
-                onPress={() => update('gender', opt)}
+                key={opt.value}
+                style={[styles.pill, form.gender === opt.value && styles.pillActive]}
+                onPress={() => update('gender', opt.value)}
               >
-                <Text style={[styles.pillText, form.gender === opt && styles.pillActiveText]}>
-                  {opt}
+                <Text style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}>
+                  {opt.label}
                 </Text>
               </TouchableOpacity>
             ))}

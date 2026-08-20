@@ -34,6 +34,7 @@ export const COACH_TYPES: Record<string, CoachTypeConfig> = {
         screens: ['dietMorning', 'dietMidday', 'dietEvening'],
       },
       { id: 'bmiResult', label: 'BMI Summary', icon: 'checkbox', screens: ['bmiResult'] },
+      { id: 'dietPlan', label: 'AI Diet Plan', icon: 'sparkles', screens: ['dietPlanGenerate'] },
     ],
   },
 };

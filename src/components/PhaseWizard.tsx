@@ -7,24 +7,26 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { wizardShellStyles } from '../constants/wizardStyles';
+import { getErrorMessage } from '../api/client';
 import type { ClientProfile } from '../types/models';
 import type { IoniconName, WizardScreen } from '../types/wizard';
 
 export interface FinishButtonConfig {
   label: string;
   icon: IoniconName;
-  onPress: (form: ClientProfile) => void;
+  onPress: (form: ClientProfile) => void | Promise<void>;
 }
 
 interface PhaseWizardProps {
   screens: WizardScreen[];
   initialForm: ClientProfile;
   finishLabel?: string;
-  onFinish?: (form: ClientProfile) => void;
+  onFinish?: (form: ClientProfile) => void | Promise<void>;
   onExit?: () => void;
   finishButtons?: FinishButtonConfig[];
 }
@@ -40,6 +42,8 @@ export default function PhaseWizard({
 }: PhaseWizardProps) {
   const [index, setIndex] = useState(0);
   const [form, setForm] = useState<ClientProfile>(initialForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) =>
     setForm(f => ({ ...f, [key]: val }));
@@ -48,6 +52,18 @@ export default function PhaseWizard({
   if (!screen) return null;
   const StepComponent = screen.Component;
   const isLast = index === screens.length - 1;
+
+  const runAction = async (action: (form: ClientProfile) => void | Promise<void>) => {
+    setError('');
+    setSaving(true);
+    try {
+      await action(form);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -80,6 +96,13 @@ export default function PhaseWizard({
             </View>
           </View>
 
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={18} color={Colors.primary} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
           <StepComponent form={form} update={update} {...(screen.componentProps || {})} />
 
           {isLast && finishButtons ? (
@@ -90,31 +113,48 @@ export default function PhaseWizard({
                   style={[
                     styles.finishBtn,
                     i === 0 ? styles.finishBtnPrimary : styles.finishBtnSecondary,
+                    saving && styles.finishBtnDisabled,
                   ]}
-                  onPress={() => btn.onPress(form)}
+                  onPress={() => runAction(btn.onPress)}
+                  disabled={saving}
                 >
-                  <Ionicons
-                    name={btn.icon}
-                    size={17}
-                    color={i === 0 ? Colors.white : Colors.primary}
-                  />
-                  <Text style={i === 0 ? styles.finishTextPrimary : styles.finishTextSecondary}>
-                    {btn.label}
-                  </Text>
+                  {saving ? (
+                    <ActivityIndicator color={i === 0 ? Colors.white : Colors.primary} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={btn.icon}
+                        size={17}
+                        color={i === 0 ? Colors.white : Colors.primary}
+                      />
+                      <Text style={i === 0 ? styles.finishTextPrimary : styles.finishTextSecondary}>
+                        {btn.label}
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
             <TouchableOpacity
-              style={styles.nextBtn}
-              onPress={() => (isLast ? onFinish?.(form) : setIndex(i => i + 1))}
+              style={[styles.nextBtn, saving && styles.nextBtnDisabled]}
+              onPress={() =>
+                isLast ? (onFinish ? runAction(onFinish) : undefined) : setIndex(i => i + 1)
+              }
+              disabled={saving}
             >
-              <Text style={styles.nextText}>{isLast ? finishLabel : 'Next'}</Text>
-              <Ionicons
-                name={isLast ? 'checkmark' : 'arrow-forward'}
-                size={18}
-                color={Colors.white}
-              />
+              {saving ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <>
+                  <Text style={styles.nextText}>{isLast ? finishLabel : 'Next'}</Text>
+                  <Ionicons
+                    name={isLast ? 'checkmark' : 'arrow-forward'}
+                    size={18}
+                    color={Colors.white}
+                  />
+                </>
+              )}
             </TouchableOpacity>
           )}
         </ScrollView>
@@ -125,6 +165,18 @@ export default function PhaseWizard({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.sm,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
+  nextBtnDisabled: { opacity: 0.7 },
+  finishBtnDisabled: { opacity: 0.7 },
   finishRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
   finishBtn: {
     flex: 1,

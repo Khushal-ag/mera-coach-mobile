@@ -18,7 +18,7 @@ export const wizardShellStyles = {
     ...Shadow.md,
   },
   body: { flex: 1 },
-  bodyContent: { padding: 20, paddingTop: 70, paddingBottom: 40 },
+  bodyContent: { padding: 20, paddingTop: 100, paddingBottom: 40 },
   stepBanner: {
     flexDirection: 'row',
     alignItems: 'center',

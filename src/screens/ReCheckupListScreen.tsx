@@ -97,7 +97,10 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={[styles.checkBtn, item.overdue && styles.checkBtnOverdue]}>
+              <TouchableOpacity
+                style={[styles.checkBtn, item.overdue && styles.checkBtnOverdue]}
+                onPress={() => navigation.navigate('ClientBmi', { client: item })}
+              >
                 <Ionicons
                   name="clipboard"
                   size={16}

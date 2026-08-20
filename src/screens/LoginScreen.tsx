@@ -52,6 +52,9 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={Colors.white} />
+          </TouchableOpacity>
           <View style={styles.logoBox}>
             <Ionicons name="fitness" size={32} color={Colors.white} />
           </View>
@@ -119,10 +122,6 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.forgotBtn}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.loginBtn, submitting && styles.loginBtnDisabled]}
             onPress={handleLogin}
@@ -155,6 +154,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.secondary },
   inner: { flexGrow: 1, alignItems: 'center', paddingBottom: 30 },
   header: { alignItems: 'center', paddingTop: 80, paddingBottom: 40 },
+  backBtn: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   logoBox: {
     width: 72,
     height: 72,
@@ -206,8 +216,6 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 14, color: Colors.textDark },
   eyeBtn: { padding: 4 },
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: 20 },
-  forgotText: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
   loginBtn: {
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,

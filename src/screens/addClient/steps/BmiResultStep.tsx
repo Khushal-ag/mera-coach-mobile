@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../../../constants/theme';
-import { getBmi, getBmiCategory } from '../../../utils/bmi';
+import { getBmiCategory, computeBmiMetrics } from '../../../utils/bmi';
+import type { BodyMetrics } from '../../../utils/bmi';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
@@ -13,22 +14,50 @@ interface MetricTile {
   caption: string;
 }
 
-const METRIC_TILES: MetricTile[] = [
-  { icon: '❤️', value: '32.5%', label: 'Body Fat', caption: 'Deurenberg formula' },
-  { icon: '🔥', value: '17', label: 'Visceral Fat', caption: 'Level 1-59 (normal: 1-12)' },
-  { icon: '💪', value: '29.5%', label: 'Skeletal Muscle', caption: 'Hume LBM formula' },
-  { icon: '⚡', value: '1685 kcal', label: 'Resting Metabolism', caption: 'Mifflin-St Jeor' },
-  { icon: '📅', value: '31 yrs', label: 'Body Age', caption: 'Based on fat% vs ideal' },
-];
+function tilesFor(metrics: BodyMetrics | null): MetricTile[] {
+  return [
+    {
+      icon: '❤️',
+      value: metrics ? `${metrics.bodyFatPct}%` : '--',
+      label: 'Body Fat',
+      caption: 'Deurenberg formula',
+    },
+    {
+      icon: '🔥',
+      value: metrics ? String(metrics.visceralFat) : '--',
+      label: 'Visceral Fat',
+      caption: 'Level 1-59 (normal: 1-12)',
+    },
+    {
+      icon: '💪',
+      value: metrics ? `${metrics.skeletalMusclePct}%` : '--',
+      label: 'Skeletal Muscle',
+      caption: 'Hume LBM formula',
+    },
+    {
+      icon: '⚡',
+      value: metrics ? `${metrics.restingMetabolism} kcal` : '--',
+      label: 'Resting Metabolism',
+      caption: 'Mifflin-St Jeor',
+    },
+    {
+      icon: '📅',
+      value: metrics ? `${metrics.bodyAge} yrs` : '--',
+      label: 'Body Age',
+      caption: 'Based on fat% vs ideal',
+    },
+  ];
+}
 
 export default function BmiResultStep({ form, update }: StepProps<ClientProfile>) {
-  const bmi = getBmi(form.height, form.weight);
-  const category = getBmiCategory(bmi);
+  const metrics = computeBmiMetrics(form);
+  const category = getBmiCategory(metrics?.bmi ?? null);
+  const tiles = tilesFor(metrics);
 
   return (
     <View>
       <View style={styles.bmiCard}>
-        <Text style={styles.bmiValue}>{bmi ? bmi.toFixed(1) : '--'}</Text>
+        <Text style={styles.bmiValue}>{metrics ? metrics.bmi.toFixed(1) : '--'}</Text>
         {category && (
           <View style={[styles.categoryBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
             <Text style={styles.categoryText}>{category.label}</Text>
@@ -37,8 +66,14 @@ export default function BmiResultStep({ form, update }: StepProps<ClientProfile>
         <Text style={styles.bmiCaption}>Body Mass Index (BMI)</Text>
       </View>
 
+      {!metrics && (
+        <Text style={styles.hint}>
+          Enter age, gender, height and weight in Step 1 to calculate these metrics.
+        </Text>
+      )}
+
       <View style={styles.tilesGrid}>
-        {METRIC_TILES.map((t, i) => (
+        {tiles.map((t, i) => (
           <View key={i} style={styles.tile}>
             <Text style={styles.tileIcon}>{t.icon}</Text>
             <Text style={styles.tileValue}>{t.value}</Text>
@@ -79,6 +114,7 @@ const styles = StyleSheet.create({
   },
   categoryText: { color: Colors.white, fontSize: 12, fontWeight: '700' },
   bmiCaption: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 10 },
+  hint: { fontSize: 12, color: Colors.textLight, marginBottom: 12, fontStyle: 'italic' },
   tilesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   tile: {
     width: '47%',

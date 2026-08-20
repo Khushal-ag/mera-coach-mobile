@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { Dimensions, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +26,11 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import ClientLifestyleScreen from '../screens/clientDetail/ClientLifestyleScreen';
 import ClientDietScreen from '../screens/clientDetail/ClientDietScreen';
 import ClientBmiScreen from '../screens/clientDetail/ClientBmiScreen';
+import ClientBmiReportScreen from '../screens/clientDetail/ClientBmiReportScreen';
+import ClientDietPlanScreen from '../screens/clientDetail/ClientDietPlanScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import LegalScreen from '../screens/LegalScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -38,7 +43,16 @@ const TAB_ICONS: Record<keyof MainTabParamList, { active: IoniconName; inactive:
   Profile: { active: 'person-circle', inactive: 'person-circle-outline' },
 };
 
+const TAB_COUNT = Object.keys(TAB_ICONS).length;
+
 function MainTabs() {
+  // The bottom-tabs library's internal per-item minWidth can, on narrow screens, force the
+  // 5-item row wider than the viewport — the outer tabs then overflow past the screen edges
+  // (middle tabs mask their own overflow against neighboring white backgrounds, so only the
+  // leftmost/rightmost labels visibly clip). Pinning an explicit width bypasses that minWidth
+  // entirely, guaranteeing an even 1/5 split regardless of screen size.
+  const tabWidth = Dimensions.get('window').width / TAB_COUNT;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -53,7 +67,7 @@ function MainTabs() {
           paddingTop: 6,
           height: 62,
         },
-        tabBarItemStyle: { paddingHorizontal: 0 },
+        tabBarItemStyle: { width: tabWidth, paddingHorizontal: 0 },
         tabBarIconStyle: { marginBottom: -2 },
         tabBarIcon: ({ focused, color, size }) => {
           const icons = TAB_ICONS[route.name];
@@ -69,6 +83,7 @@ function MainTabs() {
           <Text
             style={{ fontSize: 10, fontWeight: '600', color }}
             numberOfLines={1}
+            allowFontScaling={false}
             adjustsFontSizeToFit
             minimumFontScale={0.7}
           >
@@ -114,6 +129,11 @@ export default function AppNavigator() {
           <Stack.Screen name="ClientLifestyle" component={ClientLifestyleScreen} />
           <Stack.Screen name="ClientDiet" component={ClientDietScreen} />
           <Stack.Screen name="ClientBmi" component={ClientBmiScreen} />
+          <Stack.Screen name="ClientBmiReport" component={ClientBmiReportScreen} />
+          <Stack.Screen name="ClientDietPlan" component={ClientDietPlanScreen} />
+          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <Stack.Screen name="Legal" component={LegalScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         </>
       ) : (
         <>

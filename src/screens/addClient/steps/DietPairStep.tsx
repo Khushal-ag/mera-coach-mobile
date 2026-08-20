@@ -1,17 +1,54 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Colors, Radius, Shadow } from '../../../constants/theme';
 import FoodItemChip from '../../../components/FoodItemChip';
-import { MEAL_SLOTS, FOOD_CATALOG } from '../../../data/dietCatalog';
+import { MEAL_SLOTS } from '../../../data/dietCatalog';
+import { MEAL_SLOT_TO_API_LABEL } from '../../../data/mealSlotLabels';
+import { getFoodMaster, getFoodCalories } from '../../../api/masterApi';
+import { getCoachProfile } from '../../../api/coachApi';
+import { queryKeys } from '../../../api/queryKeys';
 import type { ClientProfile, DietItem } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
+import type { FoodMasterItem } from '../../../api/masterApi';
 
 interface DietPairStepProps extends StepProps<ClientProfile> {
   slotIds: string[];
 }
 
+function passesFoodTypeFilter(cat: FoodMasterItem['cat'], foodType: string): boolean {
+  if (!foodType) return true;
+  if (foodType === 'Vegetarian') return cat === 'veg' || cat === 'vegan';
+  if (foodType === 'Vegan') return cat === 'vegan';
+  if (foodType === 'Eggetarian') return cat !== 'nonveg';
+  return true;
+}
+
 export default function DietPairStep({ form, update, slotIds }: DietPairStepProps) {
   const [pickerSlot, setPickerSlot] = useState<string | null>(null);
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const coachProfileQuery = useQuery({
+    queryKey: queryKeys.coachProfile,
+    queryFn: getCoachProfile,
+  });
+  const country = coachProfileQuery.data?.country || 'India';
+
+  const foodMasterQuery = useQuery({
+    queryKey: ['foodMaster', country, form.regionalCuisine],
+    queryFn: () => getFoodMaster(country, form.regionalCuisine),
+  });
 
   const setItems = (slotId: string, newItems: DietItem[]) =>
     update('diet', { ...form.diet, [slotId]: newItems });
@@ -19,7 +56,6 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
   const addItem = (slotId: string, food: { name: string; kcal: number }) => {
     const items = form.diet[slotId] || [];
     setItems(slotId, [...items, { name: food.name, qty: 1, kcal: food.kcal }]);
-    setPickerSlot(null);
   };
 
   const updateQty = (slotId: string, index: number, qty: number) => {
@@ -35,6 +71,33 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
     items.splice(index, 1);
     setItems(slotId, items);
   };
+
+  const closePicker = () => {
+    setPickerSlot(null);
+    setAiQuery('');
+    setAiError('');
+  };
+
+  const askAi = async () => {
+    if (!pickerSlot || !aiQuery.trim()) return;
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const cal = await getFoodCalories(aiQuery.trim(), 1);
+      addItem(pickerSlot, { name: aiQuery.trim(), kcal: cal });
+      closePicker();
+    } catch {
+      setAiError('Could not look up calories. Try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const pickerItems = pickerSlot
+    ? (foodMasterQuery.data?.[MEAL_SLOT_TO_API_LABEL[pickerSlot] ?? ''] || []).filter(item =>
+        passesFoodTypeFilter(item.cat, form.foodPreference),
+      )
+    : [];
 
   return (
     <View>
@@ -71,30 +134,52 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
 
       <Text style={styles.note}>* Calories are approximate. Leave blank if unknown.</Text>
 
-      <Modal
-        visible={!!pickerSlot}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPickerSlot(null)}
-      >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={() => setPickerSlot(null)}
-        >
+      <Modal visible={!!pickerSlot} transparent animationType="fade" onRequestClose={closePicker}>
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closePicker}>
           <View style={styles.sheet} onStartShouldSetResponder={() => true}>
             <Text style={styles.sheetTitle}>Add Food Item</Text>
             <ScrollView style={styles.optionList} showsVerticalScrollIndicator={false}>
-              {FOOD_CATALOG.map(food => (
-                <TouchableOpacity
-                  key={food.name}
-                  style={styles.option}
-                  onPress={() => pickerSlot && addItem(pickerSlot, food)}
-                >
-                  <Text style={styles.optionText}>{food.name}</Text>
-                  <Text style={styles.optionKcal}>{food.kcal} kcal</Text>
-                </TouchableOpacity>
-              ))}
+              {foodMasterQuery.isPending ? (
+                <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
+              ) : (
+                pickerItems.map(food => (
+                  <TouchableOpacity
+                    key={food.id}
+                    style={styles.option}
+                    onPress={() => {
+                      if (pickerSlot) addItem(pickerSlot, { name: food.name, kcal: food.cal });
+                      closePicker();
+                    }}
+                  >
+                    <Text style={styles.optionText}>{food.name}</Text>
+                    <Text style={styles.optionKcal}>{food.cal} kcal</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+              {!foodMasterQuery.isPending && pickerItems.length === 0 ? (
+                <Text style={styles.noFoods}>No foods available for this filter.</Text>
+              ) : null}
+
+              <View style={styles.aiRow}>
+                <Text style={styles.aiLabel}>✨ Ask AI about calories</Text>
+                <View style={styles.aiInputRow}>
+                  <TextInput
+                    style={styles.aiInput}
+                    placeholder="e.g. Grilled chicken sandwich"
+                    placeholderTextColor={Colors.textLight}
+                    value={aiQuery}
+                    onChangeText={setAiQuery}
+                  />
+                  <TouchableOpacity style={styles.aiBtn} onPress={askAi} disabled={aiLoading}>
+                    {aiLoading ? (
+                      <ActivityIndicator color={Colors.white} size="small" />
+                    ) : (
+                      <Text style={styles.aiBtnText}>Add</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {aiError ? <Text style={styles.aiError}>{aiError}</Text> : null}
+              </View>
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -153,4 +238,32 @@ const styles = StyleSheet.create({
   },
   optionText: { fontSize: 14, color: Colors.textDark },
   optionKcal: { fontSize: 12, color: Colors.textLight, fontWeight: '600' },
+  noFoods: { fontSize: 13, color: Colors.textLight, textAlign: 'center', paddingVertical: 16 },
+  aiRow: {
+    marginTop: 12,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.background,
+  },
+  aiLabel: { fontSize: 13, fontWeight: '700', color: Colors.secondary, marginBottom: 8 },
+  aiInputRow: { flexDirection: 'row', gap: 8 },
+  aiInput: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 12,
+    height: 44,
+    fontSize: 14,
+    color: Colors.textDark,
+  },
+  aiBtn: {
+    backgroundColor: Colors.secondary,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiBtnText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+  aiError: { fontSize: 12, color: Colors.primary, marginTop: 6 },
 });

@@ -15,3 +15,100 @@ export function getBmiCategory(bmi: number | null): BmiCategory | null {
   if (bmi < 30) return { label: 'Overweight', color: Colors.accent, bg: Colors.accentLight };
   return { label: 'Obese', color: Colors.primary, bg: Colors.primaryLight };
 }
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+export interface BodyMetrics {
+  bmi: number;
+  bmiCategory: string;
+  bodyFatPct: number;
+  visceralFat: number;
+  skeletalMusclePct: number;
+  restingMetabolism: number;
+  bodyAge: number;
+}
+
+interface BodyMetricsInput {
+  weight: number;
+  height: number;
+  age: number;
+  gender: string;
+}
+
+// Matches the backend's expected save-bmi metrics exactly, coefficient-for-coefficient —
+// ported from the website's renderBmi() (AddClient.cshtml), the same formulas save-bmi is
+// built around.
+export function computeBodyMetrics({ weight, height, age, gender }: BodyMetricsInput): BodyMetrics {
+  const isMale = gender === 'M';
+  const heightM = height / 100;
+
+  const bmi = round1(weight / (heightM * heightM));
+  const bmiCategory = getBmiCategory(bmi)?.label ?? '';
+
+  // Body Fat % — Deurenberg 1991
+  const sexFactor = isMale ? 1.0 : 0.0;
+  const bodyFatPct = clamp(round1(1.2 * bmi + 0.23 * age - 10.8 * sexFactor - 5.4), 3, 60);
+
+  // Visceral Fat (1–59 scale)
+  const visceralFat = Math.round(clamp(0.59 * bmi + 0.097 * age - (isMale ? 6.5 : 8.5), 1, 59));
+
+  // Skeletal Muscle % — Hume LBM
+  const lbm = isMale
+    ? 0.3281 * weight + 0.3393 * height - 29.5336
+    : 0.2994 * weight + 0.7058 * height - 14.6712;
+  const skeletalMusclePct = clamp(round1(((lbm * 0.5) / weight) * 100), 20, 60);
+
+  // Resting Metabolism (BMR) — Mifflin-St Jeor
+  const restingMetabolism = Math.round(10 * weight + 6.25 * height - 5 * age + (isMale ? 5 : -161));
+
+  // Body Age
+  const idealFat = isMale
+    ? age < 30
+      ? 15
+      : age < 40
+        ? 17
+        : age < 50
+          ? 20
+          : 22
+    : age < 30
+      ? 22
+      : age < 40
+        ? 24
+        : age < 50
+          ? 27
+          : 30;
+  const bodyAge = Math.round(clamp(age + (bodyFatPct - idealFat) * 0.5, 5, 80));
+
+  return {
+    bmi,
+    bmiCategory,
+    bodyFatPct,
+    visceralFat,
+    skeletalMusclePct,
+    restingMetabolism,
+    bodyAge,
+  };
+}
+
+interface ProfileLike {
+  weight: string;
+  height: string;
+  age: string;
+  gender: string;
+}
+
+// Returns null (rather than computing on partial/zero data) until all 4 inputs are present —
+// matches the website's renderBmi(), which shows a "please complete Step 1" prompt instead.
+export function computeBmiMetrics(profile: ProfileLike): BodyMetrics | null {
+  const weight = parseFloat(profile.weight);
+  const height = parseInt(profile.height, 10);
+  const age = parseInt(profile.age, 10);
+  if (!weight || !height || !age || !profile.gender) return null;
+  return computeBodyMetrics({ weight, height, age, gender: profile.gender });
+}

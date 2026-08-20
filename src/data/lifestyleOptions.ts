@@ -1,4 +1,20 @@
-export const FOOD_PREFERENCES = ['Vegetarian', 'Non-Vegetarian', 'Eggetarian', 'Vegan'];
+// Param codes for the live PARAMLIST-backed dropdowns (see api/masterApi.ts's getParamList).
+export const PARAM_CODES = {
+  foodPreference: 'PC001',
+  regionalCuisine: 'PC002',
+  physicalActivity: 'PC003',
+  workType: 'PC004',
+  sleepDuration: 'PC005',
+  pregnancy: 'PC006',
+  primaryGoal: 'PC007',
+  targetTimeline: 'PC008',
+  medicalConditions: 'PC009',
+  foodAllergies: 'PC010',
+} as const;
+
+// Offline fallbacks — confirmed against a live GetMasterItem?ItemType=PARAMLIST call per code
+// above, so they match the backend's exact vocabulary until a live fetch replaces them.
+export const FOOD_PREFERENCES = ['Vegetarian', 'Vegan', 'Eggetarian', 'Non-Vegetarian'];
 
 export const REGIONAL_CUISINES = [
   'North Indian',
@@ -6,67 +22,79 @@ export const REGIONAL_CUISINES = [
   'East Indian',
   'West Indian',
   'Continental',
+  'Mixed',
 ];
 
 export const PHYSICAL_ACTIVITY_LEVELS = [
-  'Sedentary (No exercise)',
-  'Light (1-2 days/week)',
-  'Moderate (3-4 days/week)',
-  'Active (5-6 days/week)',
-  'Very Active (Athlete)',
+  'Sedentary (little or no exercise)',
+  'Lightly Active (1-3 days/week)',
+  'Moderately Active (3-5 days/week)',
+  'Very Active (6-7 days/week)',
+  'Extra Active (physical job)',
 ];
 
 export const WORK_TYPES = [
-  'Desk Job (Sitting most of day)',
-  'Field Job (Standing/Walking)',
-  'Physical Labor',
-  'Home Maker',
+  'Desk Job (Sitting)',
+  'Field Job (Standing/Moving)',
+  'Physical Labour',
+  'Work from Home',
+  'Homemaker',
   'Student',
 ];
 
 export const SLEEP_DURATIONS = [
-  'Less than 5 hours',
-  '5-6 hours',
-  '6-8 hours (Ideal)',
-  'More than 8 hours',
+  'Less than 5 hrs',
+  '5-6 hrs',
+  '6-7 hrs',
+  '7-8 hrs',
+  'More than 8 hrs',
 ];
 
 export const PREGNANCY_BF_OPTIONS = [
-  'Not Applicable / NA',
+  'Not Applicable',
   'Pregnant',
   'Breastfeeding',
   'Planning Pregnancy',
 ];
 
 export const MEDICAL_CONDITIONS = [
-  'None of the above',
-  'Diabetes (Type 1)',
   'Diabetes (Type 2)',
-  'Hypertension',
-  'Thyroid',
-  'PCOD/PCOS',
+  'Diabetes (Type 1)',
+  'High Blood Pressure',
+  'Low Blood Pressure',
+  'Thyroid (Hypothyroid)',
+  'Thyroid (Hyperthyroid)',
+  'PCOD / PCOS',
+  'High Cholesterol',
+  'Kidney Issues',
   'Heart Disease',
   'Arthritis / Joint Pain',
-  'Kidney Disease',
 ];
 
 export const FOOD_ALLERGIES = [
-  'None',
   'Dairy / Lactose',
   'Gluten / Wheat',
   'Nuts',
+  'Eggs',
   'Soy',
   'Seafood',
-  'Eggs',
 ];
 
 export const PRIMARY_GOALS = [
   'Weight Loss',
   'Weight Gain',
-  'Muscle Gain',
-  'Diabetes Management',
-  'Heart Health',
+  'Muscle Building',
+  'Maintain Weight',
+  'Improve Stamina',
+  'Manage Medical Condition',
   'General Wellness',
 ];
 
-export const TARGET_TIMELINES = ['1 Month', '3 Months', '6 Months', '1 Year', 'Ongoing'];
+export const TARGET_TIMELINES = [
+  '1 Month',
+  '2 Months',
+  '3 Months',
+  '6 Months',
+  '1 Year',
+  'Ongoing',
+];

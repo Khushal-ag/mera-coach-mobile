@@ -6,11 +6,6 @@ export interface MealSlot {
   defaults: DietItem[];
 }
 
-export interface FoodCatalogItem {
-  name: string;
-  kcal: number;
-}
-
 export const MEAL_SLOTS: MealSlot[] = [
   {
     id: 'earlyMorning',
@@ -54,23 +49,4 @@ export const MEAL_SLOTS: MealSlot[] = [
       { name: 'Mix veg curry (1 katori)', qty: 1, kcal: 120 },
     ],
   },
-];
-
-export const FOOD_CATALOG: FoodCatalogItem[] = [
-  { name: 'Boiled egg (1 pc)', kcal: 70 },
-  { name: 'Poha (1 bowl)', kcal: 180 },
-  { name: 'Idli (2 pc)', kcal: 150 },
-  { name: 'Dosa (1 pc)', kcal: 170 },
-  { name: 'Upma (1 bowl)', kcal: 190 },
-  { name: 'Fruit bowl', kcal: 90 },
-  { name: 'Sprouts salad', kcal: 110 },
-  { name: 'Rice (1 katori)', kcal: 150 },
-  { name: 'Paneer curry (1 katori)', kcal: 220 },
-  { name: 'Chicken curry (1 katori)', kcal: 250 },
-  { name: 'Fish curry (1 katori)', kcal: 200 },
-  { name: 'Salad (1 bowl)', kcal: 40 },
-  { name: 'Nuts (mixed, handful)', kcal: 160 },
-  { name: 'Milk (1 glass)', kcal: 120 },
-  { name: 'Green tea (1 cup)', kcal: 2 },
-  { name: 'Biscuits (2 pc)', kcal: 90 },
 ];

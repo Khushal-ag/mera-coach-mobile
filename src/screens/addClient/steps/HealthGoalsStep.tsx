@@ -3,7 +3,9 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Colors, Radius } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import MultiSelectField from '../../../components/MultiSelectField';
+import { useParamOptions } from '../../../hooks/useParamOptions';
 import {
+  PARAM_CODES,
   MEDICAL_CONDITIONS,
   FOOD_ALLERGIES,
   PRIMARY_GOALS,
@@ -13,19 +15,24 @@ import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
 export default function HealthGoalsStep({ form, update }: StepProps<ClientProfile>) {
+  const medicalOptions = useParamOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS);
+  const allergyOptions = useParamOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES);
+  const goalOptions = useParamOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS);
+  const timelineOptions = useParamOptions(PARAM_CODES.targetTimeline, TARGET_TIMELINES);
+
   return (
     <View>
       <MultiSelectField
         label="Medical Conditions"
         value={form.medicalConditions}
-        options={MEDICAL_CONDITIONS}
+        options={medicalOptions}
         onChange={v => update('medicalConditions', v)}
         placeholder="Select conditions"
       />
       <MultiSelectField
         label="Food Allergies"
         value={form.foodAllergies}
-        options={FOOD_ALLERGIES}
+        options={allergyOptions}
         onChange={v => update('foodAllergies', v)}
         placeholder="Select allergies"
       />
@@ -35,14 +42,14 @@ export default function HealthGoalsStep({ form, update }: StepProps<ClientProfil
       <DropdownField
         label="Primary Goal"
         value={form.primaryGoal}
-        options={PRIMARY_GOALS}
+        options={goalOptions}
         onChange={v => update('primaryGoal', v)}
         placeholder="Select"
       />
       <DropdownField
         label="Target Timeline"
         value={form.targetTimeline}
-        options={TARGET_TIMELINES}
+        options={timelineOptions}
         onChange={v => update('targetTimeline', v)}
         placeholder="Select"
       />

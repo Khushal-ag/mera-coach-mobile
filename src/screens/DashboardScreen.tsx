@@ -40,9 +40,10 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       ? getErrorMessage(clientsQuery.error, 'Could not load client count.')
       : null;
 
-  const stats: StatCard[] = PLACEHOLDER_STATS.map((s, i) =>
-    i === 0 ? { ...s, value: clients ? String(clients.length) : '—' } : { ...s, value: '—' },
-  );
+  const stats: StatCard[] = PLACEHOLDER_STATS.map((s, i) => ({
+    ...s,
+    value: i === 0 ? (clients ? String(clients.length) : '—') : '',
+  }));
   const recentClients = (clients ?? []).slice(0, 3);
 
   return (
@@ -81,7 +82,11 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
               <View style={[styles.statIcon, { backgroundColor: s.color }]}>
                 <Ionicons name={s.icon} size={18} color={Colors.white} />
               </View>
-              <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+              {i === 0 ? (
+                <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+              ) : (
+                <Text style={[styles.statComingSoon, { color: s.color }]}>Coming soon</Text>
+              )}
               <Text style={styles.statLabel}>{s.label}</Text>
             </View>
           ))}
@@ -224,6 +229,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   statValue: { fontSize: 26, fontWeight: '800' },
+  statComingSoon: { fontSize: 13, fontWeight: '700', opacity: 0.6 },
   statLabel: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   actionBtn: { alignItems: 'center', width: '23%' },

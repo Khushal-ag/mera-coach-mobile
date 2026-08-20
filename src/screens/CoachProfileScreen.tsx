@@ -26,16 +26,19 @@ interface MenuItem {
   disabled?: boolean;
 }
 
+// "Notifications" isn't listed here — it's already reachable via the bell icon on
+// DashboardScreen. "Privacy & Terms" merges what would otherwise be two near-identical
+// static-content screens (see LegalScreen). "Privacy & Security" as a separate settings hub
+// isn't listed since its only concrete sub-feature for this app is Change Password.
 const menuItems: MenuItem[] = [
-  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary, disabled: true },
-  { icon: 'notifications-outline', label: 'Notifications', color: Colors.primary },
-  { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7c3aed' },
-  { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.accent },
-  { icon: 'document-text-outline', label: 'Terms & Conditions', color: Colors.textLight },
+  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
+  { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
+  { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary, disabled: true },
+  { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: '#7c3aed' },
   { icon: 'log-out-outline', label: 'Logout', color: '#dc2626' },
 ];
 
-export default function CoachProfileScreen(_props: MainTabScreenProps<'Profile'>) {
+export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'Profile'>) {
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
@@ -71,9 +74,6 @@ export default function CoachProfileScreen(_props: MainTabScreenProps<'Profile'>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>My Profile</Text>
-        <TouchableOpacity style={styles.settingsBtn}>
-          <Ionicons name="settings-outline" size={20} color={Colors.white} />
-        </TouchableOpacity>
       </View>
 
       {profileQuery.isPending ? (
@@ -144,10 +144,18 @@ export default function CoachProfileScreen(_props: MainTabScreenProps<'Profile'>
             ]}
             disabled={item.disabled}
             onPress={async () => {
-              if (item.label !== 'Logout') return;
-              // AppNavigator's useAuthState reacts to the session store and swaps back to
-              // the public screen tree on its own — no navigation call needed here.
-              await clearSession();
+              switch (item.label) {
+                case 'Edit Profile':
+                  return navigation.navigate('EditProfile');
+                case 'Change Password':
+                  return navigation.navigate('ChangePassword');
+                case 'Privacy & Terms':
+                  return navigation.navigate('Legal');
+                case 'Logout':
+                  // AppNavigator's useAuthState reacts to the session store and swaps back to
+                  // the public screen tree on its own — no navigation call needed here.
+                  await clearSession();
+              }
             }}
           >
             <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
@@ -180,14 +188,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   profileCard: {
     backgroundColor: Colors.white,
     margin: 20,

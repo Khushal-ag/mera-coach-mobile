@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
@@ -14,7 +14,7 @@ interface Notification {
   read: boolean;
 }
 
-const notifications: Notification[] = [
+const INITIAL_NOTIFICATIONS: Notification[] = [
   {
     id: '1',
     type: 'checkup',
@@ -65,6 +65,12 @@ const typeConfig: Record<Notification['type'], { icon: IoniconName; color: strin
 };
 
 export default function NotificationsScreen({ navigation }: RootScreenProps<'Notifications'>) {
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+
+  const markAllRead = () => setNotifications(list => list.map(n => ({ ...n, read: true })));
+  const markRead = (id: string) =>
+    setNotifications(list => list.map(n => (n.id === id ? { ...n, read: true } : n)));
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -72,7 +78,7 @@ export default function NotificationsScreen({ navigation }: RootScreenProps<'Not
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={markAllRead}>
           <Text style={styles.markAll}>Mark all read</Text>
         </TouchableOpacity>
       </View>
@@ -85,7 +91,10 @@ export default function NotificationsScreen({ navigation }: RootScreenProps<'Not
         renderItem={({ item }) => {
           const cfg = typeConfig[item.type];
           return (
-            <TouchableOpacity style={[styles.card, !item.read && styles.cardUnread]}>
+            <TouchableOpacity
+              style={[styles.card, !item.read && styles.cardUnread]}
+              onPress={() => markRead(item.id)}
+            >
               {!item.read && <View style={styles.unreadDot} />}
               <View style={[styles.iconBox, { backgroundColor: cfg.bg }]}>
                 <Ionicons name={cfg.icon} size={20} color={cfg.color} />

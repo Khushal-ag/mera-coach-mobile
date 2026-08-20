@@ -33,6 +33,7 @@ const storage: SessionStorage =
 let currentToken: string | null = null;
 let currentCoachCode: string | undefined;
 let currentCoachId: string | undefined;
+let currentCoachName: string | undefined;
 
 export function getCurrentToken(): string | null {
   return currentToken;
@@ -44,6 +45,10 @@ export function getCurrentCoachCode(): string | undefined {
 
 export function getCurrentCoachId(): string | undefined {
   return currentCoachId;
+}
+
+export function getCurrentCoachName(): string | undefined {
+  return currentCoachName;
 }
 
 // Minimal pub-sub so AppNavigator can reactively swap screen trees — see useAuthState.ts.
@@ -68,6 +73,7 @@ function setCurrentIdentity(session: Session | null): void {
   currentToken = session?.token ?? null;
   currentCoachCode = session?.coachCode;
   currentCoachId = session?.coachId;
+  currentCoachName = session?.fullName;
   initialized = true;
   listeners.forEach(listener => listener());
 }

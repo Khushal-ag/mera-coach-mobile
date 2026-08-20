@@ -48,7 +48,7 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
     const bmi = getBmi(detail.height ?? '', detail.weight ?? '');
     const category = getBmiCategory(bmi);
     return [
-      { label: 'Goal', icon: 'trophy-outline', value: detail.lifestyle?.primaryGoal || '—' },
+      { label: 'Goal', icon: 'trophy-outline', value: detail.primaryGoal || '—' },
       {
         label: 'Age',
         icon: 'calendar-outline',
@@ -72,9 +72,9 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       {
         label: 'Diet Type',
         icon: 'restaurant-outline',
-        value: detail.lifestyle?.foodPreference || '—',
+        value: detail.foodPreference || '—',
       },
-      { label: 'Activity', icon: 'walk-outline', value: detail.lifestyle?.physicalActivity || '—' },
+      { label: 'Activity', icon: 'walk-outline', value: detail.physicalActivity || '—' },
       { label: 'Next Checkup', icon: 'time-outline', value: '—' },
     ];
   }, [detailQuery.data]);
@@ -97,9 +97,8 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Client Profile</Text>
-        <TouchableOpacity style={styles.editBtn}>
-          <Ionicons name="create-outline" size={20} color={Colors.white} />
-        </TouchableOpacity>
+        {/* Matches backBtn's size so the title stays visually centered. */}
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Profile Card */}
@@ -196,14 +195,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: { color: Colors.white, fontSize: 18, fontWeight: '700' },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  headerSpacer: { width: 36, height: 36 },
   profileCard: {
     backgroundColor: Colors.white,
     margin: 20,

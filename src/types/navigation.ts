@@ -25,6 +25,11 @@ export type RootStackParamList = {
   ClientLifestyle: { client?: ClientSummary } | undefined;
   ClientDiet: { client?: ClientSummary } | undefined;
   ClientBmi: { client?: ClientSummary } | undefined;
+  ClientBmiReport: { client?: ClientSummary } | undefined;
+  ClientDietPlan: { client?: ClientSummary } | undefined;
+  ChangePassword: undefined;
+  Legal: undefined;
+  EditProfile: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<

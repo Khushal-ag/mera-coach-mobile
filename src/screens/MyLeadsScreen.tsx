@@ -78,9 +78,6 @@ export default function MyLeadsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Leads</Text>
-        <TouchableOpacity style={styles.addBtn}>
-          <Ionicons name="add" size={22} color={Colors.white} />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.body}>
@@ -141,14 +138,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   body: { flex: 1, padding: 20 },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filterBtn: {

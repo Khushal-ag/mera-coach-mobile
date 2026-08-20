@@ -9,6 +9,7 @@ export interface Coach {
   reviews: number;
   experience: number;
   city: string;
+  country?: string;
   online: boolean;
   bio: string;
   tags: string[];
@@ -44,6 +45,28 @@ export interface DietItem {
 
 export type DietPlan = Record<string, DietItem[]>;
 
+export interface GeneratedDietPlanMeal {
+  mealType: string;
+  mealTime: string;
+  options: string[];
+  calMin?: number;
+  calMax?: number;
+  caloriesMin?: number;
+  caloriesMax?: number;
+  tip?: string;
+}
+
+export interface GeneratedDietPlan {
+  summary: { bmi: number; bmiCategory: string; dailyCalTarget: number };
+  recommendations: {
+    waterIntake: string;
+    foodsToAvoid: string;
+    supplements: string;
+    healthTips: string;
+  };
+  weeklyPlan: GeneratedDietPlanMeal[];
+}
+
 export interface ClientProfile {
   name: string;
   phone: string;
@@ -65,6 +88,7 @@ export interface ClientProfile {
   notes: string;
   diet: DietPlan;
   saveBmiCheckup: boolean;
+  dietPlan?: GeneratedDietPlan;
 }
 
 export interface Session {

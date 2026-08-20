@@ -33,6 +33,8 @@ const linking: LinkingOptions<RootStackParamList> = {
       ClientLifestyle: 'client-lifestyle',
       ClientDiet: 'client-diet',
       ClientBmi: 'client-bmi',
+      ChangePassword: 'change-password',
+      Legal: 'legal',
     },
   },
 };
