@@ -1,50 +1,56 @@
-import React from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { getClientList } from '../api/clientApi';
+import { getCoachProfile } from '../api/coachApi';
 import { queryKeys } from '../api/queryKeys';
-import { getCurrentCoachCode } from '../auth/session';
-import { useRefreshControl } from '../hooks/useRefreshControl';
+import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { getErrorMessage } from '../api/client';
 import type { MainTabScreenProps } from '../types/navigation';
-import type { IoniconName } from '../types/wizard';
 
-interface StatCard {
-  label: string;
-  value: string;
-  icon: IoniconName;
-  color: string;
-  bg: string;
+function greetingForNow(date = new Date()): string {
+  const h = date.getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
 }
-
-// Only "Total Clients" is wired to real data — the rest have no backend support yet.
-const PLACEHOLDER_STATS: Omit<StatCard, 'value'>[] = [
-  { label: 'Total Clients', icon: 'people', color: Colors.secondary, bg: Colors.secondaryLight },
-  { label: 'Active Leads', icon: 'funnel', color: Colors.accent, bg: Colors.accentLight },
-  { label: 'Re-Checkups', icon: 'clipboard', color: Colors.primary, bg: Colors.primaryLight },
-  { label: 'This Month', icon: 'calendar', color: '#7c3aed', bg: '#ede9fe' },
-];
 
 export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dashboard'>) {
   const clientsQuery = useQuery({
     queryKey: queryKeys.clientList(getCurrentCoachCode()),
     queryFn: () => getClientList(),
   });
-  const refreshControl = useRefreshControl(clientsQuery);
+  const profileQuery = useQuery({
+    queryKey: queryKeys.coachProfile,
+    queryFn: getCoachProfile,
+  });
   const clients = clientsQuery.data ?? null;
+  const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
+
+  const onRefresh = useCallback(() => {
+    Promise.all([clientsQuery.refetch(), profileQuery.refetch()]).then(([clientsResult]) => {
+      if (clientsResult.isError) {
+        Alert.alert('Refresh failed', getErrorMessage(clientsResult.error, 'Please try again.'));
+      }
+    });
+  }, [clientsQuery, profileQuery]);
 
   const clientsErrorMessage =
     clientsQuery.isError && !clients
       ? getErrorMessage(clientsQuery.error, 'Could not load client count.')
       : null;
 
-  const stats: StatCard[] = PLACEHOLDER_STATS.map((s, i) => ({
-    ...s,
-    value: i === 0 ? (clients ? String(clients.length) : '—') : '',
-  }));
-  const recentClients = (clients ?? []).slice(0, 3);
+  const recentClients = useMemo(() => (clients ?? []).slice(0, 3), [clients]);
 
   return (
     <ScrollView
@@ -52,17 +58,16 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
-          refreshing={refreshControl.refreshing}
-          onRefresh={refreshControl.onRefresh}
+          refreshing={clientsQuery.isRefetching || profileQuery.isRefetching}
+          onRefresh={onRefresh}
           tintColor={Colors.secondary}
         />
       }
     >
-      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.coachName}>Coach 👋</Text>
+          <Text style={styles.greeting}>{greetingForNow()},</Text>
+          <Text style={styles.coachName}>{coachName}</Text>
         </View>
         <TouchableOpacity
           style={styles.notifBtn}
@@ -73,26 +78,18 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       </View>
 
       <View style={styles.body}>
-        {/* Stats Grid */}
         <Text style={styles.sectionTitle}>Overview</Text>
         {clientsErrorMessage ? <Text style={styles.statsError}>{clientsErrorMessage}</Text> : null}
-        <View style={styles.statsGrid}>
-          {stats.map((s, i) => (
-            <View key={i} style={[styles.statCard, { backgroundColor: s.bg }]}>
-              <View style={[styles.statIcon, { backgroundColor: s.color }]}>
-                <Ionicons name={s.icon} size={18} color={Colors.white} />
-              </View>
-              {i === 0 ? (
-                <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
-              ) : (
-                <Text style={[styles.statComingSoon, { color: s.color }]}>Coming soon</Text>
-              )}
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
-          ))}
+        <View style={[styles.statCard, { backgroundColor: Colors.secondaryLight }]}>
+          <View style={[styles.statIcon, { backgroundColor: Colors.secondary }]}>
+            <Ionicons name="people" size={18} color={Colors.white} />
+          </View>
+          <Text style={[styles.statValue, { color: Colors.secondary }]}>
+            {clients ? String(clients.length) : '—'}
+          </Text>
+          <Text style={styles.statLabel}>Total Clients</Text>
         </View>
 
-        {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actions}>
           <TouchableOpacity
@@ -127,8 +124,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
           </TouchableOpacity>
         </View>
 
-        {/* Recent Clients */}
-        {recentClients.length > 0 && (
+        {recentClients.length > 0 ? (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Clients</Text>
@@ -138,7 +134,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
             </View>
             {recentClients.map((c, i) => (
               <TouchableOpacity
-                key={i}
+                key={c.clientCode || c.id || String(i)}
                 style={styles.clientRow}
                 onPress={() => navigation.navigate('ClientDetail', { client: c })}
               >
@@ -169,7 +165,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
               </TouchableOpacity>
             ))}
           </>
-        )}
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -212,12 +208,11 @@ const styles = StyleSheet.create({
   },
   seeAll: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
   statsError: { fontSize: 12, color: Colors.accent, marginBottom: 10, marginTop: -6 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   statCard: {
-    width: '47%',
     borderRadius: Radius.md,
     padding: 16,
     alignItems: 'flex-start',
+    marginBottom: 16,
     ...Shadow.sm,
   },
   statIcon: {
@@ -229,7 +224,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   statValue: { fontSize: 26, fontWeight: '800' },
-  statComingSoon: { fontSize: 13, fontWeight: '700', opacity: 0.6 },
   statLabel: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   actionBtn: { alignItems: 'center', width: '23%' },

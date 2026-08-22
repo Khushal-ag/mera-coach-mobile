@@ -18,6 +18,7 @@ import PhaseTransition from '../components/PhaseTransition';
 import { createBlankProfile } from '../data/clientProfiles';
 import { getErrorMessage } from '../api/client';
 import { computeBmiMetrics } from '../utils/bmi';
+import { validateClientPersonalProfile } from '../utils/validation';
 import {
   commitPersonal,
   commitLifestyle,
@@ -56,7 +57,7 @@ export default function AddClientScreen({ navigation }: RootScreenProps<'AddClie
   const [error, setError] = useState('');
 
   const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) =>
-    setForm(f => ({ ...f, [key]: val }));
+    setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
 
   const entry = flatNav[index]!;
   const isLast = index === flatNav.length - 1;
@@ -76,6 +77,12 @@ export default function AddClientScreen({ navigation }: RootScreenProps<'AddClie
     }
 
     const phaseId = coachType.phases[entry.phaseIndex]!.id;
+
+    if (phaseId === 'personal') {
+      const validationError = validateClientPersonalProfile(form);
+      if (validationError) return setError(validationError);
+    }
+
     setError('');
     setSaving(true);
     try {

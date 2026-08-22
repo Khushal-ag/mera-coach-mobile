@@ -67,7 +67,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         </TouchableOpacity>
         <Text style={styles.bannerTitle}>Find Your Perfect Coach</Text>
         <Text style={styles.bannerSubtitle}>
-          Browse 500+ verified coaches across Health, Fitness, Yoga, Nutrition and Lifestyle.
+          Browse verified coaches across Health, Fitness, Yoga, Nutrition and Lifestyle.
         </Text>
       </View>
 
@@ -207,7 +207,12 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                   </Text>
                   <TouchableOpacity
                     style={styles.viewBtn}
-                    onPress={() => navigation.navigate('CoachPublicProfile', { coach })}
+                    onPress={() =>
+                      navigation.navigate('CoachPublicProfile', {
+                        coach,
+                        coachCode: coach.id,
+                      })
+                    }
                   >
                     <Text style={styles.viewBtnText}>View Profile</Text>
                   </TouchableOpacity>

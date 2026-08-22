@@ -12,21 +12,24 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
-import { COACHES } from '../data/coachDirectory';
-import {
-  EXPERTISE_DESC,
-  PROCESS_STEPS,
-  RECOGNITION_BADGES,
-  TESTIMONIALS,
-  SERVICE_INQUIRY_FALLBACK,
-  DUMMY_WHATSAPP_NUMBER,
-} from '../data/coachProfileContent';
-import { submitCoachEnquiry } from '../api/coachApi';
+import EmptyState from '../components/EmptyState';
+import { SERVICE_INQUIRY_FALLBACK } from '../data/coachProfileContent';
+import { getCoachProfileByCode, submitCoachEnquiry, whatsAppUrlFromMobile } from '../api/coachApi';
+import { queryKeys } from '../api/queryKeys';
 import { getErrorMessage } from '../api/client';
+import {
+  validateMobile,
+  validateOptionalEmail,
+  validateRequired,
+  sanitizeEmailInput,
+} from '../utils/validation';
 import type { RootScreenProps } from '../types/navigation';
+import type { Coach } from '../types/models';
 
 interface EnquiryForm {
   name: string;
@@ -41,29 +44,80 @@ export default function CoachPublicProfileScreen({
   navigation,
   route,
 }: RootScreenProps<'CoachPublicProfile'>) {
-  const coach = route.params?.coach || COACHES[0]!;
+  const listCoach = route.params?.coach;
+  const coachCode = route.params?.coachCode || listCoach?.id || '';
+
+  const profileQuery = useQuery({
+    queryKey: queryKeys.coachProfileByCode(coachCode),
+    queryFn: () => getCoachProfileByCode(coachCode),
+    enabled: !!coachCode,
+  });
+
+  const coach: Coach | undefined = profileQuery.data ?? listCoach;
   const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
   const [submitting, setSubmitting] = useState(false);
   const update = <K extends keyof EnquiryForm>(key: K, val: EnquiryForm[K]) =>
-    setForm(f => ({ ...f, [key]: val }));
+    setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
+
+  if (!coachCode) {
+    return (
+      <View style={styles.centered}>
+        <TouchableOpacity style={styles.backOnLight} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
+        </TouchableOpacity>
+        <EmptyState
+          title="Coach not found"
+          message="Open a coach from the directory to view their profile."
+        />
+      </View>
+    );
+  }
+
+  if (!coach && profileQuery.isPending) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator color={Colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (!coach) {
+    return (
+      <View style={styles.centered}>
+        <TouchableOpacity style={styles.backOnLight} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
+        </TouchableOpacity>
+        <EmptyState
+          title="Could not load profile"
+          message={getErrorMessage(profileQuery.error, 'Please try again.')}
+        />
+      </View>
+    );
+  }
 
   const initials = coach.name
     .split(' ')
     .map(w => w[0])
     .slice(0, 2)
     .join('');
-  const serviceOptions = [...coach.tags, SERVICE_INQUIRY_FALLBACK];
+  const serviceOptions = [...(coach.tags.length ? coach.tags : []), SERVICE_INQUIRY_FALLBACK];
 
   const openWhatsApp = () => {
-    Linking.openURL(`https://wa.me/${DUMMY_WHATSAPP_NUMBER}`).catch(() => {
-      Alert.alert('Unable to open WhatsApp');
-    });
+    const url = whatsAppUrlFromMobile(coach.mobile);
+    if (!url) {
+      Alert.alert('WhatsApp unavailable', 'This coach has not shared a mobile number yet.');
+      return;
+    }
+    Linking.openURL(url).catch(() => Alert.alert('Unable to open WhatsApp'));
   };
 
   const submitEnquiry = async () => {
-    if (!form.name.trim()) return Alert.alert('Name is required.');
-    if (!form.mobile.trim()) return Alert.alert('Mobile number is required.');
-    if (!form.service) return Alert.alert('Please select what you are looking for.');
+    const validationError =
+      validateRequired(form.name, 'Name') ||
+      validateMobile(form.mobile) ||
+      validateOptionalEmail(form.email) ||
+      (!form.service ? 'Please select what you are looking for.' : null);
+    if (validationError) return Alert.alert('Validation Error', validationError);
 
     setSubmitting(true);
     try {
@@ -96,122 +150,112 @@ export default function CoachPublicProfileScreen({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Hero */}
         <View style={styles.hero}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={Colors.white} />
           </TouchableOpacity>
 
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            <Text style={styles.avatarText}>{initials || '?'}</Text>
           </View>
 
           <View style={styles.tagsRow}>
-            <View style={styles.categoryBadge}>
-              <Ionicons name="ribbon-outline" size={12} color={Colors.white} />
-              <Text style={styles.categoryBadgeText}>{coach.category}</Text>
-            </View>
-            {coach.online && (
-              <View style={styles.availBadge}>
-                <View style={styles.availDot} />
-                <Text style={styles.availText}>Available Now</Text>
+            {coach.category ? (
+              <View style={styles.categoryBadge}>
+                <Ionicons name="ribbon-outline" size={12} color={Colors.white} />
+                <Text style={styles.categoryBadgeText}>{coach.category}</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           <Text style={styles.name}>{coach.name}</Text>
 
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={14} color={Colors.accent} />
-            <Text style={styles.ratingVal}>{coach.rating}</Text>
-            <Text style={styles.ratingCount}>from {coach.clients}+ clients</Text>
-          </View>
+          {(coach.rating > 0 || coach.clients > 0) && (
+            <View style={styles.ratingRow}>
+              {coach.rating > 0 ? (
+                <>
+                  <Ionicons name="star" size={14} color={Colors.accent} />
+                  <Text style={styles.ratingVal}>{coach.rating}</Text>
+                </>
+              ) : null}
+              {coach.clients > 0 ? (
+                <Text style={styles.ratingCount}>
+                  {coach.rating > 0 ? ' · ' : ''}
+                  {coach.clients} clients
+                </Text>
+              ) : null}
+            </View>
+          )}
 
-          <Text style={styles.bio}>{coach.bio}</Text>
+          {coach.bio ? <Text style={styles.bio}>{coach.bio}</Text> : null}
 
-          <View style={styles.specialtyWrap}>
-            {coach.tags.map(tag => (
-              <View key={tag} style={styles.specialtyTag}>
-                <Ionicons name="checkmark" size={11} color="rgba(255,255,255,0.85)" />
-                <Text style={styles.specialtyText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
+          {coach.tags.length > 0 ? (
+            <View style={styles.specialtyWrap}>
+              {coach.tags.map(tag => (
+                <View key={tag} style={styles.specialtyTag}>
+                  <Ionicons name="checkmark" size={11} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.specialtyText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           <View style={styles.heroCtas}>
             <TouchableOpacity style={styles.bookBtn} onPress={submitEnquiry} disabled={submitting}>
               <Ionicons name="calendar-outline" size={16} color={Colors.white} />
               <Text style={styles.bookBtnText}>Book Free Consultation</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.waBtn} onPress={openWhatsApp}>
-              <Ionicons name="logo-whatsapp" size={18} color={Colors.white} />
-              <Text style={styles.waBtnText}>WhatsApp Me</Text>
-            </TouchableOpacity>
+            {coach.mobile ? (
+              <TouchableOpacity style={styles.waBtn} onPress={openWhatsApp}>
+                <Ionicons name="logo-whatsapp" size={18} color={Colors.white} />
+                <Text style={styles.waBtnText}>WhatsApp Me</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
-        {/* Stats strip */}
         <View style={styles.statsStrip}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.clients}+</Text>
+            <Text style={styles.statValue}>{coach.clients || '—'}</Text>
             <Text style={styles.statLabel}>Happy Clients</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.experience}+</Text>
+            <Text style={styles.statValue}>{coach.experience || '—'}</Text>
             <Text style={styles.statLabel}>Years Exp.</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.tags.length}</Text>
+            <Text style={styles.statValue}>{coach.tags.length || '—'}</Text>
             <Text style={styles.statLabel}>Services</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.rating}</Text>
+            <Text style={styles.statValue}>{coach.rating || '—'}</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
         </View>
 
-        {/* Expertise */}
-        <View style={styles.section}>
-          <View style={styles.sectionTag}>
-            <Ionicons name="star-outline" size={12} color={Colors.secondary} />
-            <Text style={styles.sectionTagText}>Areas of Expertise</Text>
-          </View>
-          <Text style={styles.sectionTitle}>What I Specialise In</Text>
-          <View style={styles.expertiseGrid}>
-            {coach.tags.map(tag => (
-              <View key={tag} style={styles.expertiseCard}>
-                <View style={styles.expertiseIcon}>
-                  <Ionicons name="medal-outline" size={18} color={Colors.primary} />
+        {coach.tags.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionTag}>
+              <Ionicons name="star-outline" size={12} color={Colors.secondary} />
+              <Text style={styles.sectionTagText}>Areas of Expertise</Text>
+            </View>
+            <Text style={styles.sectionTitle}>What I Specialise In</Text>
+            <View style={styles.expertiseGrid}>
+              {coach.tags.map(tag => (
+                <View key={tag} style={styles.expertiseCard}>
+                  <View style={styles.expertiseIcon}>
+                    <Ionicons name="medal-outline" size={18} color={Colors.primary} />
+                  </View>
+                  <Text style={styles.expertiseTitle}>{tag}</Text>
                 </View>
-                <Text style={styles.expertiseTitle}>{tag}</Text>
-                <Text style={styles.expertiseDesc}>{EXPERTISE_DESC}</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        ) : null}
 
-        {/* Platform Recognition */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Platform Recognition</Text>
-          <View style={styles.badgeList}>
-            {RECOGNITION_BADGES.map(b => (
-              <View key={b.title} style={styles.badgeRow}>
-                <View style={styles.badgeIcon}>
-                  <Ionicons name={b.icon} size={16} color={Colors.accent} />
-                </View>
-                <View>
-                  <Text style={styles.badgeTitle}>{b.title}</Text>
-                  <Text style={styles.badgeSubtitle}>{b.subtitle}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Consultation form */}
         <View style={[styles.section, styles.formSection]}>
           <View style={styles.sectionTag}>
             <Ionicons name="calendar-outline" size={12} color={Colors.secondary} />
@@ -219,7 +263,7 @@ export default function CoachPublicProfileScreen({
           </View>
           <Text style={styles.sectionTitle}>Book Your Free Consultation</Text>
           <Text style={styles.sectionSubtitle}>
-            {coach.name} personally responds within 24 hours, zero cost, zero commitment.
+            Send a free enquiry to {coach.name}. They usually reply within 24 hours.
           </Text>
 
           <View style={styles.field}>
@@ -234,11 +278,10 @@ export default function CoachPublicProfileScreen({
           </View>
           <View style={styles.field}>
             <Text style={styles.label}>Mobile Number *</Text>
-            <TextInput
+            <PhoneTextInput
               style={styles.input}
-              placeholder="+91 98765 00000"
+              placeholder="10-digit mobile number"
               placeholderTextColor={Colors.textLight}
-              keyboardType="phone-pad"
               value={form.mobile}
               onChangeText={v => update('mobile', v)}
             />
@@ -250,8 +293,10 @@ export default function CoachPublicProfileScreen({
               placeholder="you@example.com"
               placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
               value={form.email}
-              onChangeText={v => update('email', v)}
+              onChangeText={v => update('email', sanitizeEmailInput(v))}
             />
           </View>
           <DropdownField
@@ -272,70 +317,6 @@ export default function CoachPublicProfileScreen({
               </>
             )}
           </TouchableOpacity>
-
-          <View style={styles.trustRow}>
-            <Text style={styles.trustItem}>🔒 100% Free</Text>
-            <Text style={styles.trustItem}>⏱ 24-hr Reply</Text>
-            <Text style={styles.trustItem}>🛡 No Commitment</Text>
-          </View>
-        </View>
-
-        {/* How I Coach You */}
-        <View style={styles.section}>
-          <View style={styles.sectionTag}>
-            <Ionicons name="git-branch-outline" size={12} color={Colors.secondary} />
-            <Text style={styles.sectionTagText}>My Process</Text>
-          </View>
-          <Text style={styles.sectionTitle}>How I Coach You</Text>
-          {PROCESS_STEPS.map(step => (
-            <View key={step.num} style={styles.stepRow}>
-              <Text style={styles.stepNum}>{step.num}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <Text style={styles.stepText}>{step.text}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Testimonials */}
-        <View style={styles.section}>
-          <View style={styles.sectionTag}>
-            <Ionicons name="trophy-outline" size={12} color={Colors.secondary} />
-            <Text style={styles.sectionTagText}>Success Stories</Text>
-          </View>
-          <Text style={styles.sectionTitle}>Real Clients, Real Results</Text>
-          {TESTIMONIALS.map(t => (
-            <View key={t.name} style={styles.testiCard}>
-              <View style={styles.testiStars}>
-                {[0, 1, 2, 3, 4].map(i => (
-                  <Ionicons key={i} name="star" size={12} color={Colors.accent} />
-                ))}
-              </View>
-              <Text style={styles.testiText}>&ldquo;{t.text}&rdquo;</Text>
-              <View style={styles.testiFooter}>
-                <View style={styles.testiAvatar}>
-                  <Text style={styles.testiAvatarText}>{t.name[0]}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.testiName}>{t.name}</Text>
-                  <Text style={styles.testiMeta}>
-                    {t.location} · {t.program}
-                  </Text>
-                </View>
-                <Text style={styles.testiResult}>{t.result}</Text>
-              </View>
-              <View style={styles.beforeAfter}>
-                <Text style={styles.baText}>
-                  Before <Text style={styles.baBold}>{t.before}</Text>
-                </Text>
-                <Ionicons name="arrow-forward" size={12} color={Colors.textLight} />
-                <Text style={styles.baText}>
-                  After <Text style={styles.baBold}>{t.after}</Text>
-                </Text>
-              </View>
-            </View>
-          ))}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -344,6 +325,24 @@ export default function CoachPublicProfileScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  centered: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backOnLight: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
   hero: {
     backgroundColor: Colors.secondary,
     paddingTop: 56,
@@ -391,17 +390,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   categoryBadgeText: { color: Colors.white, fontSize: 11, fontWeight: '700' },
-  availBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(34,197,94,0.18)',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  availDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' },
-  availText: { color: '#4ade80', fontSize: 11, fontWeight: '700' },
   name: { color: Colors.white, fontSize: 24, fontWeight: '800', marginBottom: 6 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   ratingVal: { color: Colors.white, fontSize: 13, fontWeight: '700' },
@@ -498,28 +486,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  expertiseTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark, marginBottom: 4 },
-  expertiseDesc: { fontSize: 12, color: Colors.textLight, lineHeight: 17 },
-  badgeList: { gap: 10, marginTop: 14 },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: 14,
-    ...Shadow.sm,
-  },
-  badgeIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeTitle: { fontSize: 13, fontWeight: '700', color: Colors.textDark },
-  badgeSubtitle: { fontSize: 11, color: Colors.textLight, marginTop: 2 },
+  expertiseTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark },
   field: { marginBottom: 14 },
   label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   input: {
@@ -544,49 +511,4 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   submitText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
-  trustRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
-  trustItem: { fontSize: 11, color: Colors.textLight, fontWeight: '600' },
-  stepRow: { flexDirection: 'row', gap: 14, marginTop: 16 },
-  stepNum: { fontSize: 22, fontWeight: '800', color: Colors.border, width: 36 },
-  stepTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark, marginBottom: 4 },
-  stepText: { fontSize: 12, color: Colors.textLight, lineHeight: 18 },
-  testiCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: 16,
-    marginTop: 14,
-    ...Shadow.sm,
-  },
-  testiStars: { flexDirection: 'row', gap: 2, marginBottom: 10 },
-  testiText: {
-    fontSize: 13,
-    color: Colors.textDark,
-    lineHeight: 19,
-    fontStyle: 'italic',
-    marginBottom: 14,
-  },
-  testiFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  testiAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  testiAvatarText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
-  testiName: { fontSize: 13, fontWeight: '700', color: Colors.textDark },
-  testiMeta: { fontSize: 11, color: Colors.textLight, marginTop: 1 },
-  testiResult: { fontSize: 11, fontWeight: '700', color: Colors.primary },
-  beforeAfter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.background,
-    paddingTop: 12,
-  },
-  baText: { fontSize: 12, color: Colors.textLight },
-  baBold: { fontWeight: '800', color: Colors.textDark },
 });

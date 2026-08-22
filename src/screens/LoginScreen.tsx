@@ -15,6 +15,7 @@ import { Colors, Radius, Shadow } from '../constants/theme';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
 import { getErrorMessage } from '../api/client';
+import { sanitizeEmailInput } from '../utils/validation';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
@@ -89,8 +90,9 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
                 placeholderTextColor={Colors.textLight}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={v => setEmail(sanitizeEmailInput(v))}
               />
             </View>
           </View>

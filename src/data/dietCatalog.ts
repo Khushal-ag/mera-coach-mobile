@@ -1,4 +1,4 @@
-import type { DietItem } from '../types/models';
+import type { DietItem, DietPlan } from '../types/models';
 
 export interface MealSlot {
   id: string;
@@ -50,3 +50,8 @@ export const MEAL_SLOTS: MealSlot[] = [
     ],
   },
 ];
+
+/** True when no meal slot has any food items. */
+export function isDietEmpty(diet: DietPlan): boolean {
+  return MEAL_SLOTS.every(slot => (diet[slot.id]?.length ?? 0) === 0);
+}

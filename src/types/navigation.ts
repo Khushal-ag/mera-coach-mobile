@@ -15,7 +15,7 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Home: undefined;
   CoachList: { categoryCode?: string } | undefined;
-  CoachPublicProfile: { coach?: Coach } | undefined;
+  CoachPublicProfile: { coach?: Coach; coachCode?: string } | undefined;
   Login: undefined;
   Register: undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;

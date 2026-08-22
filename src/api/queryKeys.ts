@@ -4,6 +4,7 @@ export const queryKeys = {
   coachPublicList: (params: { coachTypeCode?: string; search?: string }) =>
     ['coachPublicList', params] as const,
   coachProfile: ['coachProfile'] as const,
+  coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,
   clientList: (coachCode?: string) => ['clientList', coachCode] as const,
   clientDetail: (clientCode?: string, assessmentCode?: string) =>
     ['clientDetail', clientCode, assessmentCode] as const,

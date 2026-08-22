@@ -14,6 +14,8 @@ export interface Coach {
   bio: string;
   tags: string[];
   clients: number;
+  /** Present when loaded via profile-by-id; used for WhatsApp. */
+  mobile?: string;
 }
 
 export interface CoachCategory {
@@ -71,6 +73,10 @@ export interface ClientProfile {
   name: string;
   phone: string;
   email: string;
+  alternateMobile: string;
+  location: string;
+  /** Date of birth as DD/MM/YYYY — matches web/API format. */
+  dob: string;
   age: string;
   gender: string;
   height: string;

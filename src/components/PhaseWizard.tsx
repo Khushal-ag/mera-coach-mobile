@@ -46,7 +46,7 @@ export default function PhaseWizard({
   const [error, setError] = useState('');
 
   const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) =>
-    setForm(f => ({ ...f, [key]: val }));
+    setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
 
   const screen = screens[index];
   if (!screen) return null;

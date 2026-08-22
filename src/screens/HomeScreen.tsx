@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, RefreshControl, StyleSheet } 
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import { HOME_STATS, COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
+import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
 import { queryKeys } from '../api/queryKeys';
 import type { RootScreenProps } from '../types/navigation';
@@ -20,13 +20,17 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   });
 
   const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
+  const coachTotal = coachesQuery.data?.totalCount ?? coachesQuery.data?.coaches.length ?? 0;
   const avgRating = useMemo(() => {
     const rated = (coachesQuery.data?.coaches ?? []).filter(c => c.rating > 0);
     return rated.length ? rated.reduce((sum, c) => sum + c.rating, 0) / rated.length : null;
   }, [coachesQuery.data]);
 
   const stats: HomeStat[] = [
-    ...HOME_STATS,
+    {
+      value: coachesQuery.isPending ? '—' : String(coachTotal),
+      label: 'Coaches',
+    },
     { value: String(categories.length), label: 'Categories' },
     { value: avgRating != null ? `${avgRating.toFixed(1)}/5` : '—', label: 'Avg. Rating' },
   ];
@@ -57,7 +61,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
         <View style={styles.badge}>
           <View style={styles.badgeDot} />
-          <Text style={styles.badgeText}>India&rsquo;s #1 Coach Management Platform</Text>
+          <Text style={styles.badgeText}>Health coaching platform</Text>
         </View>
         <Text style={styles.heroTitle}>
           Grow Your{'\n'}Health Coaching{'\n'}

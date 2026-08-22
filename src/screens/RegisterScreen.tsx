@@ -13,12 +13,19 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { getCoachCategories, registerCoach } from '../api/coachApi';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
 import { getErrorMessage } from '../api/client';
+import {
+  sanitizeEmailInput,
+  validateEmail,
+  validateMobile,
+  validateRequired,
+} from '../utils/validation';
 import type { RootScreenProps } from '../types/navigation';
 import type { CoachCategory } from '../types/models';
 
@@ -47,12 +54,12 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const categoryLabels = categories.map(c => c.label);
 
   const handleRegister = async () => {
-    if (!name.trim()) return setError('Coach Name is required.');
-    if (!category) return setError('Coach Category is required.');
-    if (!mobile.trim() || mobile.trim().length < 10)
-      return setError('A valid 10-digit mobile number is required.');
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      return setError('A valid email address is required.');
+    const validationError =
+      validateRequired(name, 'Coach name') ||
+      (!category ? 'Coach category is required.' : null) ||
+      validateMobile(mobile) ||
+      validateEmail(email);
+    if (validationError) return setError(validationError);
 
     const coachTypeCode = categories.find(c => c.label === category)?.code;
     setError('');
@@ -161,11 +168,10 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
               <Ionicons name="phone-portrait-outline" size={12} /> Mobile Number{' '}
               <Text style={styles.req}>*</Text>
             </Text>
-            <TextInput
+            <PhoneTextInput
               style={styles.input}
               placeholder="10-digit mobile number"
               placeholderTextColor={Colors.textLight}
-              keyboardType="phone-pad"
               value={mobile}
               onChangeText={setMobile}
             />
@@ -182,8 +188,9 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
               placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={v => setEmail(sanitizeEmailInput(v))}
             />
             <Text style={styles.hint}>
               <Ionicons name="information-circle-outline" size={12} /> Password will be sent to this

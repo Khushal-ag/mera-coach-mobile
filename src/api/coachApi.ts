@@ -121,6 +121,43 @@ export async function getCoachProfile(): Promise<Coach> {
   return mapPublicCoach(raw);
 }
 
+/** Public coach profile by code — same endpoint the web CoachProfile page uses. */
+export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
+  const query = new URLSearchParams({ coachCode });
+  const raw = await apiFetch<RawCoachProfileFull & RawPublicCoach>(
+    `/v{version}/Coach/profile-by-id?${query.toString()}`,
+  );
+  return {
+    ...mapPublicCoach({
+      coachCode: raw.coachCode ?? coachCode,
+      coachName: raw.coachName ?? '',
+      coachTypeCode: raw.coachTypeCode ?? '',
+      coachTypeName: (raw as { coachTypeName?: string }).coachTypeName ?? '',
+      city_Cd: raw.city_Cd,
+      country_Cd: raw.country_Cd,
+      experienceYears: raw.experienceYears,
+      happyClientCount: raw.happyClientCount,
+      coachDesc: raw.coachDesc,
+      serviceNames: (raw as { serviceNames?: string }).serviceNames,
+      rating: (raw as { rating?: number }).rating,
+      reviewCount: (raw as { reviewCount?: number }).reviewCount,
+    }),
+    mobile: raw.mobile ?? '',
+  };
+}
+
+/** Build wa.me URL from Indian mobile (matches web WhatsAppUrl intent). */
+export function whatsAppUrlFromMobile(mobile?: string): string | null {
+  if (!mobile?.trim()) return null;
+  const digits = mobile.replace(/\D/g, '').replace(/^0+/, '');
+  if (!digits) return null;
+  // 10-digit local mobile → always prefix 91 (even if number starts with 91, e.g. 9123456789).
+  if (digits.length === 10) return `https://wa.me/91${digits}`;
+  // Already includes country code.
+  if (digits.length === 12 && digits.startsWith('91')) return `https://wa.me/${digits}`;
+  return null;
+}
+
 // Confirmed against a live GET /Coach/profile response — carries the edit-relevant fields
 // (mobile, address, service codes, image URLs) that mapPublicCoach's public-facing Coach
 // model deliberately leaves out.

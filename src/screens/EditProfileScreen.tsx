@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import MultiSelectField from '../components/MultiSelectField';
 import {
@@ -22,15 +23,21 @@ import {
   getServicesForCategory,
   saveCoachProfile,
 } from '../api/coachApi';
-import { getCountries } from '../api/masterApi';
+import { getCountries, type MasterOption } from '../api/masterApi';
 import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
+import {
+  validateCoachContactFields,
+  validateNonNegativeInt,
+  validatePinCode,
+  validateRequired,
+  sanitizeEmailInput,
+} from '../utils/validation';
 import { getCurrentCoachId } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
 import type { RootScreenProps } from '../types/navigation';
 import type { CoachProfileFull } from '../api/coachApi';
 import type { CoachCategory } from '../types/models';
-import type { MasterOption } from '../api/masterApi';
 
 export default function EditProfileScreen({ navigation }: RootScreenProps<'EditProfile'>) {
   const profileQuery = useQuery({ queryKey: ['coachProfileFull'], queryFn: getCoachProfileFull });
@@ -80,6 +87,7 @@ interface EditProfileFormProps {
 
 function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
   const [coachName, setCoachName] = useState(profile.coachName);
+  // Empty until categories load or user picks — display falls back to profile type label.
   const [categoryLabel, setCategoryLabel] = useState(
     categories.find(c => c.code === profile.coachTypeCode)?.label ?? '',
   );
@@ -99,7 +107,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     countries.find(c => c.code === profile.countryCd || c.label === profile.countryCd)?.label ??
       profile.countryCd,
   );
-  const [serviceLabels, setServiceLabels] = useState<string[]>([]);
+  // null = not edited yet → derive from profile; [] = user cleared all services.
+  const [serviceLabels, setServiceLabels] = useState<string[] | null>(null);
+  const [servicesForCategory, setServicesForCategory] = useState(profile.coachTypeCode);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [profilePicUrl, setProfilePicUrl] = useState(profile.profilePicUrl);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -108,23 +118,30 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
 
+  const resolvedCategoryLabel =
+    categoryLabel || categories.find(c => c.code === profile.coachTypeCode)?.label || '';
   const categoryCode =
-    categories.find(c => c.label === categoryLabel)?.code ?? profile.coachTypeCode;
+    categories.find(c => c.label === resolvedCategoryLabel)?.code ?? profile.coachTypeCode;
+
+  // Adjust state during render when category changes (React-recommended pattern).
+  if (servicesForCategory !== categoryCode) {
+    setServicesForCategory(categoryCode);
+    setServiceLabels(null);
+  }
 
   const servicesQuery = useQuery({
     queryKey: ['servicesForCategory', categoryCode],
     queryFn: () => getServicesForCategory(categoryCode),
     enabled: !!categoryCode,
   });
-  const serviceOptions = servicesQuery.data ?? [];
+  const serviceOptions: MasterOption[] = servicesQuery.data ?? [];
 
-  // Seed selected service labels once the service list for this category has loaded, matching
-  // the profile's saved serviceCodes. Recomputing on render (not an effect) since this is a
-  // pure derivation of query data + the profile's codes, not state that needs to persist.
   const resolvedServiceLabels =
-    serviceLabels.length === 0 && serviceOptions.length > 0 && profile.serviceCodes.length > 0
-      ? serviceOptions.filter(s => profile.serviceCodes.includes(s.code)).map(s => s.label)
-      : serviceLabels;
+    serviceLabels !== null
+      ? serviceLabels
+      : categoryCode === profile.coachTypeCode && serviceOptions.length > 0
+        ? serviceOptions.filter(s => profile.serviceCodes.includes(s.code)).map(s => s.label)
+        : [];
 
   const pickImage = async (target: 'logo' | 'photo') => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -165,8 +182,14 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   };
 
   const handleSave = async () => {
-    if (!coachName.trim()) return setError('Coach name is required.');
-    if (!categoryCode) return setError('Coach category is required.');
+    const validationError =
+      validateRequired(coachName, 'Coach name') ||
+      (!categoryCode ? 'Coach category is required.' : null) ||
+      validateCoachContactFields(mobile, email) ||
+      validatePinCode(pinCode) ||
+      validateNonNegativeInt(experienceYears, 'Experience years') ||
+      validateNonNegativeInt(happyClientCount, 'Happy client count');
+    if (validationError) return setError(validationError);
 
     setError('');
     setSaving(true);
@@ -239,13 +262,27 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       <Field label="Coach Name" value={coachName} onChangeText={setCoachName} />
       <DropdownField
         label="Category"
-        value={categoryLabel}
+        value={resolvedCategoryLabel}
         options={categories.map(c => c.label)}
         onChange={setCategoryLabel}
         placeholder="Select category"
       />
-      <Field label="Mobile" value={mobile} onChangeText={setMobile} keyboardType="phone-pad" />
-      <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
+      <View style={styles.field}>
+        <Text style={styles.label}>Mobile</Text>
+        <PhoneTextInput
+          style={styles.input}
+          value={mobile}
+          onChangeText={setMobile}
+          placeholderTextColor={Colors.textLight}
+        />
+      </View>
+      <Field
+        label="Email"
+        value={email}
+        onChangeText={v => setEmail(sanitizeEmailInput(v))}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
       <View style={styles.divider} />
 
@@ -346,9 +383,18 @@ interface FieldProps {
   value: string;
   onChangeText: (v: string) => void;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
+  maxLength?: number;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
-function Field({ label, value, onChangeText, keyboardType }: FieldProps) {
+function Field({
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  maxLength,
+  autoCapitalize,
+}: FieldProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -357,6 +403,9 @@ function Field({ label, value, onChangeText, keyboardType }: FieldProps) {
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType || 'default'}
+        maxLength={maxLength}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCapitalize === 'none' ? false : undefined}
         placeholderTextColor={Colors.textLight}
       />
     </View>

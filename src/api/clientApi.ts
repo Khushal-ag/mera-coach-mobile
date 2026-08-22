@@ -2,6 +2,7 @@ import { apiFetch } from './client';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { createBlankDiet } from '../data/clientProfiles';
 import { MEAL_SLOT_ORDER, MEAL_SLOT_TO_API_LABEL, describeDietItems } from '../data/mealSlotLabels';
+import { formatLocalDate, normalizeGender } from '../utils/validation';
 import type { BodyMetrics } from '../utils/bmi';
 import type { ClientProfile, ClientSummary, DietPlan, GeneratedDietPlan } from '../types/models';
 
@@ -115,8 +116,11 @@ export function mapClientDetailToProfile(raw: RawClientDetail): ClientProfile {
     name: raw.clientName ?? '',
     phone: raw.mobileNo ?? '',
     email: raw.emailId ?? '',
+    alternateMobile: raw.alternateMobileNo ?? '',
+    location: raw.location ?? '',
+    dob: raw.dob ?? '',
     age: raw.age != null ? String(raw.age) : '',
-    gender: raw.gender ?? '',
+    gender: normalizeGender(raw.gender),
     height: raw.height != null ? String(raw.height) : '',
     weight: raw.weight != null ? String(raw.weight) : '',
     physicalActivity: raw.physicalActivity ?? '',
@@ -164,14 +168,14 @@ export async function saveClientDetail(
         clientName: profile.name,
         mobileNo: profile.phone,
         emailId: profile.email,
-        alternateMobileNo: '',
-        location: '',
-        dob: '',
+        alternateMobileNo: profile.alternateMobile,
+        location: profile.location,
+        dob: profile.dob,
         gender: profile.gender,
-        assessmentDate: new Date().toISOString().split('T')[0],
+        assessmentDate: formatLocalDate(),
         age: parseInt(profile.age, 10) || 0,
         weight: parseFloat(profile.weight) || 0,
-        height: parseInt(profile.height, 10) || 0,
+        height: parseFloat(profile.height) || 0,
         savedBy: savedBy(),
       }),
     },

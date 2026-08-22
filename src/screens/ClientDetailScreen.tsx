@@ -75,7 +75,6 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
         value: detail.foodPreference || '—',
       },
       { label: 'Activity', icon: 'walk-outline', value: detail.physicalActivity || '—' },
-      { label: 'Next Checkup', icon: 'time-outline', value: '—' },
     ];
   }, [detailQuery.data]);
 

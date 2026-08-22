@@ -6,13 +6,6 @@ export interface HomeStat {
   label: string;
 }
 
-// Aspirational marketing copy — no real aggregate exists yet. Unlike these, "Categories" and
-// "Avg. Rating" are computed from live data (see HomeScreen).
-export const HOME_STATS: HomeStat[] = [
-  { value: '500+', label: 'Verified Coaches' },
-  { value: '25K+', label: 'Happy Clients' },
-];
-
 // Offline fallback while HomeScreen/RegisterScreen's live category fetch is in flight.
 // Mirrors Master/GetMasterItem?ItemType=CoachType; styling always comes from coachTypeStyles.ts.
 const FALLBACK_CATEGORY_LABELS: { code: string; label: string }[] = [

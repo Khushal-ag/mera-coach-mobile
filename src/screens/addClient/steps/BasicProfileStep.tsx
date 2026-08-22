@@ -1,7 +1,10 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Modal } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius } from '../../../constants/theme';
+import PhoneTextInput from '../../../components/PhoneTextInput';
+import { ageFromDate, formatDob, parseDob, sanitizeEmailInput } from '../../../utils/validation';
 import type { ClientProfile } from '../../../types/models';
 import type { IoniconName, StepProps, UpdateFn } from '../../../types/wizard';
 
@@ -11,6 +14,7 @@ interface FieldProps {
   field: keyof ClientProfile;
   placeholder: string;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
+  inputMode?: 'phone' | 'email';
   form: ClientProfile;
   update: UpdateFn<ClientProfile>;
 }
@@ -22,21 +26,136 @@ const GENDER_OPTIONS = [
   { value: 'F', label: 'Female' },
 ];
 
-function Field({ label, icon, field, placeholder, keyboardType, form, update }: FieldProps) {
+function Field({
+  label,
+  icon,
+  field,
+  placeholder,
+  keyboardType,
+  inputMode,
+  form,
+  update,
+}: FieldProps) {
+  const handleChange = (v: string) => {
+    if (inputMode === 'email') {
+      const current = String(form[field] ?? '');
+      const next = sanitizeEmailInput(v);
+      if (next === current) return;
+      update(field, next as ClientProfile[typeof field]);
+    } else {
+      update(field, v as ClientProfile[typeof field]);
+    }
+  };
+
+  const inputProps = {
+    style: styles.input,
+    placeholder,
+    placeholderTextColor: Colors.textLight,
+    keyboardType: keyboardType || 'default',
+    value: String(form[field] ?? ''),
+    onChangeText: handleChange,
+  };
+
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrap}>
         <Ionicons name={icon} size={17} color={Colors.textLight} style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor={Colors.textLight}
-          keyboardType={keyboardType || 'default'}
-          value={String(form[field] ?? '')}
-          onChangeText={v => update(field, v as ClientProfile[typeof field])}
-        />
+        {inputMode === 'phone' ? (
+          <PhoneTextInput
+            {...inputProps}
+            value={String(form[field] ?? '')}
+            onChangeText={next => update(field, next as ClientProfile[typeof field])}
+          />
+        ) : (
+          <TextInput
+            {...inputProps}
+            autoCapitalize={inputMode === 'email' ? 'none' : 'sentences'}
+            autoCorrect={inputMode === 'email' ? false : undefined}
+          />
+        )}
       </View>
+    </View>
+  );
+}
+
+function DobField({ form, update }: StepProps<ClientProfile>) {
+  const [open, setOpen] = useState(false);
+  const parsed = parseDob(form.dob);
+  const pickerValue = parsed ?? new Date(2000, 0, 1);
+
+  const applyDob = (date: Date) => {
+    update('dob', formatDob(date));
+    const age = ageFromDate(date);
+    if (age >= 5 && age <= 100) update('age', String(age));
+  };
+
+  const onChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') setOpen(false);
+    if (event.type === 'dismissed' || !date) return;
+    applyDob(date);
+  };
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>Date of Birth</Text>
+      <View style={styles.inputWrap}>
+        <TouchableOpacity
+          style={styles.dobPressable}
+          onPress={() => setOpen(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={17}
+            color={Colors.textLight}
+            style={styles.icon}
+          />
+          <Text style={[styles.input, !form.dob && styles.placeholder]}>
+            {form.dob || 'DD/MM/YYYY'}
+          </Text>
+        </TouchableOpacity>
+        {form.dob ? (
+          <TouchableOpacity
+            onPress={() => update('dob', '')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close-circle" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+      <Text style={styles.hint}>Optional if Age is filled — picking DOB auto-fills Age</Text>
+
+      {open && Platform.OS === 'android' ? (
+        <DateTimePicker
+          value={pickerValue}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={onChange}
+        />
+      ) : null}
+
+      {Platform.OS === 'ios' ? (
+        <Modal visible={open} transparent animationType="slide">
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setOpen(false)}>
+                  <Text style={styles.modalDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={pickerValue}
+                mode="date"
+                display="spinner"
+                maximumDate={new Date()}
+                onChange={onChange}
+              />
+            </View>
+          </View>
+        </Modal>
+      ) : null}
     </View>
   );
 }
@@ -53,23 +172,45 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
         update={update}
       />
       <Field
-        label="Phone Number"
+        label="Mobile Number"
         icon="call-outline"
         field="phone"
-        placeholder="+91 XXXXX XXXXX"
+        placeholder="10-digit mobile number"
         keyboardType="phone-pad"
+        inputMode="phone"
         form={form}
         update={update}
       />
       <Field
-        label="Email"
+        label="Email (optional)"
         icon="mail-outline"
         field="email"
         placeholder="client@email.com"
         keyboardType="email-address"
+        inputMode="email"
         form={form}
         update={update}
       />
+      <Field
+        label="Alternate Mobile (optional)"
+        icon="call-outline"
+        field="alternateMobile"
+        placeholder="10-digit mobile number"
+        keyboardType="phone-pad"
+        inputMode="phone"
+        form={form}
+        update={update}
+      />
+      <Field
+        label="Location"
+        icon="location-outline"
+        field="location"
+        placeholder="City / Area"
+        form={form}
+        update={update}
+      />
+
+      <DobField form={form} update={update} />
 
       <View style={styles.row}>
         <View style={styles.half}>
@@ -153,8 +294,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 50,
   },
+  dobPressable: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: 8 },
-  input: { flex: 1, fontSize: 14, color: Colors.textDark },
+  input: { flex: 1, fontSize: 14, color: Colors.textDark, paddingVertical: 0 },
+  placeholder: { color: Colors.textLight },
+  hint: { fontSize: 11, color: Colors.textLight, marginTop: 6 },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -179,4 +323,23 @@ const styles = StyleSheet.create({
   },
   bmiLabel: { fontSize: 12, color: Colors.secondary },
   bmiValue: { fontSize: 32, fontWeight: '800', color: Colors.secondary },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  modalSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalDone: { fontSize: 16, fontWeight: '700', color: Colors.primary },
 });
