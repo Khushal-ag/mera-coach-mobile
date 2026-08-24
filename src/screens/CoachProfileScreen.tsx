@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,19 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import { clearSession } from '../auth/session';
+import { APP_DISPLAY_NAME } from '../config/appConfig';
+import { openAccountDeletionEmail, openSupportEmail } from '../utils/support';
+import { formatExperienceDisplay } from '../utils/experience';
+import { clearSession, getCurrentCoachCode } from '../auth/session';
 import { getCoachProfile } from '../api/coachApi';
+import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
-import { useRefreshControl } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import type { MainTabScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
@@ -23,7 +28,6 @@ interface MenuItem {
   icon: IoniconName;
   label: string;
   color: string;
-  disabled?: boolean;
 }
 
 // "Notifications" isn't listed here — it's already reachable via the bell icon on
@@ -33,18 +37,33 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
   { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
-  { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary, disabled: true },
+  { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary },
   { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: '#7c3aed' },
+  { icon: 'trash-outline', label: 'Delete Account', color: '#ea580c' },
   { icon: 'log-out-outline', label: 'Logout', color: '#dc2626' },
 ];
 
 export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'Profile'>) {
+  const insets = useSafeAreaInsets();
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
   });
+  // Live roster — Dashboard / Clients use the same key. Profile API's happyClientCount is
+  // a separate self-reported marketing field and is often 0 even when clients exist.
+  const clientsQuery = useQuery({
+    queryKey: queryKeys.clientList(getCurrentCoachCode()),
+    queryFn: () => getClientList(),
+  });
   const profile = profileQuery.data;
-  const refreshControl = useRefreshControl(profileQuery);
+
+  const onRefresh = useCallback(() => {
+    Promise.all([profileQuery.refetch(), clientsQuery.refetch()]).then(([profileResult]) => {
+      if (profileResult.isError) {
+        Alert.alert('Refresh failed', getErrorMessage(profileResult.error, 'Please try again.'));
+      }
+    });
+  }, [profileQuery, clientsQuery]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
   const errorMessage =
@@ -59,20 +78,34 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
       .slice(0, 2)
       .join('') || '?';
 
+  // Prefer live ClientList length; fall back to happyClientCount only when the list isn't loaded.
+  const clientCountDisplay =
+    clientsQuery.data != null
+      ? String(clientsQuery.data.length)
+      : profile?.clients != null && profile.clients > 0
+        ? String(profile.clients)
+        : clientsQuery.isPending
+          ? '—'
+          : '0';
+
+  const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
+  const ratingDisplay =
+    profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '—';
+
   return (
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
-          refreshing={refreshControl.refreshing}
-          onRefresh={refreshControl.onRefresh}
+          refreshing={profileQuery.isRefetching || clientsQuery.isRefetching}
+          onRefresh={onRefresh}
           tintColor={Colors.secondary}
         />
       }
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>My Profile</Text>
       </View>
 
@@ -99,17 +132,17 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
             {/* Stats Row */}
             <View style={styles.statsRow}>
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{profile?.clients ?? 0}</Text>
+                <Text style={styles.statValue}>{clientCountDisplay}</Text>
                 <Text style={styles.statLabel}>Clients</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{profile?.experience ?? 0} yrs</Text>
+                <Text style={styles.statValue}>{experienceDisplay}</Text>
                 <Text style={styles.statLabel}>Experience</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
-                <Text style={styles.statValue}>{profile?.rating ?? '—'}</Text>
+                <Text style={styles.statValue}>{ratingDisplay}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
               </View>
             </View>
@@ -137,20 +170,19 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
         {menuItems.map((item, i) => (
           <TouchableOpacity
             key={i}
-            style={[
-              styles.menuItem,
-              item.label === 'Logout' && styles.menuItemLast,
-              item.disabled && styles.menuItemDisabled,
-            ]}
-            disabled={item.disabled}
+            style={[styles.menuItem, item.label === 'Logout' && styles.menuItemLast]}
             onPress={async () => {
               switch (item.label) {
                 case 'Edit Profile':
                   return navigation.navigate('EditProfile');
                 case 'Change Password':
                   return navigation.navigate('ChangePassword');
+                case 'Help & Support':
+                  return openSupportEmail();
                 case 'Privacy & Terms':
                   return navigation.navigate('Legal');
+                case 'Delete Account':
+                  return openAccountDeletionEmail();
                 case 'Logout':
                   // AppNavigator's useAuthState reacts to the session store and swaps back to
                   // the public screen tree on its own — no navigation call needed here.
@@ -164,14 +196,14 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
             <Text style={[styles.menuLabel, item.label === 'Logout' && { color: '#dc2626' }]}>
               {item.label}
             </Text>
-            {item.label !== 'Logout' && !item.disabled && (
+            {item.label !== 'Logout' && (
               <Ionicons name="chevron-forward" size={16} color={Colors.border} />
             )}
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.version}>MeraCoach v1.0.0</Text>
+      <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
     </ScrollView>
   );
 }
@@ -180,8 +212,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
-    paddingBottom: 20,
+    paddingBottom: 16,
     paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,7 +272,6 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   menuItemLast: { marginTop: 8 },
-  menuItemDisabled: { opacity: 0.5 },
   menuIcon: {
     width: 36,
     height: 36,

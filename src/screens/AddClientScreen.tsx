@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { Colors, Radius } from '../constants/theme';
 import { wizardShellStyles } from '../constants/wizardStyles';
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../config/coachTypes';
@@ -17,6 +18,8 @@ import { SCREEN_REGISTRY } from './addClient/screenRegistry';
 import PhaseTransition from '../components/PhaseTransition';
 import { createBlankProfile } from '../data/clientProfiles';
 import { getErrorMessage } from '../api/client';
+import { queryKeys } from '../api/queryKeys';
+import { getCurrentCoachCode } from '../auth/session';
 import { computeBmiMetrics } from '../utils/bmi';
 import { validateClientPersonalProfile } from '../utils/validation';
 import {
@@ -37,6 +40,7 @@ type NavEntry =
 
 export default function AddClientScreen({ navigation }: RootScreenProps<'AddClient'>) {
   const coachType = COACH_TYPES[DEFAULT_COACH_TYPE]!;
+  const queryClient = useQueryClient();
 
   // Flatten phases into a linear nav list, inserting a full-screen "up next" interstitial
   // before the first screen of every phase after the first.
@@ -93,17 +97,19 @@ export default function AddClientScreen({ navigation }: RootScreenProps<'AddClie
       } else if (phaseId === 'diet') {
         await commitDiet(form, ids);
       } else if (phaseId === 'bmiResult') {
-        if (form.saveBmiCheckup) {
-          const metrics = computeBmiMetrics(form);
-          if (metrics) {
-            await commitBmi(metrics, ids, 0);
-            setBmiSaved(true);
-          }
+        const metrics = computeBmiMetrics(form);
+        if (metrics) {
+          await commitBmi(metrics, ids, 0);
+          setBmiSaved(true);
         }
       } else if (phaseId === 'dietPlan') {
         if (form.dietPlan) await commitDietPlan(form.dietPlan, ids);
-        const metrics = form.saveBmiCheckup ? computeBmiMetrics(form) : null;
+        const metrics = computeBmiMetrics(form);
         await finishAssessment(ids, metrics, bmiSaved, 0);
+        // Dashboard + Clients + Checkups all share clientList — refresh before leaving.
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.clientList(getCurrentCoachCode()),
+        });
         navigation.goBack();
         return;
       }
@@ -176,11 +182,7 @@ export default function AddClientScreen({ navigation }: RootScreenProps<'AddClie
             ) : (
               <>
                 <Text style={styles.nextText}>{isLast ? 'Save Client' : 'Next'}</Text>
-                <Ionicons
-                  name={isLast ? 'checkmark' : 'arrow-forward'}
-                  size={18}
-                  color={Colors.white}
-                />
+                {!isLast ? <Ionicons name="arrow-forward" size={18} color={Colors.white} /> : null}
               </>
             )}
           </TouchableOpacity>

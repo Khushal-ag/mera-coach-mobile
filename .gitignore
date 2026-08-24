@@ -30,6 +30,12 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# local tooling
+.claude/
+
+# QA / local capture artifacts
+qa-screenshots/
+
 # local env files
 .env
 .env*.local

@@ -38,7 +38,6 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TAB_ICONS: Record<keyof MainTabParamList, { active: IoniconName; inactive: IoniconName }> = {
   Dashboard: { active: 'grid', inactive: 'grid-outline' },
   Clients: { active: 'people', inactive: 'people-outline' },
-  Leads: { active: 'funnel', inactive: 'funnel-outline' },
   Checkups: { active: 'clipboard', inactive: 'clipboard-outline' },
   Profile: { active: 'person-circle', inactive: 'person-circle-outline' },
 };
@@ -46,11 +45,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, { active: IoniconName; inactive:
 const TAB_COUNT = Object.keys(TAB_ICONS).length;
 
 function MainTabs() {
-  // The bottom-tabs library's internal per-item minWidth can, on narrow screens, force the
-  // 5-item row wider than the viewport — the outer tabs then overflow past the screen edges
-  // (middle tabs mask their own overflow against neighboring white backgrounds, so only the
-  // leftmost/rightmost labels visibly clip). Pinning an explicit width bypasses that minWidth
-  // entirely, guaranteeing an even 1/5 split regardless of screen size.
+  // Pinning an explicit width bypasses internal minWidth so four tabs split evenly on narrow screens.
   const tabWidth = Dimensions.get('window').width / TAB_COUNT;
 
   return (
@@ -94,7 +89,6 @@ function MainTabs() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Clients" component={ClientListScreen} />
-      <Tab.Screen name="Leads" component={MyLeadsScreen} />
       <Tab.Screen name="Checkups" component={ReCheckupListScreen} />
       <Tab.Screen name="Profile" component={CoachProfileScreen} />
     </Tab.Navigator>
@@ -125,6 +119,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
           <Stack.Screen name="AddClient" component={AddClientScreen} />
+          <Stack.Screen name="Leads" component={MyLeadsScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="ClientLifestyle" component={ClientLifestyleScreen} />
           <Stack.Screen name="ClientDiet" component={ClientDietScreen} />

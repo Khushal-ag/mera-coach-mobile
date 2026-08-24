@@ -1,6 +1,7 @@
 import { apiFetch } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
 import { hashPassword } from '../utils/hash';
+import { pickCoachCreatedAt } from '../utils/experience';
 import type { Coach, CoachCategory } from '../types/models';
 import type { MasterOption } from './masterApi';
 
@@ -84,6 +85,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     category: raw.coachTypeName,
     rating: raw.rating ?? 0,
     reviews: raw.reviewCount ?? 0,
+    // Self-reported marketing field (Edit Profile → Experience yrs), not tenure from signup.
     experience: raw.experienceYears ?? 0,
     city: raw.city_Cd ?? '',
     country: raw.country_Cd,
@@ -91,7 +93,9 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
 
     bio: raw.coachDesc ?? '',
     tags: raw.serviceNames ? raw.serviceNames.split(', ') : [],
+    // Self-reported "Happy Clients" — Profile tab prefers live getClientList length instead.
     clients: raw.happyClientCount ?? 0,
+    createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
   };
 }
 

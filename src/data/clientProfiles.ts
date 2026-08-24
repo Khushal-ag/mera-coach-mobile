@@ -32,7 +32,6 @@ export function createBlankProfile(): ClientProfile {
     targetTimeline: '',
     notes: '',
     diet: createBlankDiet(),
-    saveBmiCheckup: true,
   };
 }
 

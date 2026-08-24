@@ -43,7 +43,21 @@ export class ApiError extends Error {
 }
 
 export function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback;
+  if (!(error instanceof ApiError)) return fallback;
+  return sanitizeUserFacingError(error.message) || fallback;
+}
+
+/** Strip opaque .NET / ASP.NET internals that aren't useful to coaches. */
+function sanitizeUserFacingError(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return '';
+  if (/key was not present in the dictionary/i.test(trimmed)) {
+    return 'Something went wrong generating the plan. Check the client details and try again.';
+  }
+  if (/^object reference not set/i.test(trimmed) || /nullreferenceexception/i.test(trimmed)) {
+    return 'Something went wrong on the server. Please try again.';
+  }
+  return trimmed;
 }
 
 // Backend uses 3 error shapes: ASP.NET validation errors, {errorObj, responseObj} business
@@ -52,11 +66,16 @@ function extractErrorMessage(body: ApiResponseBody): string | null {
   if (!body) return null;
   if (body.errors) {
     const firstField = Object.keys(body.errors)[0];
-    return firstField ? (body.errors[firstField]?.[0] ?? null) : null;
+    const raw = firstField ? (body.errors[firstField]?.[0] ?? null) : null;
+    return raw ? sanitizeUserFacingError(raw) : null;
   }
   const err = body.errorObj?.[0];
-  if (err && err.errorCode !== 0) return err.errorMessage;
-  if (body.detail || body.title) return body.detail || body.title || null;
+  if (err && err.errorCode !== 0) {
+    return sanitizeUserFacingError(err.errorMessage);
+  }
+  if (body.detail || body.title) {
+    return sanitizeUserFacingError(body.detail || body.title || '');
+  }
   return null;
 }
 

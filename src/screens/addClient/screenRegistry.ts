@@ -77,8 +77,8 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     id: 'bmiResult',
     phaseId: 'bmiResult',
     title: 'BMI Detail',
-    subtitle: 'Auto-calculated from height & weight',
-    icon: 'checkbox',
+    subtitle: 'Review metrics — open report or AI diet plan',
+    icon: 'fitness-outline',
     Component: BmiResultStep,
   },
   dietPlanGenerate: {

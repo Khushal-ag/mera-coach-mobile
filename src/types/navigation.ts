@@ -7,7 +7,6 @@ import type { ClientSummary, Coach } from './models';
 export type MainTabParamList = {
   Dashboard: undefined;
   Clients: undefined;
-  Leads: undefined;
   Checkups: undefined;
   Profile: undefined;
 };
@@ -21,6 +20,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   ClientDetail: { client?: ClientSummary } | undefined;
   AddClient: undefined;
+  Leads: undefined;
   Notifications: undefined;
   ClientLifestyle: { client?: ClientSummary } | undefined;
   ClientDiet: { client?: ClientSummary } | undefined;

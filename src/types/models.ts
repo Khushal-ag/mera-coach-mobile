@@ -13,7 +13,10 @@ export interface Coach {
   online: boolean;
   bio: string;
   tags: string[];
+  /** Marketing "happy clients" from profile API — not the live ClientList count. */
   clients: number;
+  /** Account/coach creation date when the API provides one (used to derive tenure). */
+  createdAt?: string;
   /** Present when loaded via profile-by-id; used for WhatsApp. */
   mobile?: string;
 }
@@ -37,6 +40,9 @@ export interface ClientSummary {
   age?: number;
   status?: string;
   initials?: string;
+  mobileNo?: string;
+  /** Display-ready date string from the API, not ISO — see utils/recheckup before comparing. */
+  lastCheckupDate?: string;
 }
 
 export interface DietItem {
@@ -75,7 +81,7 @@ export interface ClientProfile {
   email: string;
   alternateMobile: string;
   location: string;
-  /** Date of birth as DD/MM/YYYY — matches web/API format. */
+  /** Date of birth as DD/MM/YYYY for UI; converted to YYYY-MM-DD on save. */
   dob: string;
   age: string;
   gender: string;
@@ -93,7 +99,6 @@ export interface ClientProfile {
   targetTimeline: string;
   notes: string;
   diet: DietPlan;
-  saveBmiCheckup: boolean;
   dietPlan?: GeneratedDietPlan;
 }
 

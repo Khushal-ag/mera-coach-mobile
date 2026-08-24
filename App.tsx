@@ -3,12 +3,12 @@ import { NavigationContainer, type LinkingOptions } from '@react-navigation/nati
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { queryClient } from './src/api/queryClient';
 import type { RootStackParamList } from './src/types/navigation';
 
-// Web-only deep links (e.g. http://localhost:8081/dashboard) so individual screens
-// can be opened/screenshotted directly instead of only via in-app navigation.
+// Path-based URLs for web (React Navigation). Empty prefixes keep native deep links off.
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [],
   config: {
@@ -22,11 +22,11 @@ const linking: LinkingOptions<RootStackParamList> = {
         screens: {
           Dashboard: 'dashboard',
           Clients: 'clients',
-          Leads: 'leads',
           Checkups: 'checkups',
           Profile: 'profile',
         },
       },
+      Leads: 'leads',
       ClientDetail: 'client-detail',
       AddClient: 'add-client',
       Notifications: 'notifications',
@@ -42,12 +42,14 @@ const linking: LinkingOptions<RootStackParamList> = {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <NavigationContainer linking={linking}>
-          <StatusBar style="light" />
-          <AppNavigator />
-        </NavigationContainer>
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <NavigationContainer linking={linking}>
+            <StatusBar style="light" />
+            <AppNavigator />
+          </NavigationContainer>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

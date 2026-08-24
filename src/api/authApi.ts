@@ -11,7 +11,7 @@ export interface LoginParams {
 export async function login({
   userName,
   password,
-  userType = 'Coach',
+  userType = 'COACH',
 }: LoginParams): Promise<Session> {
   const hashedPassword = await hashPassword(password);
   return apiFetch<Session>('/v{version}/Auth/login', {

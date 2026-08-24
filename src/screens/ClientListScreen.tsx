@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,29 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import EmptyState from '../components/EmptyState';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
 import { useRefreshControl } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
+import { stripNonDigits } from '../utils/validation';
 import type { MainTabScreenProps } from '../types/navigation';
+import type { ClientSummary } from '../types/models';
+
+function clientMeta(item: ClientSummary): string {
+  const parts: string[] = [];
+  if (item.age) parts.push(`Age ${item.age}`);
+  if (item.goal) parts.push(item.goal);
+  return parts.join(' · ');
+}
 
 export default function ClientListScreen({ navigation }: MainTabScreenProps<'Clients'>) {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
 
   const clientsQuery = useQuery({
@@ -27,18 +39,44 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
     queryFn: () => getClientList(),
   });
   const refreshControl = useRefreshControl(clientsQuery);
-  const clients = clientsQuery.data ?? [];
-  const filtered = clients.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return clients;
+    const digits = stripNonDigits(search);
+    return clients.filter(c => {
+      if (c.name.toLowerCase().includes(term)) return true;
+      return digits.length > 0 && (c.mobileNo ?? '').includes(digits);
+    });
+  }, [clients, search]);
 
   const errorMessage = clientsQuery.isError
     ? getErrorMessage(clientsQuery.error, 'Could not load clients. Pull down to try again.')
     : null;
 
+  const emptyState =
+    clients.length === 0
+      ? {
+          icon: 'people-outline' as const,
+          title: 'No clients yet',
+          message: 'Tap + to add your first client and start their assessment.',
+        }
+      : {
+          icon: 'search-outline' as const,
+          title: 'No matches',
+          message: 'Try a different name or mobile number.',
+        };
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>My Clients</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddClient')}>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => navigation.navigate('AddClient')}
+          accessibilityLabel="Add client"
+        >
           <Ionicons name="add" size={22} color={Colors.white} />
         </TouchableOpacity>
       </View>
@@ -53,25 +91,33 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search clients..."
+            placeholder="Search name or mobile..."
             placeholderTextColor={Colors.textLight}
             value={search}
             onChangeText={setSearch}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
           />
         </View>
 
         {clientsQuery.isPending ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
         ) : errorMessage ? (
-          <Text style={styles.empty}>{errorMessage}</Text>
+          <Text style={styles.error}>{errorMessage}</Text>
         ) : (
           <>
-            <Text style={styles.count}>{filtered.length} clients</Text>
+            <Text style={styles.count}>
+              {filtered.length} {filtered.length === 1 ? 'client' : 'clients'}
+            </Text>
 
             <FlatList
               data={filtered}
-              keyExtractor={item => item.id ?? item.name}
+              keyExtractor={item => item.id ?? item.clientCode ?? item.name}
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={[
+                filtered.length === 0 ? styles.emptyWrap : undefined,
+                { paddingBottom: Math.max(insets.bottom, 16) },
+              ]}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshControl.refreshing}
@@ -79,52 +125,58 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
                   tintColor={Colors.primary}
                 />
               }
-              ListEmptyComponent={
-                <Text style={styles.empty}>No clients yet. Tap + to add your first one.</Text>
-              }
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.card}
-                  onPress={() => navigation.navigate('ClientDetail', { client: item })}
-                >
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{item.initials || '?'}</Text>
-                  </View>
-                  <View style={styles.info}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.meta}>
-                      {item.age ? `Age ${item.age}` : item.goal || ''}
-                    </Text>
-                  </View>
-                  {item.status ? (
-                    <View
-                      style={[
-                        styles.badge,
-                        item.status === 'Active' && styles.badgeActive,
-                        item.status === 'Checkup Due' && styles.badgeWarning,
-                        item.status === 'New' && styles.badgeNew,
-                      ]}
-                    >
-                      <Text
+              ListEmptyComponent={<EmptyState {...emptyState} />}
+              renderItem={({ item }) => {
+                const meta = clientMeta(item);
+                return (
+                  <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate('ClientDetail', { client: item })}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{item.initials || '?'}</Text>
+                    </View>
+                    <View style={styles.info}>
+                      <Text style={styles.name} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      {meta ? (
+                        <Text style={styles.meta} numberOfLines={1}>
+                          {meta}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {item.status ? (
+                      <View
                         style={[
-                          styles.badgeText,
-                          item.status === 'Active' && styles.badgeActiveText,
-                          item.status === 'Checkup Due' && styles.badgeWarningText,
-                          item.status === 'New' && styles.badgeNewText,
+                          styles.badge,
+                          item.status === 'Active' && styles.badgeActive,
+                          item.status === 'Checkup Due' && styles.badgeWarning,
+                          item.status === 'New' && styles.badgeNew,
                         ]}
                       >
-                        {item.status}
-                      </Text>
-                    </View>
-                  ) : null}
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={Colors.border}
-                    style={{ marginLeft: 6 }}
-                  />
-                </TouchableOpacity>
-              )}
+                        <Text
+                          style={[
+                            styles.badgeText,
+                            item.status === 'Active' && styles.badgeActiveText,
+                            item.status === 'Checkup Due' && styles.badgeWarningText,
+                            item.status === 'New' && styles.badgeNewText,
+                          ]}
+                        >
+                          {item.status}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={Colors.border}
+                      style={{ marginLeft: 6 }}
+                    />
+                  </TouchableOpacity>
+                );
+              }}
             />
           </>
         )}
@@ -137,7 +189,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 24,
     flexDirection: 'row',
@@ -166,6 +217,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14, color: Colors.textDark },
   count: { fontSize: 12, color: Colors.textLight, marginBottom: 10, fontWeight: '600' },
+  emptyWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -185,7 +237,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
-  info: { flex: 1 },
+  info: { flex: 1, minWidth: 0 },
   name: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
   meta: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
   badge: { borderRadius: Radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
@@ -196,5 +248,5 @@ const styles = StyleSheet.create({
   badgeActiveText: { color: Colors.secondary },
   badgeWarningText: { color: Colors.accent },
   badgeNewText: { color: Colors.primary },
-  empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
+  error: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

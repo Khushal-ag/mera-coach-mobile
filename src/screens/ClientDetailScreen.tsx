@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
@@ -19,13 +20,27 @@ import { getBmi, getBmiCategory } from '../utils/bmi';
 import type { RootScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
-interface InfoRow {
+interface MetricCell {
+  label: string;
+  value: string;
+}
+
+interface DetailRow {
   label: string;
   icon: IoniconName;
   value: string;
 }
 
+interface ActionItem {
+  label: string;
+  icon: IoniconName;
+  color: string;
+  bg: string;
+  onPress: () => void;
+}
+
 export default function ClientDetailScreen({ navigation, route }: RootScreenProps<'ClientDetail'>) {
+  const insets = useSafeAreaInsets();
   const client = route.params?.client || { name: 'Client', initials: 'CL' };
 
   const detailQuery = useQuery({
@@ -42,33 +57,25 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       ? getErrorMessage(detailQuery.error, 'Could not load client details. Pull down to try again.')
       : null;
 
-  const infoRows = useMemo<InfoRow[]>(() => {
-    const detail = detailQuery.data;
+  const detail = detailQuery.data;
+  const bmi = detail ? getBmi(detail.height ?? '', detail.weight ?? '') : null;
+  const bmiCategory = getBmiCategory(bmi);
+  const goal = detail?.primaryGoal || client.goal || '';
+
+  const metrics = useMemo<MetricCell[]>(() => {
     if (!detail) return [];
-    const bmi = getBmi(detail.height ?? '', detail.weight ?? '');
-    const category = getBmiCategory(bmi);
+    return [
+      { label: 'Age', value: detail.age != null ? `${detail.age} yrs` : '—' },
+      { label: 'Height', value: detail.height != null ? `${detail.height} cm` : '—' },
+      { label: 'Weight', value: detail.weight != null ? `${detail.weight} kg` : '—' },
+      { label: 'BMI', value: bmi ? bmi.toFixed(1) : '—' },
+    ];
+  }, [detail, bmi]);
+
+  const detailRows = useMemo<DetailRow[]>(() => {
+    if (!detail) return [];
     return [
       { label: 'Goal', icon: 'trophy-outline', value: detail.primaryGoal || '—' },
-      {
-        label: 'Age',
-        icon: 'calendar-outline',
-        value: detail.age != null ? `${detail.age} years` : '—',
-      },
-      {
-        label: 'Height',
-        icon: 'resize-outline',
-        value: detail.height != null ? `${detail.height} cm` : '—',
-      },
-      {
-        label: 'Weight',
-        icon: 'scale-outline',
-        value: detail.weight != null ? `${detail.weight} kg` : '—',
-      },
-      {
-        label: 'BMI',
-        icon: 'body-outline',
-        value: bmi ? `${bmi.toFixed(1)} (${category?.label ?? '—'})` : '—',
-      },
       {
         label: 'Diet Type',
         icon: 'restaurant-outline',
@@ -76,11 +83,43 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       },
       { label: 'Activity', icon: 'walk-outline', value: detail.physicalActivity || '—' },
     ];
-  }, [detailQuery.data]);
+  }, [detail]);
+
+  const actions: ActionItem[] = [
+    {
+      label: 'Lifestyle',
+      icon: 'calendar-outline',
+      color: Colors.secondary,
+      bg: Colors.secondaryLight,
+      onPress: () => navigation.navigate('ClientLifestyle', { client }),
+    },
+    {
+      label: 'Diet',
+      icon: 'restaurant-outline',
+      color: '#7c3aed',
+      bg: '#ede9fe',
+      onPress: () => navigation.navigate('ClientDiet', { client }),
+    },
+    {
+      label: 'Checkup',
+      icon: 'clipboard-outline',
+      color: Colors.accent,
+      bg: Colors.accentLight,
+      onPress: () => navigation.navigate('ClientBmi', { client }),
+    },
+    {
+      label: 'BMI Report',
+      icon: 'document-text-outline',
+      color: Colors.primary,
+      bg: Colors.primaryLight,
+      onPress: () => navigation.navigate('ClientBmiReport', { client }),
+    },
+  ];
 
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
@@ -91,8 +130,12 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       }
     >
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Client Profile</Text>
@@ -106,12 +149,32 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
           <Text style={styles.avatarText}>{client.initials || 'CL'}</Text>
         </View>
         <Text style={styles.clientName}>{client.name}</Text>
-        {client.goal ? <Text style={styles.clientGoal}>{client.goal}</Text> : null}
-        {client.status ? (
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{client.status}</Text>
-          </View>
-        ) : null}
+
+        <View style={styles.chipRow}>
+          {goal ? (
+            <View style={styles.goalChip}>
+              <Ionicons name="trophy" size={12} color={Colors.secondary} />
+              <Text style={styles.goalChipText} numberOfLines={1}>
+                {goal}
+              </Text>
+            </View>
+          ) : null}
+          {bmi != null && bmiCategory ? (
+            <View style={[styles.bmiBadge, { backgroundColor: bmiCategory.bg }]}>
+              <Text style={[styles.bmiBadgeValue, { color: bmiCategory.color }]}>
+                {bmi.toFixed(1)}
+              </Text>
+              <Text style={[styles.bmiBadgeLabel, { color: bmiCategory.color }]}>
+                {bmiCategory.label}
+              </Text>
+            </View>
+          ) : null}
+          {client.status ? (
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>{client.status}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {/* Info */}
@@ -121,53 +184,65 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 10 }} />
         ) : errorMessage ? (
           <Text style={styles.empty}>{errorMessage}</Text>
-        ) : infoRows.length === 0 ? (
+        ) : metrics.length === 0 && detailRows.length === 0 ? (
           <Text style={styles.empty}>Details unavailable.</Text>
         ) : (
-          infoRows.map((row, i) => (
-            <View key={i} style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Ionicons name={row.icon} size={16} color={Colors.secondary} />
-              </View>
-              <Text style={styles.infoLabel}>{row.label}</Text>
-              <Text style={styles.infoValue}>{row.value}</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.metricsGrid}>
+              {metrics.map((m, i) => (
+                <View
+                  key={m.label}
+                  style={[
+                    styles.metricCell,
+                    i % 2 === 0 && styles.metricCellLeft,
+                    i < 2 && styles.metricCellTop,
+                  ]}
+                >
+                  <Text style={styles.metricValue}>{m.value}</Text>
+                  <Text style={styles.metricLabel}>{m.label}</Text>
+                </View>
+              ))}
             </View>
-          ))
+
+            {detailRows.map((row, i) => (
+              <View
+                key={row.label}
+                style={[styles.detailRow, i === detailRows.length - 1 && styles.detailRowLast]}
+              >
+                <View style={styles.detailIcon}>
+                  <Ionicons name={row.icon} size={16} color={Colors.secondary} />
+                </View>
+                <Text style={styles.detailLabel}>{row.label}</Text>
+                <Text style={styles.detailValue} numberOfLines={2}>
+                  {row.value}
+                </Text>
+              </View>
+            ))}
+          </View>
         )}
       </View>
 
       {/* Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Actions</Text>
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: Colors.secondaryLight }]}
-            onPress={() => navigation.navigate('ClientLifestyle', { client })}
-          >
-            <Ionicons name="calendar-outline" size={20} color={Colors.secondary} />
-            <Text style={[styles.actionText, { color: Colors.secondary }]}>Lifestyle</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: '#ede9fe' }]}
-            onPress={() => navigation.navigate('ClientDiet', { client })}
-          >
-            <Ionicons name="restaurant-outline" size={20} color="#7c3aed" />
-            <Text style={[styles.actionText, { color: '#7c3aed' }]}>Diet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: Colors.accentLight }]}
-            onPress={() => navigation.navigate('ClientBmi', { client })}
-          >
-            <Ionicons name="clipboard-outline" size={20} color={Colors.accent} />
-            <Text style={[styles.actionText, { color: Colors.accent }]}>Checkup</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: Colors.primaryLight }]}
-            onPress={() => navigation.navigate('ClientBmi', { client })}
-          >
-            <Ionicons name="body-outline" size={20} color={Colors.primary} />
-            <Text style={[styles.actionText, { color: Colors.primary }]}>BMI</Text>
-          </TouchableOpacity>
+        <View style={styles.actionGrid}>
+          {[0, 1].map(row => (
+            <View key={row} style={styles.actionRow}>
+              {actions.slice(row * 2, row * 2 + 2).map(action => (
+                <TouchableOpacity
+                  key={action.label}
+                  style={[styles.actionBtn, { backgroundColor: action.bg }]}
+                  onPress={action.onPress}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.actionIconWrap, { backgroundColor: Colors.white }]}>
+                    <Ionicons name={action.icon} size={22} color={action.color} />
+                  </View>
+                  <Text style={[styles.actionText, { color: action.color }]}>{action.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
         </View>
       </View>
     </ScrollView>
@@ -178,7 +253,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -204,37 +278,97 @@ const styles = StyleSheet.create({
     ...Shadow.md,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  avatarText: { color: Colors.white, fontSize: 24, fontWeight: '800' },
-  clientName: { fontSize: 20, fontWeight: '800', color: Colors.textDark },
-  clientGoal: { fontSize: 13, color: Colors.textLight, marginTop: 4 },
-  statusBadge: {
-    marginTop: 10,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+  avatarText: { color: Colors.white, fontSize: 28, fontWeight: '800' },
+  clientName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.textDark,
+    textAlign: 'center',
   },
-  statusText: { color: Colors.secondary, fontSize: 12, fontWeight: '700' },
-  section: { marginHorizontal: 20, marginBottom: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark, marginBottom: 10 },
-  infoRow: {
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  goalChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    padding: 12,
-    marginBottom: 6,
-    ...Shadow.sm,
+    gap: 6,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    maxWidth: '100%',
   },
-  infoIcon: {
+  goalChipText: { color: Colors.secondary, fontSize: 12, fontWeight: '700' },
+  bmiBadge: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bmiBadgeValue: { fontSize: 13, fontWeight: '800' },
+  bmiBadgeLabel: { fontSize: 11, fontWeight: '600' },
+  statusBadge: {
+    backgroundColor: Colors.accentLight,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  statusText: { color: Colors.accent, fontSize: 12, fontWeight: '700' },
+  section: { marginHorizontal: 20, marginBottom: 16 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark, marginBottom: 10 },
+  infoCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    ...Shadow.md,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  metricCell: {
+    width: '50%',
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  metricCellLeft: {
+    borderRightWidth: 1,
+    borderRightColor: Colors.border,
+  },
+  metricCellTop: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  metricValue: { fontSize: 20, fontWeight: '800', color: Colors.textDark },
+  metricLabel: { fontSize: 11, color: Colors.textLight, marginTop: 4, fontWeight: '600' },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  detailRowLast: { borderBottomWidth: 0 },
+  detailIcon: {
     width: 30,
     height: 30,
     borderRadius: 8,
@@ -243,17 +377,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  infoLabel: { flex: 1, fontSize: 13, color: Colors.textLight },
-  infoValue: { fontSize: 13, fontWeight: '700', color: Colors.textDark },
+  detailLabel: { flex: 1, fontSize: 13, color: Colors.textLight, fontWeight: '500' },
+  detailValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textDark,
+    maxWidth: '55%',
+    textAlign: 'right',
+  },
   empty: { fontSize: 13, color: Colors.textLight, marginTop: 6 },
-  actionRow: { flexDirection: 'row', gap: 8 },
+  actionGrid: { gap: 10 },
+  actionRow: { flexDirection: 'row', gap: 10 },
   actionBtn: {
     flex: 1,
     borderRadius: Radius.md,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
+    minHeight: 96,
+    justifyContent: 'center',
   },
-  actionText: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  actionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  actionText: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
 });

@@ -12,12 +12,6 @@ export function sanitizePhoneInput(value: string): string {
   return stripNonDigits(value).slice(0, 10);
 }
 
-/** Like sanitizePhoneInput but returns the previous value when unchanged (for setState). */
-export function patchPhoneInput(current: string, incoming: string): string {
-  const next = sanitizePhoneInput(incoming);
-  return next === current ? current : next;
-}
-
 /** Force lowercase and strip spaces as the user types email. */
 export function sanitizeEmailInput(value: string): string {
   return value.toLowerCase().replace(/\s/g, '');
@@ -61,7 +55,7 @@ export function ageFromDate(dob: Date, today = new Date()): number {
   return age;
 }
 
-/** Format Date → DD/MM/YYYY for API (matches web). */
+/** Format Date → DD/MM/YYYY for UI display (matches web flatpickr). */
 export function formatDob(date: Date): string {
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -69,28 +63,53 @@ export function formatDob(date: Date): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-/** Parse DD/MM/YYYY (or ISO) into a Date, or null if invalid. */
+/** Parse DD/MM/YYYY, YYYY-MM-DD, or ISO into a Date, or null if invalid. */
 export function parseDob(value: string): Date | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
-  if (m) {
-    const day = parseInt(m[1]!, 10);
-    const month = parseInt(m[2]!, 10) - 1;
-    const year = parseInt(m[3]!, 10);
+
+  const dmy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (dmy) {
+    const day = parseInt(dmy[1]!, 10);
+    const month = parseInt(dmy[2]!, 10) - 1;
+    const year = parseInt(dmy[3]!, 10);
     const d = new Date(year, month, day);
     if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) return d;
     return null;
   }
+
+  // API / SQL-safe date-only (and ISO datetime prefix).
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
+  if (ymd) {
+    const year = parseInt(ymd[1]!, 10);
+    const month = parseInt(ymd[2]!, 10) - 1;
+    const day = parseInt(ymd[3]!, 10);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) return d;
+    return null;
+  }
+
   const iso = new Date(trimmed);
   return isNaN(iso.getTime()) ? null : iso;
+}
+
+/** UI DOB (DD/MM/YYYY) → API/SQL date string YYYY-MM-DD. Empty when absent or invalid. */
+export function toApiDob(value: string): string {
+  const d = parseDob(value);
+  return d ? formatLocalDate(d) : '';
+}
+
+/** Normalize API/UI DOB strings to DD/MM/YYYY for display. Empty when absent or invalid. */
+export function toDisplayDob(value: string): string {
+  const d = parseDob(value);
+  return d ? formatDob(d) : '';
 }
 
 export function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value.trim());
 }
 
-/** Indian mobile: exactly 10 digits starting with 6–9. */
+/** Indian mobile: exactly 10 digits starting with 6-9. */
 export function isValidIndianMobile(value: string): boolean {
   const digits = stripNonDigits(value);
   return digits.length === 10 && /^[6-9]/.test(digits);
@@ -116,7 +135,7 @@ export function validateMobile(value: string, required = true): string | null {
   const trimmed = value.trim();
   if (!trimmed) return required ? 'Mobile number is required.' : null;
   if (!isValidIndianMobile(trimmed))
-    return 'Please enter a valid 10-digit mobile number (starting with 6–9).';
+    return 'Please enter a valid 10-digit mobile number (starting with 6-9).';
   return null;
 }
 
@@ -130,9 +149,9 @@ export function validatePinCode(value: string, required = false): string | null 
 
 export function validateAge(value: string, required = true): string | null {
   if (!value.trim()) return required ? 'Age is required.' : null;
-  if (!isStrictInt(value)) return 'Please enter a valid age (5–100).';
+  if (!isStrictInt(value)) return 'Please enter a valid age (5-100).';
   const age = parseInt(value, 10);
-  if (age < 5 || age > 100) return 'Please enter a valid age (5–100).';
+  if (age < 5 || age > 100) return 'Please enter a valid age (5-100).';
   return null;
 }
 
@@ -146,17 +165,17 @@ export function validateDobOrAge(dob: string, age: string): string | null {
 
 export function validateHeight(value: string): string | null {
   if (!value.trim()) return 'Height is required.';
-  if (!isStrictNumber(value)) return 'Please enter height between 100–250 cm.';
+  if (!isStrictNumber(value)) return 'Please enter height between 100-250 cm.';
   const h = parseFloat(value);
-  if (h < 100 || h > 250) return 'Please enter height between 100–250 cm.';
+  if (h < 100 || h > 250) return 'Please enter height between 100-250 cm.';
   return null;
 }
 
 export function validateWeight(value: string): string | null {
   if (!value.trim()) return 'Weight is required.';
-  if (!isStrictNumber(value)) return 'Please enter weight between 20–200 kg.';
+  if (!isStrictNumber(value)) return 'Please enter weight between 20-200 kg.';
   const w = parseFloat(value);
-  if (w < 20 || w > 200) return 'Please enter weight between 20–200 kg.';
+  if (w < 20 || w > 200) return 'Please enter weight between 20-200 kg.';
   return null;
 }
 

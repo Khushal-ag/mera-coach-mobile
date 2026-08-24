@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from '../config/appConfig';
+
 export interface LegalSection {
   title: string;
   body: string;
@@ -32,15 +34,19 @@ export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
   },
   {
     title: 'Your Rights',
-    body: 'You can review and update your coach profile information from within the app. To request deletion of your account or data, contact us using the details below.',
+    body: `You can review and update your coach profile information from within the app. To request deletion of your account or associated data, email ${SUPPORT_EMAIL} from your registered email or mobile, or use Delete Account in Profile settings.`,
   },
   {
     title: 'Changes to This Policy',
     body: 'We may update this policy from time to time. Continued use of the app after changes are posted constitutes acceptance of the updated policy.',
   },
   {
+    title: 'Account & Data Deletion',
+    body: `You may request deletion of your coach account and data we store for you by emailing ${SUPPORT_EMAIL} from your registered contact details. We will verify your request and complete deletion within a reasonable period, subject to any legal retention requirements.`,
+  },
+  {
     title: 'Contact Us',
-    body: 'If you have questions about this privacy policy or how your data is handled, please contact the Mera Coach team through your account manager or platform administrator.',
+    body: `For privacy questions, support, or account deletion, email ${SUPPORT_EMAIL}.`,
   },
 ];
 
@@ -71,11 +77,11 @@ export const TERMS_SECTIONS: LegalSection[] = [
   },
   {
     title: 'Limitation of Liability',
-    body: 'Mera Coach is a management tool for coaches — it does not provide medical advice. You are solely responsible for the coaching, dietary, and health guidance you give your clients through the app.',
+    body: 'Mera Coach is a management tool for coaches. It does not provide medical advice. You are solely responsible for the coaching, dietary, and health guidance you give your clients through the app.',
   },
   {
     title: 'Termination',
-    body: 'We may suspend or terminate accounts that violate these terms. You may stop using the app at any time; contact us if you would like your account and data removed.',
+    body: `We may suspend or terminate accounts that violate these terms. You may stop using the app at any time. To delete your account and data, email ${SUPPORT_EMAIL} or use Delete Account in Profile settings.`,
   },
   {
     title: 'Changes to These Terms',

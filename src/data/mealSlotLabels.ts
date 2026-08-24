@@ -20,14 +20,6 @@ export const MEAL_SLOT_ORDER: Record<string, number> = {
   dinner: 6,
 };
 
-const API_LABEL_TO_MEAL_SLOT: Record<string, string> = Object.fromEntries(
-  Object.entries(MEAL_SLOT_TO_API_LABEL).map(([slotId, label]) => [label, slotId]),
-);
-
-export function apiLabelToMealSlot(label: string): string | undefined {
-  return API_LABEL_TO_MEAL_SLOT[label];
-}
-
 // Flattens one slot's entered items into the free-text summary + total calories the backend
 // stores per meal (curFoodItems/curCalories) — not reconstructible back into distinct items,
 // see clientApi.ts's mapClientDetailToProfile.

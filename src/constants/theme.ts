@@ -21,11 +21,6 @@ export const Colors = {
   error: '#c04b2b',
 } as const;
 
-export const Fonts = {
-  heading: 'Poppins',
-  body: 'Nunito',
-} as const;
-
 export const Radius = {
   sm: 10,
   md: 16,

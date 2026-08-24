@@ -9,10 +9,21 @@ import { getErrorMessage } from '../../../api/client';
 import { queryKeys } from '../../../api/queryKeys';
 import { describeDietItems } from '../../../data/mealSlotLabels';
 import type { ClientProfile } from '../../../types/models';
-import type { StepProps } from '../../../types/wizard';
+import type { IoniconName, StepProps } from '../../../types/wizard';
+
+const REC_ITEMS: {
+  key: 'waterIntake' | 'foodsToAvoid' | 'supplements' | 'healthTips';
+  icon: IoniconName;
+  label: string;
+}[] = [
+  { key: 'waterIntake', icon: 'water-outline', label: 'Water' },
+  { key: 'foodsToAvoid', icon: 'ban-outline', label: 'Avoid' },
+  { key: 'supplements', icon: 'medical-outline', label: 'Supplements' },
+  { key: 'healthTips', icon: 'heart-outline', label: 'Tips' },
+];
 
 export default function DietPlanStep({ form, update }: StepProps<ClientProfile>) {
-  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const coachProfileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
@@ -20,7 +31,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
   });
 
   const generate = async () => {
-    setLoading(true);
+    setGenerating(true);
     setError('');
     try {
       const em = describeDietItems(form.diet, 'earlyMorning');
@@ -64,7 +75,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to generate a plan. Please try again.'));
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
 
@@ -72,10 +83,16 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
 
   return (
     <View>
-      <Text style={styles.intro}>
-        Generate an AI-suggested diet plan from the client&apos;s profile and current meals. This
-        step is optional — you can finish without it.
-      </Text>
+      <View style={styles.optionalBanner}>
+        <Ionicons name="sparkles-outline" size={18} color={Colors.secondary} />
+        <View style={styles.optionalCopy}>
+          <Text style={styles.optionalTitle}>Optional step</Text>
+          <Text style={styles.intro}>
+            Generate an AI-suggested weekly plan from this client&apos;s profile and current meals.
+            You can leave without generating — use Save &amp; Close only after a plan exists.
+          </Text>
+        </View>
+      </View>
 
       {error ? (
         <View style={styles.errorBanner}>
@@ -84,31 +101,44 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
         </View>
       ) : null}
 
-      {!plan && (
-        <TouchableOpacity style={styles.generateBtn} onPress={generate} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color={Colors.white} />
-          ) : (
-            <>
-              <Ionicons name="sparkles" size={18} color={Colors.white} />
-              <Text style={styles.generateText}>Generate Plan</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      )}
+      {!plan ? (
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="restaurant-outline" size={28} color={Colors.secondary} />
+          </View>
+          <Text style={styles.emptyTitle}>No plan yet</Text>
+          <Text style={styles.emptyMessage}>
+            Create a suggested meal plan tailored to goals, preferences, and activity.
+          </Text>
+          <TouchableOpacity
+            style={styles.generateBtn}
+            onPress={generate}
+            disabled={generating}
+            activeOpacity={0.75}
+          >
+            {generating ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <>
+                <Ionicons name="sparkles" size={18} color={Colors.white} />
+                <Text style={styles.generateText}>Generate Plan</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
-      {plan && (
+      {plan ? (
         <>
           <View style={styles.summaryCard}>
             <View>
+              <Text style={styles.summaryCaption}>BMI</Text>
               <Text style={styles.summaryBmi}>{plan.summary.bmi}</Text>
               <Text style={styles.summaryLabel}>{plan.summary.bmiCategory}</Text>
             </View>
             <View style={styles.summaryTarget}>
               <Ionicons name="flame" size={16} color={Colors.accent} />
-              <Text style={styles.summaryTargetText}>
-                {plan.summary.dailyCalTarget} kcal Daily Target
-              </Text>
+              <Text style={styles.summaryTargetText}>{plan.summary.dailyCalTarget} kcal / day</Text>
             </View>
           </View>
 
@@ -124,30 +154,43 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
                 </Text>
               ))}
               <Text style={styles.mealCal}>
-                {meal.calMin ?? meal.caloriesMin ?? 0}–{meal.calMax ?? meal.caloriesMax ?? 0} kcal
+                {meal.calMin ?? meal.caloriesMin ?? 0}-{meal.calMax ?? meal.caloriesMax ?? 0} kcal
               </Text>
-              {meal.tip ? <Text style={styles.mealTip}>💡 {meal.tip}</Text> : null}
+              {meal.tip ? (
+                <View style={styles.mealTipRow}>
+                  <Ionicons name="bulb-outline" size={14} color={Colors.accent} />
+                  <Text style={styles.mealTip}>{meal.tip}</Text>
+                </View>
+              ) : null}
             </View>
           ))}
 
           <View style={styles.recsCard}>
             <Text style={styles.recsTitle}>Key Recommendations</Text>
-            {plan.recommendations.waterIntake ? (
-              <Text style={styles.recItem}>💧 {plan.recommendations.waterIntake}</Text>
-            ) : null}
-            {plan.recommendations.foodsToAvoid ? (
-              <Text style={styles.recItem}>🚫 {plan.recommendations.foodsToAvoid}</Text>
-            ) : null}
-            {plan.recommendations.supplements ? (
-              <Text style={styles.recItem}>💊 {plan.recommendations.supplements}</Text>
-            ) : null}
-            {plan.recommendations.healthTips ? (
-              <Text style={styles.recItem}>❤️ {plan.recommendations.healthTips}</Text>
-            ) : null}
+            {REC_ITEMS.map(item => {
+              const value = plan.recommendations[item.key];
+              if (!value) return null;
+              return (
+                <View key={item.key} style={styles.recRow}>
+                  <View style={styles.recIconWrap}>
+                    <Ionicons name={item.icon} size={14} color={Colors.secondary} />
+                  </View>
+                  <View style={styles.recCopy}>
+                    <Text style={styles.recLabel}>{item.label}</Text>
+                    <Text style={styles.recItem}>{value}</Text>
+                  </View>
+                </View>
+              );
+            })}
           </View>
 
-          <TouchableOpacity style={styles.regenerateBtn} onPress={generate} disabled={loading}>
-            {loading ? (
+          <TouchableOpacity
+            style={styles.regenerateBtn}
+            onPress={generate}
+            disabled={generating}
+            activeOpacity={0.75}
+          >
+            {generating ? (
               <ActivityIndicator color={Colors.primary} />
             ) : (
               <>
@@ -157,13 +200,29 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
             )}
           </TouchableOpacity>
         </>
-      )}
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  intro: { fontSize: 13, color: Colors.textLight, marginBottom: 16, lineHeight: 19 },
+  optionalBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.md,
+    padding: 14,
+    marginBottom: 16,
+  },
+  optionalCopy: { flex: 1 },
+  optionalTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.secondary,
+    marginBottom: 4,
+  },
+  intro: { fontSize: 13, color: Colors.textLight, lineHeight: 19 },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,7 +233,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
+  emptyCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: 24,
+    alignItems: 'center',
+    ...Shadow.sm,
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '800', color: Colors.textDark },
+  emptyMessage: {
+    fontSize: 13,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 6,
+    marginBottom: 18,
+  },
   generateBtn: {
+    alignSelf: 'stretch',
     backgroundColor: Colors.secondary,
     borderRadius: Radius.pill,
     height: 52,
@@ -194,9 +279,23 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
   },
-  summaryBmi: { fontSize: 28, fontWeight: '800', color: Colors.white },
+  summaryCaption: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  summaryBmi: { fontSize: 28, fontWeight: '800', color: Colors.white, marginTop: 2 },
   summaryLabel: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  summaryTarget: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  summaryTarget: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   summaryTargetText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
   mealCard: {
     backgroundColor: Colors.white,
@@ -215,7 +314,13 @@ const styles = StyleSheet.create({
   mealTime: { fontSize: 12, color: Colors.textLight },
   mealOption: { fontSize: 13, color: Colors.textDark, marginBottom: 3 },
   mealCal: { fontSize: 12, color: Colors.secondary, fontWeight: '700', marginTop: 4 },
-  mealTip: { fontSize: 12, color: Colors.textLight, marginTop: 6, fontStyle: 'italic' },
+  mealTipRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 8,
+  },
+  mealTip: { flex: 1, fontSize: 12, color: Colors.textLight, fontStyle: 'italic', lineHeight: 17 },
   recsCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
@@ -223,8 +328,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     ...Shadow.sm,
   },
-  recsTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark, marginBottom: 8 },
-  recItem: { fontSize: 13, color: Colors.textLight, marginBottom: 6, lineHeight: 18 },
+  recsTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark, marginBottom: 10 },
+  recRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  recIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recCopy: { flex: 1 },
+  recLabel: { fontSize: 11, fontWeight: '700', color: Colors.secondary, marginBottom: 2 },
+  recItem: { fontSize: 13, color: Colors.textLight, lineHeight: 18 },
   regenerateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,7 +349,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     borderWidth: 1.5,
     borderColor: Colors.primary,
+    backgroundColor: Colors.white,
     paddingVertical: 12,
+    minHeight: 48,
   },
   regenerateText: { color: Colors.primary, fontSize: 14, fontWeight: '700' },
 });

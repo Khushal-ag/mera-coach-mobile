@@ -2,7 +2,7 @@ import { apiFetch } from './client';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { createBlankDiet } from '../data/clientProfiles';
 import { MEAL_SLOT_ORDER, MEAL_SLOT_TO_API_LABEL, describeDietItems } from '../data/mealSlotLabels';
-import { formatLocalDate, normalizeGender } from '../utils/validation';
+import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../utils/validation';
 import type { BodyMetrics } from '../utils/bmi';
 import type { ClientProfile, ClientSummary, DietPlan, GeneratedDietPlan } from '../types/models';
 
@@ -15,23 +15,30 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+// Confirmed against meracoachapp Clients.cshtml: ClientList returns mobileNo + lastCheckupDate
+// (display-ready) alongside the identifiers. Dropping them made every checkup look like "never".
 interface RawClientListItem {
   clientCode?: string;
   assessmentCode?: string;
   clientName?: string;
+  mobileNo?: string;
   age?: number;
   status_Cd?: string;
+  lastCheckupDate?: string;
 }
 
 function mapClientListItem(raw: RawClientListItem): ClientSummary {
+  const lastCheckupDate = (raw.lastCheckupDate ?? '').trim() || undefined;
   return {
     id: raw.clientCode,
     clientCode: raw.clientCode,
     assessmentCode: raw.assessmentCode,
     name: raw.clientName ?? '',
+    mobileNo: (raw.mobileNo ?? '').trim() || undefined,
     age: raw.age,
     status: raw.status_Cd,
     initials: raw.clientName ? initialsOf(raw.clientName) : undefined,
+    lastCheckupDate,
   };
 }
 
@@ -118,7 +125,7 @@ export function mapClientDetailToProfile(raw: RawClientDetail): ClientProfile {
     email: raw.emailId ?? '',
     alternateMobile: raw.alternateMobileNo ?? '',
     location: raw.location ?? '',
-    dob: raw.dob ?? '',
+    dob: toDisplayDob(raw.dob ?? ''),
     age: raw.age != null ? String(raw.age) : '',
     gender: normalizeGender(raw.gender),
     height: raw.height != null ? String(raw.height) : '',
@@ -135,7 +142,6 @@ export function mapClientDetailToProfile(raw: RawClientDetail): ClientProfile {
     targetTimeline: raw.targetTimeline ?? '',
     notes: raw.additionalNotes ?? '',
     diet: createBlankDiet(),
-    saveBmiCheckup: true,
   };
 }
 
@@ -170,7 +176,8 @@ export async function saveClientDetail(
         emailId: profile.email,
         alternateMobileNo: profile.alternateMobile,
         location: profile.location,
-        dob: profile.dob,
+        // SQL Server rejects DD/MM/YYYY; send the same date-only form as assessmentDate.
+        dob: toApiDob(profile.dob),
         gender: profile.gender,
         assessmentDate: formatLocalDate(),
         age: parseInt(profile.age, 10) || 0,

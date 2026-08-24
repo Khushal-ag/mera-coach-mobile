@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { PRIVACY_POLICY_URL } from '../config/appConfig';
 import { LEGAL_UPDATED, PRIVACY_POLICY_SECTIONS, TERMS_SECTIONS } from '../data/legalContent';
+import { openAccountDeletionEmail, openPrivacyPolicyUrl } from '../utils/support';
 import type { RootScreenProps } from '../types/navigation';
 
 type Tab = 'privacy' | 'terms';
@@ -46,6 +48,19 @@ export default function LegalScreen({ navigation }: RootScreenProps<'Legal'>) {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.updated}>{LEGAL_UPDATED}</Text>
+
+        <View style={styles.actions}>
+          {PRIVACY_POLICY_URL ? (
+            <TouchableOpacity style={styles.actionBtn} onPress={() => openPrivacyPolicyUrl()}>
+              <Ionicons name="open-outline" size={16} color={Colors.secondary} />
+              <Text style={styles.actionText}>View privacy policy online</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity style={styles.actionBtn} onPress={() => openAccountDeletionEmail()}>
+            <Ionicons name="mail-outline" size={16} color={Colors.secondary} />
+            <Text style={styles.actionText}>Request account deletion</Text>
+          </TouchableOpacity>
+        </View>
 
         {sections.map(section => (
           <View key={section.title} style={styles.section}>
@@ -99,7 +114,18 @@ const styles = StyleSheet.create({
   tabTextActive: { color: Colors.white },
   body: { flex: 1 },
   bodyContent: { padding: 20, paddingBottom: 40 },
-  updated: { fontSize: 12, color: Colors.textLight, marginBottom: 20, fontStyle: 'italic' },
+  updated: { fontSize: 12, color: Colors.textLight, marginBottom: 12, fontStyle: 'italic' },
+  actions: { gap: 8, marginBottom: 16 },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: 14,
+    ...Shadow.sm,
+  },
+  actionText: { fontSize: 14, fontWeight: '600', color: Colors.secondary },
   section: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,

@@ -5,40 +5,57 @@ import EmptyState from '../../components/EmptyState';
 import { useClientDetailProfile } from '../../hooks/useClientDetailProfile';
 import { getErrorMessage } from '../../api/client';
 import { SCREEN_REGISTRY } from '../addClient/screenRegistry';
-import { commitBmi } from '../addClient/wizardCommits';
+import { commitBmi, commitPersonal } from '../addClient/wizardCommits';
 import { computeBmiMetrics } from '../../utils/bmi';
 import { Colors } from '../../constants/theme';
+import type { AssessmentIds } from '../addClient/wizardCommits';
 import type { RootScreenProps } from '../../types/navigation';
 import type { ClientProfile } from '../../types/models';
 
-const SCREENS = [SCREEN_REGISTRY.bmiResult!];
+/** Full checkup: edit body stats, then BMI detail with report / diet finish actions. */
+const SCREENS = [SCREEN_REGISTRY.basicProfile!, SCREEN_REGISTRY.bmiResult!];
 
 export default function ClientBmiScreen({ navigation, route }: RootScreenProps<'ClientBmi'>) {
   const client = route.params?.client;
-  const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
+  const [ids, setIds] = useState<AssessmentIds>({
+    clientCode: client?.clientCode,
+    assessmentCode: client?.assessmentCode,
+  });
   const { profile, isLoading, isError, error, dataUpdatedAt, refetch } =
     useClientDetailProfile(client);
   const [bmiSaved, setBmiSaved] = useState(false);
 
-  const ensureBmiSaved = async (form: ClientProfile) => {
-    if (bmiSaved) return;
+  const ensureCheckupSaved = async (form: ClientProfile): Promise<AssessmentIds> => {
+    if (bmiSaved) {
+      return {
+        clientCode: ids.clientCode ?? client?.clientCode,
+        assessmentCode: ids.assessmentCode ?? client?.assessmentCode,
+      };
+    }
     const metrics = computeBmiMetrics(form);
     if (!metrics) {
       Alert.alert('Missing details', 'Add height, weight, age and gender before saving BMI.');
       throw new Error('Missing details for BMI calculation.');
     }
-    await commitBmi(metrics, ids, 0);
+    const nextIds = await commitPersonal(form, ids);
+    setIds(nextIds);
+    await commitBmi(metrics, nextIds, 0);
     setBmiSaved(true);
+    return nextIds;
   };
 
   const showBmiReport = async (form: ClientProfile) => {
-    await ensureBmiSaved(form);
-    navigation.navigate('ClientBmiReport', { client });
+    const nextIds = await ensureCheckupSaved(form);
+    navigation.navigate('ClientBmiReport', {
+      client: client ? { ...client, ...nextIds } : undefined,
+    });
   };
 
   const openAiDietPlan = async (form: ClientProfile) => {
-    await ensureBmiSaved(form);
-    navigation.navigate('ClientDietPlan', { client });
+    const nextIds = await ensureCheckupSaved(form);
+    navigation.navigate('ClientDietPlan', {
+      client: client ? { ...client, ...nextIds } : undefined,
+    });
   };
 
   if (isLoading) {
