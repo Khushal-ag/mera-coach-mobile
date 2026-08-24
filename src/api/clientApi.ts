@@ -1,7 +1,8 @@
 import { apiFetch } from './client';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
-import { createBlankDiet } from '../data/clientProfiles';
 import { MEAL_SLOT_ORDER, MEAL_SLOT_TO_API_LABEL, describeDietItems } from '../data/mealSlotLabels';
+import { rehydrateDietFromMeals, type RawClientMeal } from '../utils/mealRehydration';
+import type { FoodMaster } from './masterApi';
 import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../utils/validation';
 import type { BodyMetrics } from '../utils/bmi';
 import type { ClientProfile, ClientSummary, DietPlan, GeneratedDietPlan } from '../types/models';
@@ -61,15 +62,9 @@ export async function getClientList(params: GetClientListParams = {}): Promise<C
   return (items || []).map(mapClientListItem);
 }
 
-interface RawClientMeal {
-  mealSlot?: string;
-  curFoodItems?: string;
-  curCalories?: number;
-}
-
 // Confirmed against the website's AddClient.cshtml read path (loadClientData()): these fields
 // are flat on the response, not nested under a "lifestyle" object.
-interface RawClientDetail {
+export interface RawClientDetail {
   clientCode?: string;
   assessmentCode?: string;
   clientName?: string;
@@ -116,9 +111,19 @@ export async function getClientDetail(params: {
   });
 }
 
-// Diet isn't reconstructed here — the backend stores meals as a flattened per-slot string
-// that can't be split back into qty/kcal entries, so edit screens start from a blank diet.
-export function mapClientDetailToProfile(raw: RawClientDetail): ClientProfile {
+/** Same-day assessment resumes; otherwise start a fresh checkup (empty assessmentCode). */
+export function resolveCheckupAssessmentIds(raw: RawClientDetail): AssessmentIds {
+  const isToday = raw.assessmentDate === formatLocalDate();
+  return {
+    clientCode: raw.clientCode,
+    assessmentCode: isToday ? raw.assessmentCode : undefined,
+  };
+}
+
+export function mapClientDetailToProfile(
+  raw: RawClientDetail,
+  options?: { foodMaster?: FoodMaster },
+): ClientProfile {
   return {
     name: raw.clientName ?? '',
     phone: raw.mobileNo ?? '',
@@ -141,7 +146,7 @@ export function mapClientDetailToProfile(raw: RawClientDetail): ClientProfile {
     primaryGoal: raw.primaryGoal ?? '',
     targetTimeline: raw.targetTimeline ?? '',
     notes: raw.additionalNotes ?? '',
-    diet: createBlankDiet(),
+    diet: rehydrateDietFromMeals(raw.meals, options?.foodMaster),
   };
 }
 

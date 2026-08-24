@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { PRIVACY_POLICY_URL } from '../config/appConfig';
 import { LEGAL_UPDATED, PRIVACY_POLICY_SECTIONS, TERMS_SECTIONS } from '../data/legalContent';
@@ -10,12 +11,13 @@ import type { RootScreenProps } from '../types/navigation';
 type Tab = 'privacy' | 'terms';
 
 export default function LegalScreen({ navigation }: RootScreenProps<'Legal'>) {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('privacy');
   const sections = tab === 'privacy' ? PRIVACY_POLICY_SECTIONS : TERMS_SECTIONS;
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
@@ -77,7 +79,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',

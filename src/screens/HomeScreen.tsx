@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
@@ -10,6 +11,7 @@ import type { RootScreenProps } from '../types/navigation';
 import type { HomeStat } from '../data/homeContent';
 
 export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
+  const insets = useSafeAreaInsets();
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
     queryFn: getCoachCategories,
@@ -51,8 +53,11 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       }
     >
       {/* Hero */}
-      <View style={styles.hero}>
-        <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+      <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity
+          style={[styles.loginLink, { top: insets.top + 12 }]}
+          onPress={() => navigation.navigate('Login')}
+        >
           <Text style={styles.loginLinkText}>Log In</Text>
         </TouchableOpacity>
 
@@ -149,12 +154,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   hero: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 36,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
-  loginLink: { position: 'absolute', top: 56, right: 20, padding: 8 },
+  loginLink: { position: 'absolute', right: 20, padding: 8 },
   loginLinkText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
   logoBox: {
     width: 60,

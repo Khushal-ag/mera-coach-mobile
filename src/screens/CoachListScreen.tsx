@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { SORT_OPTIONS } from '../data/coachDirectory';
@@ -23,6 +24,7 @@ import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function CoachListScreen({ navigation, route }: RootScreenProps<'CoachList'>) {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(route.params?.categoryCode || '');
   const [sort, setSort] = useState('Top Rated');
@@ -61,7 +63,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   return (
     <View style={styles.container}>
       {/* Banner */}
-      <View style={styles.banner}>
+      <View style={[styles.banner, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
@@ -249,7 +251,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   banner: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -323,8 +324,8 @@ const styles = StyleSheet.create({
   coachName: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
   coachCategory: { fontSize: 12, color: Colors.secondary, fontWeight: '600', marginTop: 2 },
   onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' },
-  onlineText: { fontSize: 10, color: '#22c55e', fontWeight: '700' },
+  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.online },
+  onlineText: { fontSize: 10, color: Colors.online, fontWeight: '700' },
   metaRow: { flexDirection: 'row', gap: 14, marginBottom: 10 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 11, color: Colors.textLight, fontWeight: '600' },

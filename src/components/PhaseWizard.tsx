@@ -198,6 +198,8 @@ export default function PhaseWizard({
           <TouchableOpacity
             style={[styles.floatingBack, { top: topInset + 8 }]}
             onPress={() => (index > 0 ? setIndex(i => i - 1) : onExit?.())}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
           </TouchableOpacity>

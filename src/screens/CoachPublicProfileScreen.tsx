@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
@@ -44,6 +45,7 @@ export default function CoachPublicProfileScreen({
   navigation,
   route,
 }: RootScreenProps<'CoachPublicProfile'>) {
+  const insets = useSafeAreaInsets();
   const listCoach = route.params?.coach;
   const coachCode = route.params?.coachCode || listCoach?.id || '';
 
@@ -62,7 +64,10 @@ export default function CoachPublicProfileScreen({
   if (!coachCode) {
     return (
       <View style={styles.centered}>
-        <TouchableOpacity style={styles.backOnLight} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={[styles.backOnLight, { top: insets.top + 12 }]}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
         </TouchableOpacity>
         <EmptyState
@@ -84,7 +89,10 @@ export default function CoachPublicProfileScreen({
   if (!coach) {
     return (
       <View style={styles.centered}>
-        <TouchableOpacity style={styles.backOnLight} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={[styles.backOnLight, { top: insets.top + 12 }]}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
         </TouchableOpacity>
         <EmptyState
@@ -150,8 +158,11 @@ export default function CoachPublicProfileScreen({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.hero}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+          <TouchableOpacity
+            style={[styles.backBtn, { top: insets.top + 12 }]}
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={20} color={Colors.white} />
           </TouchableOpacity>
 
@@ -333,7 +344,6 @@ const styles = StyleSheet.create({
   },
   backOnLight: {
     position: 'absolute',
-    top: 56,
     left: 20,
     width: 36,
     height: 36,
@@ -345,14 +355,12 @@ const styles = StyleSheet.create({
   },
   hero: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 28,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   backBtn: {
     position: 'absolute',
-    top: 56,
     left: 20,
     width: 36,
     height: 36,
@@ -436,7 +444,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#25D366',
+    backgroundColor: Colors.whatsapp,
     borderRadius: Radius.pill,
     paddingVertical: 13,
   },

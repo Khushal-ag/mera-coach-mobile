@@ -38,9 +38,9 @@ const menuItems: MenuItem[] = [
   { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
   { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
   { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary },
-  { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: '#7c3aed' },
-  { icon: 'trash-outline', label: 'Delete Account', color: '#ea580c' },
-  { icon: 'log-out-outline', label: 'Logout', color: '#dc2626' },
+  { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: Colors.purple },
+  { icon: 'trash-outline', label: 'Delete Account', color: Colors.destructiveOrange },
+  { icon: 'log-out-outline', label: 'Logout', color: Colors.destructive },
 ];
 
 export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'Profile'>) {
@@ -171,6 +171,8 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
           <TouchableOpacity
             key={i}
             style={[styles.menuItem, item.label === 'Logout' && styles.menuItemLast]}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
             onPress={async () => {
               switch (item.label) {
                 case 'Edit Profile':
@@ -193,7 +195,9 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
             <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
               <Ionicons name={item.icon} size={18} color={item.color} />
             </View>
-            <Text style={[styles.menuLabel, item.label === 'Logout' && { color: '#dc2626' }]}>
+            <Text
+              style={[styles.menuLabel, item.label === 'Logout' && { color: Colors.destructive }]}
+            >
               {item.label}
             </Text>
             {item.label !== 'Logout' && (

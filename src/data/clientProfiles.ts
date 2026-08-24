@@ -1,5 +1,5 @@
 import { MEAL_SLOTS } from './dietCatalog';
-import type { ClientProfile, ClientSummary, DietPlan } from '../types/models';
+import type { ClientProfile, DietPlan } from '../types/models';
 
 export function createBlankDiet(): DietPlan {
   return MEAL_SLOTS.reduce<DietPlan>((acc, slot) => {
@@ -33,10 +33,4 @@ export function createBlankProfile(): ClientProfile {
     notes: '',
     diet: createBlankDiet(),
   };
-}
-
-// Edit flows seed from ClientDetail via useClientDetailProfile + mapClientDetailToProfile.
-// This helper is only for name-only blank shells when no detail IDs exist.
-export function getClientProfile(client?: ClientSummary | null): ClientProfile {
-  return { ...createBlankProfile(), name: client?.name || '' };
 }

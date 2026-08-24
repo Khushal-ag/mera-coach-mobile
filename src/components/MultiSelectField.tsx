@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   chipText: { fontSize: 12, fontWeight: '600', color: Colors.secondary },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,

@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { queryClient } from './src/api/queryClient';
 import type { RootStackParamList } from './src/types/navigation';
 
@@ -30,8 +31,6 @@ const linking: LinkingOptions<RootStackParamList> = {
       ClientDetail: 'client-detail',
       AddClient: 'add-client',
       Notifications: 'notifications',
-      ClientLifestyle: 'client-lifestyle',
-      ClientDiet: 'client-diet',
       ClientBmi: 'client-bmi',
       ChangePassword: 'change-password',
       Legal: 'legal',
@@ -43,12 +42,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <NavigationContainer linking={linking}>
-            <StatusBar style="light" />
-            <AppNavigator />
-          </NavigationContainer>
-        </QueryClientProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <NavigationContainer linking={linking}>
+              <StatusBar style="light" />
+              <AppNavigator />
+            </NavigationContainer>
+          </QueryClientProvider>
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

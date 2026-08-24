@@ -46,7 +46,7 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
   const country = coachProfileQuery.data?.country || 'India';
 
   const foodMasterQuery = useQuery({
-    queryKey: ['foodMaster', country, form.regionalCuisine],
+    queryKey: queryKeys.foodMaster(country, form.regionalCuisine),
     queryFn: () => getFoodMaster(country, form.regionalCuisine),
   });
 
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   moreText: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
   note: { fontSize: 11, color: Colors.textLight, marginTop: 4, fontStyle: 'italic' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,

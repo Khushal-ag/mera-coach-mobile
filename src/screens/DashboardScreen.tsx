@@ -100,8 +100,8 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       label: 'New This Month',
       value: null,
       icon: 'calendar',
-      color: '#7c3aed',
-      bg: '#ede9fe',
+      color: Colors.purple,
+      bg: Colors.purpleLight,
     },
   ];
 
@@ -202,6 +202,8 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
         <TouchableOpacity
           style={styles.notifBtn}
           onPress={() => navigation.navigate('Notifications')}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
         >
           <Ionicons name="notifications-outline" size={22} color={Colors.white} />
         </TouchableOpacity>
@@ -258,13 +260,20 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => navigation.navigate('AddClient')}
+            accessibilityRole="button"
+            accessibilityLabel="Add Client"
           >
             <View style={[styles.actionIcon, { backgroundColor: Colors.primaryLight }]}>
               <Ionicons name="person-add" size={20} color={Colors.primary} />
             </View>
             <Text style={styles.actionText}>Add Client</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Clients')}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('Clients')}
+            accessibilityRole="button"
+            accessibilityLabel="All Clients"
+          >
             <View style={[styles.actionIcon, { backgroundColor: Colors.secondaryLight }]}>
               <Ionicons name="people" size={20} color={Colors.secondary} />
             </View>
@@ -273,15 +282,22 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
           <TouchableOpacity
             style={styles.actionBtn}
             onPress={() => navigation.navigate('Checkups')}
+            accessibilityRole="button"
+            accessibilityLabel="Checkups"
           >
             <View style={[styles.actionIcon, { backgroundColor: Colors.accentLight }]}>
               <Ionicons name="clipboard" size={20} color={Colors.accent} />
             </View>
             <Text style={styles.actionText}>Checkups</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Leads')}>
-            <View style={[styles.actionIcon, { backgroundColor: '#ede9fe' }]}>
-              <Ionicons name="funnel" size={20} color="#7c3aed" />
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('Leads')}
+            accessibilityRole="button"
+            accessibilityLabel="My Leads"
+          >
+            <View style={[styles.actionIcon, { backgroundColor: Colors.purpleLight }]}>
+              <Ionicons name="funnel" size={20} color={Colors.purple} />
             </View>
             <Text style={styles.actionText}>My Leads</Text>
           </TouchableOpacity>
@@ -312,13 +328,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerText: { flex: 1 },
-  greeting: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+  greeting: { color: Colors.onDarkMuted, fontSize: 13 },
   coachName: { color: Colors.white, fontSize: 22, fontWeight: '800', marginTop: 2 },
   notifBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },

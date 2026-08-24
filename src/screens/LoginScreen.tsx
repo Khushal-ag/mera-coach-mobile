@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
@@ -19,6 +20,7 @@ import { sanitizeEmailInput } from '../utils/validation';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -52,8 +54,11 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
+          <TouchableOpacity
+            style={[styles.backBtn, { top: insets.top + 12 }]}
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={20} color={Colors.white} />
           </TouchableOpacity>
           <View style={styles.logoBox}>
@@ -155,10 +160,9 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.secondary },
   inner: { flexGrow: 1, alignItems: 'center', paddingBottom: 30 },
-  header: { alignItems: 'center', paddingTop: 80, paddingBottom: 40 },
+  header: { alignItems: 'center', paddingBottom: 40 },
   backBtn: {
     position: 'absolute',
-    top: 56,
     left: 20,
     width: 36,
     height: 36,

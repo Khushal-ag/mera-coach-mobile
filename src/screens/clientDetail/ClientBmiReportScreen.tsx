@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../../constants/theme';
 import { getBmiReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
+import { queryKeys } from '../../api/queryKeys';
 import { useRefreshControl } from '../../hooks/useRefreshControl';
 import type { RootScreenProps } from '../../types/navigation';
 
@@ -26,7 +27,7 @@ export default function ClientBmiReportScreen({
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
 
   const reportQuery = useQuery({
-    queryKey: ['bmiReport', ids.clientCode, ids.assessmentCode],
+    queryKey: queryKeys.bmiReport(ids.clientCode, ids.assessmentCode),
     queryFn: () => getBmiReport(ids),
     enabled: !!ids.clientCode,
   });
@@ -60,7 +61,12 @@ export default function ClientBmiReportScreen({
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>BMI Report</Text>

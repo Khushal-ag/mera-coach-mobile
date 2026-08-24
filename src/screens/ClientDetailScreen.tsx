@@ -87,20 +87,6 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
 
   const actions: ActionItem[] = [
     {
-      label: 'Lifestyle',
-      icon: 'calendar-outline',
-      color: Colors.secondary,
-      bg: Colors.secondaryLight,
-      onPress: () => navigation.navigate('ClientLifestyle', { client }),
-    },
-    {
-      label: 'Diet',
-      icon: 'restaurant-outline',
-      color: '#7c3aed',
-      bg: '#ede9fe',
-      onPress: () => navigation.navigate('ClientDiet', { client }),
-    },
-    {
       label: 'Checkup',
       icon: 'clipboard-outline',
       color: Colors.accent,
@@ -135,6 +121,8 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
@@ -234,6 +222,8 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
                   style={[styles.actionBtn, { backgroundColor: action.bg }]}
                   onPress={action.onPress}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={action.label}
                 >
                   <View style={[styles.actionIconWrap, { backgroundColor: Colors.white }]}>
                     <Ionicons name={action.icon} size={22} color={action.color} />
@@ -263,7 +253,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },

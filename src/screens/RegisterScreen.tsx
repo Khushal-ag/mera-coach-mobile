@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
@@ -30,6 +31,7 @@ import type { RootScreenProps } from '../types/navigation';
 import type { CoachCategory } from '../types/models';
 
 export default function RegisterScreen({ navigation }: RootScreenProps<'Register'>) {
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [mobile, setMobile] = useState('');
@@ -99,8 +101,11 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         contentContainerStyle={styles.inner}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <TouchableOpacity
+            style={[styles.backBtn, { top: insets.top + 12 }]}
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={20} color={Colors.white} />
           </TouchableOpacity>
           <View style={styles.logoBox}>
@@ -230,14 +235,12 @@ const styles = StyleSheet.create({
   inner: { flexGrow: 1, alignItems: 'center', paddingBottom: 40 },
   header: {
     alignItems: 'center',
-    paddingTop: 56,
     paddingBottom: 28,
     width: '100%',
     backgroundColor: Colors.secondary,
   },
   backBtn: {
     position: 'absolute',
-    top: 56,
     left: 20,
     width: 36,
     height: 36,

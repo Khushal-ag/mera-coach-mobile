@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   value: { fontSize: 14, color: Colors.textDark },
   placeholder: { fontSize: 14, color: Colors.textLight },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,

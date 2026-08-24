@@ -22,11 +22,8 @@ export type RootStackParamList = {
   AddClient: undefined;
   Leads: undefined;
   Notifications: undefined;
-  ClientLifestyle: { client?: ClientSummary } | undefined;
-  ClientDiet: { client?: ClientSummary } | undefined;
   ClientBmi: { client?: ClientSummary } | undefined;
   ClientBmiReport: { client?: ClientSummary } | undefined;
-  ClientDietPlan: { client?: ClientSummary } | undefined;
   ChangePassword: undefined;
   Legal: undefined;
   EditProfile: undefined;

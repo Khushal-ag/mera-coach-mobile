@@ -13,6 +13,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
@@ -40,12 +41,16 @@ import type { CoachProfileFull } from '../api/coachApi';
 import type { CoachCategory } from '../types/models';
 
 export default function EditProfileScreen({ navigation }: RootScreenProps<'EditProfile'>) {
-  const profileQuery = useQuery({ queryKey: ['coachProfileFull'], queryFn: getCoachProfileFull });
+  const insets = useSafeAreaInsets();
+  const profileQuery = useQuery({
+    queryKey: queryKeys.coachProfileFull,
+    queryFn: getCoachProfileFull,
+  });
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
     queryFn: getCoachCategories,
   });
-  const countriesQuery = useQuery({ queryKey: ['countries'], queryFn: getCountries });
+  const countriesQuery = useQuery({ queryKey: queryKeys.countries, queryFn: getCountries });
 
   const errorMessage =
     profileQuery.isError && !profileQuery.data
@@ -54,8 +59,13 @@ export default function EditProfileScreen({ navigation }: RootScreenProps<'EditP
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -130,7 +140,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   }
 
   const servicesQuery = useQuery({
-    queryKey: ['servicesForCategory', categoryCode],
+    queryKey: queryKeys.servicesForCategory(categoryCode),
     queryFn: () => getServicesForCategory(categoryCode),
     enabled: !!categoryCode,
   });
@@ -219,7 +229,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         coachDesc: coachDesc.trim(),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
-      queryClient.invalidateQueries({ queryKey: ['coachProfileFull'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
       Alert.alert('Profile Updated', 'Your changes have been saved.', [
         { text: 'OK', onPress: onDone },
       ]);
@@ -441,7 +451,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',

@@ -21,11 +21,10 @@ export const MEAL_SLOT_ORDER: Record<string, number> = {
 };
 
 // Flattens one slot's entered items into the free-text summary + total calories the backend
-// stores per meal (curFoodItems/curCalories) — not reconstructible back into distinct items,
-// see clientApi.ts's mapClientDetailToProfile.
+// stores per meal (curFoodItems/curCalories). Reverse parsing lives in utils/mealRehydration.ts.
 export function describeDietItems(diet: DietPlan, slotId: string): { text: string; cal: number } {
   const items = diet[slotId] || [];
-  const text = items.map(i => (i.qty > 1 ? `${i.name} x${i.qty}` : i.name)).join(', ');
+  const text = items.map(i => (i.qty > 1 ? `${i.qty}x ${i.name}` : i.name)).join(', ');
   const cal = items.reduce((sum, i) => sum + i.kcal * i.qty, 0);
   return { text, cal };
 }

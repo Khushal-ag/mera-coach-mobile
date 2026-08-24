@@ -18,7 +18,7 @@
       "versionCode": 1,
       "blockedPermissions": ["android.permission.RECORD_AUDIO"],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1b4332",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

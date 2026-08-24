@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { changePassword } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
@@ -63,6 +64,7 @@ function PasswordField({
 }
 
 export default function ChangePasswordScreen({ navigation }: RootScreenProps<'ChangePassword'>) {
+  const insets = useSafeAreaInsets();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -101,7 +103,7 @@ export default function ChangePasswordScreen({ navigation }: RootScreenProps<'Ch
         contentContainerStyle={styles.inner}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={Colors.white} />
           </TouchableOpacity>
@@ -170,7 +172,6 @@ const styles = StyleSheet.create({
   inner: { flexGrow: 1, paddingBottom: 40 },
   header: {
     backgroundColor: Colors.secondary,
-    paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',

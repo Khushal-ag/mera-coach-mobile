@@ -12,7 +12,12 @@ export default function NotificationsScreen({ navigation }: RootScreenProps<'Not
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Ionicons name="arrow-back" size={20} color={Colors.white} />
         </TouchableOpacity>
         <Text style={styles.title}>Notifications</Text>
