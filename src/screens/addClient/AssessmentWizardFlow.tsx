@@ -52,6 +52,13 @@ interface AssessmentWizardFlowProps {
   initialIds?: AssessmentIds;
   /** Add Client skips BMI result; checkup keeps the full phase list. */
   flow?: AssessmentFlow;
+  /** Jump straight to this phase's first screen (e.g. dietPlan from Client Detail). */
+  initialPhaseId?: string;
+  /**
+   * assessment: full checkup finish (BMI + mark-complete).
+   * dietPlan: only save-diet-plan when a plan exists (shortcut entry).
+   */
+  commitMode?: 'assessment' | 'dietPlan';
   finishLabel?: string;
   /** When true, skip save-meals if the coach did not enter any food items (checkup/edit). */
   skipEmptyDietCommit?: boolean;
@@ -63,6 +70,8 @@ export default function AssessmentWizardFlow({
   initialForm,
   initialIds = {},
   flow = 'add',
+  initialPhaseId,
+  commitMode = 'assessment',
   finishLabel = 'Save Client',
   skipEmptyDietCommit = false,
   onExit,
@@ -92,7 +101,15 @@ export default function AssessmentWizardFlow({
     return list;
   }, [phases]);
 
-  const [index, setIndex] = useState(0);
+  const startIndex = useMemo(() => {
+    if (!initialPhaseId) return 0;
+    const idx = flatNav.findIndex(
+      e => e.type === 'screen' && phases[e.phaseIndex]?.id === initialPhaseId,
+    );
+    return idx >= 0 ? idx : 0;
+  }, [flatNav, phases, initialPhaseId]);
+
+  const [index, setIndex] = useState(startIndex);
   const [form, setForm] = useState<ClientProfile>(initialForm);
   const [ids, setIds] = useState<AssessmentIds>(initialIds);
   const [bmiSaved, setBmiSaved] = useState(false);
@@ -116,7 +133,8 @@ export default function AssessmentWizardFlow({
 
   const entry = flatNav[index]!;
   const isLast = index === flatNav.length - 1;
-  const goBack = () => (index === 0 ? onExit() : setIndex(i => i - 1));
+  // When opened mid-flow (e.g. diet plan shortcut), back from the start screen exits.
+  const goBack = () => (index <= startIndex ? onExit() : setIndex(i => i - 1));
 
   const goNext = async () => {
     if (entry.type === 'interstitial') {
@@ -160,6 +178,10 @@ export default function AssessmentWizardFlow({
         }
       } else if (phaseId === 'dietPlan') {
         if (form.dietPlan) await commitDietPlan(form.dietPlan, ids);
+        if (commitMode === 'dietPlan') {
+          await onComplete();
+          return;
+        }
         const metrics = computeBmiMetrics(form);
         await finishAssessment(ids, metrics, bmiSaved, 0);
         await onComplete();

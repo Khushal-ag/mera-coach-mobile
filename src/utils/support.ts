@@ -2,9 +2,8 @@ import { Alert, Linking } from 'react-native';
 import { PRIVACY_POLICY_URL, SUPPORT_EMAIL } from '../config/appConfig';
 
 /**
- * Hand a URL to the OS, falling back to an alert that shows the user how to do it manually.
- * Both Linking calls can reject outright (Android throws when no activity resolves), so the
- * fallback also covers a rejection — that way callers can fire these off without a .catch().
+ * Open URL via Linking; on Android both canOpenURL/openURL can reject when no
+ * activity resolves, so callers need no .catch().
  */
 async function openExternal(url: string, fallbackTitle: string, fallbackMessage: string) {
   try {

@@ -8,7 +8,6 @@ interface FormFieldLabelProps {
   style?: StyleProp<TextStyle>;
 }
 
-/** Field label with an optional red asterisk for mandatory fields. */
 export default function FormFieldLabel({ children, required, style }: FormFieldLabelProps) {
   return (
     <Text style={[styles.label, style]}>

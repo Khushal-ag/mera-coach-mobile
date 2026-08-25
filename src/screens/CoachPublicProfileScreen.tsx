@@ -73,7 +73,7 @@ type ProfilePageProps = {
 
 const MAX_PAGE_DOTS = 10;
 
-/** Prefer profile-by-id fields; fill gaps from the directory row for the same coach code. */
+/** Prefer profile-by-id; fill gaps from the directory row. */
 function mergeCoachProfile(api: Coach | undefined, list: Coach | undefined): Coach | undefined {
   if (!api && !list) return undefined;
   if (!api) return list;
@@ -412,7 +412,7 @@ function CoachProfilePage({
           </View>
         ) : null}
 
-        {/* Client success: profile fields only — no named testimonials API yet. */}
+        {/* No named testimonials API yet. */}
         {showSuccessStories ? (
           <View style={styles.storiesSection}>
             <View style={[styles.sectionTag, styles.storiesSectionTag]}>
@@ -451,7 +451,7 @@ function CoachProfilePage({
           </View>
         ) : null}
 
-        {/* Aggregate rating/count only until a review-text / list endpoint exists. */}
+        {/* Aggregate rating only until a review-text endpoint exists. */}
         {showRating ? (
           <View style={styles.section}>
             <View style={styles.sectionTag}>

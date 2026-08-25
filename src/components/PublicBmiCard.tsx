@@ -33,7 +33,6 @@ type Props = {
   onFieldFocus?: () => void;
 };
 
-/** Inline BMI calculator for the public Home screen (no separate route). */
 export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [heightUnit, setHeightUnit] = useState<HeightUnit>('cm');

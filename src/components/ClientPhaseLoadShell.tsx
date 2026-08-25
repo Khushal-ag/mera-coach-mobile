@@ -13,7 +13,6 @@ interface ClientPhaseLoadShellProps {
   emptyTitle?: string;
 }
 
-/** Shared loading / error / retry chrome for client phase screens. */
 export default function ClientPhaseLoadShell({
   isLoading,
   isError,

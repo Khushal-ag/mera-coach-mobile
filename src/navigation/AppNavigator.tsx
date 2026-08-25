@@ -26,6 +26,7 @@ import CoachProfileScreen from '../screens/CoachProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ClientBmiScreen from '../screens/clientDetail/ClientBmiScreen';
 import ClientBmiReportScreen from '../screens/clientDetail/ClientBmiReportScreen';
+import ClientDietPlanScreen from '../screens/clientDetail/ClientDietPlanScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import LegalScreen from '../screens/LegalScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
@@ -134,6 +135,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="ClientBmi" component={ClientBmiScreen} />
           <Stack.Screen name="ClientBmiReport" component={ClientBmiReportScreen} />
+          <Stack.Screen name="ClientDietPlan" component={ClientDietPlanScreen} />
           <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
           <Stack.Screen name="Legal" component={LegalScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />

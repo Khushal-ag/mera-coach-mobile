@@ -1,4 +1,4 @@
-/** Self-reported years, or tenure from account creation when years are unset. */
+/** Prefer self-reported years; else tenure from account creation. */
 export function formatExperienceDisplay(
   experienceYears?: number | null,
   createdAt?: string | null,
@@ -17,11 +17,10 @@ export function formatExperienceDisplay(
     }
   }
 
-  // No self-reported years and no usable creation date — don't invent "0 yrs".
+  // Don't invent "0 yrs" when both sources are missing.
   return '—';
 }
 
-/** First parseable date among common coach-profile creation field names. */
 export function pickCoachCreatedAt(
   raw: Record<string, unknown> | null | undefined,
 ): string | undefined {

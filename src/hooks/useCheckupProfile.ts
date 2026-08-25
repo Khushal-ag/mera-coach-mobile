@@ -4,12 +4,18 @@ import { queryKeys } from '../api/queryKeys';
 import { useMappedClientProfile } from './useMappedClientProfile';
 import type { ClientSummary } from '../types/models';
 
+export type CheckupAssessmentIdMode = 'checkup' | 'latest';
+
 /**
- * Load client detail for a full checkup wizard.
- * Uses assessmentCode: '' (latest assessment) and mirrors web same-day resume logic.
+ * assessmentCode: '' loads latest assessment.
+ * assessmentIdMode checkup = same-day resume / else new; latest = keep loaded code (diet-plan save).
  */
-export function useCheckupProfile(client?: ClientSummary | null) {
+export function useCheckupProfile(
+  client?: ClientSummary | null,
+  options?: { assessmentIdMode?: CheckupAssessmentIdMode },
+) {
   const clientCode = client?.clientCode;
+  const assessmentIdMode = options?.assessmentIdMode ?? 'checkup';
 
   const detailQuery = useQuery({
     queryKey: queryKeys.clientDetailCheckup(clientCode),
@@ -18,7 +24,14 @@ export function useCheckupProfile(client?: ClientSummary | null) {
   });
 
   const { profile, profileLoading } = useMappedClientProfile(detailQuery);
-  const ids = detailQuery.data ? resolveCheckupAssessmentIds(detailQuery.data) : { clientCode };
+  const ids = detailQuery.data
+    ? assessmentIdMode === 'latest'
+      ? {
+          clientCode: detailQuery.data.clientCode ?? clientCode,
+          assessmentCode: detailQuery.data.assessmentCode,
+        }
+      : resolveCheckupAssessmentIds(detailQuery.data)
+    : { clientCode };
 
   return {
     profile,

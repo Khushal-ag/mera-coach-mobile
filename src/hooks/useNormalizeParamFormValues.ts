@@ -57,9 +57,7 @@ function useParamMasterBundle(): ParamMasterBundle {
 }
 
 /**
- * Loads all PARAMLIST vocabularies and rewrites legacy label values in form state to
- * itemCodes so save-lifestyle writes LI00xx (matching web). Returns the option bundle
- * for dropdowns. Safe to call from any lifestyle-phase screen.
+ * Rewrites legacy PARAMLIST labels to itemCodes so save-lifestyle writes LI00xx.
  */
 export function useNormalizeAllParamFormValues(
   form: ClientProfile,

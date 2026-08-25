@@ -57,11 +57,7 @@ export async function getFoodCalories(foodName: string, qty = 1): Promise<number
   return data?.cal ?? 0;
 }
 
-// Backing dropdown/multi-select vocabulary (food type, cuisine, activity, work type, sleep,
-// pregnancy, medical conditions, allergies, goal, timeline — param codes PC001-PC010) lives
-// server-side. ClientDetail / save-lifestyle store itemCode (e.g. LI0031); web dropdowns use
-// value=itemCode, text=itemName. Mobile matches: form state + save payloads use codes; UI shows
-// labels via resolveMasterLabel.
+// PARAMLIST (PC001–PC010): form + save use itemCode; UI shows labels via resolveMasterLabel.
 export async function getParamList(paramCode: string): Promise<MasterOption[]> {
   const data = await apiFetch<RawMasterOption[]>(
     `/v{version}/Master/GetMasterItem?ItemType=PARAMLIST&ParamCode=${paramCode}`,
@@ -72,6 +68,7 @@ export async function getParamList(paramCode: string): Promise<MasterOption[]> {
   }));
 }
 
+/** Exact POST body for /Master/generate-diet-plan (see meracoachapp AddClient). */
 export interface GenerateDietPlanParams {
   clientName: string;
   gender: string;

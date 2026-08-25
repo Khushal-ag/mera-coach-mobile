@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/** Extra scroll padding so the focused field + CTA clear the keyboard. */
 export const KEYBOARD_SCROLL_PADDING = 160;
 
 export type KeyboardSafeScrollProps = Omit<ScrollViewProps, 'contentContainerStyle' | 'style'> & {
@@ -20,20 +19,13 @@ export type KeyboardSafeScrollProps = Omit<ScrollViewProps, 'contentContainerSty
   /** Bottom padding beyond the safe-area inset. Default {@link KEYBOARD_SCROLL_PADDING}. */
   keyboardPadding?: number;
   /**
-   * Wrap in KeyboardAvoidingView (padding on iOS, off on Android — Android uses
-   * `softwareKeyboardLayoutMode: resize`). Default true.
+   * KeyboardAvoidingView on iOS only; Android uses `softwareKeyboardLayoutMode: resize`.
+   * Default true.
    */
   withAvoidingView?: boolean;
   avoidingViewStyle?: StyleProp<ViewStyle>;
 };
 
-/**
- * ScrollView + keyboard insets + safe bottom padding, matching the Login/Register pattern.
- * Use `useScrollLowerFieldsIntoView` with the ScrollView ref for lower-field focus.
- *
- * Note: `keyboardPadding + safe-area inset` always wins for `paddingBottom` so lower
- * fields stay scrollable above the keyboard.
- */
 const KeyboardSafeScroll = forwardRef<ScrollView, KeyboardSafeScrollProps>(
   function KeyboardSafeScroll(
     {
@@ -83,7 +75,7 @@ const KeyboardSafeScroll = forwardRef<ScrollView, KeyboardSafeScrollProps>(
 
 export default KeyboardSafeScroll;
 
-/** Call from lower TextInput `onFocus` so the CTA stays above the keyboard after resize. */
+/** Call from lower TextInput `onFocus` after keyboard resize. */
 export function useScrollLowerFieldsIntoView(
   scrollRef: RefObject<ScrollView | null>,
   delayMs = 120,

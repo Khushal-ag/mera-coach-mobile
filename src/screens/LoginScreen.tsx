@@ -60,7 +60,6 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       style={styles.container}
       contentContainerStyle={styles.inner}
     >
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
         <View style={styles.logoBox}>
@@ -70,7 +69,6 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
         <Text style={styles.tagline}>Wellness Platform</Text>
       </View>
 
-      {/* Card */}
       <View style={styles.card}>
         <FormErrorBanner message={formErrorBanner} />
 

@@ -36,7 +36,7 @@ interface StatCard {
   icon: IoniconName;
   color: string;
   bg: string;
-  /** null marks a stat whose data source does not exist yet — rendered as "Coming soon". */
+  /** null = coming soon (no data source yet). */
   value: string | null;
   onPress?: () => void;
 }
@@ -55,7 +55,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
   const clients = clientsQuery.data ?? null;
   const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
 
-  // Explicit pull only — do not bind RefreshControl to query.isRefetching (offscreen spinner).
+  // Do not bind RefreshControl to query.isRefetching (offscreen spinner).
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     Promise.all([clientsQuery.refetch(), profileQuery.refetch()])
@@ -112,9 +112,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
     },
   ];
 
-  // Three outcomes share this slot: still loading, a load failure with nothing cached, or a
-  // genuinely empty client list. The last two get the same card shape with different copy so
-  // a network blip never reads as "you have no clients".
+  // Error and empty share a card shape so a network blip never reads as "no clients".
   function renderRecentClients() {
     if (clientsQuery.isPending) {
       return (
@@ -377,7 +375,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  // Keeps the coming-soon pill and a real stat number on the same baseline so the grid stays even.
   statValueRow: { minHeight: 34, justifyContent: 'center' },
   statValue: { fontSize: 26, fontWeight: '800' },
   statLabel: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
@@ -412,8 +409,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   loadingText: { fontSize: 13, color: Colors.textLight },
-  // Dashed border reads as an empty slot waiting to be filled, rather than a card that failed
-  // to load. Solid white with a shadow is reserved for rows that hold real data.
+  // Dashed border = empty slot; solid white reserved for real data.
   emptyCard: {
     alignItems: 'center',
     backgroundColor: Colors.white,

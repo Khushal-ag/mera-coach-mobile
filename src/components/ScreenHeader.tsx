@@ -20,7 +20,6 @@ interface HeaderBackButtonProps {
   accessibilityLabel?: string;
 }
 
-/** Circular back control — shared by stack headers and auth/hero banners. */
 export function HeaderBackButton({
   onPress,
   onDark = true,
@@ -48,7 +47,6 @@ interface HeaderHomeButtonProps {
   accessibilityLabel?: string;
 }
 
-/** Circular home control — returns to the public landing (coach search) without signing out. */
 export function HeaderHomeButton({
   onPress,
   onDark = true,
@@ -74,20 +72,15 @@ export function HeaderHomeButton({
 interface ScreenHeaderProps {
   title: string;
   onBack?: () => void;
-  /** Optional trailing control; when omitted with onBack, a spacer keeps the title centered. */
+  /** Optional trailing control; spacer keeps title centered when onBack is set. */
   right?: React.ReactNode;
   /**
-   * Show a home control on the right (public landing). Default true — ScreenHeader is only
-   * used on authenticated stack screens. Pass false or a custom `right` to override.
+   * Home control on the right. Default true for authenticated stack screens.
+   * Pass false or a custom `right` to override.
    */
   showHome?: boolean;
 }
 
-/**
- * Green stack-screen header: safe-area padding, circular back, centered title.
- * Use for Edit Profile, Legal, Change Password, Client Detail, BMI Report, etc.
- * Wizard flows keep their floating back instead.
- */
 export default function ScreenHeader({ title, onBack, right, showHome = true }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
   const trailing = right ?? (showHome ? <HeaderHomeButton /> : <View style={styles.spacer} />);

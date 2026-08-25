@@ -3,7 +3,6 @@ export interface MasterOption {
   label: string;
 }
 
-/** Map a stored master code (or already-human label) to the display name. */
 export function resolveMasterLabel(
   value: string | undefined | null,
   options: MasterOption[],
@@ -17,7 +16,7 @@ export function resolveMasterLabel(
   return v;
 }
 
-/** Normalize a stored code or legacy label to the master itemCode for form state / save. */
+/** Prefer itemCode; accept legacy label when options are loaded. */
 export function resolveMasterCode(
   value: string | undefined | null,
   options: MasterOption[],
@@ -31,7 +30,6 @@ export function resolveMasterCode(
   return v;
 }
 
-/** Normalize a CSV/multi-select list of codes or legacy labels to itemCodes. */
 export function resolveMasterCodes(values: string[], options: MasterOption[]): string[] {
   return values.map(v => resolveMasterCode(v, options)).filter(Boolean);
 }

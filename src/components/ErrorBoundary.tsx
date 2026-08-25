@@ -10,7 +10,6 @@ interface State {
   hasError: boolean;
 }
 
-/** Minimal root boundary so a render crash shows a recoverable screen instead of a blank app. */
 export default class ErrorBoundary extends React.Component<Props, State> {
   state: State = { hasError: false };
 

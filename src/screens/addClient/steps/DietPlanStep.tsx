@@ -7,9 +7,9 @@ import { generateDietPlan, resolveMasterLabel } from '../../../api/masterApi';
 import { getCoachProfile } from '../../../api/coachApi';
 import { getErrorMessage } from '../../../api/client';
 import { queryKeys } from '../../../api/queryKeys';
-import { describeDietItems } from '../../../data/mealSlotLabels';
 import { useParamMasterOptions } from '../../../hooks/useParamOptions';
 import { PARAM_CODES, REGIONAL_CUISINES } from '../../../data/lifestyleOptions';
+import { buildGenerateDietPlanBody } from '../../../utils/generateDietPlanBody';
 import type { ClientProfile } from '../../../types/models';
 import type { IoniconName, StepProps } from '../../../types/wizard';
 
@@ -37,44 +37,13 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
     setGenerating(true);
     setError('');
     try {
-      const em = describeDietItems(form.diet, 'earlyMorning');
-      const bf = describeDietItems(form.diet, 'breakfast');
-      const mm = describeDietItems(form.diet, 'midMorningSnack');
-      const ln = describeDietItems(form.diet, 'lunch');
-      const ev = describeDietItems(form.diet, 'eveningSnack');
-      const dn = describeDietItems(form.diet, 'dinner');
-      // Match web AddClient: most fields send ddl value (itemCode); cuisine sends option text.
-      const plan = await generateDietPlan({
-        clientName: form.name,
-        gender: form.gender,
-        age: parseInt(form.age, 10) || 0,
-        weight: parseFloat(form.weight) || 0,
-        height: parseInt(form.height, 10) || 0,
-        country: coachProfileQuery.data?.country || 'India',
-        foodType: form.foodPreference,
-        cuisine: resolveMasterLabel(form.regionalCuisine, cuisineOptions),
-        activity: form.physicalActivity,
-        workType: form.workType,
-        sleep: form.sleepDuration,
-        pregnancy: form.pregnancyBf,
-        medical: form.medicalConditions.join(', '),
-        allergies: form.foodAllergies.join(', '),
-        goal: form.primaryGoal,
-        timeline: form.targetTimeline,
-        notes: form.notes,
-        curEM: em.text,
-        curEMCal: em.cal,
-        curBreakfast: bf.text,
-        curBreakfastCal: bf.cal,
-        curMidMorning: mm.text,
-        curMidMorningCal: mm.cal,
-        curLunch: ln.text,
-        curLunchCal: ln.cal,
-        curEvening: ev.text,
-        curEveningCal: ev.cal,
-        curDinner: dn.text,
-        curDinnerCal: dn.cal,
-      });
+      // Match web AddClient: itemCodes for most fields; cuisine = option text; country = country_Cd.
+      const plan = await generateDietPlan(
+        buildGenerateDietPlanBody(form, {
+          countryCd: coachProfileQuery.data?.country,
+          cuisineLabel: resolveMasterLabel(form.regionalCuisine, cuisineOptions),
+        }),
+      );
       update('dietPlan', plan);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to generate a plan. Please try again.'));

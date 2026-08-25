@@ -80,7 +80,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
 
   return (
     <View style={styles.container}>
-      {/* Banner */}
       <View style={[styles.banner, { paddingTop: insets.top + 12 }]}>
         <HeaderBackButton onPress={() => navigation.goBack()} style={styles.bannerBack} />
         <Text style={styles.bannerTitle}>Find Your Perfect Coach</Text>
@@ -89,7 +88,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         </Text>
       </View>
 
-      {/* Category pills */}
       <View style={styles.pillsBar}>
         <View style={styles.pillsBarContent}>
           <TouchableOpacity
@@ -134,7 +132,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           />
         }
       >
-        {/* Search */}
         <View style={styles.searchWrap}>
           <Ionicons
             name="search-outline"
@@ -151,7 +148,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           />
         </View>
 
-        {/* Result info + sort — spinner only while there is no list yet (not on background refetch). */}
+        {/* Spinner only with no list yet — not on background refetch. */}
         {coachesQuery.isPending && !coachesQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
         ) : errorMessage ? (
@@ -165,7 +162,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             </View>
             <DropdownField label="Sort By" value={sort} options={SORT_OPTIONS} onChange={setSort} />
 
-            {/* Coach cards */}
             {filtered.map(coach => {
               const photoUri = resolveMediaUrl(coach.profilePicUrl);
               const clientCount = resolvePublicClientCount({
@@ -278,7 +274,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           </>
         )}
 
-        {/* Become a Coach CTA */}
         <View style={styles.ctaCard}>
           <View style={styles.ctaIcon}>
             <Ionicons name="school-outline" size={22} color={Colors.white} />

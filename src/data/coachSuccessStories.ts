@@ -1,9 +1,8 @@
 import type { IoniconName } from '../types/icons';
 
 /**
- * Quote templates paired with live coaches from GET /Coach/public (page 2),
- * matching meracoachapp Pages/Index.cshtml `#stories`. No dedicated stories API —
- * coaches come from the public list; copy is static on the website.
+ * Quote templates paired with live coaches from GET /Coach/public (page 2).
+ * No dedicated stories API — coaches from the public list; copy is static like the website.
  */
 export interface CoachStoryTemplate {
   badge: string;

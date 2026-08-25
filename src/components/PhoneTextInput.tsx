@@ -7,7 +7,7 @@ type PhoneTextInputProps = Omit<TextInputProps, 'keyboardType' | 'onChangeText'>
   onChangeText: (value: string) => void;
 };
 
-/** Digits-only phone input — skips no-op updates to avoid TextInput flicker. */
+/** Digits-only; skips no-op updates to avoid TextInput flicker. */
 export default function PhoneTextInput({ value, onChangeText, ...rest }: PhoneTextInputProps) {
   const handleChange = (text: string) => {
     const next = sanitizePhoneInput(text);

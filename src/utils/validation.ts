@@ -287,7 +287,6 @@ export function validateCoachContactFields(mobile: string, email: string): FormV
   return resultFromErrors(errors);
 }
 
-/** Register form — collect all field errors. */
 export function validateCoachRegister(fields: {
   name: string;
   category: string;
@@ -302,7 +301,6 @@ export function validateCoachRegister(fields: {
   return resultFromErrors(errors);
 }
 
-/** Login form — collect all field errors. */
 export function validateLogin(fields: { email: string; password: string }): FormValidationResult {
   const errors: FieldErrorMap = {};
   if (!fields.email.trim()) errors.email = 'Email or mobile is required.';
@@ -310,7 +308,6 @@ export function validateLogin(fields: { email: string; password: string }): Form
   return resultFromErrors(errors);
 }
 
-/** Edit Profile — required contact + optional format fields. */
 export function validateCoachProfileEdit(fields: {
   coachName: string;
   categoryCode: string;

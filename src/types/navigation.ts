@@ -18,9 +18,9 @@ export type RootStackParamList = {
     | {
         coach?: Coach;
         coachCode?: string;
-        /** Ordered coach codes from the source list — enables swipe between profiles. */
+        /** Ordered codes for swipe between profiles. */
         coachCodes?: string[];
-        /** Full list rows matching coachCodes — used as per-page placeholders until profile API loads. */
+        /** List rows as placeholders until profile-by-id loads. */
         coaches?: Coach[];
       }
     | undefined;
@@ -33,6 +33,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   ClientBmi: { client?: ClientSummary } | undefined;
   ClientBmiReport: { client?: ClientSummary } | undefined;
+  ClientDietPlan: { client?: ClientSummary } | undefined;
   ChangePassword: undefined;
   Legal: undefined;
   EditProfile: undefined;

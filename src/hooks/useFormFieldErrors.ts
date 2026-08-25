@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { FieldErrorMap, FormValidationResult } from '../utils/validation';
 
-/** Tracks which fields failed validation and the shared top banner message. */
 export function useFormFieldErrors() {
   const [errorFields, setErrorFields] = useState<Record<string, boolean>>({});
   const [formErrorBanner, setFormErrorBanner] = useState<string | null>(null);
@@ -29,7 +28,6 @@ export function useFormFieldErrors() {
     setFormErrorBanner(null);
   }, []);
 
-  /** Apply a validation result. Returns true when the form is invalid. */
   const applyValidation = useCallback((result: FormValidationResult): boolean => {
     if (result.ok) {
       setErrorFields({});
@@ -43,7 +41,6 @@ export function useFormFieldErrors() {
     return true;
   }, []);
 
-  /** Mark fields from a plain error map (e.g. Register / Login). */
   const applyFieldErrors = useCallback(
     (errors: FieldErrorMap, banner: string) => {
       if (Object.keys(errors).length === 0) {

@@ -10,7 +10,6 @@ interface EmptyStateProps {
   message: string;
 }
 
-/** Honest empty placeholder when a feature has no backend data yet. */
 export default function EmptyState({
   icon = 'file-tray-outline',
   title,

@@ -1,11 +1,8 @@
 import type { IoniconName } from '../types/icons';
 
 /**
- * Public-profile social proof built from fields we already have.
- *
- * Backend gap: there is no coach-specific testimonials / review-text API.
- * Website CoachProfile.cshtml hardcodes sample named clients — we do not copy those.
- * Until review bodies ship, use happyClientCount, experience, tagline/bio, and services.
+ * No coach-specific testimonials API; website hardcodes sample clients — do not copy those.
+ * Derive highlights from happyClientCount, experience, tagline/bio, and services.
  */
 
 export interface CoachSuccessHighlight {
@@ -21,7 +18,6 @@ function truncate(text: string, max: number): string {
   return `${t.slice(0, max - 1).trimEnd()}…`;
 }
 
-/** Highlight cards for “Client Success Stories” — only real profile fields. */
 export function buildCoachSuccessHighlights(coach: {
   name: string;
   clients: number;

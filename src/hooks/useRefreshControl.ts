@@ -9,15 +9,13 @@ interface RefreshableQuery<TData, TError> {
   refetch: (options?: RefetchOptions) => Promise<QueryObserverResult<TData, TError>>;
 }
 
-/** iOS `tintColor` + Android `colors` — spread onto every `RefreshControl`. */
 export const refreshControlTheme = {
   tintColor: Colors.secondary,
   colors: [Colors.secondary] as string[],
 };
 
-// Explicit pull-to-refresh only. Do not bind RefreshControl to query.isRefetching —
-// background refetches (stale remount, focus) would show a stuck/static spinner above
-// the list while content is already visible.
+// Do not bind RefreshControl to query.isRefetching — background refetches would
+// show a stuck spinner while content is already visible.
 export function useRefreshControl<TData, TError = unknown>(query: RefreshableQuery<TData, TError>) {
   const [refreshing, setRefreshing] = useState(false);
 

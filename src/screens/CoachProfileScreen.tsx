@@ -106,7 +106,6 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
       }
     >
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>My Profile</Text>
         <HeaderHomeButton />
@@ -118,7 +117,6 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
         <Text style={styles.empty}>{errorMessage}</Text>
       ) : (
         <>
-          {/* Profile Card */}
           <View style={styles.profileCard}>
             <View style={styles.avatar}>
               {photoUri ? (
@@ -136,7 +134,6 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
               </Text>
             ) : null}
 
-            {/* Stats Row */}
             <View style={styles.statsRow}>
               <View style={styles.stat}>
                 <Text style={styles.statValue}>{clientCountDisplay}</Text>
@@ -155,7 +152,6 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
             </View>
           </View>
 
-          {/* Specializations */}
           {profile?.tags.length ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Specializations</Text>
@@ -171,7 +167,6 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
         </>
       )}
 
-      {/* Menu */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
         {menuItems.map((item, i) => (

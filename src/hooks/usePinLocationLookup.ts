@@ -13,9 +13,7 @@ export interface PinLocationResult {
 }
 
 /**
- * When pin reaches 6 digits and a country code is set, fetch city/state.
- * Debounced so typing is not blocked. Caller applies `location` when
- * `dataUpdatedAt` changes (e.g. adjust state during render).
+ * Debounced pin → city/state. Caller should apply `location` when `dataUpdatedAt` changes.
  */
 export function usePinLocationLookup(
   pinDigits: string,

@@ -7,7 +7,6 @@ interface FormErrorBannerProps {
   message: string | null | undefined;
 }
 
-/** Shared top-of-form validation / submit error banner. */
 export default function FormErrorBanner({ message }: FormErrorBannerProps) {
   if (!message) return null;
   return (

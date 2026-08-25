@@ -128,6 +128,13 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       bg: Colors.primaryLight,
       onPress: () => navigation.navigate('ClientBmiReport', { client }),
     },
+    {
+      label: 'Diet Plan',
+      icon: 'nutrition-outline',
+      color: Colors.secondary,
+      bg: Colors.secondaryLight,
+      onPress: () => navigation.navigate('ClientDietPlan', { client }),
+    },
   ];
 
   return (
@@ -143,10 +150,8 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
         />
       }
     >
-      {/* Header */}
       <ScreenHeader title="Client Profile" onBack={() => navigation.goBack()} />
 
-      {/* Profile Card */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{client.initials || 'CL'}</Text>
@@ -193,7 +198,6 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
         </View>
       </View>
 
-      {/* Info */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Client Information</Text>
         {client.clientCode && detailQuery.isPending ? (
@@ -238,7 +242,6 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
         )}
       </View>
 
-      {/* Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Actions</Text>
         <View style={styles.actionGrid}>

@@ -257,7 +257,6 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
       }
     >
-      {/* Hero */}
       <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
         {!signedIn ? (
           <TouchableOpacity
@@ -308,7 +307,6 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
       </View>
 
-      {/* Stats strip — loading placeholder, or balanced metrics (never a lone pill). */}
       {!statsReady ? (
         <View style={[styles.statsStrip, styles.statsStripLoading]}>
           <ActivityIndicator color={Colors.secondary} />
@@ -327,7 +325,6 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
       ) : null}
 
-      {/* Categories */}
       <View style={styles.categoriesSection}>
         <View style={styles.sectionTag}>
           <Ionicons name="grid-outline" size={12} color={Colors.secondary} />
@@ -360,10 +357,8 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         )}
       </View>
 
-      {/* Check Your BMI — inline expandable form (no separate screen). */}
       <PublicBmiCard onFindCoach={() => navigation.navigate('CoachList')} />
 
-      {/* Coach success stories */}
       {storiesLoading || storyItems.length > 0 ? (
         <View style={styles.storiesSection}>
           <View style={styles.sectionTag}>
@@ -405,7 +400,6 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
       ) : null}
 
-      {/* Reviews */}
       {reviewsLoading || reviewCoaches.length > 0 ? (
         <View style={styles.reviewsSection}>
           <View style={styles.sectionTag}>
@@ -449,7 +443,6 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
       ) : null}
 
-      {/* Bottom CTA */}
       <View style={styles.joinSection}>
         {signedIn ? (
           <>

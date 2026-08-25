@@ -10,7 +10,7 @@ function mealsNeedFoodMaster(raw?: RawClientDetail): boolean {
   return !!raw?.meals?.some(m => (m.curFoodItems ?? '').trim());
 }
 
-/** Map ClientDetail to ClientProfile, optionally waiting for food-master to resolve kcal. */
+/** Waits for food-master when meals need kcal resolution. */
 export function useMappedClientProfile(detailQuery: UseQueryResult<RawClientDetail>): {
   profile: ClientProfile | null;
   profileLoading: boolean;
