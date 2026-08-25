@@ -12,7 +12,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import { wizardShellStyles } from '../constants/wizardStyles';
+import {
+  WIZARD_BACK_TOP_GAP,
+  WIZARD_CONTENT_TOP_OFFSET,
+  wizardShellStyles,
+} from '../constants/wizardStyles';
 import { getErrorMessage } from '../api/client';
 import type { ClientProfile } from '../types/models';
 import type { IoniconName, WizardScreen } from '../types/wizard';
@@ -46,6 +50,8 @@ export default function PhaseWizard({
 }: PhaseWizardProps) {
   const insets = useSafeAreaInsets();
   const topInset = skipTopSafeArea ? 0 : insets.top;
+  const backTop = topInset + WIZARD_BACK_TOP_GAP;
+  const contentTop = topInset + WIZARD_CONTENT_TOP_OFFSET;
   const bottomInset = Math.max(insets.bottom, 12);
   const [index, setIndex] = useState(0);
   const [form, setForm] = useState<ClientProfile>(initialForm);
@@ -196,7 +202,7 @@ export default function PhaseWizard({
       <View style={styles.container}>
         {(index > 0 || onExit) && (
           <TouchableOpacity
-            style={[styles.floatingBack, { top: topInset + 8 }]}
+            style={[styles.floatingBack, { top: backTop }]}
             onPress={() => (index > 0 ? setIndex(i => i - 1) : onExit?.())}
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -207,7 +213,7 @@ export default function PhaseWizard({
 
         <ScrollView
           style={styles.body}
-          contentContainerStyle={[styles.bodyContent, { paddingTop: topInset + 56 }]}
+          contentContainerStyle={[styles.bodyContent, { paddingTop: contentTop }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -239,7 +245,7 @@ export default function PhaseWizard({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
-  bodyContent: { padding: 20, paddingTop: 100, paddingBottom: 16 },
+  bodyContent: { padding: 20, paddingTop: WIZARD_CONTENT_TOP_OFFSET, paddingBottom: 16 },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',

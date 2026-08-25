@@ -12,11 +12,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import ScreenHeader from '../components/ScreenHeader';
 import { getClientDetail } from '../api/clientApi';
+import { resolveMasterLabel } from '../api/masterApi';
 import { queryKeys } from '../api/queryKeys';
+import {
+  FOOD_PREFERENCES,
+  PARAM_CODES,
+  PHYSICAL_ACTIVITY_LEVELS,
+  PRIMARY_GOALS,
+} from '../data/lifestyleOptions';
+import { useParamMasterOptions } from '../hooks/useParamOptions';
 import { useRefreshControl } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import { getBmi, getBmiCategory } from '../utils/bmi';
+import { lastCheckupLabel } from '../utils/recheckup';
 import type { RootScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
@@ -57,10 +67,20 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       ? getErrorMessage(detailQuery.error, 'Could not load client details. Pull down to try again.')
       : null;
 
+  // ClientDetail stores PARAMLIST itemCodes (LI00xx); resolve to itemNames for display.
+  const goalOptions = useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS);
+  const dietOptions = useParamMasterOptions(PARAM_CODES.foodPreference, FOOD_PREFERENCES);
+  const activityOptions = useParamMasterOptions(
+    PARAM_CODES.physicalActivity,
+    PHYSICAL_ACTIVITY_LEVELS,
+  );
+
   const detail = detailQuery.data;
   const bmi = detail ? getBmi(detail.height ?? '', detail.weight ?? '') : null;
   const bmiCategory = getBmiCategory(bmi);
-  const goal = detail?.primaryGoal || client.goal || '';
+  const goal = resolveMasterLabel(detail?.primaryGoal || client.goal || '', goalOptions);
+  const mobile = (detail?.mobileNo ?? client.mobileNo ?? '').trim();
+  const checkupLine = lastCheckupLabel(client.lastCheckupDate);
 
   const metrics = useMemo<MetricCell[]>(() => {
     if (!detail) return [];
@@ -75,15 +95,23 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
   const detailRows = useMemo<DetailRow[]>(() => {
     if (!detail) return [];
     return [
-      { label: 'Goal', icon: 'trophy-outline', value: detail.primaryGoal || '—' },
+      {
+        label: 'Goal',
+        icon: 'trophy-outline',
+        value: resolveMasterLabel(detail.primaryGoal, goalOptions) || '—',
+      },
       {
         label: 'Diet Type',
         icon: 'restaurant-outline',
-        value: detail.foodPreference || '—',
+        value: resolveMasterLabel(detail.foodPreference, dietOptions) || '—',
       },
-      { label: 'Activity', icon: 'walk-outline', value: detail.physicalActivity || '—' },
+      {
+        label: 'Activity',
+        icon: 'walk-outline',
+        value: resolveMasterLabel(detail.physicalActivity, activityOptions) || '—',
+      },
     ];
-  }, [detail]);
+  }, [detail, goalOptions, dietOptions, activityOptions]);
 
   const actions: ActionItem[] = [
     {
@@ -116,20 +144,7 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
       }
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Client Profile</Text>
-        {/* Matches backBtn's size so the title stays visually centered. */}
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader title="Client Profile" onBack={() => navigation.goBack()} />
 
       {/* Profile Card */}
       <View style={styles.profileCard}>
@@ -137,6 +152,19 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
           <Text style={styles.avatarText}>{client.initials || 'CL'}</Text>
         </View>
         <Text style={styles.clientName}>{client.name}</Text>
+
+        {(mobile || checkupLine) && (
+          <View style={styles.contactBlock}>
+            {mobile ? (
+              <Text style={styles.contactLine} numberOfLines={1}>
+                {mobile}
+              </Text>
+            ) : null}
+            <Text style={styles.contactLine} numberOfLines={1}>
+              {checkupLine}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.chipRow}>
           {goal ? (
@@ -241,24 +269,6 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.onDarkOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: Colors.white, fontSize: 18, fontWeight: '700' },
-  headerSpacer: { width: 36, height: 36 },
   profileCard: {
     backgroundColor: Colors.white,
     margin: 20,
@@ -281,6 +291,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: Colors.textDark,
+    textAlign: 'center',
+  },
+  contactBlock: {
+    marginTop: 8,
+    alignItems: 'center',
+    gap: 2,
+  },
+  contactLine: {
+    fontSize: 13,
+    color: Colors.textLight,
+    fontWeight: '500',
     textAlign: 'center',
   },
   chipRow: {

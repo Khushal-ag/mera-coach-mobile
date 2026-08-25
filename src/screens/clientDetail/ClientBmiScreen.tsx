@@ -42,6 +42,7 @@ export default function ClientBmiScreen({ navigation, route }: RootScreenProps<'
     >
       <AssessmentWizardFlow
         key={`checkup-${client?.clientCode}-${dataUpdatedAt}`}
+        flow="checkup"
         initialForm={profile!}
         initialIds={ids}
         finishLabel="Save & Finish"

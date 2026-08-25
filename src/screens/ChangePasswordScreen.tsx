@@ -12,8 +12,9 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import FormFieldLabel from '../components/FormFieldLabel';
+import ScreenHeader from '../components/ScreenHeader';
 import { changePassword } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
@@ -40,7 +41,7 @@ function PasswordField({
 }: PasswordFieldProps) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <FormFieldLabel required>{label}</FormFieldLabel>
       <View style={styles.inputWrap}>
         <Ionicons name={icon} size={18} color={Colors.textLight} style={styles.inputIcon} />
         <TextInput
@@ -64,7 +65,6 @@ function PasswordField({
 }
 
 export default function ChangePasswordScreen({ navigation }: RootScreenProps<'ChangePassword'>) {
-  const insets = useSafeAreaInsets();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -103,13 +103,7 @@ export default function ChangePasswordScreen({ navigation }: RootScreenProps<'Ch
         contentContainerStyle={styles.inner}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color={Colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Change Password</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+        <ScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
 
         <View style={styles.card}>
           {error ? (
@@ -170,24 +164,6 @@ export default function ChangePasswordScreen({ navigation }: RootScreenProps<'Ch
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   inner: { flexGrow: 1, paddingBottom: 40 },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: Colors.white, fontSize: 18, fontWeight: '700' },
-  headerSpacer: { width: 36, height: 36 },
   card: {
     backgroundColor: Colors.white,
     margin: 20,
@@ -206,7 +182,6 @@ const styles = StyleSheet.create({
   },
   errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',

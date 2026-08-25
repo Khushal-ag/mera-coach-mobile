@@ -18,6 +18,7 @@ export default function AddClientScreen({ navigation }: RootScreenProps<'AddClie
 
   return (
     <AssessmentWizardFlow
+      flow="add"
       initialForm={createBlankProfile()}
       finishLabel="Save Client"
       onExit={() => navigation.goBack()}

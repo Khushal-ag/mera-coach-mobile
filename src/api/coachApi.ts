@@ -70,6 +70,8 @@ interface RawPublicCoach {
   serviceNames?: string;
   rating?: number;
   reviewCount?: number;
+  logo_Url?: string;
+  profile_Pic_Url?: string;
 }
 
 interface CoachPublicListResponse {
@@ -96,6 +98,8 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     // Self-reported "Happy Clients" — Profile tab prefers live getClientList length instead.
     clients: raw.happyClientCount ?? 0,
     createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
+    logoUrl: raw.logo_Url ?? '',
+    profilePicUrl: raw.profile_Pic_Url ?? '',
   };
 }
 
@@ -145,6 +149,8 @@ export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
       serviceNames: (raw as { serviceNames?: string }).serviceNames,
       rating: (raw as { rating?: number }).rating,
       reviewCount: (raw as { reviewCount?: number }).reviewCount,
+      logo_Url: raw.logo_Url,
+      profile_Pic_Url: raw.profile_Pic_Url,
     }),
     mobile: raw.mobile ?? '',
   };

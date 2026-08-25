@@ -179,7 +179,8 @@ export async function saveClientDetail(
         clientName: profile.name,
         mobileNo: profile.phone,
         emailId: profile.email,
-        alternateMobileNo: profile.alternateMobile,
+        // Alternate mobile removed from UI; API still expects the field.
+        alternateMobileNo: '',
         location: profile.location,
         // SQL Server rejects DD/MM/YYYY; send the same date-only form as assessmentDate.
         dob: toApiDob(profile.dob),

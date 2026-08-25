@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import FormFieldLabel from './FormFieldLabel';
+import type { MasterOption } from '../api/masterApi';
+
+export type DropdownOption = string | MasterOption;
+
+function normalizeOptions(options: DropdownOption[]): MasterOption[] {
+  return options.map(opt =>
+    typeof opt === 'string' ? { code: opt, label: opt } : { code: opt.code, label: opt.label },
+  );
+}
 
 interface DropdownFieldProps {
   label: string;
+  /** Stored value — typically itemCode for PARAMLIST fields, or the option string itself. */
   value: string;
-  options: string[];
+  options: DropdownOption[];
   onChange: (value: string) => void;
   placeholder?: string;
+  required?: boolean;
+  hasError?: boolean;
 }
 
 export default function DropdownField({
@@ -17,15 +30,23 @@ export default function DropdownField({
   options,
   onChange,
   placeholder,
+  required,
+  hasError,
 }: DropdownFieldProps) {
   const [open, setOpen] = useState(false);
+  const normalized = useMemo(() => normalizeOptions(options), [options]);
+  const selected = normalized.find(o => o.code === value || o.label === value);
+  const display = selected?.label ?? (value || '');
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity style={styles.box} onPress={() => setOpen(true)}>
-        <Text style={value ? styles.value : styles.placeholder}>
-          {value || placeholder || 'Select'}
+      <FormFieldLabel required={required}>{label}</FormFieldLabel>
+      <TouchableOpacity
+        style={[styles.box, hasError && styles.boxError]}
+        onPress={() => setOpen(true)}
+      >
+        <Text style={display ? styles.value : styles.placeholder}>
+          {display || placeholder || 'Select'}
         </Text>
         <Ionicons name="chevron-down" size={16} color={Colors.textLight} />
       </TouchableOpacity>
@@ -35,21 +56,24 @@ export default function DropdownField({
           <View style={styles.sheet} onStartShouldSetResponder={() => true}>
             <Text style={styles.sheetTitle}>{label}</Text>
             <ScrollView style={styles.optionList} showsVerticalScrollIndicator={false}>
-              {options.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={styles.option}
-                  onPress={() => {
-                    onChange(opt);
-                    setOpen(false);
-                  }}
-                >
-                  <Text style={[styles.optionText, opt === value && styles.optionTextActive]}>
-                    {opt}
-                  </Text>
-                  {opt === value && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
-                </TouchableOpacity>
-              ))}
+              {normalized.map(opt => {
+                const active = opt.code === value || opt.label === value;
+                return (
+                  <TouchableOpacity
+                    key={opt.code}
+                    style={styles.option}
+                    onPress={() => {
+                      onChange(opt.code);
+                      setOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                      {opt.label}
+                    </Text>
+                    {active && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -60,7 +84,6 @@ export default function DropdownField({
 
 const styles = StyleSheet.create({
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   box: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -72,6 +95,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 50,
   },
+  boxError: { borderColor: Colors.destructive },
   value: { fontSize: 14, color: Colors.textDark },
   placeholder: { fontSize: 14, color: Colors.textLight },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },

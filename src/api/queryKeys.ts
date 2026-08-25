@@ -15,6 +15,8 @@ export const queryKeys = {
   bmiReport: (clientCode?: string, assessmentCode?: string) =>
     ['bmiReport', clientCode, assessmentCode] as const,
   countries: ['countries'] as const,
+  locationByPin: (countryCode: string, pinCode: string) =>
+    ['locationByPin', countryCode, pinCode] as const,
   paramList: (paramCode: string) => ['paramList', paramCode] as const,
   servicesForCategory: (categoryCode: string) => ['servicesForCategory', categoryCode] as const,
 };

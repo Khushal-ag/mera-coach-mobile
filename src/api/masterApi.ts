@@ -18,6 +18,22 @@ export async function getCountries(): Promise<MasterOption[]> {
   return (items || []).map(i => ({ code: i.itemCode, label: i.itemName }));
 }
 
+/** Response from GET /Master/GetLocationByPin (city/state autofill). */
+export interface LocationByPin {
+  pinCode?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+export async function getLocationByPin(
+  countryCode: string,
+  pinCode: string,
+): Promise<LocationByPin> {
+  const query = new URLSearchParams({ countryCode, pinCode });
+  return apiFetch<LocationByPin>(`/v{version}/Master/GetLocationByPin?${query.toString()}`);
+}
+
 export interface FoodMasterItem {
   id: string;
   name: string;
@@ -44,18 +60,50 @@ export async function getFoodCalories(foodName: string, qty = 1): Promise<number
 
 // Backing dropdown/multi-select vocabulary (food type, cuisine, activity, work type, sleep,
 // pregnancy, medical conditions, allergies, goal, timeline — param codes PC001-PC010) lives
-// server-side, not as free text: generate-diet-plan does an internal lookup keyed by these
-// exact label strings and throws if the label isn't one it recognizes, so these must be
-// fetched live rather than hardcoded to keep them in sync with the backend's vocabulary.
-interface RawParamItem {
-  itemName: string;
-}
-
-export async function getParamList(paramCode: string): Promise<string[]> {
-  const data = await apiFetch<RawParamItem[]>(
+// server-side. ClientDetail / save-lifestyle store itemCode (e.g. LI0031); web dropdowns use
+// value=itemCode, text=itemName. Mobile matches: form state + save payloads use codes; UI shows
+// labels via resolveMasterLabel.
+export async function getParamList(paramCode: string): Promise<MasterOption[]> {
+  const data = await apiFetch<RawMasterOption[]>(
     `/v{version}/Master/GetMasterItem?ItemType=PARAMLIST&ParamCode=${paramCode}`,
   );
-  return (data || []).map(item => item.itemName);
+  return (data || []).map(item => ({
+    code: item.itemCode || item.itemName,
+    label: item.itemName,
+  }));
+}
+
+/** Map a stored master code (or already-human label) to the display name. */
+export function resolveMasterLabel(
+  value: string | undefined | null,
+  options: MasterOption[],
+): string {
+  const v = (value ?? '').trim();
+  if (!v) return '';
+  const byCode = options.find(o => o.code === v);
+  if (byCode) return byCode.label;
+  const byLabel = options.find(o => o.label === v);
+  if (byLabel) return byLabel.label;
+  return v;
+}
+
+/** Normalize a stored code or legacy label to the master itemCode for form state / save. */
+export function resolveMasterCode(
+  value: string | undefined | null,
+  options: MasterOption[],
+): string {
+  const v = (value ?? '').trim();
+  if (!v) return '';
+  const byCode = options.find(o => o.code === v);
+  if (byCode) return byCode.code;
+  const byLabel = options.find(o => o.label === v);
+  if (byLabel) return byLabel.code;
+  return v;
+}
+
+/** Normalize a CSV/multi-select list of codes or legacy labels to itemCodes. */
+export function resolveMasterCodes(values: string[], options: MasterOption[]): string[] {
+  return values.map(v => resolveMasterCode(v, options)).filter(Boolean);
 }
 
 export interface GenerateDietPlanParams {

@@ -10,15 +10,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius } from '../../constants/theme';
-import { wizardShellStyles } from '../../constants/wizardStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../../constants/theme';
+import {
+  WIZARD_BACK_TOP_GAP,
+  WIZARD_CONTENT_TOP_OFFSET,
+  wizardShellStyles,
+} from '../../constants/wizardStyles';
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import PhaseTransition from '../../components/PhaseTransition';
 import { isDietEmpty } from '../../data/dietCatalog';
 import { getErrorMessage } from '../../api/client';
 import { computeBmiMetrics } from '../../utils/bmi';
 import { validateClientPersonalProfile } from '../../utils/validation';
+import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import {
   commitPersonal,
   commitLifestyle,
@@ -34,9 +41,13 @@ type NavEntry =
   | { type: 'interstitial'; phaseIndex: number }
   | { type: 'screen'; screenId: string; phaseIndex: number };
 
+export type AssessmentFlow = 'add' | 'checkup';
+
 interface AssessmentWizardFlowProps {
   initialForm: ClientProfile;
   initialIds?: AssessmentIds;
+  /** Add Client skips BMI result; checkup keeps the full phase list. */
+  flow?: AssessmentFlow;
   finishLabel?: string;
   /** When true, skip save-meals if the coach did not enter any food items (checkup/edit). */
   skipEmptyDietCommit?: boolean;
@@ -47,31 +58,56 @@ interface AssessmentWizardFlowProps {
 export default function AssessmentWizardFlow({
   initialForm,
   initialIds = {},
+  flow = 'add',
   finishLabel = 'Save Client',
   skipEmptyDietCommit = false,
   onExit,
   onComplete,
 }: AssessmentWizardFlowProps) {
+  const insets = useSafeAreaInsets();
+  const backTop = insets.top + WIZARD_BACK_TOP_GAP;
+  const contentTop = insets.top + WIZARD_CONTENT_TOP_OFFSET;
+  const bottomInset = Math.max(insets.bottom, 16);
   const coachType = COACH_TYPES[DEFAULT_COACH_TYPE]!;
+
+  const phases = useMemo(() => {
+    if (flow === 'add') {
+      // Product: no BMI result step on Add Client; checkup keeps full flow.
+      return coachType.phases.filter(phase => phase.id !== 'bmiResult');
+    }
+    return coachType.phases;
+  }, [coachType, flow]);
 
   const flatNav = useMemo<NavEntry[]>(() => {
     const list: NavEntry[] = [];
-    coachType.phases.forEach((phase, phaseIndex) => {
+    phases.forEach((phase, phaseIndex) => {
       if (phaseIndex > 0) list.push({ type: 'interstitial', phaseIndex });
       phase.screens.forEach(screenId => list.push({ type: 'screen', screenId, phaseIndex }));
     });
     return list;
-  }, [coachType]);
+  }, [phases]);
 
   const [index, setIndex] = useState(0);
   const [form, setForm] = useState<ClientProfile>(initialForm);
   const [ids, setIds] = useState<AssessmentIds>(initialIds);
   const [bmiSaved, setBmiSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [apiError, setApiError] = useState('');
+  const {
+    errorFields,
+    formErrorBanner,
+    clearFieldError,
+    clearAllErrors,
+    applyValidation,
+    setBanner,
+  } = useFormFieldErrors();
 
-  const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) =>
+  const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => {
     setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
+    // DOB/Age are an OR rule — editing either can clear both highlights.
+    if (key === 'dob' || key === 'age') clearFieldError('dob', 'age');
+    else clearFieldError(String(key));
+  };
 
   const entry = flatNav[index]!;
   const isLast = index === flatNav.length - 1;
@@ -90,14 +126,17 @@ export default function AssessmentWizardFlow({
       return;
     }
 
-    const phaseId = coachType.phases[entry.phaseIndex]!.id;
+    const phaseId = phases[entry.phaseIndex]!.id;
 
     if (phaseId === 'personal') {
-      const validationError = validateClientPersonalProfile(form);
-      if (validationError) return setError(validationError);
+      if (applyValidation(validateClientPersonalProfile(form))) {
+        setApiError('');
+        return;
+      }
     }
 
-    setError('');
+    clearAllErrors();
+    setApiError('');
     setSaving(true);
     try {
       if (phaseId === 'personal') {
@@ -123,15 +162,16 @@ export default function AssessmentWizardFlow({
       }
       setIndex(i => i + 1);
     } catch (err) {
-      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setApiError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(null);
     } finally {
       setSaving(false);
     }
   };
 
   if (entry.type === 'interstitial') {
-    const fromPhase = coachType.phases[entry.phaseIndex - 1]!;
-    const toPhase = coachType.phases[entry.phaseIndex]!;
+    const fromPhase = phases[entry.phaseIndex - 1]!;
+    const toPhase = phases[entry.phaseIndex]!;
     return (
       <PhaseTransition
         fromLabel={fromPhase.label}
@@ -144,6 +184,10 @@ export default function AssessmentWizardFlow({
 
   const screen = SCREEN_REGISTRY[entry.screenId]!;
   const StepComponent = screen.Component;
+  const stepExtraProps =
+    entry.screenId === 'basicProfile' ? { showBmiPreview: flow === 'checkup', errorFields } : {};
+
+  const bannerMessage = formErrorBanner || apiError || null;
 
   return (
     <KeyboardAvoidingView
@@ -152,7 +196,7 @@ export default function AssessmentWizardFlow({
     >
       <View style={styles.container}>
         <TouchableOpacity
-          style={styles.floatingBack}
+          style={[styles.floatingBack, { top: backTop }]}
           onPress={goBack}
           accessibilityRole="button"
           accessibilityLabel="Go back"
@@ -162,7 +206,10 @@ export default function AssessmentWizardFlow({
 
         <ScrollView
           style={styles.body}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerStyle={[
+            styles.bodyContent,
+            { paddingTop: contentTop, paddingBottom: bottomInset + 24 },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -176,14 +223,14 @@ export default function AssessmentWizardFlow({
             </View>
           </View>
 
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={Colors.primary} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          <FormErrorBanner message={bannerMessage} />
 
-          <StepComponent form={form} update={update} {...(screen.componentProps || {})} />
+          <StepComponent
+            form={form}
+            update={update}
+            {...(screen.componentProps || {})}
+            {...stepExtraProps}
+          />
 
           <TouchableOpacity
             style={[styles.nextBtn, saving && styles.nextBtnDisabled]}
@@ -208,14 +255,4 @@ export default function AssessmentWizardFlow({
 const styles = StyleSheet.create({
   ...wizardShellStyles,
   nextBtnDisabled: { opacity: 0.7 },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
 });

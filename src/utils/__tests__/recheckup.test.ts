@@ -5,6 +5,7 @@ import {
   dueForRecheckup,
   describeCheckup,
   describeLastCheckup,
+  lastCheckupLabel,
   daysUntilRecheckup,
   describeRecheckupGate,
 } from '../recheckup';
@@ -35,11 +36,12 @@ describe('recheckup', () => {
     expect(describeCheckup(ranked[0]!.status)).toBe('Check-up due');
   });
 
-  it('classifies DD/MM/YYYY within the weekly window as ok', () => {
-    // 3 days ago
+  it('classifies DD/MM/YYYY within the weekly window as ok (still informational)', () => {
+    // 3 days ago — due styling stays ok, but Checkups buttons are always enabled in UI
     const ranked = rankForRecheckup([client({ name: 'C', lastCheckupDate: '22/08/2026' })], TODAY);
     expect(ranked[0]!.status.urgency).toBe('ok');
     expect(ranked[0]!.status.daysSince).toBe(3);
+    expect(needsRecheckup(ranked[0]!.status)).toBe(false);
     expect(daysUntilRecheckup(ranked[0]!.status)).toBe(RECHECKUP_INTERVAL_DAYS - 3);
     expect(describeRecheckupGate(ranked[0]!.status)).toBe('Available in 4 days');
   });
@@ -87,5 +89,11 @@ describe('recheckup', () => {
       TODAY,
     );
     expect(due.map(r => r.client.name)).toEqual(['Never']);
+  });
+
+  it('lastCheckupLabel formats raw API date or never', () => {
+    expect(lastCheckupLabel(undefined)).toBe('No check-up recorded');
+    expect(lastCheckupLabel('')).toBe('No check-up recorded');
+    expect(lastCheckupLabel('22/08/2026')).toBe('Last check-up 22/08/2026');
   });
 });

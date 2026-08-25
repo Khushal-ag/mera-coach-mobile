@@ -3,11 +3,13 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'rea
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../../../constants/theme';
-import { generateDietPlan } from '../../../api/masterApi';
+import { generateDietPlan, resolveMasterLabel } from '../../../api/masterApi';
 import { getCoachProfile } from '../../../api/coachApi';
 import { getErrorMessage } from '../../../api/client';
 import { queryKeys } from '../../../api/queryKeys';
 import { describeDietItems } from '../../../data/mealSlotLabels';
+import { useParamMasterOptions } from '../../../hooks/useParamOptions';
+import { PARAM_CODES, REGIONAL_CUISINES } from '../../../data/lifestyleOptions';
 import type { ClientProfile } from '../../../types/models';
 import type { IoniconName, StepProps } from '../../../types/wizard';
 
@@ -25,6 +27,7 @@ const REC_ITEMS: {
 export default function DietPlanStep({ form, update }: StepProps<ClientProfile>) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+  const cuisineOptions = useParamMasterOptions(PARAM_CODES.regionalCuisine, REGIONAL_CUISINES);
   const coachProfileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
@@ -40,6 +43,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
       const ln = describeDietItems(form.diet, 'lunch');
       const ev = describeDietItems(form.diet, 'eveningSnack');
       const dn = describeDietItems(form.diet, 'dinner');
+      // Match web AddClient: most fields send ddl value (itemCode); cuisine sends option text.
       const plan = await generateDietPlan({
         clientName: form.name,
         gender: form.gender,
@@ -48,7 +52,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
         height: parseInt(form.height, 10) || 0,
         country: coachProfileQuery.data?.country || 'India',
         foodType: form.foodPreference,
-        cuisine: form.regionalCuisine,
+        cuisine: resolveMasterLabel(form.regionalCuisine, cuisineOptions),
         activity: form.physicalActivity,
         workType: form.workType,
         sleep: form.sleepDuration,

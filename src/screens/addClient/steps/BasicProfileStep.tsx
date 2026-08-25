@@ -11,11 +11,25 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius } from '../../../constants/theme';
+import FormFieldLabel from '../../../components/FormFieldLabel';
 import PhoneTextInput from '../../../components/PhoneTextInput';
-import { ageFromDate, formatDob, parseDob, sanitizeEmailInput } from '../../../utils/validation';
+import {
+  ageFromDate,
+  cmToFeetInches,
+  feetInchesToCm,
+  formatDob,
+  parseDob,
+  sanitizeEmailInput,
+  stripNonDigits,
+} from '../../../utils/validation';
 import type { ClientProfile } from '../../../types/models';
 import type { IoniconName, StepProps, UpdateFn } from '../../../types/wizard';
+
+type HeightUnit = 'cm' | 'ftin';
+
+type ErrorFields = Record<string, boolean>;
 
 /** Oldest selectable DOB — aligned with age sync upper bound (100). */
 const MIN_DOB = (() => {
@@ -59,6 +73,8 @@ interface FieldProps {
   inputMode?: 'phone' | 'email';
   form: ClientProfile;
   update: UpdateFn<ClientProfile>;
+  required?: boolean;
+  hasError?: boolean;
 }
 
 // Stored as 'M'/'F' — the backend's gender field (save-client-detail, generate-diet-plan) and
@@ -88,6 +104,8 @@ function Field({
   inputMode,
   form,
   update,
+  required,
+  hasError,
 }: FieldProps) {
   const handleChange = (v: string) => {
     if (inputMode === 'email') {
@@ -111,8 +129,8 @@ function Field({
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputWrap}>
+      <FormFieldLabel required={required}>{label}</FormFieldLabel>
+      <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
         <Ionicons name={icon} size={17} color={Colors.textLight} style={styles.icon} />
         {inputMode === 'phone' ? (
           <PhoneTextInput
@@ -192,7 +210,8 @@ function WheelColumn({ values, selectedIndex, onSelect }: WheelColumnProps) {
   );
 }
 
-function DobField({ form, update }: StepProps<ClientProfile>) {
+function DobField({ form, update, hasError }: StepProps<ClientProfile> & { hasError?: boolean }) {
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   /** Draft date — committed only on Done so Cancel / backdrop discard spins. */
   const [draft, setDraft] = useState(DEFAULT_DOB);
@@ -255,8 +274,8 @@ function DobField({ form, update }: StepProps<ClientProfile>) {
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>Date of Birth</Text>
-      <View style={styles.inputWrap}>
+      <FormFieldLabel required>Date of Birth</FormFieldLabel>
+      <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
         <TouchableOpacity style={styles.dobPressable} onPress={openPicker} activeOpacity={0.7}>
           <Ionicons
             name="calendar-outline"
@@ -277,7 +296,7 @@ function DobField({ form, update }: StepProps<ClientProfile>) {
           </TouchableOpacity>
         ) : null}
       </View>
-      <Text style={styles.hint}>Optional if Age is filled. Picking DOB auto-fills Age.</Text>
+      <Text style={styles.hint}>One of DOB or Age is required. Picking DOB auto-fills Age.</Text>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={closePicker}>
         <View style={styles.modalBackdrop}>
@@ -286,7 +305,7 @@ function DobField({ form, update }: StepProps<ClientProfile>) {
             onPress={closePicker}
             activeOpacity={1}
           />
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, 28) }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity
                 onPress={closePicker}
@@ -316,7 +335,155 @@ function DobField({ form, update }: StepProps<ClientProfile>) {
   );
 }
 
-export default function BasicProfileStep({ form, update }: StepProps<ClientProfile>) {
+function HeightField({
+  form,
+  update,
+  hasError,
+}: StepProps<ClientProfile> & { hasError?: boolean }) {
+  const [unit, setUnit] = useState<HeightUnit>('cm');
+  const [feetText, setFeetText] = useState(() => {
+    const cm = form.height.trim() ? parseFloat(form.height) : NaN;
+    if (!Number.isFinite(cm) || cm <= 0) return '';
+    return String(cmToFeetInches(cm).feet);
+  });
+  const [inchesText, setInchesText] = useState(() => {
+    const cm = form.height.trim() ? parseFloat(form.height) : NaN;
+    if (!Number.isFinite(cm) || cm <= 0) return '';
+    return String(cmToFeetInches(cm).inches);
+  });
+
+  const persistCm = (cm: number | null) => {
+    const next = cm == null || !Number.isFinite(cm) ? '' : String(Math.round(cm * 10) / 10);
+    update('height', next);
+  };
+
+  const onFeetChange = (raw: string) => {
+    const digits = stripNonDigits(raw).slice(0, 1);
+    setFeetText(digits);
+    const feet = digits ? parseInt(digits, 10) : 0;
+    const inches = inchesText ? parseInt(inchesText, 10) : 0;
+    if (!digits && !inchesText) {
+      persistCm(null);
+      return;
+    }
+    persistCm(feetInchesToCm(feet, Math.min(inches, 11)));
+  };
+
+  const onInchesChange = (raw: string) => {
+    const digits = stripNonDigits(raw).slice(0, 2);
+    const asNum = digits ? parseInt(digits, 10) : 0;
+    const clamped = digits && asNum > 11 ? '11' : digits;
+    setInchesText(clamped);
+    const feet = feetText ? parseInt(feetText, 10) : 0;
+    const inches = clamped ? parseInt(clamped, 10) : 0;
+    if (!feetText && !clamped) {
+      persistCm(null);
+      return;
+    }
+    persistCm(feetInchesToCm(feet, inches));
+  };
+
+  const onCmChange = (raw: string) => {
+    update('height', raw.replace(/[^\d.]/g, ''));
+  };
+
+  const switchUnit = (next: HeightUnit) => {
+    if (next === unit) return;
+    if (next === 'ftin') {
+      const cm = form.height.trim() ? parseFloat(form.height) : NaN;
+      if (Number.isFinite(cm) && cm > 0) {
+        const converted = cmToFeetInches(cm);
+        setFeetText(String(converted.feet));
+        setInchesText(String(converted.inches));
+      } else {
+        setFeetText('');
+        setInchesText('');
+      }
+    }
+    setUnit(next);
+  };
+
+  return (
+    <View style={styles.field}>
+      <View style={styles.heightHeader}>
+        <FormFieldLabel required style={{ marginBottom: 0 }}>
+          Height
+        </FormFieldLabel>
+        <View style={styles.unitToggle}>
+          {(['cm', 'ftin'] as const).map(opt => (
+            <TouchableOpacity
+              key={opt}
+              style={[styles.unitPill, unit === opt && styles.unitPillActive]}
+              onPress={() => switchUnit(opt)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: unit === opt }}
+            >
+              <Text style={[styles.unitPillText, unit === opt && styles.unitPillTextActive]}>
+                {opt === 'cm' ? 'cm' : 'ft/in'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {unit === 'cm' ? (
+        <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
+          <Ionicons name="resize-outline" size={17} color={Colors.textLight} style={styles.icon} />
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 165"
+            placeholderTextColor={Colors.textLight}
+            keyboardType="numeric"
+            value={form.height}
+            onChangeText={onCmChange}
+          />
+        </View>
+      ) : (
+        <View style={styles.row}>
+          <View style={[styles.inputWrap, styles.half, hasError && styles.inputWrapError]}>
+            <TextInput
+              style={styles.input}
+              placeholder="ft"
+              placeholderTextColor={Colors.textLight}
+              keyboardType="number-pad"
+              value={feetText}
+              onChangeText={onFeetChange}
+            />
+            <Text style={styles.unitSuffix}>ft</Text>
+          </View>
+          <View style={[styles.inputWrap, styles.half, hasError && styles.inputWrapError]}>
+            <TextInput
+              style={styles.input}
+              placeholder="in"
+              placeholderTextColor={Colors.textLight}
+              keyboardType="number-pad"
+              value={inchesText}
+              onChangeText={onInchesChange}
+            />
+            <Text style={styles.unitSuffix}>in</Text>
+          </View>
+        </View>
+      )}
+      <Text style={styles.hint}>Saved as centimetres for BMI and reports.</Text>
+    </View>
+  );
+}
+
+interface BasicProfileStepProps extends StepProps<ClientProfile> {
+  /** Inline BMI preview — checkup only; Add Client skips BMI UI. */
+  showBmiPreview?: boolean;
+  /** Fields that failed the last aggregate validation pass. */
+  errorFields?: ErrorFields;
+}
+
+export default function BasicProfileStep({
+  form,
+  update,
+  showBmiPreview = false,
+  errorFields = {},
+}: BasicProfileStepProps) {
+  const err = (field: string) => !!errorFields[field];
+
   return (
     <View>
       <Field
@@ -326,6 +493,8 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
         placeholder="Client's full name"
         form={form}
         update={update}
+        required
+        hasError={err('name')}
       />
       <Field
         label="Mobile Number"
@@ -336,6 +505,8 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
         inputMode="phone"
         form={form}
         update={update}
+        required
+        hasError={err('phone')}
       />
       <Field
         label="Email (optional)"
@@ -346,16 +517,7 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
         inputMode="email"
         form={form}
         update={update}
-      />
-      <Field
-        label="Alternate Mobile (optional)"
-        icon="call-outline"
-        field="alternateMobile"
-        placeholder="10-digit mobile number"
-        keyboardType="phone-pad"
-        inputMode="phone"
-        form={form}
-        update={update}
+        hasError={err('email')}
       />
       <Field
         label="Location"
@@ -364,9 +526,11 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
         placeholder="City / Area"
         form={form}
         update={update}
+        required
+        hasError={err('location')}
       />
 
-      <DobField form={form} update={update} />
+      <DobField form={form} update={update} hasError={err('dob')} />
 
       <View style={styles.row}>
         <View style={styles.half}>
@@ -378,11 +542,13 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
             keyboardType="numeric"
             form={form}
             update={update}
+            required
+            hasError={err('age')}
           />
         </View>
         <View style={styles.half}>
-          <Text style={styles.label}>Gender</Text>
-          <View style={styles.pickerRow}>
+          <FormFieldLabel required>Gender</FormFieldLabel>
+          <View style={[styles.pickerRow, err('gender') && styles.pickerRowError]}>
             {GENDER_OPTIONS.map(opt => (
               <TouchableOpacity
                 key={opt.value}
@@ -400,32 +566,21 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
 
       <View style={styles.divider} />
 
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Field
-            label="Height (cm)"
-            icon="resize-outline"
-            field="height"
-            placeholder="e.g. 165"
-            keyboardType="numeric"
-            form={form}
-            update={update}
-          />
-        </View>
-        <View style={styles.half}>
-          <Field
-            label="Weight (kg)"
-            icon="scale-outline"
-            field="weight"
-            placeholder="e.g. 70"
-            keyboardType="numeric"
-            form={form}
-            update={update}
-          />
-        </View>
-      </View>
+      <HeightField form={form} update={update} hasError={err('height')} />
 
-      {form.height && form.weight ? (
+      <Field
+        label="Weight (kg)"
+        icon="scale-outline"
+        field="weight"
+        placeholder="e.g. 70"
+        keyboardType="numeric"
+        form={form}
+        update={update}
+        required
+        hasError={err('weight')}
+      />
+
+      {showBmiPreview && form.height && form.weight ? (
         <View style={styles.bmiCard}>
           <Text style={styles.bmiLabel}>Calculated BMI</Text>
           <Text style={styles.bmiValue}>
@@ -439,7 +594,6 @@ export default function BasicProfileStep({ form, update }: StepProps<ClientProfi
 
 const styles = StyleSheet.create({
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -450,6 +604,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 50,
   },
+  inputWrapError: { borderColor: Colors.destructive },
   dobPressable: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   icon: { marginRight: 8 },
   input: { flex: 1, fontSize: 14, color: Colors.textDark, paddingVertical: 0 },
@@ -458,6 +613,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pickerRowError: {
+    borderWidth: 1.5,
+    borderColor: Colors.destructive,
+    borderRadius: Radius.sm,
+    padding: 4,
+  },
   pill: {
     borderRadius: Radius.pill,
     paddingHorizontal: 14,
@@ -470,6 +631,25 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 13, color: Colors.textLight, fontWeight: '600' },
   pillActiveText: { color: Colors.white },
   divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
+  heightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  unitToggle: { flexDirection: 'row', gap: 6 },
+  unitPill: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  unitPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  unitPillText: { fontSize: 12, color: Colors.textLight, fontWeight: '600' },
+  unitPillTextActive: { color: Colors.white },
+  unitSuffix: { fontSize: 13, fontWeight: '600', color: Colors.textLight, marginLeft: 4 },
   bmiCard: {
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.md,

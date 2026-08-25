@@ -14,9 +14,11 @@ import { Colors, Radius, Shadow } from '../../../constants/theme';
 import FoodItemChip from '../../../components/FoodItemChip';
 import { MEAL_SLOTS } from '../../../data/dietCatalog';
 import { MEAL_SLOT_TO_API_LABEL } from '../../../data/mealSlotLabels';
-import { getFoodMaster, getFoodCalories } from '../../../api/masterApi';
+import { getFoodMaster, getFoodCalories, resolveMasterLabel } from '../../../api/masterApi';
 import { getCoachProfile } from '../../../api/coachApi';
 import { queryKeys } from '../../../api/queryKeys';
+import { useParamMasterOptions } from '../../../hooks/useParamOptions';
+import { FOOD_PREFERENCES, PARAM_CODES } from '../../../data/lifestyleOptions';
 import type { ClientProfile, DietItem } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 import type { FoodMasterItem } from '../../../api/masterApi';
@@ -25,11 +27,11 @@ interface DietPairStepProps extends StepProps<ClientProfile> {
   slotIds: string[];
 }
 
-function passesFoodTypeFilter(cat: FoodMasterItem['cat'], foodType: string): boolean {
-  if (!foodType) return true;
-  if (foodType === 'Vegetarian') return cat === 'veg' || cat === 'vegan';
-  if (foodType === 'Vegan') return cat === 'vegan';
-  if (foodType === 'Eggetarian') return cat !== 'nonveg';
+function passesFoodTypeFilter(cat: FoodMasterItem['cat'], foodTypeLabel: string): boolean {
+  if (!foodTypeLabel) return true;
+  if (foodTypeLabel === 'Vegetarian') return cat === 'veg' || cat === 'vegan';
+  if (foodTypeLabel === 'Vegan') return cat === 'vegan';
+  if (foodTypeLabel === 'Eggetarian') return cat !== 'nonveg';
   return true;
 }
 
@@ -39,12 +41,16 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
 
+  const foodPrefOptions = useParamMasterOptions(PARAM_CODES.foodPreference, FOOD_PREFERENCES);
+  const foodTypeLabel = resolveMasterLabel(form.foodPreference, foodPrefOptions);
+
   const coachProfileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
   });
   const country = coachProfileQuery.data?.country || 'India';
 
+  // food-master region matches web: dropdown value (itemCode).
   const foodMasterQuery = useQuery({
     queryKey: queryKeys.foodMaster(country, form.regionalCuisine),
     queryFn: () => getFoodMaster(country, form.regionalCuisine),
@@ -95,7 +101,7 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
 
   const pickerItems = pickerSlot
     ? (foodMasterQuery.data?.[MEAL_SLOT_TO_API_LABEL[pickerSlot] ?? ''] || []).filter(item =>
-        passesFoodTypeFilter(item.cat, form.foodPreference),
+        passesFoodTypeFilter(item.cat, foodTypeLabel),
       )
     : [];
 

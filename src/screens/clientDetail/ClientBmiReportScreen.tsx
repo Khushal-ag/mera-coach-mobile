@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -12,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../../constants/theme';
+import ScreenHeader from '../../components/ScreenHeader';
 import { getBmiReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
@@ -60,18 +60,7 @@ export default function ClientBmiReportScreen({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>BMI Report</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader title="BMI Report" onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.body}
@@ -203,24 +192,6 @@ function MeasurementRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: Colors.white, fontSize: 18, fontWeight: '700' },
-  headerSpacer: { width: 36, height: 36 },
   body: { flex: 1 },
   bodyContent: { padding: 20 },
   stateCard: {

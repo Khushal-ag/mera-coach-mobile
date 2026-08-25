@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -19,10 +20,13 @@ import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import EmptyState from '../components/EmptyState';
+import FormFieldLabel from '../components/FormFieldLabel';
+import { HeaderBackButton } from '../components/ScreenHeader';
 import { SERVICE_INQUIRY_FALLBACK } from '../data/coachProfileContent';
 import { getCoachProfileByCode, submitCoachEnquiry, whatsAppUrlFromMobile } from '../api/coachApi';
 import { queryKeys } from '../api/queryKeys';
 import { getErrorMessage } from '../api/client';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -64,12 +68,11 @@ export default function CoachPublicProfileScreen({
   if (!coachCode) {
     return (
       <View style={styles.centered}>
-        <TouchableOpacity
-          style={[styles.backOnLight, { top: insets.top + 12 }]}
+        <HeaderBackButton
+          onDark={false}
           onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
-        </TouchableOpacity>
+          style={[styles.backOnLight, { top: insets.top + 12 }]}
+        />
         <EmptyState
           title="Coach not found"
           message="Open a coach from the directory to view their profile."
@@ -89,12 +92,11 @@ export default function CoachPublicProfileScreen({
   if (!coach) {
     return (
       <View style={styles.centered}>
-        <TouchableOpacity
-          style={[styles.backOnLight, { top: insets.top + 12 }]}
+        <HeaderBackButton
+          onDark={false}
           onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
-        </TouchableOpacity>
+          style={[styles.backOnLight, { top: insets.top + 12 }]}
+        />
         <EmptyState
           title="Could not load profile"
           message={getErrorMessage(profileQuery.error, 'Please try again.')}
@@ -108,6 +110,7 @@ export default function CoachPublicProfileScreen({
     .map(w => w[0])
     .slice(0, 2)
     .join('');
+  const photoUri = resolveMediaUrl(coach.profilePicUrl);
   const serviceOptions = [...(coach.tags.length ? coach.tags : []), SERVICE_INQUIRY_FALLBACK];
 
   const openWhatsApp = () => {
@@ -159,15 +162,14 @@ export default function CoachPublicProfileScreen({
         keyboardShouldPersistTaps="handled"
       >
         <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + 12 }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={20} color={Colors.white} />
-          </TouchableOpacity>
+          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.heroBack} />
 
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials || '?'}</Text>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{initials || '?'}</Text>
+            )}
           </View>
 
           <View style={styles.tagsRow}>
@@ -278,7 +280,7 @@ export default function CoachPublicProfileScreen({
           </Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Your Name *</Text>
+            <FormFieldLabel required>Your Name</FormFieldLabel>
             <TextInput
               style={styles.input}
               placeholder="Full name"
@@ -288,7 +290,7 @@ export default function CoachPublicProfileScreen({
             />
           </View>
           <View style={styles.field}>
-            <Text style={styles.label}>Mobile Number *</Text>
+            <FormFieldLabel required>Mobile Number</FormFieldLabel>
             <PhoneTextInput
               style={styles.input}
               placeholder="10-digit mobile number"
@@ -298,7 +300,7 @@ export default function CoachPublicProfileScreen({
             />
           </View>
           <View style={styles.field}>
-            <Text style={styles.label}>Email Address</Text>
+            <FormFieldLabel>Email Address</FormFieldLabel>
             <TextInput
               style={styles.input}
               placeholder="you@example.com"
@@ -316,6 +318,7 @@ export default function CoachPublicProfileScreen({
             options={serviceOptions}
             onChange={v => update('service', v)}
             placeholder="Select a service..."
+            required
           />
 
           <TouchableOpacity style={styles.submitBtn} onPress={submitEnquiry} disabled={submitting}>
@@ -345,41 +348,28 @@ const styles = StyleSheet.create({
   backOnLight: {
     position: 'absolute',
     left: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
     ...Shadow.sm,
   },
   hero: {
     backgroundColor: Colors.secondary,
     paddingBottom: 28,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
-  backBtn: {
-    position: 'absolute',
-    left: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  heroBack: { alignSelf: 'flex-start', marginBottom: 12 },
   avatar: {
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: Colors.white, fontSize: 26, fontWeight: '800' },
   tagsRow: {
     flexDirection: 'row',
@@ -496,7 +486,6 @@ const styles = StyleSheet.create({
   },
   expertiseTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark },
   field: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   input: {
     backgroundColor: Colors.background,
     borderRadius: Radius.sm,
@@ -514,9 +503,9 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
-    paddingVertical: 14,
-    marginTop: 6,
-    ...Shadow.sm,
+    height: 52,
+    marginTop: 8,
+    ...Shadow.md,
   },
-  submitText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  submitText: { color: Colors.white, fontWeight: '700', fontSize: 16 },
 });

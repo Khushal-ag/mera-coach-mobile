@@ -12,6 +12,11 @@ export function sanitizePhoneInput(value: string): string {
   return stripNonDigits(value).slice(0, 10);
 }
 
+/** Restrict pin input to up to 6 digits as the user types. */
+export function sanitizePinInput(value: string): string {
+  return stripNonDigits(value).slice(0, 6);
+}
+
 /** Force lowercase and strip spaces as the user types email. */
 export function sanitizeEmailInput(value: string): string {
   return value.toLowerCase().replace(/\s/g, '');
@@ -163,11 +168,76 @@ export function validateDobOrAge(dob: string, age: string): string | null {
   return null;
 }
 
+/** Field-keyed errors for aggregate (show-all) validation UX. */
+export type FieldErrorMap = Record<string, string>;
+
+export interface FormValidationResult {
+  ok: boolean;
+  errors: FieldErrorMap;
+  /** Short shared banner when any field failed. */
+  banner: string | null;
+}
+
+export const MANDATORY_FIELDS_BANNER = 'Please fill all mandatory fields';
+
+function collectDobOrAgeErrors(dob: string, age: string): FieldErrorMap {
+  const errors: FieldErrorMap = {};
+  if (!dob.trim() && !age.trim()) {
+    const msg = 'Please enter Date of Birth or Age.';
+    errors.dob = msg;
+    errors.age = msg;
+    return errors;
+  }
+  if (dob.trim() && !parseDob(dob)) {
+    errors.dob = 'Please enter a valid Date of Birth (DD/MM/YYYY).';
+  }
+  if (age.trim()) {
+    const ageErr = validateAge(age, false);
+    if (ageErr) errors.age = ageErr;
+  }
+  return errors;
+}
+
+function resultFromErrors(errors: FieldErrorMap): FormValidationResult {
+  const keys = Object.keys(errors);
+  if (keys.length === 0) return { ok: true, errors: {}, banner: null };
+  return { ok: false, errors, banner: MANDATORY_FIELDS_BANNER };
+}
+
+/** Assign `message` onto `errors[field]` when message is non-null. */
+function putError(errors: FieldErrorMap, field: string, message: string | null) {
+  if (message) errors[field] = message;
+}
+
+/** Height is always stored/validated in cm (API field). UI may collect ft+in. */
+export const HEIGHT_CM_MIN = 100;
+export const HEIGHT_CM_MAX = 250;
+
+export function feetInchesToCm(feet: number, inches: number): number {
+  return (feet * 12 + inches) * 2.54;
+}
+
+/** Convert cm → whole feet + rounded inches (normalizes 12 in → +1 ft). */
+export function cmToFeetInches(cm: number): { feet: number; inches: number } {
+  const totalInches = cm / 2.54;
+  let feet = Math.floor(totalInches / 12);
+  let inches = Math.round(totalInches % 12);
+  if (inches === 12) {
+    feet += 1;
+    inches = 0;
+  }
+  return { feet, inches };
+}
+
 export function validateHeight(value: string): string | null {
   if (!value.trim()) return 'Height is required.';
-  if (!isStrictNumber(value)) return 'Please enter height between 100-250 cm.';
+  if (!isStrictNumber(value)) {
+    return `Please enter height between ${HEIGHT_CM_MIN}-${HEIGHT_CM_MAX} cm.`;
+  }
   const h = parseFloat(value);
-  if (h < 100 || h > 250) return 'Please enter height between 100-250 cm.';
+  if (h < HEIGHT_CM_MIN || h > HEIGHT_CM_MAX) {
+    return `Please enter height between ${HEIGHT_CM_MIN}-${HEIGHT_CM_MAX} cm.`;
+  }
   return null;
 }
 
@@ -192,22 +262,78 @@ export function validateNonNegativeInt(
   return null;
 }
 
-/** Validates the personal-profile step of the Add Client wizard (mirrors web Step 1). */
-export function validateClientPersonalProfile(form: ClientProfile): string | null {
-  return (
-    validateRequired(form.name, 'Full name') ||
-    validateMobile(form.phone) ||
-    validateOptionalEmail(form.email) ||
-    validateMobile(form.alternateMobile, false) ||
-    validateRequired(form.location, 'Location') ||
-    validateDobOrAge(form.dob, form.age) ||
-    (!form.gender ? 'Gender is required.' : null) ||
-    validateHeight(form.height) ||
-    validateWeight(form.weight)
-  );
+/**
+ * Validates the personal-profile step of the Add Client wizard (mirrors web Step 1).
+ * Returns every failing field so the UI can highlight them all at once.
+ */
+export function validateClientPersonalProfile(form: ClientProfile): FormValidationResult {
+  const errors: FieldErrorMap = {};
+  putError(errors, 'name', validateRequired(form.name, 'Full name'));
+  putError(errors, 'phone', validateMobile(form.phone));
+  putError(errors, 'email', validateOptionalEmail(form.email));
+  putError(errors, 'location', validateRequired(form.location, 'Location'));
+  Object.assign(errors, collectDobOrAgeErrors(form.dob, form.age));
+  if (!form.gender) errors.gender = 'Gender is required.';
+  putError(errors, 'height', validateHeight(form.height));
+  putError(errors, 'weight', validateWeight(form.weight));
+  return resultFromErrors(errors);
 }
 
-/** Validates coach profile contact fields on edit. */
-export function validateCoachContactFields(mobile: string, email: string): string | null {
-  return validateMobile(mobile) || validateEmail(email);
+/** Validates coach profile contact fields on edit (all errors). */
+export function validateCoachContactFields(mobile: string, email: string): FormValidationResult {
+  const errors: FieldErrorMap = {};
+  putError(errors, 'mobile', validateMobile(mobile));
+  putError(errors, 'email', validateEmail(email));
+  return resultFromErrors(errors);
+}
+
+/** Register form — collect all field errors. */
+export function validateCoachRegister(fields: {
+  name: string;
+  category: string;
+  mobile: string;
+  email: string;
+}): FormValidationResult {
+  const errors: FieldErrorMap = {};
+  putError(errors, 'name', validateRequired(fields.name, 'Coach name'));
+  if (!fields.category.trim()) errors.category = 'Coach category is required.';
+  putError(errors, 'mobile', validateMobile(fields.mobile));
+  putError(errors, 'email', validateEmail(fields.email));
+  return resultFromErrors(errors);
+}
+
+/** Login form — collect all field errors. */
+export function validateLogin(fields: { email: string; password: string }): FormValidationResult {
+  const errors: FieldErrorMap = {};
+  if (!fields.email.trim()) errors.email = 'Email or mobile is required.';
+  if (!fields.password) errors.password = 'Password is required.';
+  return resultFromErrors(errors);
+}
+
+/** Edit Profile — required contact + optional format fields. */
+export function validateCoachProfileEdit(fields: {
+  coachName: string;
+  categoryCode: string;
+  mobile: string;
+  email: string;
+  pinCode: string;
+  experienceYears: string;
+  happyClientCount: string;
+}): FormValidationResult {
+  const errors: FieldErrorMap = {};
+  putError(errors, 'coachName', validateRequired(fields.coachName, 'Coach name'));
+  if (!fields.categoryCode.trim()) errors.category = 'Coach category is required.';
+  Object.assign(errors, validateCoachContactFields(fields.mobile, fields.email).errors);
+  putError(errors, 'pinCode', validatePinCode(fields.pinCode));
+  putError(
+    errors,
+    'experienceYears',
+    validateNonNegativeInt(fields.experienceYears, 'Experience years'),
+  );
+  putError(
+    errors,
+    'happyClientCount',
+    validateNonNegativeInt(fields.happyClientCount, 'Happy client count'),
+  );
+  return resultFromErrors(errors);
 }

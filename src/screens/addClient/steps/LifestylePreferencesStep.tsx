@@ -2,26 +2,19 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Colors } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
-import { useParamOptions } from '../../../hooks/useParamOptions';
-import {
-  PARAM_CODES,
-  PHYSICAL_ACTIVITY_LEVELS,
-  WORK_TYPES,
-  SLEEP_DURATIONS,
-  PREGNANCY_BF_OPTIONS,
-  FOOD_PREFERENCES,
-  REGIONAL_CUISINES,
-} from '../../../data/lifestyleOptions';
+import { useNormalizeAllParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
 export default function LifestylePreferencesStep({ form, update }: StepProps<ClientProfile>) {
-  const activityOptions = useParamOptions(PARAM_CODES.physicalActivity, PHYSICAL_ACTIVITY_LEVELS);
-  const workTypeOptions = useParamOptions(PARAM_CODES.workType, WORK_TYPES);
-  const sleepOptions = useParamOptions(PARAM_CODES.sleepDuration, SLEEP_DURATIONS);
-  const pregnancyOptions = useParamOptions(PARAM_CODES.pregnancy, PREGNANCY_BF_OPTIONS);
-  const foodPrefOptions = useParamOptions(PARAM_CODES.foodPreference, FOOD_PREFERENCES);
-  const cuisineOptions = useParamOptions(PARAM_CODES.regionalCuisine, REGIONAL_CUISINES);
+  const {
+    activityOptions,
+    workTypeOptions,
+    sleepOptions,
+    pregnancyOptions,
+    foodPrefOptions,
+    cuisineOptions,
+  } = useNormalizeAllParamFormValues(form, update);
 
   return (
     <View>

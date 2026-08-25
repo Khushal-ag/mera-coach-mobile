@@ -20,6 +20,7 @@ import { getCurrentCoachCode } from '../auth/session';
 import { useRefreshControl } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import { stripNonDigits } from '../utils/validation';
+import { lastCheckupLabel } from '../utils/recheckup';
 import type { MainTabScreenProps } from '../types/navigation';
 import type { ClientSummary } from '../types/models';
 
@@ -128,6 +129,7 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
               ListEmptyComponent={<EmptyState {...emptyState} />}
               renderItem={({ item }) => {
                 const meta = clientMeta(item);
+                const mobile = (item.mobileNo ?? '').trim();
                 return (
                   <TouchableOpacity
                     style={styles.card}
@@ -146,6 +148,14 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
                           {meta}
                         </Text>
                       ) : null}
+                      {mobile ? (
+                        <Text style={styles.meta} numberOfLines={1}>
+                          {mobile}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.meta} numberOfLines={1}>
+                        {lastCheckupLabel(item.lastCheckupDate)}
+                      </Text>
                     </View>
                     {item.status ? (
                       <View
@@ -190,7 +200,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.secondary,
     paddingBottom: 20,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -239,7 +249,7 @@ const styles = StyleSheet.create({
   avatarText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
   info: { flex: 1, minWidth: 0 },
   name: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
-  meta: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
+  meta: { fontSize: 12, color: Colors.textLight, marginTop: 1 },
   badge: { borderRadius: Radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
   badgeActive: { backgroundColor: Colors.secondaryLight },
   badgeWarning: { backgroundColor: Colors.accentLight },

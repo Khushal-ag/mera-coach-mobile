@@ -13,10 +13,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import FormErrorBanner from '../components/FormErrorBanner';
+import FormFieldLabel from '../components/FormFieldLabel';
+import { HeaderBackButton } from '../components/ScreenHeader';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
 import { getErrorMessage } from '../api/client';
-import { sanitizeEmailInput } from '../utils/validation';
+import { sanitizeEmailInput, validateLogin } from '../utils/validation';
+import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
@@ -24,20 +28,26 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const {
+    errorFields,
+    formErrorBanner,
+    clearFieldError,
+    clearAllErrors,
+    applyValidation,
+    setBanner,
+  } = useFormFieldErrors();
 
   const handleLogin = async () => {
-    if (!email.trim()) return setError('Email or mobile is required.');
-    if (!password) return setError('Password is required.');
+    if (applyValidation(validateLogin({ email, password }))) return;
 
-    setError('');
+    clearAllErrors();
     setSubmitting(true);
     try {
       const session = await login({ userName: email.trim(), password });
       await saveSession(session);
     } catch (err) {
-      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -54,13 +64,8 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 40 }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + 12 }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={20} color={Colors.white} />
-          </TouchableOpacity>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
           <View style={styles.logoBox}>
             <Ionicons name="fitness" size={32} color={Colors.white} />
           </View>
@@ -70,19 +75,14 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 
         {/* Card */}
         <View style={styles.card}>
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={Colors.primary} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          <FormErrorBanner message={formErrorBanner} />
 
           <Text style={styles.cardTitle}>Coach Login</Text>
           <Text style={styles.cardSub}>Sign in to manage your clients</Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputWrap}>
+            <FormFieldLabel required>Email Address</FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
               <Ionicons
                 name="mail-outline"
                 size={18}
@@ -97,14 +97,17 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={email}
-                onChangeText={v => setEmail(sanitizeEmailInput(v))}
+                onChangeText={v => {
+                  setEmail(sanitizeEmailInput(v));
+                  clearFieldError('email');
+                }}
               />
             </View>
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputWrap}>
+            <FormFieldLabel required>Password</FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={18}
@@ -117,7 +120,10 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
                 placeholderTextColor={Colors.textLight}
                 secureTextEntry={!showPass}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={v => {
+                  setPassword(v);
+                  clearFieldError('password');
+                }}
               />
               <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
                 <Ionicons
@@ -160,22 +166,13 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.secondary },
   inner: { flexGrow: 1, alignItems: 'center', paddingBottom: 30 },
-  header: { alignItems: 'center', paddingBottom: 40 },
-  backBtn: {
-    position: 'absolute',
-    left: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  header: { alignItems: 'center', paddingBottom: 40, width: '100%', paddingHorizontal: 20 },
+  headerBack: { alignSelf: 'flex-start', marginBottom: 16 },
   logoBox: {
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -183,7 +180,7 @@ const styles = StyleSheet.create({
   brand: { fontSize: 28, fontWeight: '800', color: Colors.white },
   tagline: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: Colors.onDarkMuted,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginTop: 4,
@@ -195,20 +192,9 @@ const styles = StyleSheet.create({
     padding: 28,
     ...Shadow.lg,
   },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
   cardTitle: { fontSize: 22, fontWeight: '700', color: Colors.textDark, marginBottom: 4 },
   cardSub: { fontSize: 13, color: Colors.textLight, marginBottom: 24 },
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,6 +205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 50,
   },
+  inputWrapError: { borderColor: Colors.destructive },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 14, color: Colors.textDark },
   eyeBtn: { padding: 4 },

@@ -17,6 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
+import FormErrorBanner from '../components/FormErrorBanner';
+import FormFieldLabel from '../components/FormFieldLabel';
+import ScreenHeader from '../components/ScreenHeader';
 import MultiSelectField from '../components/MultiSelectField';
 import {
   getCoachProfileFull,
@@ -28,20 +31,20 @@ import { getCountries, type MasterOption } from '../api/masterApi';
 import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import {
-  validateCoachContactFields,
-  validateNonNegativeInt,
-  validatePinCode,
-  validateRequired,
   sanitizeEmailInput,
+  sanitizePinInput,
+  validateCoachProfileEdit,
 } from '../utils/validation';
+import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
+import { usePinLocationLookup } from '../hooks/usePinLocationLookup';
 import { getCurrentCoachId } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import type { RootScreenProps } from '../types/navigation';
 import type { CoachProfileFull } from '../api/coachApi';
 import type { CoachCategory } from '../types/models';
 
 export default function EditProfileScreen({ navigation }: RootScreenProps<'EditProfile'>) {
-  const insets = useSafeAreaInsets();
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfileFull,
     queryFn: getCoachProfileFull,
@@ -59,18 +62,7 @@ export default function EditProfileScreen({ navigation }: RootScreenProps<'EditP
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader title="Edit Profile" onBack={() => navigation.goBack()} />
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
@@ -96,6 +88,7 @@ interface EditProfileFormProps {
 }
 
 function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
+  const insets = useSafeAreaInsets();
   const [coachName, setCoachName] = useState(profile.coachName);
   // Empty until categories load or user picks — display falls back to profile type label.
   const [categoryLabel, setCategoryLabel] = useState(
@@ -125,7 +118,14 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const {
+    errorFields,
+    formErrorBanner,
+    clearFieldError,
+    clearAllErrors,
+    applyValidation,
+    setBanner,
+  } = useFormFieldErrors();
   const queryClient = useQueryClient();
 
   const resolvedCategoryLabel =
@@ -145,6 +145,39 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     enabled: !!categoryCode,
   });
   const serviceOptions: MasterOption[] = servicesQuery.data ?? [];
+
+  const countryCode =
+    countries.find(c => c.label === countryLabel)?.code ??
+    countries.find(c => c.code === profile.countryCd)?.code ??
+    profile.countryCd;
+
+  const pinLookup = usePinLocationLookup(pinCode, countryCode);
+  // Apply autofill when a new lookup completes (React: adjust state during render).
+  const [appliedLookup, setAppliedLookup] = useState<{
+    key: string;
+    at: number;
+    failed: boolean;
+  } | null>(null);
+  if (
+    pinLookup.lookupKey &&
+    (pinLookup.location || pinLookup.isError) &&
+    (appliedLookup?.key !== pinLookup.lookupKey ||
+      appliedLookup.at !== pinLookup.dataUpdatedAt ||
+      appliedLookup.failed !== pinLookup.isError)
+  ) {
+    setAppliedLookup({
+      key: pinLookup.lookupKey,
+      at: pinLookup.dataUpdatedAt,
+      failed: pinLookup.isError,
+    });
+    if (pinLookup.isError) {
+      setCityCd('');
+      setStateCd('');
+    } else if (pinLookup.location) {
+      setCityCd(pinLookup.location.city);
+      setStateCd(pinLookup.location.state);
+    }
+  }
 
   const resolvedServiceLabels =
     serviceLabels !== null
@@ -169,10 +202,16 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     if (result.canceled || !result.assets[0]?.base64) return;
 
     const asset = result.assets[0];
+    const localUri = asset.uri;
+    const previousUrl = target === 'logo' ? logoUrl : profilePicUrl;
+    // Show local file URI immediately — upload returns a relative `/document/…` path.
+    if (target === 'logo') setLogoUrl(localUri);
+    else setProfilePicUrl(localUri);
+
     const dataUrl = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
     const setUploading = target === 'logo' ? setUploadingLogo : setUploadingPhoto;
     setUploading(true);
-    setError('');
+    setBanner(null);
     try {
       const url = await uploadDocument({
         base64DataUrl: dataUrl,
@@ -185,23 +224,36 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       if (target === 'logo') setLogoUrl(url);
       else setProfilePicUrl(url);
     } catch (err) {
-      setError(getErrorMessage(err, 'Image upload failed. Please try again.'));
+      if (target === 'logo') setLogoUrl(previousUrl);
+      else setProfilePicUrl(previousUrl);
+      setBanner(getErrorMessage(err, 'Image upload failed. Please try again.'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleSave = async () => {
-    const validationError =
-      validateRequired(coachName, 'Coach name') ||
-      (!categoryCode ? 'Coach category is required.' : null) ||
-      validateCoachContactFields(mobile, email) ||
-      validatePinCode(pinCode) ||
-      validateNonNegativeInt(experienceYears, 'Experience years') ||
-      validateNonNegativeInt(happyClientCount, 'Happy client count');
-    if (validationError) return setError(validationError);
+    if (uploadingLogo || uploadingPhoto) {
+      setBanner('Please wait for the image upload to finish.');
+      return;
+    }
+    if (
+      applyValidation(
+        validateCoachProfileEdit({
+          coachName,
+          categoryCode,
+          mobile,
+          email,
+          pinCode,
+          experienceYears,
+          happyClientCount,
+        }),
+      )
+    ) {
+      return;
+    }
 
-    setError('');
+    clearAllErrors();
     setSaving(true);
     try {
       const country = countries.find(c => c.label === countryLabel);
@@ -234,7 +286,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         { text: 'OK', onPress: onDone },
       ]);
     } catch (err) {
-      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSaving(false);
     }
@@ -243,55 +295,75 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   return (
     <ScrollView
       style={styles.body}
-      contentContainerStyle={styles.bodyContent}
+      contentContainerStyle={[
+        styles.bodyContent,
+        { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {error ? (
-        <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={18} color={Colors.primary} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      <FormErrorBanner message={formErrorBanner || pinLookup.error} />
 
       <View style={styles.imagesRow}>
         <ImagePickerTile
           label="Profile Photo"
-          uri={profilePicUrl}
+          uri={resolveMediaUrl(profilePicUrl)}
           uploading={uploadingPhoto}
           onPress={() => pickImage('photo')}
         />
         <ImagePickerTile
           label="Logo"
-          uri={logoUrl}
+          uri={resolveMediaUrl(logoUrl)}
           uploading={uploadingLogo}
           onPress={() => pickImage('logo')}
         />
       </View>
 
-      <Field label="Coach Name" value={coachName} onChangeText={setCoachName} />
+      <Field
+        label="Coach Name"
+        value={coachName}
+        onChangeText={v => {
+          setCoachName(v);
+          clearFieldError('coachName');
+        }}
+        required
+        hasError={!!errorFields.coachName}
+      />
       <DropdownField
         label="Category"
         value={resolvedCategoryLabel}
         options={categories.map(c => c.label)}
-        onChange={setCategoryLabel}
+        onChange={v => {
+          setCategoryLabel(v);
+          clearFieldError('category');
+        }}
         placeholder="Select category"
+        required
+        hasError={!!errorFields.category}
       />
       <View style={styles.field}>
-        <Text style={styles.label}>Mobile</Text>
+        <FormFieldLabel required>Mobile</FormFieldLabel>
         <PhoneTextInput
-          style={styles.input}
+          style={[styles.input, errorFields.mobile && styles.inputError]}
           value={mobile}
-          onChangeText={setMobile}
+          onChangeText={v => {
+            setMobile(v);
+            clearFieldError('mobile');
+          }}
           placeholderTextColor={Colors.textLight}
         />
       </View>
       <Field
         label="Email"
         value={email}
-        onChangeText={v => setEmail(sanitizeEmailInput(v))}
+        onChangeText={v => {
+          setEmail(sanitizeEmailInput(v));
+          clearFieldError('email');
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
+        required
+        hasError={!!errorFields.email}
       />
 
       <View style={styles.divider} />
@@ -302,16 +374,24 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           <Field
             label="Experience (yrs)"
             value={experienceYears}
-            onChangeText={setExperienceYears}
+            onChangeText={v => {
+              setExperienceYears(v);
+              clearFieldError('experienceYears');
+            }}
             keyboardType="numeric"
+            hasError={!!errorFields.experienceYears}
           />
         </View>
         <View style={styles.half}>
           <Field
             label="Happy Clients"
             value={happyClientCount}
-            onChangeText={setHappyClientCount}
+            onChangeText={v => {
+              setHappyClientCount(v);
+              clearFieldError('happyClientCount');
+            }}
             keyboardType="numeric"
+            hasError={!!errorFields.happyClientCount}
           />
         </View>
       </View>
@@ -326,7 +406,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       />
 
       <View style={styles.field}>
-        <Text style={styles.label}>About / Description</Text>
+        <FormFieldLabel>About / Description</FormFieldLabel>
         <TextInput
           style={styles.textarea}
           multiline
@@ -352,12 +432,29 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       </View>
       <View style={styles.row}>
         <View style={styles.half}>
-          <Field
-            label="Pin Code"
-            value={pinCode}
-            onChangeText={setPinCode}
-            keyboardType="numeric"
-          />
+          <View style={styles.field}>
+            <FormFieldLabel>Pin Code</FormFieldLabel>
+            <View style={styles.pinInputWrap}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.pinInput,
+                  (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
+                ]}
+                value={pinCode}
+                onChangeText={v => {
+                  setPinCode(sanitizePinInput(v));
+                  clearFieldError('pinCode');
+                }}
+                keyboardType="number-pad"
+                maxLength={6}
+                placeholderTextColor={Colors.textLight}
+              />
+              {pinLookup.lookingUp ? (
+                <ActivityIndicator color={Colors.primary} size="small" style={styles.pinLoader} />
+              ) : null}
+            </View>
+          </View>
         </View>
         <View style={styles.half}>
           <DropdownField
@@ -371,9 +468,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       </View>
 
       <TouchableOpacity
-        style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+        style={[
+          styles.saveBtn,
+          (saving || uploadingLogo || uploadingPhoto) && styles.saveBtnDisabled,
+        ]}
         onPress={handleSave}
-        disabled={saving}
+        disabled={saving || uploadingLogo || uploadingPhoto}
       >
         {saving ? (
           <ActivityIndicator color={Colors.white} />
@@ -395,6 +495,8 @@ interface FieldProps {
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
   maxLength?: number;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  required?: boolean;
+  hasError?: boolean;
 }
 
 function Field({
@@ -404,12 +506,14 @@ function Field({
   keyboardType,
   maxLength,
   autoCapitalize,
+  required,
+  hasError,
 }: FieldProps) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <FormFieldLabel required={required}>{label}</FormFieldLabel>
       <TextInput
-        style={styles.input}
+        style={[styles.input, hasError && styles.inputError]}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType || 'default'}
@@ -435,13 +539,14 @@ function ImagePickerTile({
 }) {
   return (
     <TouchableOpacity style={styles.imageTile} onPress={onPress} disabled={uploading}>
+      {uri ? <Image source={{ uri }} style={styles.imagePreview} /> : null}
       {uploading ? (
-        <ActivityIndicator color={Colors.primary} />
-      ) : uri ? (
-        <Image source={{ uri }} style={styles.imagePreview} />
-      ) : (
+        <View style={[styles.imageOverlay, !uri && styles.imageOverlayFill]}>
+          <ActivityIndicator color={Colors.primary} />
+        </View>
+      ) : !uri ? (
         <Ionicons name="camera-outline" size={24} color={Colors.textLight} />
-      )}
+      ) : null}
       <Text style={styles.imageLabel}>{label}</Text>
     </TouchableOpacity>
   );
@@ -449,37 +554,9 @@ function ImagePickerTile({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: Colors.white, fontSize: 18, fontWeight: '700' },
-  headerSpacer: { width: 36, height: 36 },
   empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 40 },
   body: { flex: 1 },
   bodyContent: { padding: 20, paddingBottom: 40 },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
   imagesRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   imageTile: {
     flex: 1,
@@ -495,6 +572,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imagePreview: { width: '100%', height: '100%', position: 'absolute' },
+  imageOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  imageOverlayFill: { backgroundColor: 'transparent' },
   imageLabel: {
     fontSize: 11,
     fontWeight: '600',
@@ -504,7 +588,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   input: {
     backgroundColor: Colors.white,
     borderRadius: Radius.sm,
@@ -515,6 +598,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textDark,
   },
+  inputError: { borderColor: Colors.destructive },
+  pinInputWrap: { position: 'relative', justifyContent: 'center' },
+  pinInput: { paddingRight: 36 },
+  pinLoader: { position: 'absolute', right: 12 },
   textarea: {
     backgroundColor: Colors.white,
     borderRadius: Radius.sm,

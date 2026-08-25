@@ -24,7 +24,6 @@ import {
   needsRecheckup,
   describeCheckup,
   describeLastCheckup,
-  describeRecheckupGate,
 } from '../utils/recheckup';
 import { stripNonDigits } from '../utils/validation';
 import type { CheckupUrgency, RankedClient } from '../utils/recheckup';
@@ -98,10 +97,9 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
   const renderRow = ({ item }: { item: RankedClient }) => {
     const { client, status } = item;
     const tone = URGENCY_STYLE[status.urgency];
-    const canRecheck = needsRecheckup(status);
+    const isDue = needsRecheckup(status);
 
     const startCheckup = () => {
-      if (!canRecheck) return;
       navigation.navigate('ClientBmi', { client });
     };
 
@@ -118,39 +116,21 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
           <Text style={styles.subMeta}>{describeLastCheckup(status)}</Text>
           <View style={styles.metaRow}>
             <Ionicons name={tone.icon} size={11} color={tone.color} />
-            <Text style={[styles.meta, { color: tone.color }]}>
-              {canRecheck ? describeCheckup(status) : describeRecheckupGate(status)}
-            </Text>
+            <Text style={[styles.meta, { color: tone.color }]}>{describeCheckup(status)}</Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={[
             styles.recheckBtn,
-            canRecheck
-              ? { backgroundColor: Colors.primary }
-              : { backgroundColor: Colors.backgroundTan },
+            isDue ? { backgroundColor: Colors.primary } : { backgroundColor: Colors.secondary },
           ]}
           onPress={startCheckup}
-          disabled={!canRecheck}
           accessibilityRole="button"
-          accessibilityState={{ disabled: !canRecheck }}
-          accessibilityLabel={
-            canRecheck
-              ? `Re-checkup for ${client.name}`
-              : `Re-checkup locked for ${client.name}. ${describeRecheckupGate(status)}`
-          }
+          accessibilityLabel={`Re-checkup for ${client.name}`}
         >
-          <Ionicons
-            name={canRecheck ? 'clipboard-outline' : 'lock-closed-outline'}
-            size={12}
-            color={canRecheck ? Colors.white : Colors.textLight}
-          />
-          <Text
-            style={[styles.recheckBtnText, { color: canRecheck ? Colors.white : Colors.textLight }]}
-          >
-            Re-checkup
-          </Text>
+          <Ionicons name="clipboard-outline" size={12} color={Colors.white} />
+          <Text style={[styles.recheckBtnText, { color: Colors.white }]}>Re-checkup</Text>
         </TouchableOpacity>
       </View>
     );
@@ -219,7 +199,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '600', marginTop: 4 },
+  subtitle: { color: Colors.onDarkMuted, fontSize: 13, fontWeight: '600', marginTop: 4 },
   body: { flex: 1, padding: 20 },
   searchWrap: {
     flexDirection: 'row',

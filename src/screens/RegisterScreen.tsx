@@ -16,17 +16,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
+import FormErrorBanner from '../components/FormErrorBanner';
+import FormFieldLabel from '../components/FormFieldLabel';
+import { HeaderBackButton } from '../components/ScreenHeader';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { getCoachCategories, registerCoach } from '../api/coachApi';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
 import { getErrorMessage } from '../api/client';
-import {
-  sanitizeEmailInput,
-  validateEmail,
-  validateMobile,
-  validateRequired,
-} from '../utils/validation';
+import { sanitizeEmailInput, validateCoachRegister } from '../utils/validation';
+import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../types/navigation';
 import type { CoachCategory } from '../types/models';
 
@@ -36,8 +35,15 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const [category, setCategory] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const {
+    errorFields,
+    formErrorBanner,
+    clearFieldError,
+    clearAllErrors,
+    applyValidation,
+    setBanner,
+  } = useFormFieldErrors();
 
   const [categories, setCategories] = useState<CoachCategory[]>(FALLBACK_CATEGORIES);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -56,15 +62,12 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const categoryLabels = categories.map(c => c.label);
 
   const handleRegister = async () => {
-    const validationError =
-      validateRequired(name, 'Coach name') ||
-      (!category ? 'Coach category is required.' : null) ||
-      validateMobile(mobile) ||
-      validateEmail(email);
-    if (validationError) return setError(validationError);
+    if (applyValidation(validateCoachRegister({ name, category, mobile, email }))) {
+      return;
+    }
 
     const coachTypeCode = categories.find(c => c.label === category)?.code;
-    setError('');
+    clearAllErrors();
     setSubmitting(true);
     try {
       const trimmedEmail = email.trim();
@@ -85,7 +88,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         navigation.replace('Login');
       }
     } catch (err) {
-      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -102,12 +105,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         keyboardShouldPersistTaps="handled"
       >
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + 12 }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={20} color={Colors.white} />
-          </TouchableOpacity>
+          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
           <View style={styles.logoBox}>
             <Ionicons name="person-add" size={28} color={Colors.white} />
           </View>
@@ -116,12 +114,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         </View>
 
         <View style={styles.card}>
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={Colors.primary} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          <FormErrorBanner message={formErrorBanner} />
 
           <View style={styles.cardHead}>
             <View style={styles.cardHeadIcon}>
@@ -147,55 +140,60 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>
-              <Ionicons name="person-outline" size={12} /> Coach Name{' '}
-              <Text style={styles.req}>*</Text>
-            </Text>
+            <FormFieldLabel required>Coach Name</FormFieldLabel>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errorFields.name && styles.inputError]}
               placeholder="Your full name"
               placeholderTextColor={Colors.textLight}
               value={name}
-              onChangeText={setName}
+              onChangeText={v => {
+                setName(v);
+                clearFieldError('name');
+              }}
             />
           </View>
 
           <DropdownField
-            label="Coach Category *"
+            label="Coach Category"
             value={category}
             options={categoryLabels}
-            onChange={setCategory}
+            onChange={v => {
+              setCategory(v);
+              clearFieldError('category');
+            }}
             placeholder={categoriesLoading ? 'Loading categories...' : '-- Select a category --'}
+            required
+            hasError={!!errorFields.category}
           />
 
           <View style={styles.field}>
-            <Text style={styles.label}>
-              <Ionicons name="phone-portrait-outline" size={12} /> Mobile Number{' '}
-              <Text style={styles.req}>*</Text>
-            </Text>
+            <FormFieldLabel required>Mobile Number</FormFieldLabel>
             <PhoneTextInput
-              style={styles.input}
+              style={[styles.input, errorFields.mobile && styles.inputError]}
               placeholder="10-digit mobile number"
               placeholderTextColor={Colors.textLight}
               value={mobile}
-              onChangeText={setMobile}
+              onChangeText={v => {
+                setMobile(v);
+                clearFieldError('mobile');
+              }}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>
-              <Ionicons name="mail-outline" size={12} /> Email Address{' '}
-              <Text style={styles.req}>*</Text>
-            </Text>
+            <FormFieldLabel required>Email Address</FormFieldLabel>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errorFields.email && styles.inputError]}
               placeholder="you@example.com"
               placeholderTextColor={Colors.textLight}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               value={email}
-              onChangeText={v => setEmail(sanitizeEmailInput(v))}
+              onChangeText={v => {
+                setEmail(sanitizeEmailInput(v));
+                clearFieldError('email');
+              }}
             />
             <Text style={styles.hint}>
               <Ionicons name="information-circle-outline" size={12} /> Password will be sent to this
@@ -237,29 +235,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 28,
     width: '100%',
+    paddingHorizontal: 20,
     backgroundColor: Colors.secondary,
   },
-  backBtn: {
-    position: 'absolute',
-    left: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  headerBack: { alignSelf: 'flex-start', marginBottom: 12 },
   logoBox: {
     width: 60,
     height: 60,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   brand: { fontSize: 20, fontWeight: '800', color: Colors.white },
-  tagline: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
+  tagline: { fontSize: 12, color: Colors.onDarkMuted, marginTop: 4 },
   card: {
     width: '90%',
     backgroundColor: Colors.white,
@@ -268,16 +258,6 @@ const styles = StyleSheet.create({
     marginTop: -18,
     ...Shadow.lg,
   },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.sm,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: Colors.primary, fontSize: 13, fontWeight: '600', flex: 1 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   cardHeadIcon: {
     width: 40,
@@ -308,15 +288,6 @@ const styles = StyleSheet.create({
   infoTitle: { fontSize: 12.5, fontWeight: '700', color: Colors.secondary },
   infoText: { fontSize: 11, color: Colors.secondary, marginTop: 2, lineHeight: 16, opacity: 0.85 },
   field: { marginBottom: 16 },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textDark,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  req: { color: Colors.primary },
   input: {
     borderWidth: 1.5,
     borderColor: Colors.border,
@@ -327,6 +298,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textDark,
   },
+  inputError: { borderColor: Colors.destructive },
   hint: { fontSize: 10.5, color: Colors.textLight, marginTop: 6 },
   registerBtn: {
     flexDirection: 'row',

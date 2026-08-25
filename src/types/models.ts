@@ -19,6 +19,10 @@ export interface Coach {
   createdAt?: string;
   /** Present when loaded via profile-by-id; used for WhatsApp. */
   mobile?: string;
+  /** Relative or absolute profile photo URL from API (`profile_Pic_Url`). */
+  profilePicUrl?: string;
+  /** Relative or absolute logo URL from API (`logo_Url`). */
+  logoUrl?: string;
 }
 
 export interface CoachCategory {

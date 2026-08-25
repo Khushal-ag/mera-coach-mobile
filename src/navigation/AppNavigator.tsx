@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Dimensions, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from '../constants/theme';
@@ -41,9 +42,13 @@ const TAB_ICONS: Record<keyof MainTabParamList, { active: IoniconName; inactive:
 
 const TAB_COUNT = Object.keys(TAB_ICONS).length;
 
+const TAB_BAR_BASE_HEIGHT = 62;
+
 function MainTabs() {
   // Pinning an explicit width bypasses internal minWidth so four tabs split evenly on narrow screens.
   const tabWidth = Dimensions.get('window').width / TAB_COUNT;
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 6);
 
   return (
     <Tab.Navigator
@@ -56,9 +61,9 @@ function MainTabs() {
           backgroundColor: Colors.white,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          paddingBottom: 6,
+          paddingBottom: bottomPad,
           paddingTop: 6,
-          height: 62,
+          height: TAB_BAR_BASE_HEIGHT + insets.bottom,
         },
         tabBarItemStyle: { width: tabWidth, paddingHorizontal: 0 },
         tabBarIconStyle: { marginBottom: -2 },

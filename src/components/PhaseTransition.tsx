@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ComponentProps } from 'react';
 import { Colors, Radius, Shadow } from '../constants/theme';
 
@@ -19,8 +20,18 @@ export default function PhaseTransition({
   toIcon,
   onContinue,
 }: PhaseTransitionProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top + 24,
+          paddingBottom: Math.max(insets.bottom, 32) + 24,
+        },
+      ]}
+    >
       <View style={styles.center}>
         {fromLabel ? (
           <View style={styles.doneRow}>
@@ -50,7 +61,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 80,
     paddingHorizontal: 32,
   },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },

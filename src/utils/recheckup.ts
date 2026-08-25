@@ -120,9 +120,19 @@ export function describeLastCheckup(status: CheckupStatus): string {
   return status.label ? `Last check-up ${status.label}` : 'No check-up recorded';
 }
 
+/** Client list / card helper when you only have the raw API date string. */
+export function lastCheckupLabel(lastCheckupDate?: string | null): string {
+  const label = (lastCheckupDate ?? '').trim() || undefined;
+  return describeLastCheckup({
+    urgency: label ? 'ok' : 'never',
+    daysSince: null,
+    label,
+  });
+}
+
 /**
- * Whole days until the weekly BMI window reopens. 0 when re-checkup is already allowed
- * (never checked, overdue, or unparseable-but-present date treated as due).
+ * Whole days until the weekly BMI due window. 0 when already due/overdue/never.
+ * Kept for dashboard-style countdowns; Checkups list no longer gates the button on this.
  */
 export function daysUntilRecheckup(status: CheckupStatus): number {
   if (needsRecheckup(status)) return 0;
@@ -130,10 +140,7 @@ export function daysUntilRecheckup(status: CheckupStatus): number {
   return Math.max(0, RECHECKUP_INTERVAL_DAYS - status.daysSince);
 }
 
-/**
- * Short gate copy when the Re-checkup button is disabled (weekly BMI window still closed).
- * Uses a countdown; callers that prefer a calendar date can add `daysUntilRecheckup` days to today.
- */
+/** Countdown copy for the weekly due window (informational; not a button lock). */
 export function describeRecheckupGate(status: CheckupStatus): string {
   const days = daysUntilRecheckup(status);
   if (days <= 0) return 'Re-checkup available';

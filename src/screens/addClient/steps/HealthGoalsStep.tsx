@@ -1,24 +1,16 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import { Colors, Radius } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
+import FormFieldLabel from '../../../components/FormFieldLabel';
 import MultiSelectField from '../../../components/MultiSelectField';
-import { useParamOptions } from '../../../hooks/useParamOptions';
-import {
-  PARAM_CODES,
-  MEDICAL_CONDITIONS,
-  FOOD_ALLERGIES,
-  PRIMARY_GOALS,
-  TARGET_TIMELINES,
-} from '../../../data/lifestyleOptions';
+import { useNormalizeAllParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
 export default function HealthGoalsStep({ form, update }: StepProps<ClientProfile>) {
-  const medicalOptions = useParamOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS);
-  const allergyOptions = useParamOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES);
-  const goalOptions = useParamOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS);
-  const timelineOptions = useParamOptions(PARAM_CODES.targetTimeline, TARGET_TIMELINES);
+  const { medicalOptions, allergyOptions, goalOptions, timelineOptions } =
+    useNormalizeAllParamFormValues(form, update);
 
   return (
     <View>
@@ -55,7 +47,7 @@ export default function HealthGoalsStep({ form, update }: StepProps<ClientProfil
       />
 
       <View style={styles.field}>
-        <Text style={styles.label}>Additional Notes</Text>
+        <FormFieldLabel>Additional Notes</FormFieldLabel>
         <TextInput
           style={styles.textarea}
           placeholder="Any specific preferences, dislikes, meal timing constraints, etc."
@@ -72,7 +64,6 @@ export default function HealthGoalsStep({ form, update }: StepProps<ClientProfil
 
 const styles = StyleSheet.create({
   field: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
   divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
   textarea: {
     backgroundColor: Colors.white,

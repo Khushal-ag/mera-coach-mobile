@@ -194,7 +194,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
         />
       }
     >
-      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerText}>
           <Text style={styles.greeting}>{greetingForNow()},</Text>
           <Text style={styles.coachName}>{coachName}</Text>

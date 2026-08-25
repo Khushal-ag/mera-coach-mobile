@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -16,6 +17,7 @@ import { Colors, Radius, Shadow } from '../constants/theme';
 import { APP_DISPLAY_NAME } from '../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../utils/support';
 import { formatExperienceDisplay } from '../utils/experience';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import { clearSession, getCurrentCoachCode } from '../auth/session';
 import { getCoachProfile } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
@@ -91,6 +93,7 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
   const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
   const ratingDisplay =
     profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '—';
+  const photoUri = resolveMediaUrl(profile?.profilePicUrl);
 
   return (
     <ScrollView
@@ -118,7 +121,11 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
           {/* Profile Card */}
           <View style={styles.profileCard}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>{initials}</Text>
+              )}
             </View>
             <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
             <Text style={styles.role}>{profile?.category || ''}</Text>
@@ -217,7 +224,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.secondary,
     paddingBottom: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -239,7 +246,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: Colors.white, fontSize: 28, fontWeight: '800' },
   name: { fontSize: 20, fontWeight: '800', color: Colors.textDark, textAlign: 'center' },
   role: { fontSize: 13, color: Colors.primary, fontWeight: '600', marginTop: 4 },

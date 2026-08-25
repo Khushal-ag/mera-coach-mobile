@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   TouchableOpacity,
   ScrollView,
   RefreshControl,
@@ -20,7 +21,9 @@ import { queryKeys } from '../api/queryKeys';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRefreshControl } from '../hooks/useRefreshControl';
 import DropdownField from '../components/DropdownField';
+import { HeaderBackButton } from '../components/ScreenHeader';
 import { getErrorMessage } from '../api/client';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function CoachListScreen({ navigation, route }: RootScreenProps<'CoachList'>) {
@@ -64,9 +67,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     <View style={styles.container}>
       {/* Banner */}
       <View style={[styles.banner, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color={Colors.white} />
-        </TouchableOpacity>
+        <HeaderBackButton onPress={() => navigation.goBack()} style={styles.bannerBack} />
         <Text style={styles.bannerTitle}>Find Your Perfect Coach</Text>
         <Text style={styles.bannerSubtitle}>
           Browse verified coaches across Health, Fitness, Yoga, Nutrition and Lifestyle.
@@ -150,77 +151,84 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             <DropdownField label="Sort By" value={sort} options={SORT_OPTIONS} onChange={setSort} />
 
             {/* Coach cards */}
-            {filtered.map(coach => (
-              <View key={coach.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {coach.name
-                        .split(' ')
-                        .map(w => w[0])
-                        .slice(0, 2)
-                        .join('')}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.coachName}>{coach.name}</Text>
-                    <Text style={styles.coachCategory}>{coach.category}</Text>
-                  </View>
-                  {coach.online && (
-                    <View style={styles.onlineBadge}>
-                      <View style={styles.onlineDot} />
-                      <Text style={styles.onlineText}>Online</Text>
+            {filtered.map(coach => {
+              const photoUri = resolveMediaUrl(coach.profilePicUrl);
+              return (
+                <View key={coach.id} style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.avatar}>
+                      {photoUri ? (
+                        <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+                      ) : (
+                        <Text style={styles.avatarText}>
+                          {coach.name
+                            .split(' ')
+                            .map(w => w[0])
+                            .slice(0, 2)
+                            .join('')}
+                        </Text>
+                      )}
                     </View>
-                  )}
-                </View>
-
-                <View style={styles.metaRow}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="star" size={12} color={Colors.accent} />
-                    <Text style={styles.metaText}>
-                      {coach.rating} ({coach.reviews})
-                    </Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="briefcase-outline" size={12} color={Colors.textLight} />
-                    <Text style={styles.metaText}>{coach.experience} Yrs</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="location-outline" size={12} color={Colors.textLight} />
-                    <Text style={styles.metaText}>{coach.city}</Text>
-                  </View>
-                </View>
-
-                <Text style={styles.bio} numberOfLines={2}>
-                  {coach.bio}
-                </Text>
-
-                <View style={styles.tagsWrap}>
-                  {coach.tags.map(tag => (
-                    <View key={tag} style={styles.tag}>
-                      <Text style={styles.tagText}>{tag}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.coachName}>{coach.name}</Text>
+                      <Text style={styles.coachCategory}>{coach.category}</Text>
                     </View>
-                  ))}
-                </View>
+                    {coach.online && (
+                      <View style={styles.onlineBadge}>
+                        <View style={styles.onlineDot} />
+                        <Text style={styles.onlineText}>Online</Text>
+                      </View>
+                    )}
+                  </View>
 
-                <View style={styles.cardFooter}>
-                  <Text style={styles.clientsText}>
-                    Clients: <Text style={styles.clientsBold}>{coach.clients}+</Text>
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="star" size={12} color={Colors.accent} />
+                      <Text style={styles.metaText}>
+                        {coach.rating} ({coach.reviews})
+                      </Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="briefcase-outline" size={12} color={Colors.textLight} />
+                      <Text style={styles.metaText}>{coach.experience} Yrs</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="location-outline" size={12} color={Colors.textLight} />
+                      <Text style={styles.metaText}>{coach.city}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.bio} numberOfLines={2}>
+                    {coach.bio}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.viewBtn}
-                    onPress={() =>
-                      navigation.navigate('CoachPublicProfile', {
-                        coach,
-                        coachCode: coach.id,
-                      })
-                    }
-                  >
-                    <Text style={styles.viewBtnText}>View Profile</Text>
-                  </TouchableOpacity>
+
+                  <View style={styles.tagsWrap}>
+                    {coach.tags.map(tag => (
+                      <View key={tag} style={styles.tag}>
+                        <Text style={styles.tagText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.clientsText}>
+                      Clients: <Text style={styles.clientsBold}>{coach.clients}+</Text>
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.viewBtn}
+                      onPress={() =>
+                        navigation.navigate('CoachPublicProfile', {
+                          coach,
+                          coachCode: coach.id,
+                        })
+                      }
+                    >
+                      <Text style={styles.viewBtnText}>View Profile</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             {filtered.length === 0 && (
               <Text style={styles.empty}>No coaches match your search.</Text>
@@ -254,17 +262,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
+  bannerBack: { marginBottom: 14 },
   bannerTitle: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  bannerSubtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 6, lineHeight: 18 },
+  bannerSubtitle: { color: Colors.onDarkMuted, fontSize: 12, marginTop: 6, lineHeight: 18 },
   pillsBar: { backgroundColor: Colors.white, ...Shadow.sm },
   pillsBarContent: {
     flexDirection: 'row',
@@ -319,7 +319,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
   coachName: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
   coachCategory: { fontSize: 12, color: Colors.secondary, fontWeight: '600', marginTop: 2 },
