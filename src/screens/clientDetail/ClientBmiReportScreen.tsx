@@ -15,7 +15,7 @@ import ScreenHeader from '../../components/ScreenHeader';
 import { getBmiReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
-import { useRefreshControl } from '../../hooks/useRefreshControl';
+import { useRefreshControl, refreshControlTheme } from '../../hooks/useRefreshControl';
 import type { RootScreenProps } from '../../types/navigation';
 
 export default function ClientBmiReportScreen({
@@ -70,7 +70,7 @@ export default function ClientBmiReportScreen({
           <RefreshControl
             refreshing={refreshControl.refreshing}
             onRefresh={refreshControl.onRefresh}
-            tintColor={Colors.secondary}
+            {...refreshControlTheme}
           />
         }
       >

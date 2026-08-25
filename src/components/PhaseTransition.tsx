@@ -2,10 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { ComponentProps } from 'react';
 import { Colors, Radius, Shadow } from '../constants/theme';
-
-type IoniconName = ComponentProps<typeof Ionicons>['name'];
+import type { IoniconName } from '../types/icons';
 
 interface PhaseTransitionProps {
   fromLabel?: string;

@@ -112,14 +112,22 @@ export default function AppNavigator() {
     return <SplashScreen />;
   }
 
+  // key remounts the stack when auth flips. Home exists in both trees so without a remount
+  // React Navigation would keep the pre-login Home route instead of starting at Main.
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator key={authStatus} screenOptions={{ headerShown: false }}>
       {authStatus === 'signedIn' ? (
         // Protected screens only register while signed in, so they're unreachable (not just
         // hidden) when signed out. Must be inlined here, not returned from a sub-component —
         // React Navigation only reads direct JSX children.
+        //
+        // Public Home / coach browse stay registered while signed in so the header Home
+        // control can open the landing page without clearing the session.
         <>
           <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="CoachList" component={CoachListScreen} />
+          <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
           <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
           <Stack.Screen name="AddClient" component={AddClientScreen} />
           <Stack.Screen name="Leads" component={MyLeadsScreen} />

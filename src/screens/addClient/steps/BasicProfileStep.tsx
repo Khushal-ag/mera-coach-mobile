@@ -75,6 +75,7 @@ interface FieldProps {
   update: UpdateFn<ClientProfile>;
   required?: boolean;
   hasError?: boolean;
+  onFocus?: () => void;
 }
 
 // Stored as 'M'/'F' — the backend's gender field (save-client-detail, generate-diet-plan) and
@@ -106,6 +107,7 @@ function Field({
   update,
   required,
   hasError,
+  onFocus,
 }: FieldProps) {
   const handleChange = (v: string) => {
     if (inputMode === 'email') {
@@ -125,6 +127,7 @@ function Field({
     keyboardType: keyboardType || 'default',
     value: String(form[field] ?? ''),
     onChangeText: handleChange,
+    onFocus,
   };
 
   return (
@@ -339,7 +342,8 @@ function HeightField({
   form,
   update,
   hasError,
-}: StepProps<ClientProfile> & { hasError?: boolean }) {
+  onLowerFieldFocus,
+}: StepProps<ClientProfile> & { hasError?: boolean; onLowerFieldFocus?: () => void }) {
   const [unit, setUnit] = useState<HeightUnit>('cm');
   const [feetText, setFeetText] = useState(() => {
     const cm = form.height.trim() ? parseFloat(form.height) : NaN;
@@ -436,6 +440,7 @@ function HeightField({
             keyboardType="numeric"
             value={form.height}
             onChangeText={onCmChange}
+            onFocus={onLowerFieldFocus}
           />
         </View>
       ) : (
@@ -448,6 +453,7 @@ function HeightField({
               keyboardType="number-pad"
               value={feetText}
               onChangeText={onFeetChange}
+              onFocus={onLowerFieldFocus}
             />
             <Text style={styles.unitSuffix}>ft</Text>
           </View>
@@ -459,6 +465,7 @@ function HeightField({
               keyboardType="number-pad"
               value={inchesText}
               onChangeText={onInchesChange}
+              onFocus={onLowerFieldFocus}
             />
             <Text style={styles.unitSuffix}>in</Text>
           </View>
@@ -474,6 +481,8 @@ interface BasicProfileStepProps extends StepProps<ClientProfile> {
   showBmiPreview?: boolean;
   /** Fields that failed the last aggregate validation pass. */
   errorFields?: ErrorFields;
+  /** Scroll parent so lower fields clear the keyboard. */
+  onLowerFieldFocus?: () => void;
 }
 
 export default function BasicProfileStep({
@@ -481,6 +490,7 @@ export default function BasicProfileStep({
   update,
   showBmiPreview = false,
   errorFields = {},
+  onLowerFieldFocus,
 }: BasicProfileStepProps) {
   const err = (field: string) => !!errorFields[field];
 
@@ -544,6 +554,7 @@ export default function BasicProfileStep({
             update={update}
             required
             hasError={err('age')}
+            onFocus={onLowerFieldFocus}
           />
         </View>
         <View style={styles.half}>
@@ -566,7 +577,12 @@ export default function BasicProfileStep({
 
       <View style={styles.divider} />
 
-      <HeightField form={form} update={update} hasError={err('height')} />
+      <HeightField
+        form={form}
+        update={update}
+        hasError={err('height')}
+        onLowerFieldFocus={onLowerFieldFocus}
+      />
 
       <Field
         label="Weight (kg)"
@@ -578,6 +594,7 @@ export default function BasicProfileStep({
         update={update}
         required
         hasError={err('weight')}
+        onFocus={onLowerFieldFocus}
       />
 
       {showBmiPreview && form.height && form.weight ? (

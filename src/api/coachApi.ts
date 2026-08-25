@@ -79,6 +79,15 @@ interface CoachPublicListResponse {
   totalCount: number;
 }
 
+/** Split comma-separated service labels (tolerates ", " or ","). */
+function splitServiceNames(serviceNames?: string): string[] {
+  if (!serviceNames?.trim()) return [];
+  return serviceNames
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 function mapPublicCoach(raw: RawPublicCoach): Coach {
   return {
     id: raw.coachCode,
@@ -86,6 +95,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     categoryCode: raw.coachTypeCode,
     category: raw.coachTypeName,
     rating: raw.rating ?? 0,
+    // Public list currently mirrors happyClientCount into reviewCount; profile-by-id often omits it.
     reviews: raw.reviewCount ?? 0,
     // Self-reported marketing field (Edit Profile → Experience yrs), not tenure from signup.
     experience: raw.experienceYears ?? 0,
@@ -94,8 +104,8 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     online: false, // no live presence field on the backend
 
     bio: raw.coachDesc ?? '',
-    tags: raw.serviceNames ? raw.serviceNames.split(', ') : [],
-    // Self-reported "Happy Clients" — Profile tab prefers live getClientList length instead.
+    tags: splitServiceNames(raw.serviceNames),
+    // Edit Profile "Happy Clients" — shown as Clients on public list/profile.
     clients: raw.happyClientCount ?? 0,
     createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
     logoUrl: raw.logo_Url ?? '',
@@ -135,9 +145,10 @@ export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
   const raw = await apiFetch<RawCoachProfileFull & RawPublicCoach>(
     `/v{version}/Coach/profile-by-id?${query.toString()}`,
   );
+  const resolvedCode = raw.coachCode?.trim() || coachCode;
   return {
     ...mapPublicCoach({
-      coachCode: raw.coachCode ?? coachCode,
+      coachCode: resolvedCode,
       coachName: raw.coachName ?? '',
       coachTypeCode: raw.coachTypeCode ?? '',
       coachTypeName: (raw as { coachTypeName?: string }).coachTypeName ?? '',
@@ -152,14 +163,32 @@ export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
       logo_Url: raw.logo_Url,
       profile_Pic_Url: raw.profile_Pic_Url,
     }),
-    mobile: raw.mobile ?? '',
+    tagline: raw.tagline?.trim() || undefined,
+    mobile: normalizeCoachMobile(raw.mobile),
   };
+}
+
+/**
+ * Profile-by-id sometimes returns mobiles as scientific notation strings
+ * (e.g. "9.8874e+009") when the backend stored them as floats.
+ */
+function normalizeCoachMobile(mobile?: string | number | null): string {
+  if (mobile == null) return '';
+  const raw = String(mobile).trim();
+  if (!raw) return '';
+  if (/e[+-]?\d+/i.test(raw)) {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
+      // Prefer integer digit string; precision may already be lost server-side.
+      return Math.round(n).toString();
+    }
+  }
+  return raw.replace(/\D/g, '');
 }
 
 /** Build wa.me URL from Indian mobile (matches web WhatsAppUrl intent). */
 export function whatsAppUrlFromMobile(mobile?: string): string | null {
-  if (!mobile?.trim()) return null;
-  const digits = mobile.replace(/\D/g, '').replace(/^0+/, '');
+  const digits = normalizeCoachMobile(mobile).replace(/^0+/, '');
   if (!digits) return null;
   // 10-digit local mobile → always prefix 91 (even if number starts with 91, e.g. 9123456789).
   if (digits.length === 10) return `https://wa.me/91${digits}`;

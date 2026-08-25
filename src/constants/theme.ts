@@ -45,6 +45,9 @@ export const Radius = {
   pill: 50,
 } as const;
 
+/** Horizontal story / success-highlight carousel cards (Home + public profile). */
+export const STORY_CARD_WIDTH = 280;
+
 export const Shadow: Record<'sm' | 'md' | 'lg', ViewStyle> = {
   sm: {
     shadowColor: '#000',

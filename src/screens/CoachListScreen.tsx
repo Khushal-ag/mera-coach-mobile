@@ -17,12 +17,19 @@ import { Colors, Radius, Shadow } from '../constants/theme';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { SORT_OPTIONS } from '../data/coachDirectory';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
+import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
+import { getCurrentCoachCode, isAuthenticated } from '../auth/session';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
-import { useRefreshControl } from '../hooks/useRefreshControl';
+import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import DropdownField from '../components/DropdownField';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import { getErrorMessage } from '../api/client';
+import {
+  resolvePublicClientCount,
+  shouldShowPublicClientCount,
+  shouldShowPublicRating,
+} from '../utils/coachPublicStats';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -32,6 +39,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const [activeCategory, setActiveCategory] = useState(route.params?.categoryCode || '');
   const [sort, setSort] = useState('Top Rated');
   const debouncedSearch = useDebouncedValue(search, 400);
+  const myCoachCode = getCurrentCoachCode();
 
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
@@ -46,6 +54,13 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         coachTypeCode: activeCategory || undefined,
         search: debouncedSearch || undefined,
       }),
+  });
+
+  // Live roster for the logged-in coach — public API only has marketing happyClientCount.
+  const myClientsQuery = useQuery({
+    queryKey: queryKeys.clientList(myCoachCode),
+    queryFn: () => getClientList(),
+    enabled: isAuthenticated() && !!myCoachCode,
   });
 
   const filtered = useMemo(() => {
@@ -115,7 +130,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           <RefreshControl
             refreshing={refreshControl.refreshing}
             onRefresh={refreshControl.onRefresh}
-            tintColor={Colors.secondary}
+            {...refreshControlTheme}
           />
         }
       >
@@ -136,8 +151,8 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           />
         </View>
 
-        {/* Result info + sort */}
-        {coachesQuery.isPending ? (
+        {/* Result info + sort — spinner only while there is no list yet (not on background refetch). */}
+        {coachesQuery.isPending && !coachesQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
         ) : errorMessage ? (
           <Text style={styles.empty}>{errorMessage}</Text>
@@ -153,6 +168,13 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             {/* Coach cards */}
             {filtered.map(coach => {
               const photoUri = resolveMediaUrl(coach.profilePicUrl);
+              const clientCount = resolvePublicClientCount({
+                coachId: coach.id,
+                marketingClients: coach.clients,
+                viewerCoachCode: myCoachCode,
+                liveRosterLength: myClientsQuery.data?.length,
+              });
+              const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
               return (
                 <View key={coach.id} style={styles.card}>
                   <View style={styles.cardHeader}>
@@ -182,25 +204,33 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                   </View>
 
                   <View style={styles.metaRow}>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="star" size={12} color={Colors.accent} />
-                      <Text style={styles.metaText}>
-                        {coach.rating} ({coach.reviews})
-                      </Text>
-                    </View>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="briefcase-outline" size={12} color={Colors.textLight} />
-                      <Text style={styles.metaText}>{coach.experience} Yrs</Text>
-                    </View>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="location-outline" size={12} color={Colors.textLight} />
-                      <Text style={styles.metaText}>{coach.city}</Text>
-                    </View>
+                    {showRating ? (
+                      <View style={styles.metaItem}>
+                        <Ionicons name="star" size={12} color={Colors.accent} />
+                        <Text style={styles.metaText}>
+                          {coach.rating} ({coach.reviews})
+                        </Text>
+                      </View>
+                    ) : null}
+                    {coach.experience > 0 ? (
+                      <View style={styles.metaItem}>
+                        <Ionicons name="briefcase-outline" size={12} color={Colors.textLight} />
+                        <Text style={styles.metaText}>{coach.experience} Yrs</Text>
+                      </View>
+                    ) : null}
+                    {coach.city ? (
+                      <View style={styles.metaItem}>
+                        <Ionicons name="location-outline" size={12} color={Colors.textLight} />
+                        <Text style={styles.metaText}>{coach.city}</Text>
+                      </View>
+                    ) : null}
                   </View>
 
-                  <Text style={styles.bio} numberOfLines={2}>
-                    {coach.bio}
-                  </Text>
+                  {coach.bio ? (
+                    <Text style={styles.bio} numberOfLines={2}>
+                      {coach.bio}
+                    </Text>
+                  ) : null}
 
                   <View style={styles.tagsWrap}>
                     {coach.tags.map(tag => (
@@ -211,15 +241,27 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                   </View>
 
                   <View style={styles.cardFooter}>
-                    <Text style={styles.clientsText}>
-                      Clients: <Text style={styles.clientsBold}>{coach.clients}+</Text>
-                    </Text>
+                    {shouldShowPublicClientCount(clientCount) ? (
+                      <Text style={styles.clientsText}>
+                        Clients: <Text style={styles.clientsBold}>{String(clientCount)}</Text>
+                      </Text>
+                    ) : (
+                      <View />
+                    )}
                     <TouchableOpacity
                       style={styles.viewBtn}
                       onPress={() =>
                         navigation.navigate('CoachPublicProfile', {
-                          coach,
+                          coach: {
+                            ...coach,
+                            // Pass live count for own card so profile placeholder matches.
+                            clients: clientCount,
+                          },
                           coachCode: coach.id,
+                          coachCodes: filtered.map(c => c.id),
+                          coaches: filtered.map(c =>
+                            c.id === coach.id ? { ...c, clients: clientCount } : c,
+                          ),
                         })
                       }
                     >

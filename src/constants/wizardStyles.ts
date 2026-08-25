@@ -3,9 +3,9 @@ import { Colors, Radius, Shadow } from './theme';
 
 /** Floating back sits at `insets.top + WIZARD_BACK_TOP_GAP`. */
 export const WIZARD_BACK_TOP_GAP = 8;
-export const WIZARD_BACK_SIZE = 40;
+const WIZARD_BACK_SIZE = 40;
 /** Gap between back bottom and step banner. */
-export const WIZARD_BELOW_BACK_GAP = 4;
+const WIZARD_BELOW_BACK_GAP = 4;
 /** Scroll `paddingTop` = insets.top + this (back clearance + tight gap). Was a hard-coded 100. */
 export const WIZARD_CONTENT_TOP_OFFSET =
   WIZARD_BACK_TOP_GAP + WIZARD_BACK_SIZE + WIZARD_BELOW_BACK_GAP; // 52

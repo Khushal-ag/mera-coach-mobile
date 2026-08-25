@@ -93,7 +93,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
           <Text style={styles.optionalTitle}>Optional step</Text>
           <Text style={styles.intro}>
             Generate an AI-suggested weekly plan from this client&apos;s profile and current meals.
-            You can leave without generating — use Save &amp; Close only after a plan exists.
+            You can leave without generating. Use Save &amp; Close only after a plan exists.
           </Text>
         </View>
       </View>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,10 @@ import {
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
 import FormErrorBanner from '../../components/FormErrorBanner';
+import KeyboardSafeScroll, {
+  KEYBOARD_SCROLL_PADDING,
+  useScrollLowerFieldsIntoView,
+} from '../../components/KeyboardSafeScroll';
 import PhaseTransition from '../../components/PhaseTransition';
 import { isDietEmpty } from '../../data/dietCatalog';
 import { getErrorMessage } from '../../api/client';
@@ -67,7 +71,8 @@ export default function AssessmentWizardFlow({
   const insets = useSafeAreaInsets();
   const backTop = insets.top + WIZARD_BACK_TOP_GAP;
   const contentTop = insets.top + WIZARD_CONTENT_TOP_OFFSET;
-  const bottomInset = Math.max(insets.bottom, 16);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const coachType = COACH_TYPES[DEFAULT_COACH_TYPE]!;
 
   const phases = useMemo(() => {
@@ -185,7 +190,15 @@ export default function AssessmentWizardFlow({
   const screen = SCREEN_REGISTRY[entry.screenId]!;
   const StepComponent = screen.Component;
   const stepExtraProps =
-    entry.screenId === 'basicProfile' ? { showBmiPreview: flow === 'checkup', errorFields } : {};
+    entry.screenId === 'basicProfile'
+      ? {
+          showBmiPreview: flow === 'checkup',
+          errorFields,
+          onLowerFieldFocus: scrollLowerFieldsIntoView,
+        }
+      : entry.screenId === 'healthGoals'
+        ? { onLowerFieldFocus: scrollLowerFieldsIntoView }
+        : {};
 
   const bannerMessage = formErrorBanner || apiError || null;
 
@@ -204,14 +217,12 @@ export default function AssessmentWizardFlow({
           <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
         </TouchableOpacity>
 
-        <ScrollView
+        <KeyboardSafeScroll
+          ref={scrollRef}
+          withAvoidingView={false}
           style={styles.body}
-          contentContainerStyle={[
-            styles.bodyContent,
-            { paddingTop: contentTop, paddingBottom: bottomInset + 24 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.bodyContent, { paddingTop: contentTop }]}
+          keyboardPadding={KEYBOARD_SCROLL_PADDING}
         >
           <View style={styles.stepBanner}>
             <Ionicons name={screen.icon} size={20} color={Colors.white} />
@@ -246,7 +257,7 @@ export default function AssessmentWizardFlow({
               </>
             )}
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardSafeScroll>
       </View>
     </KeyboardAvoidingView>
   );

@@ -14,10 +14,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import EmptyState from '../components/EmptyState';
+import { HeaderHomeButton } from '../components/ScreenHeader';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
-import { useRefreshControl } from '../hooks/useRefreshControl';
+import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import { stripNonDigits } from '../utils/validation';
 import { lastCheckupLabel } from '../utils/recheckup';
@@ -46,7 +47,7 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
     const term = search.trim().toLowerCase();
     if (!term) return clients;
     const digits = stripNonDigits(search);
-    return clients.filter(c => {
+    return clients.filter((c: { name: string; mobileNo: any }) => {
       if (c.name.toLowerCase().includes(term)) return true;
       return digits.length > 0 && (c.mobileNo ?? '').includes(digits);
     });
@@ -73,13 +74,16 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>My Clients</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => navigation.navigate('AddClient')}
-          accessibilityLabel="Add client"
-        >
-          <Ionicons name="add" size={22} color={Colors.white} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <HeaderHomeButton />
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => navigation.navigate('AddClient')}
+            accessibilityLabel="Add client"
+          >
+            <Ionicons name="add" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.body}>
@@ -123,7 +127,7 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
                 <RefreshControl
                   refreshing={refreshControl.refreshing}
                   onRefresh={refreshControl.onRefresh}
-                  tintColor={Colors.primary}
+                  {...refreshControlTheme}
                 />
               }
               ListEmptyComponent={<EmptyState {...emptyState} />}
@@ -206,6 +210,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   addBtn: {
     width: 40,
     height: 40,

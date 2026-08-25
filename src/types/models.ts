@@ -12,8 +12,10 @@ export interface Coach {
   country?: string;
   online: boolean;
   bio: string;
+  /** Short public tagline from profile-by-id when present. */
+  tagline?: string;
   tags: string[];
-  /** Marketing "happy clients" from profile API — not the live ClientList count. */
+  /** From API `happyClientCount` (Edit Profile "Happy Clients"). */
   clients: number;
   /** Account/coach creation date when the API provides one (used to derive tenure). */
   createdAt?: string;

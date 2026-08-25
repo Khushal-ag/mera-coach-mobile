@@ -13,8 +13,3 @@ export function useParamMasterOptions(paramCode: string, fallbackLabels: string[
   if (query.data?.length) return query.data;
   return fallbackLabels.map(label => ({ code: label, label }));
 }
-
-/** @deprecated Prefer useParamMasterOptions — form state stores itemCodes, UI shows labels. */
-export function useParamOptions(paramCode: string, fallback: string[]): MasterOption[] {
-  return useParamMasterOptions(paramCode, fallback);
-}

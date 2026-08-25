@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { HeaderHomeButton } from '../components/ScreenHeader';
 import { getClientList } from '../api/clientApi';
 import { getCoachProfile } from '../api/coachApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { getErrorMessage } from '../api/client';
 import { dueForRecheckup } from '../utils/recheckup';
+import { refreshControlTheme } from '../hooks/useRefreshControl';
 import type { MainTabScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
 
@@ -41,6 +43,7 @@ interface StatCard {
 
 export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dashboard'>) {
   const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
   const clientsQuery = useQuery({
     queryKey: queryKeys.clientList(getCurrentCoachCode()),
     queryFn: () => getClientList(),
@@ -52,12 +55,16 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
   const clients = clientsQuery.data ?? null;
   const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
 
+  // Explicit pull only — do not bind RefreshControl to query.isRefetching (offscreen spinner).
   const onRefresh = useCallback(() => {
-    Promise.all([clientsQuery.refetch(), profileQuery.refetch()]).then(([clientsResult]) => {
-      if (clientsResult.isError) {
-        Alert.alert('Refresh failed', getErrorMessage(clientsResult.error, 'Please try again.'));
-      }
-    });
+    setRefreshing(true);
+    Promise.all([clientsQuery.refetch(), profileQuery.refetch()])
+      .then(([clientsResult]) => {
+        if (clientsResult.isError) {
+          Alert.alert('Refresh failed', getErrorMessage(clientsResult.error, 'Please try again.'));
+        }
+      })
+      .finally(() => setRefreshing(false));
   }, [clientsQuery, profileQuery]);
 
   const clientsErrorMessage =
@@ -187,11 +194,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl
-          refreshing={clientsQuery.isRefetching || profileQuery.isRefetching}
-          onRefresh={onRefresh}
-          tintColor={Colors.secondary}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
       }
     >
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -199,14 +202,17 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
           <Text style={styles.greeting}>{greetingForNow()},</Text>
           <Text style={styles.coachName}>{coachName}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.notifBtn}
-          onPress={() => navigation.navigate('Notifications')}
-          accessibilityRole="button"
-          accessibilityLabel="Notifications"
-        >
-          <Ionicons name="notifications-outline" size={22} color={Colors.white} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <HeaderHomeButton />
+          <TouchableOpacity
+            style={styles.notifBtn}
+            onPress={() => navigation.navigate('Notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.body}>
@@ -328,6 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerText: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   greeting: { color: Colors.onDarkMuted, fontSize: 13 },
   coachName: { color: Colors.white, fontSize: 22, fontWeight: '800', marginTop: 2 },
   notifBtn: {

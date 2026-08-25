@@ -28,7 +28,7 @@ type ScalarParamKey =
 
 type ListParamKey = 'medicalConditions' | 'foodAllergies';
 
-export interface ParamMasterBundle {
+interface ParamMasterBundle {
   activityOptions: MasterOption[];
   workTypeOptions: MasterOption[];
   sleepOptions: MasterOption[];
@@ -41,7 +41,7 @@ export interface ParamMasterBundle {
   allergyOptions: MasterOption[];
 }
 
-export function useParamMasterBundle(): ParamMasterBundle {
+function useParamMasterBundle(): ParamMasterBundle {
   return {
     activityOptions: useParamMasterOptions(PARAM_CODES.physicalActivity, PHYSICAL_ACTIVITY_LEVELS),
     workTypeOptions: useParamMasterOptions(PARAM_CODES.workType, WORK_TYPES),

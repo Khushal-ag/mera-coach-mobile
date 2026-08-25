@@ -14,10 +14,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import EmptyState from '../components/EmptyState';
+import { HeaderHomeButton } from '../components/ScreenHeader';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
-import { useRefreshControl } from '../hooks/useRefreshControl';
+import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import {
   rankForRecheckup,
@@ -139,10 +140,13 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.title}>Checkups</Text>
-        {!clientsQuery.isPending && !errorMessage ? (
-          <Text style={styles.subtitle}>{headerSubtitle(dueCount, clients.length)}</Text>
-        ) : null}
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Checkups</Text>
+          {!clientsQuery.isPending && !errorMessage ? (
+            <Text style={styles.subtitle}>{headerSubtitle(dueCount, clients.length)}</Text>
+          ) : null}
+        </View>
+        <HeaderHomeButton />
       </View>
 
       <View style={styles.body}>
@@ -179,7 +183,7 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
               <RefreshControl
                 refreshing={refreshControl.refreshing}
                 onRefresh={refreshControl.onRefresh}
-                tintColor={Colors.primary}
+                {...refreshControlTheme}
               />
             }
             ListEmptyComponent={<EmptyState {...emptyStateFor(clients.length)} />}
@@ -197,7 +201,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
     paddingBottom: 20,
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
+  headerText: { flex: 1, marginRight: 12 },
   title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
   subtitle: { color: Colors.onDarkMuted, fontSize: 13, fontWeight: '600', marginTop: 4 },
   body: { flex: 1, padding: 20 },

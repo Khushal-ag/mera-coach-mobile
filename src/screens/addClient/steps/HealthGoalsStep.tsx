@@ -8,7 +8,11 @@ import { useNormalizeAllParamFormValues } from '../../../hooks/useNormalizeParam
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
-export default function HealthGoalsStep({ form, update }: StepProps<ClientProfile>) {
+export default function HealthGoalsStep({
+  form,
+  update,
+  onLowerFieldFocus,
+}: StepProps<ClientProfile> & { onLowerFieldFocus?: () => void }) {
   const { medicalOptions, allergyOptions, goalOptions, timelineOptions } =
     useNormalizeAllParamFormValues(form, update);
 
@@ -56,6 +60,7 @@ export default function HealthGoalsStep({ form, update }: StepProps<ClientProfil
           numberOfLines={4}
           value={form.notes}
           onChangeText={v => update('notes', v)}
+          onFocus={onLowerFieldFocus}
         />
       </View>
     </View>

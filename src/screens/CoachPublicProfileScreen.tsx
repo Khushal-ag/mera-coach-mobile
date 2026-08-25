@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,37 @@ import {
   StyleSheet,
   Linking,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
+  FlatList,
+  useWindowDimensions,
+  type ListRenderItemInfo,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, Radius, Shadow, STORY_CARD_WIDTH } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import EmptyState from '../components/EmptyState';
 import FormFieldLabel from '../components/FormFieldLabel';
+import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import { SERVICE_INQUIRY_FALLBACK } from '../data/coachProfileContent';
 import { getCoachProfileByCode, submitCoachEnquiry, whatsAppUrlFromMobile } from '../api/coachApi';
+import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
+import { getCurrentCoachCode, isAuthenticated } from '../auth/session';
 import { getErrorMessage } from '../api/client';
+import {
+  buildPublicProfileStats,
+  resolvePublicClientCount,
+  shouldShowPublicRating,
+} from '../utils/coachPublicStats';
+import { buildCoachSuccessHighlights } from '../utils/coachPublicSocialProof';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { nameInitials } from '../utils/initials';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -45,73 +58,153 @@ interface EnquiryForm {
 
 const BLANK_FORM: EnquiryForm = { name: '', mobile: '', email: '', service: '' };
 
-export default function CoachPublicProfileScreen({
-  navigation,
-  route,
-}: RootScreenProps<'CoachPublicProfile'>) {
-  const insets = useSafeAreaInsets();
-  const listCoach = route.params?.coach;
-  const coachCode = route.params?.coachCode || listCoach?.id || '';
+type ProfilePageProps = {
+  coachCode: string;
+  listCoach?: Coach;
+  onBack: () => void;
+  pageWidth: number;
+  pageHeight: number;
+  /** 0-based logical index in the real coach list (1..N indicator uses +1). */
+  pageIndex?: number;
+  pageCount?: number;
+  /** When wrap-around is enabled, both edge chevrons stay visible. */
+  wrapAround?: boolean;
+};
 
+const MAX_PAGE_DOTS = 10;
+
+/** Prefer profile-by-id fields; fill gaps from the directory row for the same coach code. */
+function mergeCoachProfile(api: Coach | undefined, list: Coach | undefined): Coach | undefined {
+  if (!api && !list) return undefined;
+  if (!api) return list;
+  if (!list || list.id !== api.id) return api;
+  return {
+    ...list,
+    ...api,
+    // Strings/arrays: keep list only when API left them empty.
+    category: api.category || list.category,
+    categoryCode: api.categoryCode || list.categoryCode,
+    bio: api.bio || list.bio,
+    tagline: api.tagline || list.tagline,
+    tags: api.tags.length ? api.tags : list.tags,
+    city: api.city || list.city,
+    country: api.country || list.country,
+    profilePicUrl: api.profilePicUrl || list.profilePicUrl,
+    logoUrl: api.logoUrl || list.logoUrl,
+    mobile: api.mobile || list.mobile,
+    // Numbers from profile-by-id: keep API zeros for clients (happyClientCount) / experience.
+    // reviewCount is often omitted on profile-by-id (mapped to 0) — keep list reviews then.
+    rating: api.rating > 0 ? api.rating : list.rating,
+    reviews: api.reviews > 0 ? api.reviews : list.reviews,
+    clients: api.clients,
+    experience: api.experience > 0 ? api.experience : list.experience,
+  };
+}
+
+function CoachProfilePage({
+  coachCode,
+  listCoach,
+  onBack,
+  pageWidth,
+  pageHeight,
+  pageIndex = 0,
+  pageCount = 1,
+  wrapAround = false,
+}: ProfilePageProps) {
+  const insets = useSafeAreaInsets();
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfileByCode(coachCode),
     queryFn: () => getCoachProfileByCode(coachCode),
     enabled: !!coachCode,
   });
 
-  const coach: Coach | undefined = profileQuery.data ?? listCoach;
+  const myCoachCode = getCurrentCoachCode();
+  const isOwnProfile = isAuthenticated() && !!myCoachCode && myCoachCode === coachCode;
+  const myClientsQuery = useQuery({
+    queryKey: queryKeys.clientList(myCoachCode),
+    queryFn: () => getClientList(),
+    enabled: isOwnProfile,
+  });
+
+  const listMatch = listCoach?.id === coachCode ? listCoach : undefined;
+  const coach = mergeCoachProfile(profileQuery.data, listMatch);
+  const clientCount = coach
+    ? resolvePublicClientCount({
+        coachId: coach.id,
+        marketingClients: coach.clients,
+        viewerCoachCode: myCoachCode,
+        liveRosterLength: myClientsQuery.data?.length,
+      })
+    : null;
+  const showRating = coach ? shouldShowPublicRating(coach.rating, coach.reviews) : false;
+  const publicStats = coach
+    ? buildPublicProfileStats({
+        clientCount,
+        experience: coach.experience,
+        servicesCount: coach.tags.length,
+        rating: coach.rating,
+        reviews: coach.reviews,
+      })
+    : [];
+  const successHighlights = coach
+    ? buildCoachSuccessHighlights({
+        name: coach.name,
+        clients: clientCount ?? coach.clients,
+        experience: coach.experience,
+        bio: coach.bio,
+        tagline: coach.tagline,
+        tags: coach.tags,
+        category: coach.category,
+      })
+    : [];
+  const showSuccessStories = successHighlights.length > 0;
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
   const [submitting, setSubmitting] = useState(false);
   const update = <K extends keyof EnquiryForm>(key: K, val: EnquiryForm[K]) =>
     setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
 
-  if (!coachCode) {
-    return (
-      <View style={styles.centered}>
-        <HeaderBackButton
-          onDark={false}
-          onPress={() => navigation.goBack()}
-          style={[styles.backOnLight, { top: insets.top + 12 }]}
-        />
-        <EmptyState
-          title="Coach not found"
-          message="Open a coach from the directory to view their profile."
-        />
-      </View>
-    );
-  }
-
   if (!coach && profileQuery.isPending) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={Colors.primary} size="large" />
+      <View style={[styles.page, { width: pageWidth, height: pageHeight }]}>
+        <View style={styles.centered}>
+          <HeaderBackButton
+            onDark={false}
+            onPress={onBack}
+            style={[styles.backOnLight, { top: insets.top + 12 }]}
+          />
+          <ActivityIndicator color={Colors.primary} size="large" />
+        </View>
       </View>
     );
   }
 
   if (!coach) {
     return (
-      <View style={styles.centered}>
-        <HeaderBackButton
-          onDark={false}
-          onPress={() => navigation.goBack()}
-          style={[styles.backOnLight, { top: insets.top + 12 }]}
-        />
-        <EmptyState
-          title="Could not load profile"
-          message={getErrorMessage(profileQuery.error, 'Please try again.')}
-        />
+      <View style={[styles.page, { width: pageWidth, height: pageHeight }]}>
+        <View style={styles.centered}>
+          <HeaderBackButton
+            onDark={false}
+            onPress={onBack}
+            style={[styles.backOnLight, { top: insets.top + 12 }]}
+          />
+          <EmptyState
+            title="Could not load profile"
+            message={getErrorMessage(profileQuery.error, 'Please try again.')}
+          />
+        </View>
       </View>
     );
   }
 
-  const initials = coach.name
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('');
+  const initials = nameInitials(coach.name);
   const photoUri = resolveMediaUrl(coach.profilePicUrl);
   const serviceOptions = [...(coach.tags.length ? coach.tags : []), SERVICE_INQUIRY_FALLBACK];
+  const showSwipeHint = pageCount > 1;
+  const showDots = showSwipeHint && pageCount <= MAX_PAGE_DOTS;
+  const showLeftChevron = showSwipeHint && (wrapAround || pageIndex > 0);
+  const showRightChevron = showSwipeHint && (wrapAround || pageIndex < pageCount - 1);
 
   const openWhatsApp = () => {
     const url = whatsAppUrlFromMobile(coach.mobile);
@@ -152,17 +245,37 @@ export default function CoachPublicProfileScreen({
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
+    <View style={[styles.page, { width: pageWidth, height: pageHeight }]}>
+      <KeyboardSafeScroll
+        ref={scrollRef}
         style={styles.container}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        keyboardPadding={180}
+        directionalLockEnabled
+        nestedScrollEnabled
       >
         <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.heroBack} />
+          <HeaderBackButton onPress={onBack} style={styles.heroBack} />
+
+          {showSwipeHint ? (
+            <>
+              {showLeftChevron ? (
+                <View
+                  style={[styles.edgeChevron, styles.edgeChevronLeft, { top: insets.top + 72 }]}
+                  pointerEvents="none"
+                >
+                  <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.35)" />
+                </View>
+              ) : null}
+              {showRightChevron ? (
+                <View
+                  style={[styles.edgeChevron, styles.edgeChevronRight, { top: insets.top + 72 }]}
+                  pointerEvents="none"
+                >
+                  <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.35)" />
+                </View>
+              ) : null}
+            </>
+          ) : null}
 
           <View style={styles.avatar}>
             {photoUri ? (
@@ -183,18 +296,20 @@ export default function CoachPublicProfileScreen({
 
           <Text style={styles.name}>{coach.name}</Text>
 
-          {(coach.rating > 0 || coach.clients > 0) && (
+          {(showRating || (clientCount != null && clientCount > 0)) && (
             <View style={styles.ratingRow}>
-              {coach.rating > 0 ? (
+              {showRating ? (
                 <>
                   <Ionicons name="star" size={14} color={Colors.accent} />
-                  <Text style={styles.ratingVal}>{coach.rating}</Text>
+                  <Text style={styles.ratingVal}>
+                    {coach.rating} ({coach.reviews})
+                  </Text>
                 </>
               ) : null}
-              {coach.clients > 0 ? (
+              {clientCount != null && clientCount > 0 ? (
                 <Text style={styles.ratingCount}>
-                  {coach.rating > 0 ? ' · ' : ''}
-                  {coach.clients} clients
+                  {showRating ? ' · ' : ''}
+                  {clientCount} clients
                 </Text>
               ) : null}
             </View>
@@ -203,13 +318,49 @@ export default function CoachPublicProfileScreen({
           {coach.bio ? <Text style={styles.bio}>{coach.bio}</Text> : null}
 
           {coach.tags.length > 0 ? (
-            <View style={styles.specialtyWrap}>
+            <View style={[styles.specialtyWrap, showSwipeHint && styles.specialtyWrapTight]}>
               {coach.tags.map(tag => (
                 <View key={tag} style={styles.specialtyTag}>
                   <Ionicons name="checkmark" size={11} color="rgba(255,255,255,0.85)" />
                   <Text style={styles.specialtyText}>{tag}</Text>
                 </View>
               ))}
+            </View>
+          ) : null}
+
+          {showSwipeHint ? (
+            <View style={styles.pageIndicator} pointerEvents="none">
+              <View style={styles.pageCounterRow}>
+                <Ionicons
+                  name="chevron-back"
+                  size={12}
+                  color={
+                    wrapAround || pageIndex > 0 ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.2)'
+                  }
+                />
+                <Text style={styles.pageCounterText}>
+                  {pageIndex + 1} / {pageCount}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={12}
+                  color={
+                    wrapAround || pageIndex < pageCount - 1
+                      ? 'rgba(255,255,255,0.55)'
+                      : 'rgba(255,255,255,0.2)'
+                  }
+                />
+              </View>
+              {showDots ? (
+                <View style={styles.dotsRow}>
+                  {Array.from({ length: pageCount }, (_, i) => (
+                    <View
+                      key={i}
+                      style={[styles.pageDot, i === pageIndex && styles.pageDotActive]}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -227,27 +378,19 @@ export default function CoachPublicProfileScreen({
           </View>
         </View>
 
-        <View style={styles.statsStrip}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.clients || '—'}</Text>
-            <Text style={styles.statLabel}>Happy Clients</Text>
+        {publicStats.length > 0 ? (
+          <View style={styles.statsStrip}>
+            {publicStats.map((stat, i) => (
+              <React.Fragment key={stat.key}>
+                {i > 0 ? <View style={styles.statDivider} /> : null}
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.experience || '—'}</Text>
-            <Text style={styles.statLabel}>Years Exp.</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.tags.length || '—'}</Text>
-            <Text style={styles.statLabel}>Services</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coach.rating || '—'}</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-        </View>
+        ) : null}
 
         {coach.tags.length > 0 ? (
           <View style={styles.section}>
@@ -265,6 +408,81 @@ export default function CoachPublicProfileScreen({
                   <Text style={styles.expertiseTitle}>{tag}</Text>
                 </View>
               ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Client success: profile fields only — no named testimonials API yet. */}
+        {showSuccessStories ? (
+          <View style={styles.storiesSection}>
+            <View style={[styles.sectionTag, styles.storiesSectionTag]}>
+              <Ionicons name="trophy-outline" size={12} color={Colors.secondary} />
+              <Text style={styles.sectionTagText}>Success Stories</Text>
+            </View>
+            <Text style={[styles.sectionTitle, styles.storiesSectionTitle]}>
+              Client Success Stories
+            </Text>
+            <Text style={[styles.sectionSubtitle, styles.storiesSectionSubtitle]}>
+              Outcomes and focus areas from {coach.name}&apos;s public profile.
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.successCarousel}
+              decelerationRate="fast"
+              snapToInterval={STORY_CARD_WIDTH + 12}
+              nestedScrollEnabled
+            >
+              {successHighlights.map(item => (
+                <View key={item.id} style={styles.successCard}>
+                  <View style={styles.successBadge}>
+                    <Ionicons name={item.icon} size={12} color={Colors.secondary} />
+                    <Text style={styles.successBadgeText} numberOfLines={1}>
+                      {item.badge}
+                    </Text>
+                  </View>
+                  <Text style={styles.quoteMark}>&ldquo;</Text>
+                  <Text style={styles.successBody} numberOfLines={6}>
+                    {item.body}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {/* Aggregate rating/count only until a review-text / list endpoint exists. */}
+        {showRating ? (
+          <View style={styles.section}>
+            <View style={styles.sectionTag}>
+              <Ionicons name="star-outline" size={12} color={Colors.secondary} />
+              <Text style={styles.sectionTagText}>Reviews</Text>
+            </View>
+            <Text style={styles.sectionTitle}>Reviews</Text>
+            <Text style={styles.sectionSubtitle}>
+              Ratings shared for {coach.name} on Mera Coach.
+            </Text>
+            <View style={styles.reviewSummaryCard}>
+              <View style={styles.reviewStarsRow}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Ionicons
+                    key={i}
+                    name={i <= Math.round(coach.rating) ? 'star' : 'star-outline'}
+                    size={18}
+                    color={Colors.accent}
+                  />
+                ))}
+              </View>
+              <Text style={styles.reviewScore}>
+                {coach.rating.toFixed(1)}
+                <Text style={styles.reviewCountText}>
+                  {' '}
+                  ({coach.reviews} {coach.reviews === 1 ? 'review' : 'reviews'})
+                </Text>
+              </Text>
+              <Text style={styles.reviewPendingNote}>
+                Individual review comments will appear here when available from the platform.
+              </Text>
             </View>
           </View>
         ) : null}
@@ -287,6 +505,7 @@ export default function CoachPublicProfileScreen({
               placeholderTextColor={Colors.textLight}
               value={form.name}
               onChangeText={v => update('name', v)}
+              onFocus={scrollLowerFieldsIntoView}
             />
           </View>
           <View style={styles.field}>
@@ -297,6 +516,7 @@ export default function CoachPublicProfileScreen({
               placeholderTextColor={Colors.textLight}
               value={form.mobile}
               onChangeText={v => update('mobile', v)}
+              onFocus={scrollLowerFieldsIntoView}
             />
           </View>
           <View style={styles.field}>
@@ -310,6 +530,7 @@ export default function CoachPublicProfileScreen({
               autoCorrect={false}
               value={form.email}
               onChangeText={v => update('email', sanitizeEmailInput(v))}
+              onFocus={scrollLowerFieldsIntoView}
             />
           </View>
           <DropdownField
@@ -332,12 +553,227 @@ export default function CoachPublicProfileScreen({
             )}
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardSafeScroll>
+    </View>
+  );
+}
+
+type PagerItem = { key: string; code: string; logicalIndex: number };
+
+export default function CoachPublicProfileScreen({
+  navigation,
+  route,
+}: RootScreenProps<'CoachPublicProfile'>) {
+  const insets = useSafeAreaInsets();
+  const { width: pageWidth, height: pageHeight } = useWindowDimensions();
+  const queryClient = useQueryClient();
+  const listCoach = route.params?.coach;
+  const coachCode = route.params?.coachCode || listCoach?.id || '';
+  const coachCodes = route.params?.coachCodes;
+  const navCoaches = route.params?.coaches;
+
+  const codes = useMemo(() => {
+    if (coachCodes?.length) {
+      const unique = [...new Set(coachCodes.filter(Boolean))];
+      if (coachCode && !unique.includes(coachCode)) unique.unshift(coachCode);
+      return unique;
+    }
+    return coachCode ? [coachCode] : [];
+  }, [coachCodes, coachCode]);
+
+  const listCoachByCode = useMemo(() => {
+    const map = new Map<string, Coach>();
+    for (const c of navCoaches ?? []) {
+      if (c?.id) map.set(c.id, c);
+    }
+    if (listCoach?.id) map.set(listCoach.id, listCoach);
+    // Fill any remaining codes from cached directory queries (same codes as the list screen).
+    const cachedLists = queryClient.getQueriesData<{ coaches: Coach[] }>({
+      queryKey: ['coachPublicList'],
+    });
+    for (const [, data] of cachedLists) {
+      for (const c of data?.coaches ?? []) {
+        if (c?.id && !map.has(c.id)) map.set(c.id, c);
+      }
+    }
+    return map;
+  }, [navCoaches, listCoach, queryClient]);
+
+  const initialIndex = useMemo(() => {
+    if (!coachCode) return 0;
+    const idx = codes.indexOf(coachCode);
+    return idx >= 0 ? idx : 0;
+  }, [codes, coachCode]);
+
+  const canSwipe = codes.length > 1;
+
+  /**
+   * Infinite pager: [last, ...codes, first]. Swiping past either end lands on a clone,
+   * then we jump (no animation) to the matching real item so both directions wrap.
+   */
+  const pagerData = useMemo((): PagerItem[] => {
+    if (!canSwipe) {
+      return codes.map((code, i) => ({ key: code, code, logicalIndex: i }));
+    }
+    const n = codes.length;
+    const items: PagerItem[] = [
+      { key: `clone-last-${codes[n - 1]}`, code: codes[n - 1], logicalIndex: n - 1 },
+    ];
+    for (let i = 0; i < n; i++) {
+      items.push({ key: `real-${codes[i]}-${i}`, code: codes[i], logicalIndex: i });
+    }
+    items.push({ key: `clone-first-${codes[0]}`, code: codes[0], logicalIndex: 0 });
+    return items;
+  }, [canSwipe, codes]);
+
+  const initialPagerIndex = canSwipe ? initialIndex + 1 : 0;
+
+  const listRef = useRef<FlatList<PagerItem>>(null);
+  const jumpingRef = useRef(false);
+
+  const goBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  const prefetchAroundLogical = useCallback(
+    (logicalIndex: number) => {
+      if (!codes.length) return;
+      const n = codes.length;
+      const targets = canSwipe
+        ? [logicalIndex, (logicalIndex - 1 + n) % n, (logicalIndex + 1) % n]
+        : [logicalIndex];
+      for (const i of targets) {
+        const code = codes[i];
+        if (!code) continue;
+        void queryClient.prefetchQuery({
+          queryKey: queryKeys.coachProfileByCode(code),
+          queryFn: () => getCoachProfileByCode(code),
+        });
+      }
+    },
+    [canSwipe, codes, queryClient],
+  );
+
+  const scrollToPagerIndex = useCallback(
+    (index: number, animated: boolean) => {
+      if (pageWidth <= 0) return;
+      listRef.current?.scrollToOffset({ offset: pageWidth * index, animated });
+    },
+    [pageWidth],
+  );
+
+  const onMomentumScrollEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!canSwipe || pageWidth <= 0 || jumpingRef.current) return;
+      const rawIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+      const lastClone = pagerData.length - 1;
+
+      if (rawIndex <= 0) {
+        // Landed on clone of last → jump to real last
+        jumpingRef.current = true;
+        scrollToPagerIndex(codes.length, false);
+        prefetchAroundLogical(codes.length - 1);
+        requestAnimationFrame(() => {
+          jumpingRef.current = false;
+        });
+        return;
+      }
+      if (rawIndex >= lastClone) {
+        // Landed on clone of first → jump to real first
+        jumpingRef.current = true;
+        scrollToPagerIndex(1, false);
+        prefetchAroundLogical(0);
+        requestAnimationFrame(() => {
+          jumpingRef.current = false;
+        });
+        return;
+      }
+
+      const logical = rawIndex - 1;
+      prefetchAroundLogical(logical);
+    },
+    [
+      canSwipe,
+      pageWidth,
+      pagerData.length,
+      codes.length,
+      scrollToPagerIndex,
+      prefetchAroundLogical,
+    ],
+  );
+
+  useEffect(() => {
+    if (canSwipe) prefetchAroundLogical(initialIndex);
+  }, [canSwipe, initialIndex, prefetchAroundLogical]);
+
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<PagerItem>) => (
+      <CoachProfilePage
+        key={item.key}
+        coachCode={item.code}
+        listCoach={listCoachByCode.get(item.code)}
+        onBack={goBack}
+        pageWidth={pageWidth}
+        pageHeight={pageHeight}
+        pageIndex={canSwipe ? item.logicalIndex : undefined}
+        pageCount={canSwipe ? codes.length : undefined}
+        wrapAround={canSwipe}
+      />
+    ),
+    [canSwipe, codes.length, goBack, listCoachByCode, pageHeight, pageWidth],
+  );
+
+  if (!codes.length) {
+    return (
+      <View style={styles.centered}>
+        <HeaderBackButton
+          onDark={false}
+          onPress={goBack}
+          style={[styles.backOnLight, { top: insets.top + 12 }]}
+        />
+        <EmptyState
+          title="Coach not found"
+          message="Open a coach from the directory to view their profile."
+        />
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      ref={listRef}
+      style={styles.pager}
+      data={pagerData}
+      keyExtractor={item => item.key}
+      horizontal
+      pagingEnabled
+      scrollEnabled={canSwipe}
+      showsHorizontalScrollIndicator={false}
+      bounces={canSwipe}
+      // Disable — known to flash wrong cells in horizontal pagers on Android.
+      removeClippedSubviews={false}
+      initialScrollIndex={initialPagerIndex}
+      getItemLayout={(_, index) => ({
+        length: pageWidth,
+        offset: pageWidth * index,
+        index,
+      })}
+      onScrollToIndexFailed={({ index }) => {
+        requestAnimationFrame(() => {
+          scrollToPagerIndex(index, false);
+        });
+      }}
+      onMomentumScrollEnd={onMomentumScrollEnd}
+      renderItem={renderItem}
+      windowSize={5}
+      initialNumToRender={canSwipe ? 3 : 1}
+      maxToRenderPerBatch={3}
+      extraData={listCoachByCode}
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  pager: { flex: 1, backgroundColor: Colors.background },
+  page: { backgroundColor: Colors.background },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     flex: 1,
@@ -357,6 +793,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroBack: { alignSelf: 'flex-start', marginBottom: 12 },
+  edgeChevron: {
+    position: 'absolute',
+    zIndex: 1,
+  },
+  edgeChevronLeft: { left: 8 },
+  edgeChevronRight: { right: 8 },
+  pageIndicator: {
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 18,
+  },
+  pageCounterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  pageCounterText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  pageDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  pageDotActive: {
+    backgroundColor: Colors.white,
+    width: 14,
+    borderRadius: 3,
+  },
+  specialtyWrapTight: { marginBottom: 12 },
   avatar: {
     width: 84,
     height: 84,
@@ -485,6 +967,50 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   expertiseTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark },
+  storiesSection: { paddingTop: 32, paddingBottom: 8 },
+  storiesSectionTag: { marginLeft: 20, alignSelf: 'flex-start' },
+  storiesSectionTitle: { marginHorizontal: 20, marginBottom: 6 },
+  storiesSectionSubtitle: { marginHorizontal: 20, marginBottom: 0 },
+  successCarousel: { paddingHorizontal: 20, paddingTop: 18, gap: 12 },
+  successCard: {
+    width: STORY_CARD_WIDTH,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: 16,
+    ...Shadow.sm,
+  },
+  successBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 8,
+    maxWidth: '100%',
+  },
+  successBadgeText: { color: Colors.secondary, fontSize: 11, fontWeight: '700', flexShrink: 1 },
+  quoteMark: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: Colors.accent,
+    lineHeight: 36,
+    marginBottom: -4,
+  },
+  successBody: { fontSize: 13, color: Colors.textLight, lineHeight: 19 },
+  reviewSummaryCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: 18,
+    marginTop: 14,
+    ...Shadow.sm,
+  },
+  reviewStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 8 },
+  reviewScore: { fontSize: 20, fontWeight: '800', color: Colors.textDark, marginBottom: 8 },
+  reviewCountText: { fontSize: 13, fontWeight: '600', color: Colors.textLight },
+  reviewPendingNote: { fontSize: 12, color: Colors.textLight, lineHeight: 17 },
   field: { marginBottom: 14 },
   input: {
     backgroundColor: Colors.background,

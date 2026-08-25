@@ -4,17 +4,9 @@ import { MEAL_SLOT_ORDER, MEAL_SLOT_TO_API_LABEL, describeDietItems } from '../d
 import { rehydrateDietFromMeals, type RawClientMeal } from '../utils/mealRehydration';
 import type { FoodMaster } from './masterApi';
 import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../utils/validation';
+import { nameInitials } from '../utils/initials';
 import type { BodyMetrics } from '../utils/bmi';
 import type { ClientProfile, ClientSummary, DietPlan, GeneratedDietPlan } from '../types/models';
-
-function initialsOf(name: string): string {
-  return name
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
 
 // Confirmed against meracoachapp Clients.cshtml: ClientList returns mobileNo + lastCheckupDate
 // (display-ready) alongside the identifiers. Dropping them made every checkup look like "never".
@@ -38,7 +30,7 @@ function mapClientListItem(raw: RawClientListItem): ClientSummary {
     mobileNo: (raw.mobileNo ?? '').trim() || undefined,
     age: raw.age,
     status: raw.status_Cd,
-    initials: raw.clientName ? initialsOf(raw.clientName) : undefined,
+    initials: raw.clientName ? nameInitials(raw.clientName) : undefined,
     lastCheckupDate,
   };
 }

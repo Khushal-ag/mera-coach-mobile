@@ -44,7 +44,7 @@ interface BodyMetricsInput {
 // Matches the backend's expected save-bmi metrics exactly, coefficient-for-coefficient —
 // ported from the website's renderBmi() (AddClient.cshtml), the same formulas save-bmi is
 // built around.
-export function computeBodyMetrics({ weight, height, age, gender }: BodyMetricsInput): BodyMetrics {
+function computeBodyMetrics({ weight, height, age, gender }: BodyMetricsInput): BodyMetrics {
   const isMale = gender === 'M';
   const heightM = height / 100;
 

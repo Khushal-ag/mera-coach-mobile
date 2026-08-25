@@ -6,9 +6,12 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Colors, Radius, Shadow } from '../../../constants/theme';
 import FoodItemChip from '../../../components/FoodItemChip';
@@ -36,6 +39,7 @@ function passesFoodTypeFilter(cat: FoodMasterItem['cat'], foodTypeLabel: string)
 }
 
 export default function DietPairStep({ form, update, slotIds }: DietPairStepProps) {
+  const insets = useSafeAreaInsets();
   const [pickerSlot, setPickerSlot] = useState<string | null>(null);
   const [aiQuery, setAiQuery] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -141,10 +145,23 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
       <Text style={styles.note}>* Calories are approximate. Leave blank if unknown.</Text>
 
       <Modal visible={!!pickerSlot} transparent animationType="fade" onRequestClose={closePicker}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closePicker}>
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity style={styles.backdropFlex} activeOpacity={1} onPress={closePicker} />
+          <View
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <Text style={styles.sheetTitle}>Add Food Item</Text>
-            <ScrollView style={styles.optionList} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.optionList}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              automaticallyAdjustKeyboardInsets
+            >
               {foodMasterQuery.isPending ? (
                 <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
               ) : (
@@ -188,7 +205,7 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
               </View>
             </ScrollView>
           </View>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -224,6 +241,7 @@ const styles = StyleSheet.create({
   moreText: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
   note: { fontSize: 11, color: Colors.textLight, marginTop: 4, fontStyle: 'italic' },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
+  backdropFlex: { flex: 1 },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,

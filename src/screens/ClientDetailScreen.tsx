@@ -23,7 +23,7 @@ import {
   PRIMARY_GOALS,
 } from '../data/lifestyleOptions';
 import { useParamMasterOptions } from '../hooks/useParamOptions';
-import { useRefreshControl } from '../hooks/useRefreshControl';
+import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import { getBmi, getBmiCategory } from '../utils/bmi';
 import { lastCheckupLabel } from '../utils/recheckup';
@@ -139,7 +139,7 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
         <RefreshControl
           refreshing={refreshControl.refreshing}
           onRefresh={refreshControl.onRefresh}
-          tintColor={Colors.secondary}
+          {...refreshControlTheme}
         />
       }
     >

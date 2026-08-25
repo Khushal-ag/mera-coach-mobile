@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import FormFieldLabel from '../components/FormFieldLabel';
+import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import ScreenHeader from '../components/ScreenHeader';
 import { changePassword } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
@@ -28,6 +27,7 @@ interface PasswordFieldProps {
   visible: boolean;
   onToggleVisible: () => void;
   placeholder: string;
+  onFocus?: () => void;
 }
 
 function PasswordField({
@@ -38,6 +38,7 @@ function PasswordField({
   visible,
   onToggleVisible,
   placeholder,
+  onFocus,
 }: PasswordFieldProps) {
   return (
     <View style={styles.field}>
@@ -51,6 +52,7 @@ function PasswordField({
           secureTextEntry={!visible}
           value={value}
           onChangeText={onChangeText}
+          onFocus={onFocus}
         />
         <TouchableOpacity onPress={onToggleVisible} style={styles.eyeBtn}>
           <Ionicons
@@ -65,6 +67,8 @@ function PasswordField({
 }
 
 export default function ChangePasswordScreen({ navigation }: RootScreenProps<'ChangePassword'>) {
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -94,76 +98,73 @@ export default function ChangePasswordScreen({ navigation }: RootScreenProps<'Ch
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <KeyboardSafeScroll
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.inner}
     >
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.inner}
-        keyboardShouldPersistTaps="handled"
-      >
-        <ScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
 
-        <View style={styles.card}>
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={Colors.primary} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+      <View style={styles.card}>
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color={Colors.primary} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
-          <PasswordField
-            label="Current Password"
-            icon="lock-closed-outline"
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            visible={showCurrent}
-            onToggleVisible={() => setShowCurrent(v => !v)}
-            placeholder="Enter your current password"
-          />
-          <PasswordField
-            label="New Password"
-            icon="key-outline"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            visible={showNew}
-            onToggleVisible={() => setShowNew(v => !v)}
-            placeholder="At least 6 characters"
-          />
-          <PasswordField
-            label="Confirm New Password"
-            icon="key-outline"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            visible={showConfirm}
-            onToggleVisible={() => setShowConfirm(v => !v)}
-            placeholder="Re-enter your new password"
-          />
+        <PasswordField
+          label="Current Password"
+          icon="lock-closed-outline"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          visible={showCurrent}
+          onToggleVisible={() => setShowCurrent(v => !v)}
+          placeholder="Enter your current password"
+        />
+        <PasswordField
+          label="New Password"
+          icon="key-outline"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          visible={showNew}
+          onToggleVisible={() => setShowNew(v => !v)}
+          placeholder="At least 6 characters"
+          onFocus={scrollLowerFieldsIntoView}
+        />
+        <PasswordField
+          label="Confirm New Password"
+          icon="key-outline"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          visible={showConfirm}
+          onToggleVisible={() => setShowConfirm(v => !v)}
+          placeholder="Re-enter your new password"
+          onFocus={scrollLowerFieldsIntoView}
+        />
 
-          <TouchableOpacity
-            style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-            onPress={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.submitText}>Update Password</Text>
-                <Ionicons name="checkmark" size={18} color={Colors.white} />
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <TouchableOpacity
+          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <>
+              <Text style={styles.submitText}>Update Password</Text>
+              <Ionicons name="checkmark" size={18} color={Colors.white} />
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardSafeScroll>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  inner: { flexGrow: 1, paddingBottom: 40 },
+  inner: { flexGrow: 1 },
   card: {
     backgroundColor: Colors.white,
     margin: 20,

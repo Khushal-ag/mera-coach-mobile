@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/theme';
 
@@ -39,11 +40,47 @@ export function HeaderBackButton({
   );
 }
 
+interface HeaderHomeButtonProps {
+  onPress?: () => void;
+  /** White translucent control for dark (green) headers. Default true. */
+  onDark?: boolean;
+  style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
+}
+
+/** Circular home control — returns to the public landing (coach search) without signing out. */
+export function HeaderHomeButton({
+  onPress,
+  onDark = true,
+  style,
+  accessibilityLabel = 'Home',
+}: HeaderHomeButtonProps) {
+  const navigation = useNavigation();
+  const handlePress = onPress ?? (() => navigation.navigate('Home'));
+
+  return (
+    <TouchableOpacity
+      style={[styles.backBtn, onDark ? styles.backBtnOnDark : styles.backBtnOnLight, style]}
+      onPress={handlePress}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      <Ionicons name="home-outline" size={20} color={onDark ? Colors.white : Colors.textDark} />
+    </TouchableOpacity>
+  );
+}
+
 interface ScreenHeaderProps {
   title: string;
   onBack?: () => void;
   /** Optional trailing control; when omitted with onBack, a spacer keeps the title centered. */
   right?: React.ReactNode;
+  /**
+   * Show a home control on the right (public landing). Default true — ScreenHeader is only
+   * used on authenticated stack screens. Pass false or a custom `right` to override.
+   */
+  showHome?: boolean;
 }
 
 /**
@@ -51,8 +88,9 @@ interface ScreenHeaderProps {
  * Use for Edit Profile, Legal, Change Password, Client Detail, BMI Report, etc.
  * Wizard flows keep their floating back instead.
  */
-export default function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
+export default function ScreenHeader({ title, onBack, right, showHome = true }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
+  const trailing = right ?? (showHome ? <HeaderHomeButton /> : <View style={styles.spacer} />);
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -60,7 +98,7 @@ export default function ScreenHeader({ title, onBack, right }: ScreenHeaderProps
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
-      {right ?? <View style={styles.spacer} />}
+      {trailing}
     </View>
   );
 }

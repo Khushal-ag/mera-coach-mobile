@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { HeaderHomeButton } from '../components/ScreenHeader';
 import { APP_DISPLAY_NAME } from '../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../utils/support';
 import { formatExperienceDisplay } from '../utils/experience';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { nameInitials } from '../utils/initials';
+import { refreshControlTheme } from '../hooks/useRefreshControl';
 import { clearSession, getCurrentCoachCode } from '../auth/session';
 import { getCoachProfile } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
@@ -47,6 +50,7 @@ const menuItems: MenuItem[] = [
 
 export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'Profile'>) {
   const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
@@ -59,12 +63,16 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
   });
   const profile = profileQuery.data;
 
+  // Explicit pull only — do not bind RefreshControl to query.isRefetching (offscreen spinner).
   const onRefresh = useCallback(() => {
-    Promise.all([profileQuery.refetch(), clientsQuery.refetch()]).then(([profileResult]) => {
-      if (profileResult.isError) {
-        Alert.alert('Refresh failed', getErrorMessage(profileResult.error, 'Please try again.'));
-      }
-    });
+    setRefreshing(true);
+    Promise.all([profileQuery.refetch(), clientsQuery.refetch()])
+      .then(([profileResult]) => {
+        if (profileResult.isError) {
+          Alert.alert('Refresh failed', getErrorMessage(profileResult.error, 'Please try again.'));
+        }
+      })
+      .finally(() => setRefreshing(false));
   }, [profileQuery, clientsQuery]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
@@ -73,20 +81,15 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
       ? getErrorMessage(profileQuery.error, 'Could not load profile. Pull down to try again.')
       : null;
 
-  const initials =
-    profile?.name
-      .split(' ')
-      .map(w => w[0])
-      .slice(0, 2)
-      .join('') || '?';
+  const initials = profile?.name ? nameInitials(profile.name) : '?';
 
   // Prefer live ClientList length; fall back to happyClientCount only when the list isn't loaded.
   const clientCountDisplay =
     clientsQuery.data != null
       ? String(clientsQuery.data.length)
-      : profile?.clients != null && profile.clients > 0
+      : profile?.clients != null
         ? String(profile.clients)
-        : clientsQuery.isPending
+        : clientsQuery.isPending || profileQuery.isPending
           ? '—'
           : '0';
 
@@ -100,16 +103,13 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
       style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl
-          refreshing={profileQuery.isRefetching || clientsQuery.isRefetching}
-          onRefresh={onRefresh}
-          tintColor={Colors.secondary}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
       }
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>My Profile</Text>
+        <HeaderHomeButton />
       </View>
 
       {profileQuery.isPending ? (

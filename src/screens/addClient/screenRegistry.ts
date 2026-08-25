@@ -6,14 +6,14 @@ import BmiResultStep from './steps/BmiResultStep';
 import DietPlanStep from './steps/DietPlanStep';
 import type { WizardScreen } from '../../types/wizard';
 
-export interface DietScreenConfig {
+interface DietScreenConfig {
   id: string;
   title: string;
   subtitle: string;
   slotIds: string[];
 }
 
-export const DIET_SCREENS: DietScreenConfig[] = [
+const DIET_SCREENS: DietScreenConfig[] = [
   {
     id: 'dietMorning',
     title: 'Morning Meals',
@@ -77,7 +77,7 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     id: 'bmiResult',
     phaseId: 'bmiResult',
     title: 'BMI Detail',
-    subtitle: 'Review metrics — open report or AI diet plan',
+    subtitle: 'Review metrics, then open report or AI diet plan',
     icon: 'fitness-outline',
     Component: BmiResultStep,
   },
@@ -85,7 +85,7 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     id: 'dietPlanGenerate',
     phaseId: 'dietPlan',
     title: 'AI Diet Plan',
-    subtitle: 'Optional — generate a suggested weekly plan',
+    subtitle: 'Optional: generate a suggested weekly plan',
     icon: 'sparkles',
     Component: DietPlanStep,
   },

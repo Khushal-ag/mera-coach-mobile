@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import FormErrorBanner from '../components/FormErrorBanner';
 import FormFieldLabel from '../components/FormFieldLabel';
+import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
@@ -25,6 +24,8 @@ import type { RootScreenProps } from '../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -54,118 +55,114 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <KeyboardSafeScroll
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.inner}
     >
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.inner}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
-          <View style={styles.logoBox}>
-            <Ionicons name="fitness" size={32} color={Colors.white} />
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
+        <View style={styles.logoBox}>
+          <Ionicons name="fitness" size={32} color={Colors.white} />
+        </View>
+        <Text style={styles.brand}>Mera Coach</Text>
+        <Text style={styles.tagline}>Wellness Platform</Text>
+      </View>
+
+      {/* Card */}
+      <View style={styles.card}>
+        <FormErrorBanner message={formErrorBanner} />
+
+        <Text style={styles.cardTitle}>Coach Login</Text>
+        <Text style={styles.cardSub}>Sign in to manage your clients</Text>
+
+        <View style={styles.field}>
+          <FormFieldLabel required>Email Address</FormFieldLabel>
+          <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+            <Ionicons
+              name="mail-outline"
+              size={18}
+              color={Colors.textLight}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="coach@meracoach.com"
+              placeholderTextColor={Colors.textLight}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={email}
+              onChangeText={v => {
+                setEmail(sanitizeEmailInput(v));
+                clearFieldError('email');
+              }}
+            />
           </View>
-          <Text style={styles.brand}>Mera Coach</Text>
-          <Text style={styles.tagline}>Wellness Platform</Text>
         </View>
 
-        {/* Card */}
-        <View style={styles.card}>
-          <FormErrorBanner message={formErrorBanner} />
-
-          <Text style={styles.cardTitle}>Coach Login</Text>
-          <Text style={styles.cardSub}>Sign in to manage your clients</Text>
-
-          <View style={styles.field}>
-            <FormFieldLabel required>Email Address</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+        <View style={styles.field}>
+          <FormFieldLabel required>Password</FormFieldLabel>
+          <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={18}
+              color={Colors.textLight}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="Enter your password"
+              placeholderTextColor={Colors.textLight}
+              secureTextEntry={!showPass}
+              value={password}
+              onChangeText={v => {
+                setPassword(v);
+                clearFieldError('password');
+              }}
+              onFocus={scrollLowerFieldsIntoView}
+            />
+            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
               <Ionicons
-                name="mail-outline"
+                name={showPass ? 'eye-off-outline' : 'eye-outline'}
                 size={18}
                 color={Colors.textLight}
-                style={styles.inputIcon}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="coach@meracoach.com"
-                placeholderTextColor={Colors.textLight}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={email}
-                onChangeText={v => {
-                  setEmail(sanitizeEmailInput(v));
-                  clearFieldError('email');
-                }}
-              />
-            </View>
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.field}>
-            <FormFieldLabel required>Password</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={18}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Enter your password"
-                placeholderTextColor={Colors.textLight}
-                secureTextEntry={!showPass}
-                value={password}
-                onChangeText={v => {
-                  setPassword(v);
-                  clearFieldError('password');
-                }}
-              />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                <Ionicons
-                  name={showPass ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={Colors.textLight}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.loginBtn, submitting && styles.loginBtnDisabled]}
-            onPress={handleLogin}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.loginBtnText}>Sign In</Text>
-                <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-              </>
-            )}
-          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.registerLink}>
-            New coach? <Text style={styles.registerLinkBold}>Create an account →</Text>
-          </Text>
+        <TouchableOpacity
+          style={[styles.loginBtn, submitting && styles.loginBtnDisabled]}
+          onPress={handleLogin}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <>
+              <Text style={styles.loginBtnText}>Sign In</Text>
+              <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+            </>
+          )}
         </TouchableOpacity>
+      </View>
 
-        <Text style={styles.footer}>MeraCoach © 2024 · Wellness Platform</Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.registerLink}>
+          New coach? <Text style={styles.registerLinkBold}>Create an account →</Text>
+        </Text>
+      </TouchableOpacity>
+
+      <Text style={styles.footer}>MeraCoach © 2024 · Wellness Platform</Text>
+    </KeyboardSafeScroll>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.secondary },
-  inner: { flexGrow: 1, alignItems: 'center', paddingBottom: 30 },
+  inner: { flexGrow: 1, alignItems: 'center' },
   header: { alignItems: 'center', paddingBottom: 40, width: '100%', paddingHorizontal: 20 },
   headerBack: { alignSelf: 'flex-start', marginBottom: 16 },
   logoBox: {

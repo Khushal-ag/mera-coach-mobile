@@ -1,8 +1,12 @@
 // Centralized so screens fetching the same data share one cache entry.
 export const queryKeys = {
   coachCategories: ['coachCategories'] as const,
-  coachPublicList: (params: { coachTypeCode?: string; search?: string }) =>
-    ['coachPublicList', params] as const,
+  coachPublicList: (params: {
+    coachTypeCode?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }) => ['coachPublicList', params] as const,
   coachProfile: ['coachProfile'] as const,
   coachProfileFull: ['coachProfileFull'] as const,
   coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,

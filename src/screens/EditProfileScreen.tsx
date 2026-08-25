@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,12 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import FormErrorBanner from '../components/FormErrorBanner';
 import FormFieldLabel from '../components/FormFieldLabel';
+import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import ScreenHeader from '../components/ScreenHeader';
 import MultiSelectField from '../components/MultiSelectField';
 import {
@@ -88,7 +88,8 @@ interface EditProfileFormProps {
 }
 
 function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
-  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [coachName, setCoachName] = useState(profile.coachName);
   // Empty until categories load or user picks — display falls back to profile type label.
   const [categoryLabel, setCategoryLabel] = useState(
@@ -293,14 +294,11 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   };
 
   return (
-    <ScrollView
+    <KeyboardSafeScroll
+      ref={scrollRef}
       style={styles.body}
-      contentContainerStyle={[
-        styles.bodyContent,
-        { paddingBottom: Math.max(insets.bottom, 24) + 16 },
-      ]}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.bodyContent}
+      keyboardPadding={180}
     >
       <FormErrorBanner message={formErrorBanner || pinLookup.error} />
 
@@ -395,6 +393,10 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           />
         </View>
       </View>
+      <Text style={styles.fieldHint}>
+        Shown as Clients on your public card and profile. Update it here for the number others see,
+        not your live client list count.
+      </Text>
       <Field label="Tagline" value={tagline} onChangeText={setTagline} />
 
       <MultiSelectField
@@ -415,19 +417,40 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           onChangeText={setCoachDesc}
           placeholder="Tell clients about your coaching style and experience"
           placeholderTextColor={Colors.textLight}
+          onFocus={scrollLowerFieldsIntoView}
         />
       </View>
 
       <View style={styles.divider} />
 
-      <Field label="Locality" value={locality} onChangeText={setLocality} />
-      <Field label="Address Line" value={addLine} onChangeText={setAddLine} />
+      <Field
+        label="Locality"
+        value={locality}
+        onChangeText={setLocality}
+        onFocus={scrollLowerFieldsIntoView}
+      />
+      <Field
+        label="Address Line"
+        value={addLine}
+        onChangeText={setAddLine}
+        onFocus={scrollLowerFieldsIntoView}
+      />
       <View style={styles.row}>
         <View style={styles.half}>
-          <Field label="City" value={cityCd} onChangeText={setCityCd} />
+          <Field
+            label="City"
+            value={cityCd}
+            onChangeText={setCityCd}
+            onFocus={scrollLowerFieldsIntoView}
+          />
         </View>
         <View style={styles.half}>
-          <Field label="State" value={stateCd} onChangeText={setStateCd} />
+          <Field
+            label="State"
+            value={stateCd}
+            onChangeText={setStateCd}
+            onFocus={scrollLowerFieldsIntoView}
+          />
         </View>
       </View>
       <View style={styles.row}>
@@ -449,6 +472,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 keyboardType="number-pad"
                 maxLength={6}
                 placeholderTextColor={Colors.textLight}
+                onFocus={scrollLowerFieldsIntoView}
               />
               {pinLookup.lookingUp ? (
                 <ActivityIndicator color={Colors.primary} size="small" style={styles.pinLoader} />
@@ -484,7 +508,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           </>
         )}
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardSafeScroll>
   );
 }
 
@@ -497,6 +521,7 @@ interface FieldProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   required?: boolean;
   hasError?: boolean;
+  onFocus?: () => void;
 }
 
 function Field({
@@ -508,6 +533,7 @@ function Field({
   autoCapitalize,
   required,
   hasError,
+  onFocus,
 }: FieldProps) {
   return (
     <View style={styles.field}>
@@ -521,6 +547,7 @@ function Field({
         autoCapitalize={autoCapitalize}
         autoCorrect={autoCapitalize === 'none' ? false : undefined}
         placeholderTextColor={Colors.textLight}
+        onFocus={onFocus}
       />
     </View>
   );
@@ -556,7 +583,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 40 },
   body: { flex: 1 },
-  bodyContent: { padding: 20, paddingBottom: 40 },
+  bodyContent: { padding: 20 },
   imagesRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   imageTile: {
     flex: 1,
@@ -615,6 +642,13 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
+  fieldHint: {
+    fontSize: 11,
+    color: Colors.textLight,
+    lineHeight: 16,
+    marginTop: -8,
+    marginBottom: 16,
+  },
   divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
   saveBtn: {
     backgroundColor: Colors.primary,

@@ -14,7 +14,16 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Home: undefined;
   CoachList: { categoryCode?: string } | undefined;
-  CoachPublicProfile: { coach?: Coach; coachCode?: string } | undefined;
+  CoachPublicProfile:
+    | {
+        coach?: Coach;
+        coachCode?: string;
+        /** Ordered coach codes from the source list — enables swipe between profiles. */
+        coachCodes?: string[];
+        /** Full list rows matching coachCodes — used as per-page placeholders until profile API loads. */
+        coaches?: Coach[];
+      }
+    | undefined;
   Login: undefined;
   Register: undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
