@@ -10,6 +10,7 @@ import { queryKeys } from '../../../api/queryKeys';
 import { useParamMasterOptions } from '../../../hooks/useParamOptions';
 import { PARAM_CODES, REGIONAL_CUISINES } from '../../../data/lifestyleOptions';
 import { buildGenerateDietPlanBody } from '../../../utils/generateDietPlanBody';
+import { getBmi, getBmiCategory } from '../../../utils/bmi';
 import type { ClientProfile } from '../../../types/models';
 import type { IoniconName, StepProps } from '../../../types/wizard';
 
@@ -53,6 +54,17 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
   };
 
   const plan = form.dietPlan;
+  // Prefer API summary; fall back to height/weight from the checkup/assessment form.
+  // normalizeGeneratedDietPlan defaults missing numbers to 0 — treat 0 as absent.
+  const apiBmi = plan?.summary?.bmi;
+  const profileBmi = getBmi(form.height, form.weight);
+  const bmi = typeof apiBmi === 'number' && apiBmi > 0 ? apiBmi : profileBmi;
+  const hasBmi = typeof bmi === 'number' && bmi > 0;
+  const bmiCategory = plan?.summary?.bmiCategory?.trim() || getBmiCategory(bmi)?.label || '';
+  const dailyCalTarget = plan?.summary?.dailyCalTarget;
+  const hasDailyCal = typeof dailyCalTarget === 'number' && dailyCalTarget > 0;
+  const showSummary = hasBmi || hasDailyCal;
+  const summaryBoth = hasBmi && hasDailyCal;
 
   return (
     <View>
@@ -104,19 +116,28 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
 
       {plan ? (
         <>
-          <View style={styles.summaryCard}>
-            <View>
-              <Text style={styles.summaryCaption}>BMI</Text>
-              <Text style={styles.summaryBmi}>{plan.summary?.bmi ?? '—'}</Text>
-              <Text style={styles.summaryLabel}>{plan.summary?.bmiCategory || '—'}</Text>
+          {showSummary ? (
+            <View
+              style={[
+                styles.summaryCard,
+                summaryBoth ? styles.summaryCardBoth : styles.summaryCardSingle,
+              ]}
+            >
+              {hasBmi ? (
+                <View>
+                  <Text style={styles.summaryCaption}>BMI</Text>
+                  <Text style={styles.summaryBmi}>{bmi!.toFixed(1)}</Text>
+                  {bmiCategory ? <Text style={styles.summaryLabel}>{bmiCategory}</Text> : null}
+                </View>
+              ) : null}
+              {hasDailyCal ? (
+                <View style={styles.summaryTarget}>
+                  <Ionicons name="flame" size={16} color={Colors.accent} />
+                  <Text style={styles.summaryTargetText}>{dailyCalTarget} kcal / day</Text>
+                </View>
+              ) : null}
             </View>
-            <View style={styles.summaryTarget}>
-              <Ionicons name="flame" size={16} color={Colors.accent} />
-              <Text style={styles.summaryTargetText}>
-                {plan.summary?.dailyCalTarget ?? 0} kcal / day
-              </Text>
-            </View>
-          </View>
+          ) : null}
 
           {(plan.weeklyPlan || []).map((meal, i) => (
             <View key={i} style={styles.mealCard}>
@@ -250,13 +271,16 @@ const styles = StyleSheet.create({
   generateText: { color: Colors.white, fontSize: 15, fontWeight: '700' },
   summaryCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    gap: 12,
     backgroundColor: Colors.secondary,
     borderRadius: Radius.md,
     padding: 16,
     marginBottom: 14,
   },
+  summaryCardBoth: { justifyContent: 'space-between' },
+  summaryCardSingle: { justifyContent: 'center' },
   summaryCaption: {
     fontSize: 11,
     fontWeight: '600',
