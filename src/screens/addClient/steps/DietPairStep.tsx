@@ -19,6 +19,7 @@ import { MEAL_SLOTS } from '../../../data/dietCatalog';
 import { MEAL_SLOT_TO_API_LABEL } from '../../../data/mealSlotLabels';
 import { getFoodMaster, getFoodCalories, resolveMasterLabel } from '../../../api/masterApi';
 import { getCoachProfile } from '../../../api/coachApi';
+import { MASTER_STALE_MS } from '../../../api/queryClient';
 import { queryKeys } from '../../../api/queryKeys';
 import { useParamMasterOptions } from '../../../hooks/useParamOptions';
 import { FOOD_PREFERENCES, PARAM_CODES } from '../../../data/lifestyleOptions';
@@ -54,10 +55,12 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
   });
   const country = coachProfileQuery.data?.country || 'India';
 
-  // food-master region matches web: dropdown value (itemCode).
+  // Wait for coach so food-master key does not flip (default India → real country).
   const foodMasterQuery = useQuery({
     queryKey: queryKeys.foodMaster(country, form.regionalCuisine),
     queryFn: () => getFoodMaster(country, form.regionalCuisine),
+    enabled: !coachProfileQuery.isPending,
+    staleTime: MASTER_STALE_MS,
   });
 
   const setItems = (slotId: string, newItems: DietItem[]) =>

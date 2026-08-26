@@ -47,8 +47,21 @@ export interface ClientSummary {
   status?: string;
   initials?: string;
   mobileNo?: string;
-  /** Display-ready date string from the API, not ISO — see utils/recheckup before comparing. */
+  /** Display-ready date string from the API (not always ISO). */
   lastCheckupDate?: string;
+}
+
+/** Row from POST /Client/recheckup-list (server already filters to due clients). */
+export interface RecheckupDueClient {
+  clientCode?: string;
+  name: string;
+  mobileNo?: string;
+  age?: number;
+  initials?: string;
+  lastCheckupDate?: string;
+  dueDate?: string;
+  /** Whole days past due; 0 means due today. */
+  daysOverdue: number;
 }
 
 export interface DietItem {
@@ -63,10 +76,8 @@ export interface GeneratedDietPlanMeal {
   mealType: string;
   mealTime: string;
   options: string[];
-  calMin?: number;
-  calMax?: number;
-  caloriesMin?: number;
-  caloriesMax?: number;
+  calMin: number;
+  calMax: number;
   tip?: string;
 }
 
@@ -79,6 +90,13 @@ export interface GeneratedDietPlan {
     healthTips: string;
   };
   weeklyPlan: GeneratedDietPlanMeal[];
+}
+
+/** Typical save-diet-plan responseObj. */
+export interface SaveDietPlanResult {
+  clientCode?: string;
+  assessmentCode?: string;
+  status?: string;
 }
 
 export interface ClientProfile {

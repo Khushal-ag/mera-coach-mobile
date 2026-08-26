@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import AssessmentWizardFlow from '../addClient/AssessmentWizardFlow';
 import ClientPhaseLoadShell from '../../components/ClientPhaseLoadShell';
@@ -16,9 +17,11 @@ export default function ClientBmiScreen({ navigation, route }: RootScreenProps<'
     useCheckupProfile(client);
 
   const onComplete = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.clientList(getCurrentCoachCode()),
-    });
+    const coachCode = getCurrentCoachCode();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.clientList(coachCode) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.recheckupList(coachCode) }),
+    ]);
     if (client?.clientCode) {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.clientDetail(client.clientCode, client.assessmentCode),
@@ -30,7 +33,10 @@ export default function ClientBmiScreen({ navigation, route }: RootScreenProps<'
         queryKey: queryKeys.bmiReport(client.clientCode, client.assessmentCode),
       });
     }
-    navigation.goBack();
+
+    Alert.alert('Checkup complete', 'Assessment saved successfully.', [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
   };
 
   return (

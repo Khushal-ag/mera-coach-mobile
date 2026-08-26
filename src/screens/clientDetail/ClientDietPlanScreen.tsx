@@ -1,8 +1,11 @@
-import React from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { Alert } from 'react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AssessmentWizardFlow from '../addClient/AssessmentWizardFlow';
+import type { AssessmentCompleteResult } from '../addClient/AssessmentWizardFlow';
 import ClientPhaseLoadShell from '../../components/ClientPhaseLoadShell';
 import { useCheckupProfile } from '../../hooks/useCheckupProfile';
+import { getDietPlanReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
@@ -15,37 +18,76 @@ export default function ClientDietPlanScreen({
 }: RootScreenProps<'ClientDietPlan'>) {
   const client = route.params?.client;
   const queryClient = useQueryClient();
-  const { profile, ids, isLoading, isError, error, dataUpdatedAt, refetch } = useCheckupProfile(
+  const { profile, ids, isLoading, isError, error, detailReady, refetch } = useCheckupProfile(
     client,
     { assessmentIdMode: 'latest' },
   );
 
-  const onComplete = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.clientList(getCurrentCoachCode()),
-    });
+  // Start diet-plan-report as soon as assessment ids exist — do not wait for food-master mapping.
+  const planQuery = useQuery({
+    queryKey: queryKeys.dietPlanReport(ids.clientCode, ids.assessmentCode),
+    queryFn: () => getDietPlanReport(ids),
+    enabled: detailReady && !!ids.clientCode && !!ids.assessmentCode,
+  });
+
+  const initialForm = useMemo(() => {
+    if (!profile) return null;
+    if (planQuery.data) return { ...profile, dietPlan: planQuery.data };
+    return profile;
+  }, [profile, planQuery.data]);
+
+  const onComplete = async (result?: AssessmentCompleteResult) => {
+    const assessmentCode = ids.assessmentCode ?? client?.assessmentCode;
+    const status = result?.dietPlan?.status?.trim();
+    const becameComplete = !!status && status.toLowerCase() === 'complete';
+
+    const tasks: Promise<unknown>[] = [];
     if (client?.clientCode) {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.clientDetail(client.clientCode, client.assessmentCode),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.clientDetailCheckup(client.clientCode),
-      });
+      tasks.push(
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.dietPlanReport(client.clientCode, assessmentCode),
+        }),
+        // Prefix: Client Detail + checkup variants for this client.
+        queryClient.invalidateQueries({ queryKey: ['clientDetail', client.clientCode] }),
+      );
     }
-    navigation.goBack();
+    if (becameComplete) {
+      const coachCode = getCurrentCoachCode();
+      tasks.push(
+        queryClient.invalidateQueries({ queryKey: queryKeys.clientList(coachCode) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.recheckupList(coachCode) }),
+      );
+    }
+    await Promise.all(tasks);
+
+    const message = becameComplete
+      ? 'Diet plan saved. Assessment status: Complete.'
+      : 'Diet plan saved successfully.';
+
+    Alert.alert('Diet plan saved', message, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+  };
+
+  const planSettled = !ids.assessmentCode || planQuery.isFetched || planQuery.isError;
+  const loading = isLoading || (detailReady && !!ids.assessmentCode && !planSettled);
+  const loadError = isError || planQuery.isError;
+  const loadErrorObj = isError ? error : planQuery.error;
+
+  const retry = () => {
+    refetch();
+    if (planQuery.isError) void planQuery.refetch();
   };
 
   return (
     <ClientPhaseLoadShell
-      isLoading={isLoading}
-      isError={isError || !profile}
-      errorMessage={getErrorMessage(error, 'Please go back and try again.')}
-      onRetry={() => refetch()}
+      isLoading={loading}
+      isError={loadError || !initialForm}
+      errorMessage={getErrorMessage(loadErrorObj, 'Please go back and try again.')}
+      onRetry={retry}
     >
       <AssessmentWizardFlow
-        key={`diet-plan-${client?.clientCode}-${dataUpdatedAt}`}
+        key={`diet-plan-${ids.clientCode}-${ids.assessmentCode}`}
         flow="checkup"
-        initialForm={profile!}
+        initialForm={initialForm!}
         initialIds={ids}
         initialPhaseId="dietPlan"
         commitMode="dietPlan"

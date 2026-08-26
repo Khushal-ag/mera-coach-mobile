@@ -47,7 +47,7 @@ export default function ClientListScreen({ navigation }: MainTabScreenProps<'Cli
     const term = search.trim().toLowerCase();
     if (!term) return clients;
     const digits = stripNonDigits(search);
-    return clients.filter((c: { name: string; mobileNo: any }) => {
+    return clients.filter(c => {
       if (c.name.toLowerCase().includes(term)) return true;
       return digits.length > 0 && (c.mobileNo ?? '').includes(digits);
     });

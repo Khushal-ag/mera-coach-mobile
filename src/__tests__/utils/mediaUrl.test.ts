@@ -1,4 +1,4 @@
-import { resolveMediaUrl } from '../mediaUrl';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 const ORIGINAL_BASE = process.env.EXPO_PUBLIC_API_BASE_URL;
 

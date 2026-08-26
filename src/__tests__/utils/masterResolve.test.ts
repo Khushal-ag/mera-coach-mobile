@@ -3,7 +3,7 @@ import {
   resolveMasterCodes,
   resolveMasterLabel,
   type MasterOption,
-} from '../masterResolve';
+} from '../../utils/masterResolve';
 
 const OPTIONS: MasterOption[] = [
   { code: 'LI0001', label: 'Vegetarian' },

@@ -2,7 +2,7 @@ import type { GenerateDietPlanParams } from '../api/masterApi';
 import { describeDietItems } from '../data/mealSlotLabels';
 import type { ClientProfile } from '../types/models';
 
-/** Web AddClient default when coach country session is missing. */
+/** Web default when coach country is missing. */
 const DEFAULT_COUNTRY_CD = 'IN';
 
 function asInt(value: string | number | undefined | null): number {
@@ -28,7 +28,7 @@ function joinCodes(values: string[] | undefined | null): string {
     .join(', ');
 }
 
-/** Matches meracoachapp AddClient.generateDietPlan() field encoding. */
+/** Encode profile + current meals for generate-diet-plan. */
 export function buildGenerateDietPlanBody(
   form: ClientProfile,
   options: { countryCd?: string; cuisineLabel: string },

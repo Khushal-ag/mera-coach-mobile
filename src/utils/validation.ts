@@ -2,22 +2,18 @@ import type { ClientProfile } from '../types/models';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Strip non-digit characters from a phone/pin input. */
 export function stripNonDigits(value: string): string {
   return value.replace(/\D/g, '');
 }
 
-/** Restrict phone input to up to 10 digits as the user types. */
 export function sanitizePhoneInput(value: string): string {
   return stripNonDigits(value).slice(0, 10);
 }
 
-/** Restrict pin input to up to 6 digits as the user types. */
 export function sanitizePinInput(value: string): string {
   return stripNonDigits(value).slice(0, 6);
 }
 
-/** Force lowercase and strip spaces as the user types email. */
 export function sanitizeEmailInput(value: string): string {
   return value.toLowerCase().replace(/\s/g, '');
 }
@@ -35,12 +31,11 @@ export function isStrictInt(value: string): boolean {
   return /^\d+$/.test(value.trim());
 }
 
-/** True only when the whole string is an integer or decimal. */
 export function isStrictNumber(value: string): boolean {
   return /^\d+(\.\d+)?$/.test(value.trim());
 }
 
-/** Normalize gender codes from API (Male/Female/M/F) → M/F. */
+/** Normalize gender codes from API (Male/Female/M/F) to M/F. */
 export function normalizeGender(value: string | undefined | null): string {
   const v = (value ?? '').trim().toLowerCase();
   if (v === 'm' || v === 'male') return 'M';
@@ -60,7 +55,7 @@ export function ageFromDate(dob: Date, today = new Date()): number {
   return age;
 }
 
-/** Format Date → DD/MM/YYYY for UI display (matches web flatpickr). */
+/** Format Date to DD/MM/YYYY for UI display (matches web flatpickr). */
 export function formatDob(date: Date): string {
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -98,7 +93,7 @@ export function parseDob(value: string): Date | null {
   return isNaN(iso.getTime()) ? null : iso;
 }
 
-/** UI DOB (DD/MM/YYYY) → API/SQL date string YYYY-MM-DD. Empty when absent or invalid. */
+/** UI DOB (DD/MM/YYYY) to API/SQL date string YYYY-MM-DD. Empty when absent or invalid. */
 export function toApiDob(value: string): string {
   const d = parseDob(value);
   return d ? formatLocalDate(d) : '';
@@ -168,13 +163,12 @@ export function validateDobOrAge(dob: string, age: string): string | null {
   return null;
 }
 
-/** Field-keyed errors for aggregate (show-all) validation UX. */
 export type FieldErrorMap = Record<string, string>;
 
 export interface FormValidationResult {
   ok: boolean;
   errors: FieldErrorMap;
-  /** Short shared banner when any field failed. */
+  /** Shared banner when any field failed. */
   banner: string | null;
 }
 
@@ -204,7 +198,6 @@ function resultFromErrors(errors: FieldErrorMap): FormValidationResult {
   return { ok: false, errors, banner: MANDATORY_FIELDS_BANNER };
 }
 
-/** Assign `message` onto `errors[field]` when message is non-null. */
 function putError(errors: FieldErrorMap, field: string, message: string | null) {
   if (message) errors[field] = message;
 }
@@ -217,7 +210,7 @@ export function feetInchesToCm(feet: number, inches: number): number {
   return (feet * 12 + inches) * 2.54;
 }
 
-/** Convert cm → whole feet + rounded inches (normalizes 12 in → +1 ft). */
+/** Convert cm to whole feet + rounded inches (normalizes 12 in to +1 ft). */
 export function cmToFeetInches(cm: number): { feet: number; inches: number } {
   const totalInches = cm / 2.54;
   let feet = Math.floor(totalInches / 12);
@@ -263,8 +256,8 @@ export function validateNonNegativeInt(
 }
 
 /**
- * Validates the personal-profile step of the Add Client wizard (mirrors web Step 1).
- * Returns every failing field so the UI can highlight them all at once.
+ * Personal-profile step of Add Client (mirrors web Step 1).
+ * Collects every failing field so the UI can highlight them all at once.
  */
 export function validateClientPersonalProfile(form: ClientProfile): FormValidationResult {
   const errors: FieldErrorMap = {};
@@ -279,7 +272,6 @@ export function validateClientPersonalProfile(form: ClientProfile): FormValidati
   return resultFromErrors(errors);
 }
 
-/** Validates coach profile contact fields on edit (all errors). */
 export function validateCoachContactFields(mobile: string, email: string): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'mobile', validateMobile(mobile));
@@ -316,6 +308,7 @@ export function validateCoachProfileEdit(fields: {
   pinCode: string;
   experienceYears: string;
   happyClientCount: string;
+  certificationCount?: string;
 }): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'coachName', validateRequired(fields.coachName, 'Coach name'));
@@ -331,6 +324,11 @@ export function validateCoachProfileEdit(fields: {
     errors,
     'happyClientCount',
     validateNonNegativeInt(fields.happyClientCount, 'Happy client count'),
+  );
+  putError(
+    errors,
+    'certificationCount',
+    validateNonNegativeInt(fields.certificationCount ?? '', 'Certifications'),
   );
   return resultFromErrors(errors);
 }

@@ -14,12 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import { HeaderHomeButton } from '../components/ScreenHeader';
-import { getClientList } from '../api/clientApi';
+import { getClientList, getEnquiryLeads, getRecheckupList } from '../api/clientApi';
 import { getCoachProfile } from '../api/coachApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { getErrorMessage } from '../api/client';
-import { dueForRecheckup } from '../utils/recheckup';
 import { refreshControlTheme } from '../hooks/useRefreshControl';
 import type { MainTabScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
@@ -44,9 +43,18 @@ interface StatCard {
 export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dashboard'>) {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const coachCode = getCurrentCoachCode();
   const clientsQuery = useQuery({
-    queryKey: queryKeys.clientList(getCurrentCoachCode()),
+    queryKey: queryKeys.clientList(coachCode),
     queryFn: () => getClientList(),
+  });
+  const recheckupQuery = useQuery({
+    queryKey: queryKeys.recheckupList(coachCode),
+    queryFn: () => getRecheckupList({ coachCode }),
+  });
+  const leadsQuery = useQuery({
+    queryKey: queryKeys.enquiryLeads(coachCode),
+    queryFn: () => getEnquiryLeads(coachCode),
   });
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
@@ -58,14 +66,19 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
   // Do not bind RefreshControl to query.isRefetching (offscreen spinner).
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([clientsQuery.refetch(), profileQuery.refetch()])
+    Promise.all([
+      clientsQuery.refetch(),
+      recheckupQuery.refetch(),
+      leadsQuery.refetch(),
+      profileQuery.refetch(),
+    ])
       .then(([clientsResult]) => {
         if (clientsResult.isError) {
           Alert.alert('Refresh failed', getErrorMessage(clientsResult.error, 'Please try again.'));
         }
       })
       .finally(() => setRefreshing(false));
-  }, [clientsQuery, profileQuery]);
+  }, [clientsQuery, recheckupQuery, leadsQuery, profileQuery]);
 
   const clientsErrorMessage =
     clientsQuery.isError && !clients
@@ -74,8 +87,15 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
 
   const recentClients = useMemo(() => (clients ?? []).slice(0, 3), [clients]);
 
-  // Same due-only list as the Checkups tab.
-  const dueCount = useMemo(() => (clients ? dueForRecheckup(clients).length : null), [clients]);
+  const dueCount = useMemo(
+    () => (recheckupQuery.data ? recheckupQuery.data.length : null),
+    [recheckupQuery.data],
+  );
+
+  const activeLeadsCount = useMemo(() => {
+    if (!leadsQuery.data) return null;
+    return leadsQuery.data.filter(l => !l.isContacted).length;
+  }, [leadsQuery.data]);
 
   const stats: StatCard[] = [
     {
@@ -87,12 +107,12 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       onPress: () => navigation.navigate('Clients'),
     },
     {
-      // No leads endpoint exists yet — see MyLeadsScreen.
       label: 'Active Leads',
-      value: null,
+      value: activeLeadsCount != null ? String(activeLeadsCount) : '—',
       icon: 'funnel',
       color: Colors.accent,
       bg: Colors.accentLight,
+      onPress: () => navigation.navigate('Leads'),
     },
     {
       label: 'Checkups Due',
@@ -103,7 +123,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       onPress: () => navigation.navigate('Checkups'),
     },
     {
-      // ClientList carries no signup/created date, so new-clients-this-month is not derivable.
+      // ClientList has no signup date, so this metric is not available yet.
       label: 'New This Month',
       value: null,
       icon: 'calendar',

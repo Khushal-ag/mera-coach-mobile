@@ -3,6 +3,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { mapClientDetailToProfile, type RawClientDetail } from '../api/clientApi';
 import { getFoodMaster } from '../api/masterApi';
 import { getCoachProfile } from '../api/coachApi';
+import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import type { ClientProfile } from '../types/models';
 
@@ -23,11 +24,15 @@ export function useMappedClientProfile(detailQuery: UseQueryResult<RawClientDeta
     enabled: needsFoodMaster,
   });
 
+  // Wait for coach to settle so the food-master key does not flip (undefined → real country).
+  const country = coachQuery.data?.country || 'India';
+  const cuisine = detailQuery.data?.regionalCuisine ?? '';
+
   const foodMasterQuery = useQuery({
-    queryKey: queryKeys.foodMaster(coachQuery.data?.country, detailQuery.data?.regionalCuisine),
-    queryFn: () =>
-      getFoodMaster(coachQuery.data?.country || 'India', detailQuery.data?.regionalCuisine ?? ''),
-    enabled: needsFoodMaster && !!detailQuery.data,
+    queryKey: queryKeys.foodMaster(country, cuisine),
+    queryFn: () => getFoodMaster(country, cuisine),
+    enabled: needsFoodMaster && !!detailQuery.data && !coachQuery.isPending,
+    staleTime: MASTER_STALE_MS,
   });
 
   const profile = useMemo(() => {

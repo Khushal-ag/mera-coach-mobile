@@ -1,4 +1,4 @@
-import { buildCoachSuccessHighlights } from '../coachPublicSocialProof';
+import { buildCoachSuccessHighlights } from '../../utils/coachPublicSocialProof';
 
 describe('buildCoachSuccessHighlights', () => {
   it('returns empty when profile has no meaningful fields', () => {

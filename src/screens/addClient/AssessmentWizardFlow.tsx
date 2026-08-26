@@ -39,13 +39,17 @@ import {
   finishAssessment,
 } from './wizardCommits';
 import type { AssessmentIds } from './wizardCommits';
-import type { ClientProfile } from '../../types/models';
+import type { ClientProfile, SaveDietPlanResult } from '../../types/models';
 
 type NavEntry =
   | { type: 'interstitial'; phaseIndex: number }
   | { type: 'screen'; screenId: string; phaseIndex: number };
 
 export type AssessmentFlow = 'add' | 'checkup';
+
+export type AssessmentCompleteResult = {
+  dietPlan?: SaveDietPlanResult;
+};
 
 interface AssessmentWizardFlowProps {
   initialForm: ClientProfile;
@@ -63,7 +67,7 @@ interface AssessmentWizardFlowProps {
   /** When true, skip save-meals if the coach did not enter any food items (checkup/edit). */
   skipEmptyDietCommit?: boolean;
   onExit: () => void;
-  onComplete: () => void | Promise<void>;
+  onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
 }
 
 export default function AssessmentWizardFlow({
@@ -115,6 +119,8 @@ export default function AssessmentWizardFlow({
   const [bmiSaved, setBmiSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
+  /** True after generate/regenerate; false when loaded from diet-plan-report or after save. */
+  const [hasUnsavedDietPlan, setHasUnsavedDietPlan] = useState(false);
   const {
     errorFields,
     formErrorBanner,
@@ -126,6 +132,7 @@ export default function AssessmentWizardFlow({
 
   const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => {
     setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
+    if (key === 'dietPlan') setHasUnsavedDietPlan(true);
     // DOB/Age are an OR rule — editing either can clear both highlights.
     if (key === 'dob' || key === 'age') clearFieldError('dob', 'age');
     else clearFieldError(String(key));
@@ -177,11 +184,28 @@ export default function AssessmentWizardFlow({
           setBmiSaved(true);
         }
       } else if (phaseId === 'dietPlan') {
-        if (form.dietPlan) await commitDietPlan(form.dietPlan, ids);
         if (commitMode === 'dietPlan') {
-          await onComplete();
+          if (!form.dietPlan) {
+            setApiError('Generate a plan before saving, or go back.');
+            return;
+          }
+          if (!hasUnsavedDietPlan) {
+            setApiError('Generate or regenerate a plan before saving.');
+            return;
+          }
+          const dietPlan = await commitDietPlan(form.dietPlan, ids);
+          if (dietPlan.clientCode || dietPlan.assessmentCode) {
+            setIds(prev => ({
+              clientCode: dietPlan.clientCode ?? prev.clientCode,
+              assessmentCode: dietPlan.assessmentCode ?? prev.assessmentCode,
+            }));
+          }
+          setHasUnsavedDietPlan(false);
+          await onComplete({ dietPlan });
           return;
         }
+        // Optional on full assessment — skip save when the coach did not generate a plan.
+        if (form.dietPlan) await commitDietPlan(form.dietPlan, ids);
         const metrics = computeBmiMetrics(form);
         await finishAssessment(ids, metrics, bmiSaved, 0);
         await onComplete();
@@ -223,6 +247,8 @@ export default function AssessmentWizardFlow({
         : {};
 
   const bannerMessage = formErrorBanner || apiError || null;
+  // dietPlan shortcut: Save Plan only after generate/regenerate (not when viewing a saved report).
+  const showFinishBtn = commitMode !== 'dietPlan' || (!!form.dietPlan && hasUnsavedDietPlan);
 
   return (
     <KeyboardAvoidingView
@@ -265,20 +291,24 @@ export default function AssessmentWizardFlow({
             {...stepExtraProps}
           />
 
-          <TouchableOpacity
-            style={[styles.nextBtn, saving && styles.nextBtnDisabled]}
-            onPress={goNext}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.nextText}>{isLast ? finishLabel : 'Next'}</Text>
-                {!isLast ? <Ionicons name="arrow-forward" size={18} color={Colors.white} /> : null}
-              </>
-            )}
-          </TouchableOpacity>
+          {showFinishBtn ? (
+            <TouchableOpacity
+              style={[styles.nextBtn, saving && styles.nextBtnDisabled]}
+              onPress={goNext}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <>
+                  <Text style={styles.nextText}>{isLast ? finishLabel : 'Next'}</Text>
+                  {!isLast ? (
+                    <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+                  ) : null}
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
         </KeyboardSafeScroll>
       </View>
     </KeyboardAvoidingView>

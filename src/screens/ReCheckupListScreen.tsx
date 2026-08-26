@@ -15,136 +15,115 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import EmptyState from '../components/EmptyState';
 import { HeaderHomeButton } from '../components/ScreenHeader';
-import { getClientList } from '../api/clientApi';
+import { getRecheckupList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
 import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
-import {
-  rankForRecheckup,
-  needsRecheckup,
-  describeCheckup,
-  describeLastCheckup,
-} from '../utils/recheckup';
 import { stripNonDigits } from '../utils/validation';
-import type { CheckupUrgency, RankedClient } from '../utils/recheckup';
+import type { RecheckupDueClient, ClientSummary } from '../types/models';
 import type { MainTabScreenProps } from '../types/navigation';
-import type { IoniconName } from '../types/icons';
 
-const URGENCY_STYLE: Record<CheckupUrgency, { color: string; bg: string; icon: IoniconName }> = {
-  never: { color: Colors.primary, bg: Colors.primaryLight, icon: 'alert-circle-outline' },
-  overdue: { color: Colors.primary, bg: Colors.primaryLight, icon: 'time-outline' },
-  due: { color: Colors.accent, bg: Colors.accentLight, icon: 'hourglass-outline' },
-  ok: { color: Colors.secondary, bg: Colors.secondaryLight, icon: 'checkmark-circle-outline' },
-};
-
-/** Empty only when the coach has no clients, or search matched nothing. */
-function emptyStateFor(totalClients: number): {
-  icon: IoniconName;
-  title: string;
-  message: string;
-} {
-  if (totalClients === 0) {
-    return {
-      icon: 'clipboard-outline',
-      title: 'No clients yet',
-      message: 'Add a client to start tracking their weekly BMI check-up schedule.',
-    };
-  }
-  return {
-    icon: 'search-outline',
-    title: 'No matches',
-    message: 'Try a different name or mobile number.',
-  };
+function describeOverdue(daysOverdue: number): string {
+  if (daysOverdue <= 0) return 'Due today';
+  if (daysOverdue === 1) return '1 day overdue';
+  return `${daysOverdue} days overdue`;
 }
 
-function headerSubtitle(dueCount: number, totalClients: number): string {
-  if (totalClients === 0) return 'Weekly BMI check-ups';
-  if (dueCount === 0) {
-    return `All up to date · ${totalClients} client${totalClients === 1 ? '' : 's'}`;
-  }
-  return `${dueCount} need check-up · ${totalClients} client${totalClients === 1 ? '' : 's'}`;
+function describeLast(item: RecheckupDueClient): string {
+  if (item.lastCheckupDate) return `Last check-up ${item.lastCheckupDate}`;
+  return 'No check-up recorded';
+}
+
+function describeDue(item: RecheckupDueClient): string {
+  if (item.dueDate) return `Due ${item.dueDate}`;
+  return describeOverdue(item.daysOverdue);
 }
 
 export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'Checkups'>) {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
+  const coachCode = getCurrentCoachCode();
 
-  // Same key as the dashboard and client list so all three share one cache entry.
-  const clientsQuery = useQuery({
-    queryKey: queryKeys.clientList(getCurrentCoachCode()),
-    queryFn: () => getClientList(),
+  const dueQuery = useQuery({
+    queryKey: queryKeys.recheckupList(coachCode),
+    queryFn: () => getRecheckupList({ coachCode }),
   });
-  const refreshControl = useRefreshControl(clientsQuery);
+  const refreshControl = useRefreshControl(dueQuery);
 
-  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
-  const ranked = useMemo(() => rankForRecheckup(clients), [clients]);
-  const dueCount = useMemo(() => ranked.filter(r => needsRecheckup(r.status)).length, [ranked]);
+  const dueClients = useMemo(() => dueQuery.data ?? [], [dueQuery.data]);
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return ranked;
+    if (!term) return dueClients;
     const digits = stripNonDigits(search);
-    return ranked.filter(r => {
-      if (r.client.name.toLowerCase().includes(term)) return true;
-      return digits.length > 0 && (r.client.mobileNo ?? '').includes(digits);
+    return dueClients.filter(c => {
+      if (c.name.toLowerCase().includes(term)) return true;
+      if (c.age != null && String(c.age).includes(term)) return true;
+      return digits.length > 0 && (c.mobileNo ?? '').includes(digits);
     });
-  }, [ranked, search]);
+  }, [dueClients, search]);
 
-  const errorMessage = clientsQuery.isError
-    ? getErrorMessage(clientsQuery.error, 'Could not load clients. Pull down to try again.')
+  const errorMessage = dueQuery.isError
+    ? getErrorMessage(dueQuery.error, 'Could not load checkups. Pull down to try again.')
     : null;
 
-  const renderRow = ({ item }: { item: RankedClient }) => {
-    const { client, status } = item;
-    const tone = URGENCY_STYLE[status.urgency];
-    const isDue = needsRecheckup(status);
-
-    const startCheckup = () => {
-      navigation.navigate('ClientBmi', { client });
+  const startCheckup = (item: RecheckupDueClient) => {
+    const client: ClientSummary = {
+      id: item.clientCode,
+      clientCode: item.clientCode,
+      name: item.name,
+      mobileNo: item.mobileNo,
+      age: item.age,
+      initials: item.initials,
+      lastCheckupDate: item.lastCheckupDate,
     };
-
-    return (
-      <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{client.initials || '?'}</Text>
-        </View>
-
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={2}>
-            {client.name}
-          </Text>
-          <Text style={styles.subMeta}>{describeLastCheckup(status)}</Text>
-          <View style={styles.metaRow}>
-            <Ionicons name={tone.icon} size={11} color={tone.color} />
-            <Text style={[styles.meta, { color: tone.color }]}>{describeCheckup(status)}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.recheckBtn,
-            isDue ? { backgroundColor: Colors.primary } : { backgroundColor: Colors.secondary },
-          ]}
-          onPress={startCheckup}
-          accessibilityRole="button"
-          accessibilityLabel={`Re-checkup for ${client.name}`}
-        >
-          <Ionicons name="clipboard-outline" size={12} color={Colors.white} />
-          <Text style={[styles.recheckBtnText, { color: Colors.white }]}>Re-checkup</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    navigation.navigate('ClientBmi', { client });
   };
+
+  const renderRow = ({ item }: { item: RecheckupDueClient }) => (
+    <View style={styles.card}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{item.initials || '?'}</Text>
+      </View>
+
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={2}>
+          {item.name}
+        </Text>
+        <Text style={styles.subMeta}>{describeLast(item)}</Text>
+        <View style={styles.metaRow}>
+          <Ionicons name="time-outline" size={11} color={Colors.primary} />
+          <Text style={[styles.meta, { color: Colors.primary }]}>{describeDue(item)}</Text>
+        </View>
+        <Text style={styles.overdue}>{describeOverdue(item.daysOverdue)}</Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.recheckBtn}
+        onPress={() => startCheckup(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`Re-checkup for ${item.name}`}
+      >
+        <Ionicons name="clipboard-outline" size={12} color={Colors.white} />
+        <Text style={styles.recheckBtnText}>Re-checkup</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const subtitle =
+    dueQuery.isPending || errorMessage
+      ? null
+      : dueClients.length === 0
+        ? 'All up to date'
+        : `${dueClients.length} due for re-checkup`;
 
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerText}>
           <Text style={styles.title}>Checkups</Text>
-          {!clientsQuery.isPending && !errorMessage ? (
-            <Text style={styles.subtitle}>{headerSubtitle(dueCount, clients.length)}</Text>
-          ) : null}
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
         <HeaderHomeButton />
       </View>
@@ -166,14 +145,14 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
           />
         </View>
 
-        {clientsQuery.isPending ? (
+        {dueQuery.isPending ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
         ) : errorMessage ? (
           <Text style={styles.error}>{errorMessage}</Text>
         ) : (
           <FlatList
             data={visible}
-            keyExtractor={item => item.client.id ?? item.client.clientCode ?? item.client.name}
+            keyExtractor={(item, index) => item.clientCode ?? `${item.name}-${index}`}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               visible.length === 0 ? styles.emptyWrap : undefined,
@@ -186,7 +165,17 @@ export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'
                 {...refreshControlTheme}
               />
             }
-            ListEmptyComponent={<EmptyState {...emptyStateFor(clients.length)} />}
+            ListEmptyComponent={
+              <EmptyState
+                icon={search.trim() ? 'search-outline' : 'checkmark-circle-outline'}
+                title={search.trim() ? 'No matches' : 'No checkups due'}
+                message={
+                  search.trim()
+                    ? 'Try a different name or mobile number.'
+                    : 'No clients are due for re-checkup right now.'
+                }
+              />
+            }
             renderItem={renderRow}
           />
         )}
@@ -246,6 +235,7 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 3, marginTop: 2 },
   meta: { fontSize: 11, fontWeight: '700', flexShrink: 1 },
   subMeta: { fontSize: 11, color: Colors.textLight, marginTop: 1 },
+  overdue: { fontSize: 11, fontWeight: '700', color: Colors.primary, marginTop: 2 },
   recheckBtn: {
     flexShrink: 0,
     flexDirection: 'row',
@@ -254,7 +244,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     height: 30,
     borderRadius: Radius.pill,
+    backgroundColor: Colors.primary,
   },
-  recheckBtnText: { fontSize: 11, fontWeight: '700' },
+  recheckBtnText: { fontSize: 11, fontWeight: '700', color: Colors.white },
   error: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

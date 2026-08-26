@@ -30,6 +30,7 @@ import {
 import { getCountries, type MasterOption } from '../api/masterApi';
 import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
+import { LOCAL_LANGUAGE_OPTIONS } from '../data/localLanguages';
 import {
   sanitizeEmailInput,
   sanitizePinInput,
@@ -52,8 +53,13 @@ export default function EditProfileScreen({ navigation }: RootScreenProps<'EditP
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
     queryFn: getCoachCategories,
+    staleTime: MASTER_STALE_MS,
   });
-  const countriesQuery = useQuery({ queryKey: queryKeys.countries, queryFn: getCountries });
+  const countriesQuery = useQuery({
+    queryKey: queryKeys.countries,
+    queryFn: getCountries,
+    staleTime: MASTER_STALE_MS,
+  });
 
   const errorMessage =
     profileQuery.isError && !profileQuery.data
@@ -91,7 +97,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const scrollRef = useRef<ScrollView>(null);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [coachName, setCoachName] = useState(profile.coachName);
-  // Empty until categories load or user picks — display falls back to profile type label.
+  // Empty until categories load or user picks; display falls back to profile type label.
   const [categoryLabel, setCategoryLabel] = useState(
     categories.find(c => c.code === profile.coachTypeCode)?.label ?? '',
   );
@@ -100,7 +106,13 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const [businessName, setBusinessName] = useState(profile.businessName);
   const [experienceYears, setExperienceYears] = useState(String(profile.experienceYears || ''));
   const [happyClientCount, setHappyClientCount] = useState(String(profile.happyClientCount || ''));
+  const [certificationCount, setCertificationCount] = useState(
+    String(profile.certificationCount || ''),
+  );
   const [tagline, setTagline] = useState(profile.tagline);
+  const [localLanguage, setLocalLanguage] = useState(profile.localLanguage);
+  const [bmiReportTemplate, setBmiReportTemplate] = useState(profile.bmiReportTemplate);
+  const [dietChartTemplate, setDietChartTemplate] = useState(profile.dietChartTemplate);
   const [coachDesc, setCoachDesc] = useState(profile.coachDesc);
   const [locality, setLocality] = useState(profile.locality);
   const [addLine, setAddLine] = useState(profile.addLine);
@@ -111,7 +123,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     countries.find(c => c.code === profile.countryCd || c.label === profile.countryCd)?.label ??
       profile.countryCd,
   );
-  // null = not edited yet → derive from profile; [] = user cleared all services.
+  // null = not edited yet => derive from profile; [] = user cleared all services.
   const [serviceLabels, setServiceLabels] = useState<string[] | null>(null);
   const [servicesForCategory, setServicesForCategory] = useState(profile.coachTypeCode);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
@@ -205,7 +217,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     const asset = result.assets[0];
     const localUri = asset.uri;
     const previousUrl = target === 'logo' ? logoUrl : profilePicUrl;
-    // Show local file URI immediately — upload returns a relative `/document/…` path.
+    // Show local file URI immediately; upload returns a relative `/document/…` path.
     if (target === 'logo') setLogoUrl(localUri);
     else setProfilePicUrl(localUri);
 
@@ -248,6 +260,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           pinCode,
           experienceYears,
           happyClientCount,
+          certificationCount,
         }),
       )
     ) {
@@ -270,7 +283,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           .filter((code): code is string => !!code),
         experienceYears: parseInt(experienceYears, 10) || 0,
         happyClientCount: parseInt(happyClientCount, 10) || 0,
+        certificationCount: parseInt(certificationCount, 10) || 0,
         tagline: tagline.trim(),
+        localLanguage: localLanguage.trim(),
         locality: locality.trim(),
         add_Line: addLine.trim(),
         city_Cd: cityCd.trim(),
@@ -280,6 +295,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         logo_Url: logoUrl,
         profile_Pic_Url: profilePicUrl,
         coachDesc: coachDesc.trim(),
+        bmiReportTemplate: bmiReportTemplate.trim(),
+        dietChartTemplate: dietChartTemplate.trim(),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
@@ -397,7 +414,23 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         Shown as Clients on your public card and profile. Update it here for the number others see,
         not your live client list count.
       </Text>
-      <Field label="Tagline" value={tagline} onChangeText={setTagline} />
+      <View style={styles.row}>
+        <View style={styles.half}>
+          <Field
+            label="Certifications"
+            value={certificationCount}
+            onChangeText={v => {
+              setCertificationCount(v);
+              clearFieldError('certificationCount');
+            }}
+            keyboardType="numeric"
+            hasError={!!errorFields.certificationCount}
+          />
+        </View>
+        <View style={styles.half}>
+          <Field label="Tagline" value={tagline} onChangeText={setTagline} />
+        </View>
+      </View>
 
       <MultiSelectField
         label="Services"
@@ -420,6 +453,33 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           onFocus={scrollLowerFieldsIntoView}
         />
       </View>
+
+      <View style={styles.divider} />
+      <Text style={styles.sectionTitle}>Plan & report settings</Text>
+      <Text style={styles.fieldHint}>
+        Used for diet plans and BMI reports. Local language is stored as a code (e.g. hi for Hindi).
+      </Text>
+      <DropdownField
+        label="Local language"
+        value={localLanguage}
+        options={LOCAL_LANGUAGE_OPTIONS}
+        onChange={setLocalLanguage}
+        placeholder="Select language"
+      />
+      <Field
+        label="BMI report template"
+        value={bmiReportTemplate}
+        onChangeText={setBmiReportTemplate}
+        onFocus={scrollLowerFieldsIntoView}
+        autoCapitalize="none"
+      />
+      <Field
+        label="Diet plan template"
+        value={dietChartTemplate}
+        onChangeText={setDietChartTemplate}
+        onFocus={scrollLowerFieldsIntoView}
+        autoCapitalize="none"
+      />
 
       <View style={styles.divider} />
 
@@ -648,6 +708,12 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: -8,
     marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textDark,
+    marginBottom: 8,
   },
   divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
   saveBtn: {

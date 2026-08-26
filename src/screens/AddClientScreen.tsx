@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import AssessmentWizardFlow from './addClient/AssessmentWizardFlow';
 import { createBlankProfile } from '../data/clientProfiles';
@@ -10,10 +11,14 @@ export default function AddClientScreen({ navigation }: RootScreenProps<'AddClie
   const queryClient = useQueryClient();
 
   const onComplete = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.clientList(getCurrentCoachCode()),
-    });
-    navigation.goBack();
+    const coachCode = getCurrentCoachCode();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.clientList(coachCode) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.recheckupList(coachCode) }),
+    ]);
+    Alert.alert('Client saved', 'The client assessment was saved successfully.', [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiPost } from './client';
 import { hashPassword } from '../utils/hash';
 import type { Session } from '../types/models';
 
@@ -14,8 +14,9 @@ export async function login({
   userType = 'COACH',
 }: LoginParams): Promise<Session> {
   const hashedPassword = await hashPassword(password);
-  return apiFetch<Session>('/v{version}/Auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ userName, password: hashedPassword, userType }),
+  return apiPost<Session>('/v{version}/Auth/login', {
+    userName,
+    password: hashedPassword,
+    userType,
   });
 }

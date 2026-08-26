@@ -17,7 +17,7 @@ import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/
 import { HeaderBackButton } from '../components/ScreenHeader';
 import { login } from '../api/authApi';
 import { saveSession } from '../auth/session';
-import { getErrorMessage } from '../api/client';
+import { toUserMessage } from '../api/client';
 import { sanitizeEmailInput, validateLogin } from '../utils/validation';
 import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../types/navigation';
@@ -48,7 +48,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       const session = await login({ userName: email.trim(), password });
       await saveSession(session);
     } catch (err) {
-      setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }

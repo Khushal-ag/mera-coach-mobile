@@ -27,8 +27,7 @@ export async function commitBmi(
 
 export const commitDietPlan = saveDietPlan;
 
-// Mirrors the website's finishAssessment(): save BMI first if it was computed but never
-// explicitly saved (e.g. the coach skipped straight to Finish), then mark the assessment done.
+// Mirrors web finishAssessment: save BMI if computed but not yet saved, then mark complete.
 export async function finishAssessment(
   ids: AssessmentIds,
   bmiMetrics: BodyMetrics | null,

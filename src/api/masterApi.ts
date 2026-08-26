@@ -1,5 +1,6 @@
-import { apiFetch } from './client';
+import { apiGet, apiPost } from './client';
 import type { GeneratedDietPlan } from '../types/models';
+import { normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
 import type { MasterOption } from '../utils/masterResolve';
 
 export type { MasterOption };
@@ -8,16 +9,23 @@ export { resolveMasterLabel, resolveMasterCode, resolveMasterCodes } from '../ut
 interface RawMasterOption {
   itemCode: string;
   itemName: string;
+  description?: string;
+}
+
+/** GetMasterItem fetch; callers pass the query casing the backend expects. */
+export async function fetchMasterItems(query: Record<string, string>): Promise<RawMasterOption[]> {
+  const items = await apiGet<RawMasterOption[]>('/v{version}/Master/GetMasterItem', query);
+  return items || [];
+}
+
+function mapMasterOptions(items: RawMasterOption[]): MasterOption[] {
+  return items.map(i => ({ code: i.itemCode, label: i.itemName }));
 }
 
 export async function getCountries(): Promise<MasterOption[]> {
-  const items = await apiFetch<RawMasterOption[]>(
-    '/v{version}/Master/GetMasterItem?ItemType=Country',
-  );
-  return (items || []).map(i => ({ code: i.itemCode, label: i.itemName }));
+  return mapMasterOptions(await fetchMasterItems({ ItemType: 'Country' }));
 }
 
-/** Response from GET /Master/GetLocationByPin (city/state autofill). */
 export interface LocationByPin {
   pinCode?: string;
   city?: string;
@@ -29,8 +37,7 @@ export async function getLocationByPin(
   countryCode: string,
   pinCode: string,
 ): Promise<LocationByPin> {
-  const query = new URLSearchParams({ countryCode, pinCode });
-  return apiFetch<LocationByPin>(`/v{version}/Master/GetLocationByPin?${query.toString()}`);
+  return apiGet<LocationByPin>('/v{version}/Master/GetLocationByPin', { countryCode, pinCode });
 }
 
 export interface FoodMasterItem {
@@ -44,31 +51,28 @@ export interface FoodMasterItem {
 export type FoodMaster = Record<string, FoodMasterItem[]>;
 
 export async function getFoodMaster(country: string, region: string): Promise<FoodMaster> {
-  const query = new URLSearchParams({ country, region });
-  const data = await apiFetch<FoodMaster>(`/v{version}/Master/food-master?${query.toString()}`);
+  const data = await apiGet<FoodMaster>('/v{version}/Master/food-master', { country, region });
   return data ?? {};
 }
 
 export async function getFoodCalories(foodName: string, qty = 1): Promise<number> {
-  const data = await apiFetch<{ cal?: number }>('/v{version}/Master/food-calories', {
-    method: 'POST',
-    body: JSON.stringify({ foodName, qty }),
+  const data = await apiPost<{ cal?: number }>('/v{version}/Master/food-calories', {
+    foodName,
+    qty,
   });
   return data?.cal ?? 0;
 }
 
 // PARAMLIST (PC001–PC010): form + save use itemCode; UI shows labels via resolveMasterLabel.
 export async function getParamList(paramCode: string): Promise<MasterOption[]> {
-  const data = await apiFetch<RawMasterOption[]>(
-    `/v{version}/Master/GetMasterItem?ItemType=PARAMLIST&ParamCode=${paramCode}`,
-  );
-  return (data || []).map(item => ({
+  const data = await fetchMasterItems({ ItemType: 'PARAMLIST', ParamCode: paramCode });
+  return data.map(item => ({
     code: item.itemCode || item.itemName,
     label: item.itemName,
   }));
 }
 
-/** Exact POST body for /Master/generate-diet-plan (see meracoachapp AddClient). */
+/** POST body for /Master/generate-diet-plan. */
 export interface GenerateDietPlanParams {
   clientName: string;
   gender: string;
@@ -102,8 +106,6 @@ export interface GenerateDietPlanParams {
 }
 
 export async function generateDietPlan(params: GenerateDietPlanParams): Promise<GeneratedDietPlan> {
-  return apiFetch<GeneratedDietPlan>('/v{version}/Master/generate-diet-plan', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+  const raw = await apiPost<unknown>('/v{version}/Master/generate-diet-plan', params);
+  return normalizeGeneratedDietPlan(raw);
 }

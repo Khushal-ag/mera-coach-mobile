@@ -55,7 +55,7 @@
   "jest": {
     "preset": "jest-expo",
     "testMatch": [
-      "**/__tests__/**/*.(test|spec).(ts|tsx|js)"
+      "<rootDir>/src/__tests__/**/*.(test|spec).(ts|tsx|js)"
     ]
   },
   "private": true

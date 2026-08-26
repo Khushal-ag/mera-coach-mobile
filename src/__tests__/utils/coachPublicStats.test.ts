@@ -4,7 +4,7 @@ import {
   resolvePublicClientCount,
   shouldShowPublicClientCount,
   shouldShowPublicRating,
-} from '../coachPublicStats';
+} from '../../utils/coachPublicStats';
 
 describe('resolvePublicClientCount', () => {
   it('prefers live roster when viewer is the coach', () => {

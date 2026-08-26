@@ -16,6 +16,7 @@ import { Colors, Radius, Shadow, STORY_CARD_WIDTH } from '../constants/theme';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { COACH_STORY_TEMPLATES } from '../data/coachSuccessStories';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
+import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { useAuthState } from '../auth/useAuthState';
 import KeyboardSafeScroll from '../components/KeyboardSafeScroll';
@@ -172,26 +173,19 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
     queryFn: getCoachCategories,
+    staleTime: MASTER_STALE_MS,
   });
+  // Single public-list fetch (page 1, default pageSize 50) — stories reuse a mid-slice.
   const coachesQuery = useQuery({
     queryKey: queryKeys.coachPublicList({}),
     queryFn: () => getCoachPublicList(),
-  });
-  // Website pairs story quotes with page 2 of the public list (6 coaches).
-  const storyCoachesQuery = useQuery({
-    queryKey: queryKeys.coachPublicList({ page: 2, pageSize: 6 }),
-    queryFn: () => getCoachPublicList({ page: 2, pageSize: 6 }),
   });
 
   const apiCategories = categoriesQuery.data;
   const categories = apiCategories?.length ? apiCategories : FALLBACK_CATEGORIES;
   const categoriesLoading = categoriesQuery.isPending && !apiCategories;
   const coachesLoading = coachesQuery.isPending;
-  const storiesLoading =
-    storyCoachesQuery.isPending &&
-    coachesQuery.isPending &&
-    !storyCoachesQuery.data &&
-    !coachesQuery.data;
+  const storiesLoading = coachesLoading && !coachesQuery.data;
   const reviewsLoading = coachesLoading && !coachesQuery.data;
 
   const coachTotal = coachesQuery.data?.totalCount ?? coachesQuery.data?.coaches.length ?? 0;
@@ -201,16 +195,15 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   }, [coachesQuery.data]);
 
   const storyItems = useMemo(() => {
-    // Prefer page 2 like the website; fall back to page 1 when the list is short.
-    const fromPage2 = storyCoachesQuery.data?.coaches ?? [];
-    const fromPage1 = coachesQuery.data?.coaches ?? [];
-    const coaches = fromPage2.length ? fromPage2 : fromPage1;
+    const all = coachesQuery.data?.coaches ?? [];
+    // Offset past the top of the list so stories don't mirror the reviews strip.
+    const coaches = all.length > 6 ? all.slice(6) : all;
     const n = Math.min(coaches.length, COACH_STORY_TEMPLATES.length);
     return Array.from({ length: n }, (_, i) => ({
       coach: coaches[i],
       template: COACH_STORY_TEMPLATES[i],
     }));
-  }, [storyCoachesQuery.data, coachesQuery.data]);
+  }, [coachesQuery.data]);
 
   const reviewCoaches = useMemo(() => {
     const list = coachesQuery.data?.coaches ?? [];
@@ -242,11 +235,9 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    Promise.all([
-      categoriesQuery.refetch(),
-      coachesQuery.refetch(),
-      storyCoachesQuery.refetch(),
-    ]).finally(() => setRefreshing(false));
+    Promise.all([categoriesQuery.refetch(), coachesQuery.refetch()]).finally(() =>
+      setRefreshing(false),
+    );
   };
 
   return (

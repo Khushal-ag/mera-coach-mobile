@@ -1,83 +1,18 @@
 // Base URL comes from EXPO_PUBLIC_API_BASE_URL (see .env.example).
 import NetInfo from '@react-native-community/netinfo';
 import { clearSession, getCurrentToken } from '../auth/session';
+import {
+  ApiError,
+  type ApiResponseBody,
+  extractErrorMessage,
+  mapToUserFacingMessage,
+} from './clientErrors';
+
+export { ApiError, getErrorMessage, toUserMessage, type ApiResponseBody } from './clientErrors';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 const API_VERSION = '1';
 const REQUEST_TIMEOUT_MS = 15_000;
-
-interface ValidationErrorBody {
-  errors: Record<string, string[]>;
-}
-
-interface BusinessErrorEntry {
-  errorCode: number;
-  errorMessage: string;
-}
-
-interface BusinessResponseBody {
-  errorObj?: BusinessErrorEntry[];
-  responseObj?: unknown;
-}
-
-// 401 responses use ASP.NET's default ProblemDetails shape instead of the errorObj wrapper.
-interface ProblemDetailsBody {
-  title?: string;
-  detail?: string;
-  status?: number;
-}
-
-type ApiResponseBody = Partial<
-  ValidationErrorBody & BusinessResponseBody & ProblemDetailsBody
-> | null;
-
-export class ApiError extends Error {
-  status: number;
-  body: ApiResponseBody;
-
-  constructor(message: string, status: number, body: ApiResponseBody = null) {
-    super(message);
-    this.status = status;
-    this.body = body;
-  }
-}
-
-export function getErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof ApiError)) return fallback;
-  return sanitizeUserFacingError(error.message) || fallback;
-}
-
-/** Strip opaque .NET / ASP.NET internals that aren't useful to coaches. */
-function sanitizeUserFacingError(message: string): string {
-  const trimmed = message.trim();
-  if (!trimmed) return '';
-  if (/key was not present in the dictionary/i.test(trimmed)) {
-    return 'Something went wrong generating the plan. Check the client details and try again.';
-  }
-  if (/^object reference not set/i.test(trimmed) || /nullreferenceexception/i.test(trimmed)) {
-    return 'Something went wrong on the server. Please try again.';
-  }
-  return trimmed;
-}
-
-// Backend uses 3 error shapes: ASP.NET validation errors, {errorObj, responseObj} business
-// responses, and ProblemDetails for 401s — check each in turn.
-function extractErrorMessage(body: ApiResponseBody): string | null {
-  if (!body) return null;
-  if (body.errors) {
-    const firstField = Object.keys(body.errors)[0];
-    const raw = firstField ? (body.errors[firstField]?.[0] ?? null) : null;
-    return raw ? sanitizeUserFacingError(raw) : null;
-  }
-  const err = body.errorObj?.[0];
-  if (err && err.errorCode !== 0) {
-    return sanitizeUserFacingError(err.errorMessage);
-  }
-  if (body.detail || body.title) {
-    return sanitizeUserFacingError(body.detail || body.title || '');
-  }
-  return null;
-}
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   if (!BASE_URL) {
@@ -130,10 +65,46 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     await clearSession();
   }
 
-  const errorMessage = extractErrorMessage(body);
+  const errorMessage = extractErrorMessage(body, res.status);
   if (!res.ok || errorMessage) {
-    throw new ApiError(errorMessage || `Request failed (${res.status})`, res.status, body);
+    const fallback = `Request failed (${res.status})`;
+    throw new ApiError(
+      errorMessage || mapToUserFacingMessage(fallback, res.status) || fallback,
+      res.status,
+      body,
+    );
   }
 
   return (body?.responseObj !== undefined ? body.responseObj : body) as T;
+}
+
+type QueryValue = string | number | boolean | null | undefined;
+
+/** Skips null/undefined; empty string is kept (some endpoints treat "" as meaningful). */
+export function withQuery(path: string, query: Record<string, QueryValue> = {}): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null) continue;
+    params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
+export function apiGet<T = unknown>(path: string, query?: Record<string, QueryValue>): Promise<T> {
+  return apiFetch<T>(query ? withQuery(path, query) : path);
+}
+
+export function apiPost<T = unknown>(path: string, body?: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'POST',
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+export function apiPut<T = unknown>(path: string, body?: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'PUT',
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 }

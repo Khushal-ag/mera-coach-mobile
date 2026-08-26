@@ -1,4 +1,4 @@
-import { parseFoodItemsText, rehydrateDietFromMeals } from '../mealRehydration';
+import { parseFoodItemsText, rehydrateDietFromMeals } from '../../utils/mealRehydration';
 import type { FoodMaster } from '../../api/masterApi';
 
 describe('parseFoodItemsText', () => {

@@ -1,19 +1,13 @@
-import { apiFetch } from './client';
+import { apiGet, apiPost, apiPut } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
 import { hashPassword } from '../utils/hash';
 import { pickCoachCreatedAt } from '../utils/experience';
 import type { Coach, CoachCategory } from '../types/models';
-import type { MasterOption } from './masterApi';
-
-interface MasterItem {
-  itemCode: string;
-  itemName: string;
-  description?: string;
-}
+import { fetchMasterItems, type MasterOption } from './masterApi';
 
 export async function getCoachCategories(): Promise<CoachCategory[]> {
-  const items = await apiFetch<MasterItem[]>('/v{version}/Master/GetMasterItem?ItemType=CoachType');
-  return (items || []).map(item => {
+  const items = await fetchMasterItems({ ItemType: 'CoachType' });
+  return items.map(item => {
     const style = getCoachTypeStyle(item.itemCode);
     return {
       code: item.itemCode,
@@ -40,10 +34,7 @@ export interface RegisterCoachResult {
 }
 
 export async function registerCoach(params: RegisterCoachParams): Promise<RegisterCoachResult> {
-  return apiFetch<RegisterCoachResult>('/v{version}/Coach/save', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+  return apiPost<RegisterCoachResult>('/v{version}/Coach/save', params);
 }
 
 export interface CoachPublicListParams {
@@ -79,7 +70,6 @@ interface CoachPublicListResponse {
   totalCount: number;
 }
 
-/** Split comma-separated service labels (tolerates ", " or ","). */
 function splitServiceNames(serviceNames?: string): string[] {
   if (!serviceNames?.trim()) return [];
   return serviceNames
@@ -97,7 +87,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     rating: raw.rating ?? 0,
     // Public list currently mirrors happyClientCount into reviewCount; profile-by-id often omits it.
     reviews: raw.reviewCount ?? 0,
-    // Self-reported marketing field (Edit Profile → Experience yrs), not tenure from signup.
+    // Self-reported marketing field (Edit Profile Experience yrs), not tenure from signup.
     experience: raw.experienceYears ?? 0,
     city: raw.city_Cd ?? '',
     country: raw.country_Cd,
@@ -105,7 +95,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
 
     bio: raw.coachDesc ?? '',
     tags: splitServiceNames(raw.serviceNames),
-    // Edit Profile "Happy Clients" — shown as Clients on public list/profile.
+    // Edit Profile "Happy Clients"; shown as Clients on public list/profile.
     clients: raw.happyClientCount ?? 0,
     createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
     logoUrl: raw.logo_Url ?? '',
@@ -116,18 +106,15 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
 export async function getCoachPublicList(
   params: CoachPublicListParams = {},
 ): Promise<{ coaches: Coach[]; totalCount: number }> {
-  const query = new URLSearchParams();
-  if (params.coachTypeCode) query.set('coachTypeCode', params.coachTypeCode);
-  if (params.country) query.set('country', params.country);
-  if (params.state) query.set('state', params.state);
-  if (params.city) query.set('city', params.city);
-  if (params.search) query.set('search', params.search);
-  query.set('page', String(params.page ?? 1));
-  query.set('pageSize', String(params.pageSize ?? 50)); // no pagination UI yet
-
-  const data = await apiFetch<CoachPublicListResponse>(
-    `/v{version}/Coach/public?${query.toString()}`,
-  );
+  const data = await apiGet<CoachPublicListResponse>('/v{version}/Coach/public', {
+    coachTypeCode: params.coachTypeCode || undefined,
+    country: params.country || undefined,
+    state: params.state || undefined,
+    city: params.city || undefined,
+    search: params.search || undefined,
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 50, // no pagination UI yet
+  });
   return {
     coaches: (data?.items || []).map(mapPublicCoach),
     totalCount: data?.totalCount ?? 0,
@@ -135,15 +122,14 @@ export async function getCoachPublicList(
 }
 
 export async function getCoachProfile(): Promise<Coach> {
-  const raw = await apiFetch<RawPublicCoach>('/v{version}/Coach/profile');
+  const raw = await apiGet<RawPublicCoach>('/v{version}/Coach/profile');
   return mapPublicCoach(raw);
 }
 
-/** Public coach profile by code — same endpoint the web CoachProfile page uses. */
 export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
-  const query = new URLSearchParams({ coachCode });
-  const raw = await apiFetch<RawCoachProfileFull & RawPublicCoach>(
-    `/v{version}/Coach/profile-by-id?${query.toString()}`,
+  const raw = await apiGet<RawCoachProfileFull & RawPublicCoach>(
+    '/v{version}/Coach/profile-by-id',
+    { coachCode },
   );
   const resolvedCode = raw.coachCode?.trim() || coachCode;
   return {
@@ -169,7 +155,7 @@ export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
 }
 
 /**
- * Profile-by-id sometimes returns mobiles as scientific notation strings
+ * profile-by-id sometimes returns mobiles as scientific notation
  * (e.g. "9.8874e+009") when the backend stored them as floats.
  */
 function normalizeCoachMobile(mobile?: string | number | null): string {
@@ -186,20 +172,20 @@ function normalizeCoachMobile(mobile?: string | number | null): string {
   return raw.replace(/\D/g, '');
 }
 
-/** Build wa.me URL from Indian mobile (matches web WhatsAppUrl intent). */
+/** wa.me URL from Indian mobile (matches web WhatsAppUrl intent). */
 export function whatsAppUrlFromMobile(mobile?: string): string | null {
   const digits = normalizeCoachMobile(mobile).replace(/^0+/, '');
   if (!digits) return null;
-  // 10-digit local mobile → always prefix 91 (even if number starts with 91, e.g. 9123456789).
+  // 10-digit local mobile: always prefix 91 (even if number starts with 91, e.g. 9123456789).
   if (digits.length === 10) return `https://wa.me/91${digits}`;
   // Already includes country code.
   if (digits.length === 12 && digits.startsWith('91')) return `https://wa.me/${digits}`;
   return null;
 }
 
-// Confirmed against a live GET /Coach/profile response — carries the edit-relevant fields
-// (mobile, address, service codes, image URLs) that mapPublicCoach's public-facing Coach
-// model deliberately leaves out.
+// Confirmed against live GET /Coach/profile + OpenAPI CoachSaveRequest: edit-relevant fields
+// (mobile, address, service codes, image URLs, templates/language) that mapPublicCoach's
+// public-facing Coach model deliberately leaves out.
 interface RawCoachProfileFull {
   coachId?: number;
   coachCode?: string;
@@ -211,7 +197,9 @@ interface RawCoachProfileFull {
   serviceCodes?: string[];
   experienceYears?: number;
   happyClientCount?: number;
+  certificationCount?: number;
   tagline?: string;
+  localLanguage?: string;
   locality?: string;
   add_Line?: string;
   city_Cd?: string;
@@ -221,6 +209,8 @@ interface RawCoachProfileFull {
   logo_Url?: string;
   profile_Pic_Url?: string;
   coachDesc?: string;
+  bmiReportTemplate?: string;
+  dietChartTemplate?: string;
 }
 
 export interface CoachProfileFull {
@@ -234,7 +224,10 @@ export interface CoachProfileFull {
   serviceCodes: string[];
   experienceYears: number;
   happyClientCount: number;
+  certificationCount: number;
   tagline: string;
+  /** Diet-plan / report language code (e.g. "hi"). */
+  localLanguage: string;
   locality: string;
   addLine: string;
   cityCd: string;
@@ -244,10 +237,12 @@ export interface CoachProfileFull {
   logoUrl: string;
   profilePicUrl: string;
   coachDesc: string;
+  bmiReportTemplate: string;
+  dietChartTemplate: string;
 }
 
 export async function getCoachProfileFull(): Promise<CoachProfileFull> {
-  const raw = await apiFetch<RawCoachProfileFull>('/v{version}/Coach/profile');
+  const raw = await apiGet<RawCoachProfileFull>('/v{version}/Coach/profile');
   return {
     coachId: raw.coachId ?? 0,
     coachCode: raw.coachCode ?? '',
@@ -259,7 +254,9 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     serviceCodes: raw.serviceCodes ?? [],
     experienceYears: raw.experienceYears ?? 0,
     happyClientCount: raw.happyClientCount ?? 0,
+    certificationCount: raw.certificationCount ?? 0,
     tagline: raw.tagline ?? '',
+    localLanguage: raw.localLanguage ?? '',
     locality: raw.locality ?? '',
     addLine: raw.add_Line ?? '',
     cityCd: raw.city_Cd ?? '',
@@ -269,6 +266,8 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     logoUrl: raw.logo_Url ?? '',
     profilePicUrl: raw.profile_Pic_Url ?? '',
     coachDesc: raw.coachDesc ?? '',
+    bmiReportTemplate: raw.bmiReportTemplate ?? '',
+    dietChartTemplate: raw.dietChartTemplate ?? '',
   };
 }
 
@@ -281,19 +280,14 @@ export interface CoachEnquiryParams {
 }
 
 export async function submitCoachEnquiry(params: CoachEnquiryParams): Promise<void> {
-  await apiFetch('/v{version}/Coach/enquiry', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+  await apiPost('/v{version}/Coach/enquiry', params);
 }
 
 export async function getServicesForCategory(categoryCode: string): Promise<MasterOption[]> {
   if (!categoryCode) return [];
-  const query = new URLSearchParams({ itemType: 'Service', filterText: categoryCode });
-  const items = await apiFetch<MasterItem[]>(
-    `/v{version}/Master/GetMasterItem?${query.toString()}`,
-  );
-  return (items || []).map(i => ({ code: i.itemCode, label: i.itemName }));
+  // Backend Service filter uses lowercase itemType (unlike Country/CoachType ItemType).
+  const items = await fetchMasterItems({ itemType: 'Service', filterText: categoryCode });
+  return items.map(i => ({ code: i.itemCode, label: i.itemName }));
 }
 
 export interface SaveCoachProfileParams {
@@ -306,7 +300,9 @@ export interface SaveCoachProfileParams {
   serviceCodes: string[];
   experienceYears?: number;
   happyClientCount?: number;
+  certificationCount?: number;
   tagline?: string;
+  localLanguage?: string;
   locality?: string;
   add_Line?: string;
   city_Cd?: string;
@@ -316,13 +312,12 @@ export interface SaveCoachProfileParams {
   logo_Url?: string;
   profile_Pic_Url?: string;
   coachDesc?: string;
+  bmiReportTemplate?: string;
+  dietChartTemplate?: string;
 }
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
-  await apiFetch('/v{version}/Coach/save', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+  await apiPost('/v{version}/Coach/save', params);
 }
 
 export interface ChangePasswordParams {
@@ -331,14 +326,11 @@ export interface ChangePasswordParams {
 }
 
 // VERIFY: currentPassword/newPassword are hashed the same way login() hashes its password
-// (matching CoachBLL.HashPassword) — not independently confirmed against a real call, since
-// that needs a bearer token and a real current password to test.
+// (matching CoachBLL.HashPassword). Not independently confirmed against a real call (needs
+// a bearer token and a real current password to test).
 export async function changePassword(params: ChangePasswordParams): Promise<void> {
-  await apiFetch('/v{version}/Coach/change-password', {
-    method: 'PUT',
-    body: JSON.stringify({
-      currentPassword: await hashPassword(params.currentPassword),
-      newPassword: await hashPassword(params.newPassword),
-    }),
+  await apiPut('/v{version}/Coach/change-password', {
+    currentPassword: await hashPassword(params.currentPassword),
+    newPassword: await hashPassword(params.newPassword),
   });
 }

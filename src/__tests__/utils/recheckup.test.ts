@@ -8,7 +8,7 @@ import {
   lastCheckupLabel,
   daysUntilRecheckup,
   describeRecheckupGate,
-} from '../recheckup';
+} from '../../utils/recheckup';
 import type { ClientSummary } from '../../types/models';
 
 function client(partial: Partial<ClientSummary> & { name: string }): ClientSummary {
@@ -37,7 +37,7 @@ describe('recheckup', () => {
   });
 
   it('classifies DD/MM/YYYY within the weekly window as ok (still informational)', () => {
-    // 3 days ago — due styling stays ok, but Checkups buttons are always enabled in UI
+    // 3 days ago: ok at default interval 7
     const ranked = rankForRecheckup([client({ name: 'C', lastCheckupDate: '22/08/2026' })], TODAY);
     expect(ranked[0]!.status.urgency).toBe('ok');
     expect(ranked[0]!.status.daysSince).toBe(3);
@@ -50,7 +50,23 @@ describe('recheckup', () => {
     const ranked = rankForRecheckup([client({ name: 'D', lastCheckupDate: '10/08/2026' })], TODAY);
     expect(ranked[0]!.status.urgency).toBe('overdue');
     expect(ranked[0]!.status.daysSince).toBe(15);
+    expect(needsRecheckup(ranked[0]!.status)).toBe(true);
     expect(describeCheckup(ranked[0]!.status)).toBe('15d overdue');
+  });
+
+  it('honours a custom recheck interval when provided', () => {
+    // 3 days ago: still ok at default 7, overdue if interval is 3
+    const atDefault = rankForRecheckup(
+      [client({ name: 'C', lastCheckupDate: '22/08/2026' })],
+      TODAY,
+    );
+    expect(atDefault[0]!.status.urgency).toBe('ok');
+    const atThree = rankForRecheckup(
+      [client({ name: 'C', lastCheckupDate: '22/08/2026' })],
+      TODAY,
+      3,
+    );
+    expect(atThree[0]!.status.urgency).toBe('overdue');
   });
 
   it('parses DD-MM-YYYY and ISO date prefixes', () => {

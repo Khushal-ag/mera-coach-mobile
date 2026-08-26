@@ -1,4 +1,4 @@
-import { buildGenerateDietPlanBody } from '../generateDietPlanBody';
+import { buildGenerateDietPlanBody } from '../../utils/generateDietPlanBody';
 import { createBlankDiet, createBlankProfile } from '../../data/clientProfiles';
 
 describe('buildGenerateDietPlanBody', () => {

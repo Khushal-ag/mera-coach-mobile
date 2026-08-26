@@ -11,7 +11,7 @@ import {
   validateLogin,
   validateCoachRegister,
   MANDATORY_FIELDS_BANNER,
-} from '../validation';
+} from '../../utils/validation';
 import type { ClientProfile } from '../../types/models';
 
 describe('parseDob', () => {

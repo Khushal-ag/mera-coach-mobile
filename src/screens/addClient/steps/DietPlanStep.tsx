@@ -37,7 +37,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
     setGenerating(true);
     setError('');
     try {
-      // Match web AddClient: itemCodes for most fields; cuisine = option text; country = country_Cd.
+      // itemCodes for most fields; cuisine = option text; country = country code.
       const plan = await generateDietPlan(
         buildGenerateDietPlanBody(form, {
           countryCd: coachProfileQuery.data?.country,
@@ -62,7 +62,8 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
           <Text style={styles.optionalTitle}>Optional step</Text>
           <Text style={styles.intro}>
             Generate an AI-suggested weekly plan from this client&apos;s profile and current meals.
-            You can leave without generating. Use Save &amp; Close only after a plan exists.
+            You can leave without generating. Save Plan appears only after you generate or
+            regenerate.
           </Text>
         </View>
       </View>
@@ -106,28 +107,30 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
           <View style={styles.summaryCard}>
             <View>
               <Text style={styles.summaryCaption}>BMI</Text>
-              <Text style={styles.summaryBmi}>{plan.summary.bmi}</Text>
-              <Text style={styles.summaryLabel}>{plan.summary.bmiCategory}</Text>
+              <Text style={styles.summaryBmi}>{plan.summary?.bmi ?? '—'}</Text>
+              <Text style={styles.summaryLabel}>{plan.summary?.bmiCategory || '—'}</Text>
             </View>
             <View style={styles.summaryTarget}>
               <Ionicons name="flame" size={16} color={Colors.accent} />
-              <Text style={styles.summaryTargetText}>{plan.summary.dailyCalTarget} kcal / day</Text>
+              <Text style={styles.summaryTargetText}>
+                {plan.summary?.dailyCalTarget ?? 0} kcal / day
+              </Text>
             </View>
           </View>
 
-          {plan.weeklyPlan.map((meal, i) => (
+          {(plan.weeklyPlan || []).map((meal, i) => (
             <View key={i} style={styles.mealCard}>
               <View style={styles.mealHeader}>
                 <Text style={styles.mealType}>{meal.mealType}</Text>
                 <Text style={styles.mealTime}>{meal.mealTime}</Text>
               </View>
-              {meal.options.map((opt, j) => (
+              {(meal.options || []).map((opt, j) => (
                 <Text key={j} style={styles.mealOption}>
                   {j + 1}. {opt}
                 </Text>
               ))}
               <Text style={styles.mealCal}>
-                {meal.calMin ?? meal.caloriesMin ?? 0}-{meal.calMax ?? meal.caloriesMax ?? 0} kcal
+                {meal.calMin}-{meal.calMax} kcal
               </Text>
               {meal.tip ? (
                 <View style={styles.mealTipRow}>
@@ -138,24 +141,26 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
             </View>
           ))}
 
-          <View style={styles.recsCard}>
-            <Text style={styles.recsTitle}>Key Recommendations</Text>
-            {REC_ITEMS.map(item => {
-              const value = plan.recommendations[item.key];
-              if (!value) return null;
-              return (
-                <View key={item.key} style={styles.recRow}>
-                  <View style={styles.recIconWrap}>
-                    <Ionicons name={item.icon} size={14} color={Colors.secondary} />
+          {REC_ITEMS.some(item => plan.recommendations?.[item.key]) ? (
+            <View style={styles.recsCard}>
+              <Text style={styles.recsTitle}>Key Recommendations</Text>
+              {REC_ITEMS.map(item => {
+                const value = plan.recommendations?.[item.key];
+                if (!value) return null;
+                return (
+                  <View key={item.key} style={styles.recRow}>
+                    <View style={styles.recIconWrap}>
+                      <Ionicons name={item.icon} size={14} color={Colors.secondary} />
+                    </View>
+                    <View style={styles.recCopy}>
+                      <Text style={styles.recLabel}>{item.label}</Text>
+                      <Text style={styles.recItem}>{value}</Text>
+                    </View>
                   </View>
-                  <View style={styles.recCopy}>
-                    <Text style={styles.recLabel}>{item.label}</Text>
-                    <Text style={styles.recItem}>{value}</Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+                );
+              })}
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={styles.regenerateBtn}
