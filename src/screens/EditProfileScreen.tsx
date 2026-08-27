@@ -39,13 +39,14 @@ import {
 import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../hooks/usePinLocationLookup';
 import { getCurrentCoachId } from '../auth/session';
+import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { resolveMediaUrl } from '../utils/mediaUrl';
-import type { RootScreenProps } from '../types/navigation';
+import type { ProfileStackScreenProps } from '../types/navigation';
 import type { CoachProfileFull } from '../api/coachApi';
 import type { CoachCategory } from '../types/models';
 
-export default function EditProfileScreen({ navigation }: RootScreenProps<'EditProfile'>) {
+export default function EditProfileScreen({ navigation }: ProfileStackScreenProps<'EditProfile'>) {
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfileFull,
     queryFn: getCoachProfileFull,

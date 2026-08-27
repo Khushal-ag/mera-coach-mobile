@@ -26,7 +26,7 @@ import { getCoachProfile } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getErrorMessage } from '../api/client';
-import type { MainTabScreenProps } from '../types/navigation';
+import type { ProfileStackScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
 interface MenuItem {
@@ -41,6 +41,7 @@ interface MenuItem {
 // isn't listed since its only concrete sub-feature for this app is Change Password.
 const menuItems: MenuItem[] = [
   { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
+  { icon: 'funnel-outline', label: 'My Leads', color: Colors.accent },
   { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
   { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary },
   { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: Colors.purple },
@@ -48,7 +49,7 @@ const menuItems: MenuItem[] = [
   { icon: 'log-out-outline', label: 'Logout', color: Colors.destructive },
 ];
 
-export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'Profile'>) {
+export default function CoachProfileScreen({ navigation }: ProfileStackScreenProps<'ProfileHome'>) {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const profileQuery = useQuery({
@@ -179,6 +180,8 @@ export default function CoachProfileScreen({ navigation }: MainTabScreenProps<'P
               switch (item.label) {
                 case 'Edit Profile':
                   return navigation.navigate('EditProfile');
+                case 'My Leads':
+                  return navigation.navigate('Leads');
                 case 'Change Password':
                   return navigation.navigate('ChangePassword');
                 case 'Help & Support':

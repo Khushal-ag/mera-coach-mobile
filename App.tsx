@@ -21,20 +21,40 @@ const linking: LinkingOptions<RootStackParamList> = {
       Register: 'register',
       Main: {
         screens: {
-          Dashboard: 'dashboard',
-          Clients: 'clients',
-          Checkups: 'checkups',
-          Profile: 'profile',
+          Dashboard: {
+            screens: {
+              DashboardHome: 'dashboard',
+              Leads: 'leads',
+              Notifications: 'notifications',
+            },
+          },
+          Clients: {
+            screens: {
+              ClientListHome: 'clients',
+              ClientDetail: 'client-detail',
+              AddClient: 'add-client',
+              ClientBmi: 'client-bmi',
+              ClientBmiReport: 'client-bmi-report',
+              ClientDietPlan: 'client-diet-plan',
+            },
+          },
+          Checkups: {
+            screens: {
+              CheckupListHome: 'checkups',
+              ClientBmi: 'checkup-bmi',
+            },
+          },
+          Profile: {
+            screens: {
+              ProfileHome: 'profile',
+              EditProfile: 'edit-profile',
+              ChangePassword: 'change-password',
+              Legal: 'legal',
+              Leads: 'profile-leads',
+            },
+          },
         },
       },
-      Leads: 'leads',
-      ClientDetail: 'client-detail',
-      AddClient: 'add-client',
-      Notifications: 'notifications',
-      ClientBmi: 'client-bmi',
-      ClientDietPlan: 'client-diet-plan',
-      ChangePassword: 'change-password',
-      Legal: 'legal',
     },
   },
 };

@@ -267,8 +267,8 @@ export function validateClientPersonalProfile(form: ClientProfile): FormValidati
   putError(errors, 'location', validateRequired(form.location, 'Location'));
   Object.assign(errors, collectDobOrAgeErrors(form.dob, form.age));
   if (!form.gender) errors.gender = 'Gender is required.';
-  putError(errors, 'height', validateHeight(form.height));
-  putError(errors, 'weight', validateWeight(form.weight));
+  putError(errors, 'height', validateHeight(form.height.trim()));
+  putError(errors, 'weight', validateWeight(form.weight.trim()));
   return resultFromErrors(errors);
 }
 

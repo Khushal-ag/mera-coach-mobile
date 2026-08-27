@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FormErrorBanner from './FormErrorBanner';
 import FormFieldLabel from './FormFieldLabel';
+import PhoneTextInput from './PhoneTextInput';
 import { Colors, Radius, Shadow } from '../constants/theme';
+import { submitBmiLead } from '../api/coachApi';
+import { getErrorMessage } from '../api/client';
 import { getBmi, getBmiCategory } from '../utils/bmi';
 import {
   HEIGHT_CM_MAX,
@@ -11,6 +21,8 @@ import {
   cmToFeetInches,
   feetInchesToCm,
   validateHeight,
+  validateMobile,
+  validateRequired,
   validateWeight,
 } from '../utils/validation';
 import type { BmiCategory } from '../types/models';
@@ -41,7 +53,16 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
   const [inchesText, setInchesText] = useState('');
   const [weight, setWeight] = useState('');
   const [banner, setBanner] = useState<string | null>(null);
-  const [result, setResult] = useState<{ bmi: number; category: BmiCategory } | null>(null);
+  const [result, setResult] = useState<{
+    bmi: number;
+    category: BmiCategory;
+    heightCm: number;
+    weightKg: number;
+  } | null>(null);
+  const [leadName, setLeadName] = useState('');
+  const [leadMobile, setLeadMobile] = useState('');
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [leadSuccess, setLeadSuccess] = useState(false);
 
   const switchUnit = (next: HeightUnit) => {
     if (next === heightUnit) return;
@@ -77,6 +98,7 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
     if (heightErr || weightErr) {
       setBanner([heightErr, weightErr].filter(Boolean).join(' '));
       setResult(null);
+      setLeadSuccess(false);
       return;
     }
     setBanner(null);
@@ -85,9 +107,45 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
     if (bmi == null || !category) {
       setBanner('Could not calculate BMI. Check your height and weight.');
       setResult(null);
+      setLeadSuccess(false);
       return;
     }
-    setResult({ bmi, category });
+    setLeadName('');
+    setLeadMobile('');
+    setLeadSuccess(false);
+    setResult({
+      bmi,
+      category,
+      heightCm: parseFloat(h),
+      weightKg: parseFloat(weight),
+    });
+  };
+
+  const submitLead = async () => {
+    if (!result) return;
+    const validationError = validateRequired(leadName, 'Name') || validateMobile(leadMobile);
+    if (validationError) {
+      setBanner(validationError);
+      return;
+    }
+
+    setLeadSubmitting(true);
+    setBanner(null);
+    try {
+      await submitBmiLead({
+        clientName: leadName.trim(),
+        clientMobile: leadMobile.trim(),
+        heightCm: result.heightCm,
+        weightKg: result.weightKg,
+        bmiValue: result.bmi,
+        bmiCategory: result.category.label,
+      });
+      setLeadSuccess(true);
+    } catch (err) {
+      setBanner(getErrorMessage(err, 'Could not submit your details. Please try again.'));
+    } finally {
+      setLeadSubmitting(false);
+    }
   };
 
   return (
@@ -98,7 +156,8 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
       </View>
       <Text style={styles.sectionTitle}>Know Your BMI</Text>
       <Text style={styles.sectionSubtitle}>
-        Instant BMI with health category. No login required, nothing saved.
+        Instant BMI with health category. Share your details after calculating to connect with a
+        coach.
       </Text>
 
       {!expanded ? (
@@ -225,23 +284,107 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
 
           {result ? (
             <View style={styles.resultCard}>
-              <Text style={styles.resultCaption}>Body Mass Index</Text>
-              <Text style={styles.resultValue}>{result.bmi.toFixed(1)}</Text>
-              <View style={[styles.categoryBadge, { backgroundColor: result.category.bg }]}>
-                <Text style={[styles.categoryText, { color: result.category.color }]}>
-                  {result.category.label}
-                </Text>
+              <View style={styles.resultReveal}>
+                {leadSuccess ? (
+                  <View style={styles.resultContent}>
+                    <Text style={styles.resultCaption}>Body Mass Index</Text>
+                    <Text style={styles.resultValue}>{result.bmi.toFixed(1)}</Text>
+                    <View style={[styles.categoryBadge, { backgroundColor: result.category.bg }]}>
+                      <Text style={[styles.categoryText, { color: result.category.color }]}>
+                        {result.category.label}
+                      </Text>
+                    </View>
+                    <Text style={styles.explain}>
+                      {BMI_EXPLAINS[result.category.label] ??
+                        `Your BMI is ${result.bmi.toFixed(1)} (${result.category.label}).`}
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={styles.gatePanel}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  >
+                    <View style={styles.gateMessage}>
+                      <Ionicons name="lock-closed-outline" size={22} color={Colors.white} />
+                      <Text style={styles.gateTitle}>
+                        Fill the form below to unlock your result
+                      </Text>
+                      <Text style={styles.gateSubtitle}>
+                        Enter your name and mobile to reveal your BMI
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
-              <Text style={styles.explain}>
-                {BMI_EXPLAINS[result.category.label] ??
-                  `Your BMI is ${result.bmi.toFixed(1)} (${result.category.label}).`}
-              </Text>
-              {onFindCoach ? (
-                <TouchableOpacity style={styles.findCoachBtn} onPress={onFindCoach}>
-                  <Ionicons name="search" size={16} color={Colors.white} />
-                  <Text style={styles.findCoachText}>Find a Coach</Text>
-                </TouchableOpacity>
-              ) : null}
+
+              {leadSuccess ? (
+                <View style={styles.leadSuccess}>
+                  <Ionicons name="checkmark-circle" size={22} color={Colors.white} />
+                  <Text style={styles.leadSuccessText}>
+                    Thanks! A wellness coach will reach out to you soon.
+                  </Text>
+                  {onFindCoach ? (
+                    <TouchableOpacity style={styles.findCoachBtn} onPress={onFindCoach}>
+                      <Ionicons name="search" size={16} color={Colors.white} />
+                      <Text style={styles.findCoachText}>Browse Coaches</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : (
+                <View style={styles.leadForm}>
+                  <Text style={styles.leadPrompt}>
+                    Get personalised guidance — share your details and a top-rated coach will reach
+                    out. <Text style={styles.leadPromptStrong}>Free. No commitments.</Text>
+                  </Text>
+                  <View style={styles.leadField}>
+                    <FormFieldLabel required style={styles.leadLabel}>
+                      Your Name
+                    </FormFieldLabel>
+                    <TextInput
+                      style={styles.leadInput}
+                      placeholder="Your name"
+                      placeholderTextColor="rgba(255,255,255,0.45)"
+                      value={leadName}
+                      onChangeText={v => {
+                        setLeadName(v);
+                        setBanner(null);
+                      }}
+                      onFocus={onFieldFocus}
+                    />
+                  </View>
+                  <View style={styles.leadField}>
+                    <FormFieldLabel required style={styles.leadLabel}>
+                      Mobile Number
+                    </FormFieldLabel>
+                    <PhoneTextInput
+                      style={styles.leadInput}
+                      placeholder="10-digit mobile number"
+                      placeholderTextColor="rgba(255,255,255,0.45)"
+                      value={leadMobile}
+                      onChangeText={v => {
+                        setLeadMobile(v);
+                        setBanner(null);
+                      }}
+                      onFocus={onFieldFocus}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.leadBtn, leadSubmitting && styles.leadBtnDisabled]}
+                    onPress={submitLead}
+                    disabled={leadSubmitting}
+                  >
+                    {leadSubmitting ? (
+                      <ActivityIndicator color={Colors.textDark} />
+                    ) : (
+                      <>
+                        <Ionicons name="chatbubbles-outline" size={16} color={Colors.textDark} />
+                        <Text style={styles.leadBtnText}>Discuss Your BMI with Coaches</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : null}
         </View>
@@ -346,6 +489,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Shadow.md,
   },
+  resultReveal: {
+    width: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: Radius.md,
+  },
+  resultContent: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  gatePanel: {
+    width: '100%',
+    minHeight: 168,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.secondary,
+    borderRadius: Radius.md,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+  },
+  gateMessage: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  gateTitle: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  gateSubtitle: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
   resultCaption: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 12,
@@ -368,11 +549,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
   },
+  leadForm: { width: '100%', marginTop: 18 },
+  leadPrompt: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  leadPromptStrong: { fontWeight: '700', color: Colors.white },
+  leadField: { marginBottom: 16 },
+  leadLabel: {
+    color: 'rgba(255,255,255,0.92)',
+    marginBottom: 10,
+  },
+  leadInput: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: Radius.sm,
+    paddingHorizontal: 12,
+    height: 48,
+    fontSize: 14,
+    color: Colors.white,
+  },
+  leadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 6,
+    backgroundColor: Colors.accent,
+    borderRadius: Radius.pill,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+  },
+  leadBtnDisabled: { opacity: 0.7 },
+  leadBtnText: { color: Colors.textDark, fontWeight: '700', fontSize: 14 },
+  leadSuccess: { alignItems: 'center', marginTop: 18, gap: 10 },
+  leadSuccessText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
   findCoachBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 18,
+    marginTop: 8,
     backgroundColor: Colors.accent,
     borderRadius: Radius.pill,
     paddingVertical: 12,

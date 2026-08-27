@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import ScreenHeader from '../components/ScreenHeader';
 import { getClientDetail } from '../api/clientApi';
+import { getErrorMessage } from '../api/client';
 import { resolveMasterLabel } from '../api/masterApi';
 import { queryKeys } from '../api/queryKeys';
 import {
@@ -24,10 +25,9 @@ import {
 } from '../data/lifestyleOptions';
 import { useParamMasterOptions } from '../hooks/useParamOptions';
 import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
-import { getErrorMessage } from '../api/client';
 import { getBmi, getBmiCategory } from '../utils/bmi';
 import { lastCheckupLabel } from '../utils/recheckup';
-import type { RootScreenProps } from '../types/navigation';
+import type { ClientsStackScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
 interface MetricCell {
@@ -49,7 +49,10 @@ interface ActionItem {
   onPress: () => void;
 }
 
-export default function ClientDetailScreen({ navigation, route }: RootScreenProps<'ClientDetail'>) {
+export default function ClientDetailScreen({
+  navigation,
+  route,
+}: ClientsStackScreenProps<'ClientDetail'>) {
   const insets = useSafeAreaInsets();
   const client = route.params?.client || { name: 'Client', initials: 'CL' };
 
@@ -253,6 +256,7 @@ export default function ClientDetailScreen({ navigation, route }: RootScreenProp
                   style={[styles.actionBtn, { backgroundColor: action.bg }]}
                   onPress={action.onPress}
                   activeOpacity={0.7}
+                  disabled={action.label.startsWith('Preparing')}
                   accessibilityRole="button"
                   accessibilityLabel={action.label}
                 >

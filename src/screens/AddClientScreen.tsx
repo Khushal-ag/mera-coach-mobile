@@ -5,9 +5,9 @@ import AssessmentWizardFlow from './addClient/AssessmentWizardFlow';
 import { createBlankProfile } from '../data/clientProfiles';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
-import type { RootScreenProps } from '../types/navigation';
+import type { ClientsStackScreenProps } from '../types/navigation';
 
-export default function AddClientScreen({ navigation }: RootScreenProps<'AddClient'>) {
+export default function AddClientScreen({ navigation }: ClientsStackScreenProps<'AddClient'>) {
   const queryClient = useQueryClient();
 
   const onComplete = async () => {

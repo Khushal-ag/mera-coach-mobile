@@ -69,6 +69,8 @@ type ProfilePageProps = {
   pageCount?: number;
   /** When wrap-around is enabled, both edge chevrons stay visible. */
   wrapAround?: boolean;
+  onPrevPage?: () => void;
+  onNextPage?: () => void;
 };
 
 const MAX_PAGE_DOTS = 10;
@@ -110,6 +112,8 @@ function CoachProfilePage({
   pageIndex = 0,
   pageCount = 1,
   wrapAround = false,
+  onPrevPage,
+  onNextPage,
 }: ProfilePageProps) {
   const insets = useSafeAreaInsets();
   const profileQuery = useQuery({
@@ -249,40 +253,55 @@ function CoachProfilePage({
       <KeyboardSafeScroll
         ref={scrollRef}
         style={styles.container}
-        keyboardPadding={180}
+        contentContainerStyle={styles.scrollContent}
+        // Keep padding inside the white form so the cream page bg never shows as a bottom strip.
+        keyboardPadding={0}
         directionalLockEnabled
         nestedScrollEnabled
       >
         <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
           <HeaderBackButton onPress={onBack} style={styles.heroBack} />
 
-          {showSwipeHint ? (
-            <>
-              {showLeftChevron ? (
-                <View
-                  style={[styles.edgeChevron, styles.edgeChevronLeft, { top: insets.top + 72 }]}
-                  pointerEvents="none"
-                >
-                  <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.35)" />
-                </View>
-              ) : null}
-              {showRightChevron ? (
-                <View
-                  style={[styles.edgeChevron, styles.edgeChevronRight, { top: insets.top + 72 }]}
-                  pointerEvents="none"
-                >
-                  <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.35)" />
-                </View>
-              ) : null}
-            </>
-          ) : null}
-
-          <View style={styles.avatar}>
+          <View style={styles.photoBanner}>
             {photoUri ? (
-              <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: photoUri }}
+                style={styles.photoBannerImage}
+                resizeMode="cover"
+              />
             ) : (
-              <Text style={styles.avatarText}>{initials || '?'}</Text>
+              <View style={styles.photoBannerFallback}>
+                <Text style={styles.photoBannerInitials}>{initials || '?'}</Text>
+              </View>
             )}
+            {showLeftChevron ? (
+              <View style={styles.navChevronSlotLeft} pointerEvents="box-none">
+                <TouchableOpacity
+                  style={styles.navChevron}
+                  onPress={onPrevPage}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous coach"
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="chevron-back" size={24} color={Colors.white} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {showRightChevron ? (
+              <View style={styles.navChevronSlotRight} pointerEvents="box-none">
+                <TouchableOpacity
+                  style={styles.navChevron}
+                  onPress={onNextPage}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next coach"
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="chevron-forward" size={24} color={Colors.white} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.tagsRow}>
@@ -365,10 +384,6 @@ function CoachProfilePage({
           ) : null}
 
           <View style={styles.heroCtas}>
-            <TouchableOpacity style={styles.bookBtn} onPress={submitEnquiry} disabled={submitting}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.white} />
-              <Text style={styles.bookBtnText}>Book Free Consultation</Text>
-            </TouchableOpacity>
             {coach.mobile ? (
               <TouchableOpacity style={styles.waBtn} onPress={openWhatsApp}>
                 <Ionicons name="logo-whatsapp" size={18} color={Colors.white} />
@@ -487,7 +502,7 @@ function CoachProfilePage({
           </View>
         ) : null}
 
-        <View style={[styles.section, styles.formSection]}>
+        <View style={[styles.section, styles.formSection, { paddingBottom: 28 + insets.bottom }]}>
           <View style={styles.sectionTag}>
             <Ionicons name="calendar-outline" size={12} color={Colors.secondary} />
             <Text style={styles.sectionTagText}>Get In Touch</Text>
@@ -630,6 +645,7 @@ export default function CoachPublicProfileScreen({
 
   const listRef = useRef<FlatList<PagerItem>>(null);
   const jumpingRef = useRef(false);
+  const pagerIndexRef = useRef(initialPagerIndex);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
@@ -660,15 +676,31 @@ export default function CoachPublicProfileScreen({
     [pageWidth],
   );
 
+  const goPrevPage = useCallback(() => {
+    if (!canSwipe || jumpingRef.current) return;
+    const next = Math.max(0, pagerIndexRef.current - 1);
+    pagerIndexRef.current = next;
+    scrollToPagerIndex(next, true);
+  }, [canSwipe, scrollToPagerIndex]);
+
+  const goNextPage = useCallback(() => {
+    if (!canSwipe || jumpingRef.current) return;
+    const next = Math.min(pagerData.length - 1, pagerIndexRef.current + 1);
+    pagerIndexRef.current = next;
+    scrollToPagerIndex(next, true);
+  }, [canSwipe, pagerData.length, scrollToPagerIndex]);
+
   const onMomentumScrollEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!canSwipe || pageWidth <= 0 || jumpingRef.current) return;
       const rawIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
       const lastClone = pagerData.length - 1;
+      pagerIndexRef.current = rawIndex;
 
       if (rawIndex <= 0) {
         // Landed on clone of last → jump to real last
         jumpingRef.current = true;
+        pagerIndexRef.current = codes.length;
         scrollToPagerIndex(codes.length, false);
         prefetchAroundLogical(codes.length - 1);
         requestAnimationFrame(() => {
@@ -679,6 +711,7 @@ export default function CoachPublicProfileScreen({
       if (rawIndex >= lastClone) {
         // Landed on clone of first → jump to real first
         jumpingRef.current = true;
+        pagerIndexRef.current = 1;
         scrollToPagerIndex(1, false);
         prefetchAroundLogical(0);
         requestAnimationFrame(() => {
@@ -716,9 +749,20 @@ export default function CoachPublicProfileScreen({
         pageIndex={canSwipe ? item.logicalIndex : undefined}
         pageCount={canSwipe ? codes.length : undefined}
         wrapAround={canSwipe}
+        onPrevPage={canSwipe ? goPrevPage : undefined}
+        onNextPage={canSwipe ? goNextPage : undefined}
       />
     ),
-    [canSwipe, codes.length, goBack, listCoachByCode, pageHeight, pageWidth],
+    [
+      canSwipe,
+      codes.length,
+      goBack,
+      goNextPage,
+      goPrevPage,
+      listCoachByCode,
+      pageHeight,
+      pageWidth,
+    ],
   );
 
   if (!codes.length) {
@@ -793,12 +837,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroBack: { alignSelf: 'flex-start', marginBottom: 12 },
-  edgeChevron: {
+  navChevronSlotLeft: {
     position: 'absolute',
-    zIndex: 1,
+    left: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 2,
   },
-  edgeChevronLeft: { left: 8 },
-  edgeChevronRight: { right: 8 },
+  navChevronSlotRight: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  navChevron: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(27, 67, 50, 0.72)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pageIndicator: {
     alignItems: 'center',
     gap: 8,
@@ -839,20 +903,26 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   specialtyWrapTight: { marginBottom: 12 },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+  scrollContent: { flexGrow: 1 },
+  photoBanner: {
+    width: '100%',
+    // Portrait-leaning frame so cover crops less of typical coach headshots.
+    aspectRatio: 4 / 5,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    marginBottom: 16,
     backgroundColor: Colors.onDarkOverlay,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  photoBannerImage: { width: '100%', height: '100%' },
+  photoBannerFallback: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
-    overflow: 'hidden',
+    backgroundColor: Colors.onDarkOverlay,
   },
-  avatarImage: { width: '100%', height: '100%' },
-  avatarText: { color: Colors.white, fontSize: 26, fontWeight: '800' },
+  photoBannerInitials: { color: Colors.white, fontSize: 56, fontWeight: '800' },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -900,17 +970,6 @@ const styles = StyleSheet.create({
   },
   specialtyText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
   heroCtas: { width: '100%', gap: 10 },
-  bookBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.accent,
-    borderRadius: Radius.pill,
-    paddingVertical: 13,
-    ...Shadow.md,
-  },
-  bookBtnText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
   waBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -935,7 +994,11 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 16, fontWeight: '800', color: Colors.secondary },
   statLabel: { fontSize: 10, color: Colors.textLight, marginTop: 2, textAlign: 'center' },
   section: { padding: 20, paddingTop: 32 },
-  formSection: { backgroundColor: Colors.white, marginHorizontal: 0 },
+  formSection: {
+    backgroundColor: Colors.white,
+    marginHorizontal: 0,
+    flexGrow: 1,
+  },
   sectionTag: {
     flexDirection: 'row',
     alignItems: 'center',

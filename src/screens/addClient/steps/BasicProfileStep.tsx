@@ -7,14 +7,18 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
+  Image,
+  Alert,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius } from '../../../constants/theme';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import PhoneTextInput from '../../../components/PhoneTextInput';
+import ProgressPhotos from '../../../components/ProgressPhotos';
 import {
   ageFromDate,
   cmToFeetInches,
@@ -24,12 +28,16 @@ import {
   sanitizeEmailInput,
   stripNonDigits,
 } from '../../../utils/validation';
-import type { ClientProfile } from '../../../types/models';
+import type { ClientProfile, PendingClientPhoto } from '../../../types/models';
 import type { IoniconName, StepProps, UpdateFn } from '../../../types/wizard';
 
 type HeightUnit = 'cm' | 'ftin';
 
 type ErrorFields = Record<string, boolean>;
+
+/** Cap local picks before personal commit (matches ProgressPhotos multi-select spirit). */
+const MAX_CLIENT_PHOTOS = 10;
+const PHOTO_THUMB = 88;
 
 /** Oldest selectable DOB — aligned with age sync upper bound (100). */
 const MIN_DOB = (() => {
@@ -476,26 +484,145 @@ function HeightField({
   );
 }
 
+function newPhotoId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
+  const photos = form.photos ?? [];
+  const remaining = MAX_CLIENT_PHOTOS - photos.length;
+  const canAdd = remaining > 0;
+
+  const setPhotos = (next: PendingClientPhoto[]) => {
+    update('photos', next);
+  };
+
+  const pickPhotos = async () => {
+    if (!canAdd) {
+      Alert.alert('Limit reached', `You can add up to ${MAX_CLIENT_PHOTOS} photos.`);
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to add client photos.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: true,
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
+    });
+    if (result.canceled || !result.assets.length) return;
+
+    const added: PendingClientPhoto[] = [];
+    for (const asset of result.assets) {
+      if (!asset.base64 || added.length >= remaining) continue;
+      added.push({
+        id: newPhotoId(),
+        uri: asset.uri,
+        dataUrl: `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`,
+      });
+    }
+    if (!added.length) return;
+    setPhotos([...photos, ...added]);
+  };
+
+  const removePhoto = (id: string) => {
+    setPhotos(photos.filter(p => p.id !== id));
+  };
+
+  return (
+    <View style={styles.photoField}>
+      <View style={styles.photoHeader}>
+        <FormFieldLabel style={{ marginBottom: 0 }}>Client Photos (optional)</FormFieldLabel>
+        {canAdd ? (
+          <TouchableOpacity
+            style={styles.photoActionBtn}
+            onPress={pickPhotos}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Add client photos"
+          >
+            <Ionicons name="camera-outline" size={14} color={Colors.primary} />
+            <Text style={styles.photoActionText}>{photos.length ? 'Add more' : 'Add photos'}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+      <Text style={styles.photoHint}>
+        Uploaded after client details are saved. Up to {MAX_CLIENT_PHOTOS} photos.
+      </Text>
+
+      {photos.length === 0 ? (
+        <TouchableOpacity
+          style={styles.photoEmpty}
+          onPress={pickPhotos}
+          accessibilityRole="button"
+          accessibilityLabel="Add client photos"
+        >
+          <Ionicons name="images-outline" size={28} color={Colors.textLight} />
+          <Text style={styles.photoEmptyText}>Tap to select photos</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.photoGrid}>
+          {photos.map(photo => (
+            <View key={photo.id} style={styles.photoThumbWrap}>
+              <Image source={{ uri: photo.uri }} style={styles.photoThumb} />
+              <TouchableOpacity
+                style={styles.photoRemoveBtn}
+                onPress={() => removePhoto(photo.id)}
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
+              >
+                <Ionicons name="close" size={14} color={Colors.destructive} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {canAdd ? (
+            <TouchableOpacity
+              style={styles.photoAddTile}
+              onPress={pickPhotos}
+              accessibilityRole="button"
+              accessibilityLabel="Add more photos"
+            >
+              <Ionicons name="add" size={28} color={Colors.textLight} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
 interface BasicProfileStepProps extends StepProps<ClientProfile> {
-  /** Inline BMI preview — checkup only; Add Client skips BMI UI. */
-  showBmiPreview?: boolean;
   /** Fields that failed the last aggregate validation pass. */
   errorFields?: ErrorFields;
   /** Scroll parent so lower fields clear the keyboard. */
   onLowerFieldFocus?: () => void;
+  /**
+   * When set (checkup / after first personal save), use live Document API photos
+   * like web AddClient?clientCode=. New Add Client uses pending local picks instead.
+   */
+  clientCode?: string;
 }
 
 export default function BasicProfileStep({
   form,
   update,
-  showBmiPreview = false,
   errorFields = {},
   onLowerFieldFocus,
+  clientCode,
 }: BasicProfileStepProps) {
   const err = (field: string) => !!errorFields[field];
 
   return (
     <View>
+      {clientCode ? (
+        <ProgressPhotos clientCode={clientCode} />
+      ) : (
+        <ClientPhotoField form={form} update={update} />
+      )}
       <Field
         label="Full Name"
         icon="person-outline"
@@ -548,11 +675,10 @@ export default function BasicProfileStep({
             label="Age"
             icon="calendar-outline"
             field="age"
-            placeholder="Years"
+            placeholder="Years (or use DOB)"
             keyboardType="numeric"
             form={form}
             update={update}
-            required
             hasError={err('age')}
             onFocus={onLowerFieldFocus}
           />
@@ -596,21 +722,74 @@ export default function BasicProfileStep({
         hasError={err('weight')}
         onFocus={onLowerFieldFocus}
       />
-
-      {showBmiPreview && form.height && form.weight ? (
-        <View style={styles.bmiCard}>
-          <Text style={styles.bmiLabel}>Calculated BMI</Text>
-          <Text style={styles.bmiValue}>
-            {(Number(form.weight) / (Number(form.height) / 100) ** 2).toFixed(1)}
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   field: { marginBottom: 16 },
+  photoField: { marginBottom: 20 },
+  photoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  photoActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  photoActionText: { fontSize: 12, fontWeight: '700', color: Colors.primary },
+  photoHint: { fontSize: 11, color: Colors.textLight, lineHeight: 15, marginBottom: 10 },
+  photoEmpty: {
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  photoEmptyText: { fontSize: 13, color: Colors.textLight, fontWeight: '600' },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  photoThumbWrap: { width: PHOTO_THUMB, position: 'relative' },
+  photoThumb: {
+    width: PHOTO_THUMB,
+    height: PHOTO_THUMB,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.background,
+  },
+  photoAddTile: {
+    width: PHOTO_THUMB,
+    height: PHOTO_THUMB,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoRemoveBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,15 +846,6 @@ const styles = StyleSheet.create({
   unitPillText: { fontSize: 12, color: Colors.textLight, fontWeight: '600' },
   unitPillTextActive: { color: Colors.white },
   unitSuffix: { fontSize: 13, fontWeight: '600', color: Colors.textLight, marginLeft: 4 },
-  bmiCard: {
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.md,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  bmiLabel: { fontSize: 12, color: Colors.secondary },
-  bmiValue: { fontSize: 32, fontWeight: '800', color: Colors.secondary },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',

@@ -135,6 +135,16 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
   if (/^object reference not set/i.test(trimmed) || /nullreferenceexception/i.test(trimmed)) {
     return 'Something went wrong on the server. Please try again.';
   }
+  // Azure/Windows Chromium (Puppeteer/Playwright) PDF generation failures.
+  if (
+    /failed to launch (blink|browser)/i.test(trimmed) ||
+    /side-by-side configuration is incorrect/i.test(trimmed) ||
+    /chromium-\d+/i.test(trimmed) ||
+    /chrome\.exe/i.test(trimmed) ||
+    /puppeteer|playwright/i.test(trimmed)
+  ) {
+    return "Couldn't generate PDF right now. Please try again later.";
+  }
 
   const lower = trimmed.toLowerCase();
 

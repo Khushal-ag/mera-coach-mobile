@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -16,15 +18,22 @@ import { getBmiReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { useRefreshControl, refreshControlTheme } from '../../hooks/useRefreshControl';
-import type { RootScreenProps } from '../../types/navigation';
+import { getCurrentCoachCode } from '../../auth/session';
+import {
+  bmiReportPdfQuery,
+  downloadAndSharePdf,
+  PDF_GENERATE_FAILED_MESSAGE,
+} from '../../utils/pdfShare';
+import type { ClientsStackScreenProps } from '../../types/navigation';
 
 export default function ClientBmiReportScreen({
   navigation,
   route,
-}: RootScreenProps<'ClientBmiReport'>) {
+}: ClientsStackScreenProps<'ClientBmiReport'>) {
   const insets = useSafeAreaInsets();
   const client = route.params?.client;
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
+  const [sharingPdf, setSharingPdf] = useState(false);
 
   const reportQuery = useQuery({
     queryKey: queryKeys.bmiReport(ids.clientCode, ids.assessmentCode),
@@ -41,6 +50,46 @@ export default function ClientBmiReportScreen({
 
   const needsToLose = (report?.weightDelta ?? 0) > 0;
   const history = report?.history ?? [];
+
+  const sharePdf = async () => {
+    const coachCode = getCurrentCoachCode();
+    if (!coachCode || !ids.clientCode) {
+      Alert.alert('Cannot share PDF', 'Client information is missing.');
+      return;
+    }
+    setSharingPdf(true);
+    try {
+      await downloadAndSharePdf(
+        '/v{version}/Client/bmi-report-pdf',
+        bmiReportPdfQuery({
+          coachCode,
+          clientCode: ids.clientCode,
+          assessmentCode: ids.assessmentCode,
+        }),
+        'bmi-report.pdf',
+      );
+    } catch (err) {
+      Alert.alert('PDF failed', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
+    } finally {
+      setSharingPdf(false);
+    }
+  };
+
+  const pdfButton = (
+    <TouchableOpacity
+      style={styles.headerAction}
+      onPress={sharePdf}
+      disabled={sharingPdf || !report}
+      accessibilityRole="button"
+      accessibilityLabel="Share BMI report PDF"
+    >
+      {sharingPdf ? (
+        <ActivityIndicator color={Colors.white} size="small" />
+      ) : (
+        <Ionicons name="share-outline" size={20} color={Colors.white} />
+      )}
+    </TouchableOpacity>
+  );
 
   const primaryStats = report
     ? [
@@ -60,7 +109,12 @@ export default function ClientBmiReportScreen({
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="BMI Report" onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="BMI Report"
+        onBack={() => navigation.goBack()}
+        right={pdfButton}
+        showHome={false}
+      />
 
       <ScrollView
         style={styles.body}
@@ -162,6 +216,21 @@ export default function ClientBmiReportScreen({
                 history.map((row, i) => <MeasurementRow key={i} row={row} />)
               )}
             </View>
+
+            <TouchableOpacity
+              style={[styles.shareBtn, sharingPdf && styles.shareBtnDisabled]}
+              onPress={sharePdf}
+              disabled={sharingPdf}
+            >
+              {sharingPdf ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="document-outline" size={18} color={Colors.white} />
+                  <Text style={styles.shareBtnText}>Share PDF with Client</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
@@ -313,4 +382,25 @@ const styles = StyleSheet.create({
   },
   noHistoryTitle: { fontSize: 13, fontWeight: '700', color: Colors.textDark, marginTop: 4 },
   noHistory: { fontSize: 12, color: Colors.textLight, textAlign: 'center', lineHeight: 17 },
+  headerAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.onDarkOverlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.pill,
+    paddingVertical: 14,
+    marginTop: 8,
+    ...Shadow.md,
+  },
+  shareBtnDisabled: { opacity: 0.7 },
+  shareBtnText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
 });

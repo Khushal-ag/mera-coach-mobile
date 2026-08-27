@@ -24,7 +24,8 @@ import { getCurrentCoachCode } from '../auth/session';
 import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import { getErrorMessage } from '../api/client';
 import { stripNonDigits } from '../utils/validation';
-import type { RootScreenProps } from '../types/navigation';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { DashboardStackParamList, ProfileStackParamList } from '../types/navigation';
 
 function LeadRow({
   lead,
@@ -160,7 +161,11 @@ function LeadRow({
   );
 }
 
-export default function MyLeadsScreen({ navigation }: RootScreenProps<'Leads'>) {
+type LeadsScreenProps =
+  | NativeStackScreenProps<DashboardStackParamList, 'Leads'>
+  | NativeStackScreenProps<ProfileStackParamList, 'Leads'>;
+
+export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const coachCode = getCurrentCoachCode();

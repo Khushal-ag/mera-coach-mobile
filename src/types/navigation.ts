@@ -4,39 +4,56 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
 import type { ClientSummary, Coach } from './models';
 
-export type MainTabParamList = {
-  Dashboard: undefined;
-  Clients: undefined;
-  Checkups: undefined;
-  Profile: undefined;
+export type DashboardStackParamList = {
+  DashboardHome: undefined;
+  Leads: undefined;
+  Notifications: undefined;
 };
 
+export type ClientsStackParamList = {
+  ClientListHome: undefined;
+  ClientDetail: { client?: ClientSummary } | undefined;
+  AddClient: undefined;
+  ClientBmi: { client?: ClientSummary } | undefined;
+  ClientBmiReport: { client?: ClientSummary } | undefined;
+  ClientDietPlan: { client?: ClientSummary } | undefined;
+};
+
+export type CheckupsStackParamList = {
+  CheckupListHome: undefined;
+  ClientBmi: { client?: ClientSummary } | undefined;
+};
+
+export type ProfileStackParamList = {
+  ProfileHome: undefined;
+  EditProfile: undefined;
+  ChangePassword: undefined;
+  Legal: undefined;
+  Leads: undefined;
+};
+
+export type MainTabParamList = {
+  Dashboard: NavigatorScreenParams<DashboardStackParamList> | undefined;
+  Clients: NavigatorScreenParams<ClientsStackParamList> | undefined;
+  Checkups: NavigatorScreenParams<CheckupsStackParamList> | undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList> | undefined;
+};
+
+/** Public + auth root stack (signed-in coach browsing stays reachable without signing out). */
 export type RootStackParamList = {
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Home: undefined;
   CoachList: { categoryCode?: string } | undefined;
   CoachPublicProfile:
     | {
         coach?: Coach;
         coachCode?: string;
-        /** Ordered codes for swipe between profiles. */
         coachCodes?: string[];
-        /** List rows as placeholders until profile-by-id loads. */
         coaches?: Coach[];
       }
     | undefined;
   Login: undefined;
   Register: undefined;
-  Main: NavigatorScreenParams<MainTabParamList> | undefined;
-  ClientDetail: { client?: ClientSummary } | undefined;
-  AddClient: undefined;
-  Leads: undefined;
-  Notifications: undefined;
-  ClientBmi: { client?: ClientSummary } | undefined;
-  ClientBmiReport: { client?: ClientSummary } | undefined;
-  ClientDietPlan: { client?: ClientSummary } | undefined;
-  ChangePassword: undefined;
-  Legal: undefined;
-  EditProfile: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
@@ -49,10 +66,29 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScre
   NativeStackScreenProps<RootStackParamList>
 >;
 
+export type DashboardStackScreenProps<T extends keyof DashboardStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<DashboardStackParamList, T>,
+    MainTabScreenProps<'Dashboard'>
+  >;
+
+export type ClientsStackScreenProps<T extends keyof ClientsStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<ClientsStackParamList, T>,
+  MainTabScreenProps<'Clients'>
+>;
+
+export type CheckupsStackScreenProps<T extends keyof CheckupsStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<CheckupsStackParamList, T>,
+  MainTabScreenProps<'Checkups'>
+>;
+
+export type ProfileStackScreenProps<T extends keyof ProfileStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<ProfileStackParamList, T>,
+  MainTabScreenProps<'Profile'>
+>;
+
 declare global {
   namespace ReactNavigation {
-    // Empty on purpose: this is React Navigation's documented pattern for typing
-    // useNavigation()/Link/etc. globally without passing <RootStackParamList> everywhere.
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface RootParamList extends RootStackParamList {}
   }

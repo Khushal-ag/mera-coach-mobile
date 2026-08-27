@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
-import { Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
 import AssessmentWizardFlow from '../addClient/AssessmentWizardFlow';
 import type { AssessmentCompleteResult } from '../addClient/AssessmentWizardFlow';
 import ClientPhaseLoadShell from '../../components/ClientPhaseLoadShell';
@@ -9,15 +10,22 @@ import { getDietPlanReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
-import type { RootScreenProps } from '../../types/navigation';
+import { Colors, Shadow } from '../../constants/theme';
+import {
+  dietPlanPdfQuery,
+  downloadAndSharePdf,
+  PDF_GENERATE_FAILED_MESSAGE,
+} from '../../utils/pdfShare';
+import type { ClientsStackScreenProps } from '../../types/navigation';
 
 /** Opens checkup wizard on diet plan; saves via save-diet-plan only (no full finish). */
 export default function ClientDietPlanScreen({
   navigation,
   route,
-}: RootScreenProps<'ClientDietPlan'>) {
+}: ClientsStackScreenProps<'ClientDietPlan'>) {
   const client = route.params?.client;
   const queryClient = useQueryClient();
+  const [sharingPdf, setSharingPdf] = useState(false);
   const { profile, ids, isLoading, isError, error, detailReady, refetch } = useCheckupProfile(
     client,
     { assessmentIdMode: 'latest' },
@@ -35,6 +43,29 @@ export default function ClientDietPlanScreen({
     if (planQuery.data) return { ...profile, dietPlan: planQuery.data };
     return profile;
   }, [profile, planQuery.data]);
+
+  const canSharePdf = !!planQuery.data && !!ids.clientCode;
+
+  const shareDietPdf = async () => {
+    const coachCode = getCurrentCoachCode();
+    const clientCode = client?.clientCode ?? ids.clientCode;
+    if (!coachCode || !clientCode) {
+      Alert.alert('Cannot share PDF', 'Client information is missing.');
+      return;
+    }
+    setSharingPdf(true);
+    try {
+      await downloadAndSharePdf(
+        '/v{version}/Client/diet-plan-pdf',
+        dietPlanPdfQuery({ coachCode, clientCode }),
+        'diet-plan.pdf',
+      );
+    } catch (err) {
+      Alert.alert('PDF failed', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
+    } finally {
+      setSharingPdf(false);
+    }
+  };
 
   const onComplete = async (result?: AssessmentCompleteResult) => {
     const assessmentCode = ids.assessmentCode ?? client?.assessmentCode;
@@ -77,6 +108,22 @@ export default function ClientDietPlanScreen({
     if (planQuery.isError) void planQuery.refetch();
   };
 
+  const shareButton = canSharePdf ? (
+    <TouchableOpacity
+      style={styles.shareBtn}
+      onPress={shareDietPdf}
+      disabled={sharingPdf}
+      accessibilityRole="button"
+      accessibilityLabel="Share diet plan PDF"
+    >
+      {sharingPdf ? (
+        <ActivityIndicator color={Colors.textDark} size="small" />
+      ) : (
+        <Ionicons name="share-outline" size={20} color={Colors.textDark} />
+      )}
+    </TouchableOpacity>
+  ) : null;
+
   return (
     <ClientPhaseLoadShell
       isLoading={loading}
@@ -93,9 +140,22 @@ export default function ClientDietPlanScreen({
         commitMode="dietPlan"
         finishLabel="Save Plan"
         skipEmptyDietCommit
+        headerRight={shareButton}
         onExit={() => navigation.goBack()}
         onComplete={onComplete}
       />
     </ClientPhaseLoadShell>
   );
 }
+
+const styles = StyleSheet.create({
+  shareBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.md,
+  },
+});

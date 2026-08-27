@@ -20,7 +20,7 @@ import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { getErrorMessage } from '../api/client';
 import { refreshControlTheme } from '../hooks/useRefreshControl';
-import type { MainTabScreenProps } from '../types/navigation';
+import type { DashboardStackScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
 
 function greetingForNow(date = new Date()): string {
@@ -40,7 +40,9 @@ interface StatCard {
   onPress?: () => void;
 }
 
-export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dashboard'>) {
+export default function DashboardScreen({
+  navigation,
+}: DashboardStackScreenProps<'DashboardHome'>) {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const coachCode = getCurrentCoachCode();
@@ -164,7 +166,9 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
           </Text>
           <TouchableOpacity
             style={styles.emptyCta}
-            onPress={failed ? onRefresh : () => navigation.navigate('AddClient')}
+            onPress={
+              failed ? onRefresh : () => navigation.navigate('Clients', { screen: 'AddClient' })
+            }
           >
             <Ionicons name={failed ? 'refresh' : 'person-add'} size={16} color={Colors.white} />
             <Text style={styles.emptyCtaText}>{failed ? 'Retry' : 'Add Client'}</Text>
@@ -177,7 +181,9 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
       <TouchableOpacity
         key={c.clientCode || c.id || String(i)}
         style={styles.clientRow}
-        onPress={() => navigation.navigate('ClientDetail', { client: c })}
+        onPress={() =>
+          navigation.navigate('Clients', { screen: 'ClientDetail', params: { client: c } })
+        }
       >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{c.initials || '?'}</Text>
@@ -283,7 +289,7 @@ export default function DashboardScreen({ navigation }: MainTabScreenProps<'Dash
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => navigation.navigate('AddClient')}
+            onPress={() => navigation.navigate('Clients', { screen: 'AddClient' })}
             accessibilityRole="button"
             accessibilityLabel="Add Client"
           >

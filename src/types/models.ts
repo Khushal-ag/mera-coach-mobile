@@ -99,6 +99,16 @@ export interface SaveDietPlanResult {
   status?: string;
 }
 
+/** Local photo picked on Add Client personal step; uploaded after clientCode exists. */
+export interface PendingClientPhoto {
+  /** Stable local id for list keys / remove. */
+  id: string;
+  /** Local preview URI. */
+  uri: string;
+  /** data-URL for Document/upload; omitted/cleared after successful upload. */
+  dataUrl?: string;
+}
+
 export interface ClientProfile {
   name: string;
   phone: string;
@@ -111,6 +121,11 @@ export interface ClientProfile {
   gender: string;
   height: string;
   weight: string;
+  /**
+   * Optional local photos for Document/upload as PROGRESS_PHOTO after clientCode exists.
+   * Not sent to save-client-detail. `dataUrl` is cleared after a successful upload.
+   */
+  photos?: PendingClientPhoto[];
   physicalActivity: string;
   workType: string;
   sleepDuration: string;

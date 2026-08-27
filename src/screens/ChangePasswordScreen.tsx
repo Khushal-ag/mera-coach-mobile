@@ -16,7 +16,7 @@ import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/
 import ScreenHeader from '../components/ScreenHeader';
 import { changePassword } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
-import type { RootScreenProps } from '../types/navigation';
+import type { ProfileStackScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/wizard';
 
 interface PasswordFieldProps {
@@ -66,7 +66,9 @@ function PasswordField({
   );
 }
 
-export default function ChangePasswordScreen({ navigation }: RootScreenProps<'ChangePassword'>) {
+export default function ChangePasswordScreen({
+  navigation,
+}: ProfileStackScreenProps<'ChangePassword'>) {
   const scrollRef = useRef<ScrollView>(null);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [currentPassword, setCurrentPassword] = useState('');

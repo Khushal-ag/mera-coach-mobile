@@ -283,6 +283,21 @@ export async function submitCoachEnquiry(params: CoachEnquiryParams): Promise<vo
   await apiPost('/v{version}/Coach/enquiry', params);
 }
 
+export interface BmiLeadParams {
+  clientName: string;
+  clientMobile: string;
+  gender?: string;
+  age?: number | null;
+  heightCm: number;
+  weightKg: number;
+  bmiValue: number;
+  bmiCategory: string;
+}
+
+export async function submitBmiLead(params: BmiLeadParams): Promise<void> {
+  await apiPost('/v{version}/Coach/bmi-lead', params);
+}
+
 export async function getServicesForCategory(categoryCode: string): Promise<MasterOption[]> {
   if (!categoryCode) return [];
   // Backend Service filter uses lowercase itemType (unlike Country/CoachType ItemType).

@@ -22,7 +22,7 @@ import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshContr
 import { getErrorMessage } from '../api/client';
 import { stripNonDigits } from '../utils/validation';
 import type { RecheckupDueClient, ClientSummary } from '../types/models';
-import type { MainTabScreenProps } from '../types/navigation';
+import type { CheckupsStackScreenProps } from '../types/navigation';
 
 function describeOverdue(daysOverdue: number): string {
   if (daysOverdue <= 0) return 'Due today';
@@ -40,7 +40,9 @@ function describeDue(item: RecheckupDueClient): string {
   return describeOverdue(item.daysOverdue);
 }
 
-export default function ReCheckupListScreen({ navigation }: MainTabScreenProps<'Checkups'>) {
+export default function ReCheckupListScreen({
+  navigation,
+}: CheckupsStackScreenProps<'CheckupListHome'>) {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const coachCode = getCurrentCoachCode();

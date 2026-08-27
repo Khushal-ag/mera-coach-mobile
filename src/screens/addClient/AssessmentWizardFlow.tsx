@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { Colors } from '../../constants/theme';
 import {
   WIZARD_BACK_TOP_GAP,
@@ -27,6 +28,8 @@ import KeyboardSafeScroll, {
 import PhaseTransition from '../../components/PhaseTransition';
 import { isDietEmpty } from '../../data/dietCatalog';
 import { getErrorMessage } from '../../api/client';
+import { queryKeys } from '../../api/queryKeys';
+import { getCurrentCoachCode } from '../../auth/session';
 import { computeBmiMetrics } from '../../utils/bmi';
 import { validateClientPersonalProfile } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
@@ -66,6 +69,8 @@ interface AssessmentWizardFlowProps {
   finishLabel?: string;
   /** When true, skip save-meals if the coach did not enter any food items (checkup/edit). */
   skipEmptyDietCommit?: boolean;
+  /** Optional control opposite the floating back (e.g. Share PDF on diet-plan shortcut). */
+  headerRight?: React.ReactNode;
   onExit: () => void;
   onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
 }
@@ -78,10 +83,12 @@ export default function AssessmentWizardFlow({
   commitMode = 'assessment',
   finishLabel = 'Save Client',
   skipEmptyDietCommit = false,
+  headerRight,
   onExit,
   onComplete,
 }: AssessmentWizardFlowProps) {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const backTop = insets.top + WIZARD_BACK_TOP_GAP;
   const contentTop = insets.top + WIZARD_CONTENT_TOP_OFFSET;
   const scrollRef = useRef<ScrollView>(null);
@@ -170,7 +177,20 @@ export default function AssessmentWizardFlow({
     setSaving(true);
     try {
       if (phaseId === 'personal') {
-        setIds(await commitPersonal(form, ids));
+        const nextIds = await commitPersonal(form, ids);
+        setIds(nextIds);
+        // Avoid re-uploading the same pending photos if the coach revisits this step.
+        if ((form.photos ?? []).some(p => p.dataUrl)) {
+          if (nextIds.clientCode) {
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.progressPhotos(getCurrentCoachCode() ?? '', nextIds.clientCode),
+            });
+          }
+          setForm(f => ({
+            ...f,
+            photos: (f.photos ?? []).map(p => (p.dataUrl ? { id: p.id, uri: p.uri } : p)),
+          }));
+        }
       } else if (phaseId === 'lifestyle') {
         await commitLifestyle(form, ids);
       } else if (phaseId === 'diet') {
@@ -238,9 +258,9 @@ export default function AssessmentWizardFlow({
   const stepExtraProps =
     entry.screenId === 'basicProfile'
       ? {
-          showBmiPreview: flow === 'checkup',
           errorFields,
           onLowerFieldFocus: scrollLowerFieldsIntoView,
+          clientCode: ids.clientCode || undefined,
         }
       : entry.screenId === 'healthGoals'
         ? { onLowerFieldFocus: scrollLowerFieldsIntoView }
@@ -264,6 +284,10 @@ export default function AssessmentWizardFlow({
         >
           <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
         </TouchableOpacity>
+
+        {headerRight ? (
+          <View style={[styles.floatingHeaderRight, { top: backTop }]}>{headerRight}</View>
+        ) : null}
 
         <KeyboardSafeScroll
           ref={scrollRef}
@@ -317,5 +341,11 @@ export default function AssessmentWizardFlow({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
+  floatingHeaderRight: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
   nextBtnDisabled: { opacity: 0.7 },
 });

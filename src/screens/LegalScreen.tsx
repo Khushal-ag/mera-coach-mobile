@@ -6,11 +6,11 @@ import { PRIVACY_POLICY_URL } from '../config/appConfig';
 import { LEGAL_UPDATED, PRIVACY_POLICY_SECTIONS, TERMS_SECTIONS } from '../data/legalContent';
 import { openAccountDeletionEmail, openPrivacyPolicyUrl } from '../utils/support';
 import ScreenHeader from '../components/ScreenHeader';
-import type { RootScreenProps } from '../types/navigation';
+import type { ProfileStackScreenProps } from '../types/navigation';
 
 type Tab = 'privacy' | 'terms';
 
-export default function LegalScreen({ navigation }: RootScreenProps<'Legal'>) {
+export default function LegalScreen({ navigation }: ProfileStackScreenProps<'Legal'>) {
   const [tab, setTab] = useState<Tab>('privacy');
   const sections = tab === 'privacy' ? PRIVACY_POLICY_SECTIONS : TERMS_SECTIONS;
 

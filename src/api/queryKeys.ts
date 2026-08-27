@@ -31,4 +31,6 @@ export const queryKeys = {
     ['locationByPin', countryCode, pinCode] as const,
   paramList: (paramCode: string) => ['paramList', paramCode] as const,
   servicesForCategory: (categoryCode: string) => ['servicesForCategory', categoryCode] as const,
+  progressPhotos: (coachCode: string, clientCode: string) =>
+    ['progressPhotos', coachCode, clientCode] as const,
 };

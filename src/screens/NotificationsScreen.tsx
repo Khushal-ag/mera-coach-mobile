@@ -3,9 +3,11 @@ import { View, StyleSheet } from 'react-native';
 import { Colors } from '../constants/theme';
 import EmptyState from '../components/EmptyState';
 import ScreenHeader from '../components/ScreenHeader';
-import type { RootScreenProps } from '../types/navigation';
+import type { DashboardStackScreenProps } from '../types/navigation';
 
-export default function NotificationsScreen({ navigation }: RootScreenProps<'Notifications'>) {
+export default function NotificationsScreen({
+  navigation,
+}: DashboardStackScreenProps<'Notifications'>) {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Notifications" onBack={() => navigation.goBack()} />

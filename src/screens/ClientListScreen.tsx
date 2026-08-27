@@ -22,7 +22,7 @@ import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshContr
 import { getErrorMessage } from '../api/client';
 import { stripNonDigits } from '../utils/validation';
 import { lastCheckupLabel } from '../utils/recheckup';
-import type { MainTabScreenProps } from '../types/navigation';
+import type { ClientsStackScreenProps } from '../types/navigation';
 import type { ClientSummary } from '../types/models';
 
 function clientMeta(item: ClientSummary): string {
@@ -32,7 +32,9 @@ function clientMeta(item: ClientSummary): string {
   return parts.join(' · ');
 }
 
-export default function ClientListScreen({ navigation }: MainTabScreenProps<'Clients'>) {
+export default function ClientListScreen({
+  navigation,
+}: ClientsStackScreenProps<'ClientListHome'>) {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
 

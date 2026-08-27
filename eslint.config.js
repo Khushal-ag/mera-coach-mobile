@@ -11,4 +11,10 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    rules: {
+      // Allow explicit `any`; do not surface as IDE/lint errors.
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 ]);
