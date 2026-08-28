@@ -1,18 +1,38 @@
 import { Alert, Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { getCurrentToken } from '../auth/session';
 import { withQuery } from '../api/client';
 
 type SharingModule = typeof import('expo-sharing');
 
 const REBUILD_MESSAGE =
-  'PDF sharing is not available in this build. Reinstall the app after running: npx expo prebuild --clean && npx expo run:android';
+  'PDF sharing is not available in this build. Rebuild the native app so ExpoSharing is linked:\n\n' +
+  'iOS: npx expo prebuild --clean && npx expo run:ios\n' +
+  'Android: npx expo prebuild --clean && npx expo run:android';
 
 /** Short coach-facing copy when the PDF API fails (e.g. server Chromium/SxS). */
 export const PDF_GENERATE_FAILED_MESSAGE =
   "Couldn't generate PDF right now. Please try again later.";
 
+function isMissingExpoSharingError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return /ExpoSharing|expo-sharing/i.test(msg);
+}
+
+function alertRebuildRequired(): void {
+  Alert.alert('Rebuild app required', REBUILD_MESSAGE);
+}
+
+/**
+ * Load expo-sharing only when the native module is present.
+ * expo-sharing's JS entry calls requireNativeModule('ExpoSharing') at evaluate time,
+ * so importing it on a stale binary throws — guard first, never crash the PDF tap path.
+ */
 async function loadSharingModule(): Promise<SharingModule | null> {
+  if (!requireOptionalNativeModule('ExpoSharing')) {
+    return null;
+  }
   try {
     return await import('expo-sharing');
   } catch {
@@ -108,21 +128,29 @@ export async function downloadAndSharePdf(
 
   const Sharing = await loadSharingModule();
   if (!Sharing) {
-    Alert.alert('Rebuild app required', REBUILD_MESSAGE);
+    alertRebuildRequired();
     return;
   }
 
-  const canShare = await Sharing.isAvailableAsync();
-  if (!canShare) {
-    Alert.alert('PDF saved', `Saved to ${fileUri}`);
-    return;
-  }
+  try {
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      Alert.alert('PDF saved', `Saved to ${fileUri}`);
+      return;
+    }
 
-  await Sharing.shareAsync(fileUri, {
-    mimeType: 'application/pdf',
-    UTI: 'com.adobe.pdf',
-    dialogTitle: 'Share PDF',
-  });
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/pdf',
+      UTI: 'com.adobe.pdf',
+      dialogTitle: 'Share downloaded PDF',
+    });
+  } catch (err) {
+    if (isMissingExpoSharingError(err)) {
+      alertRebuildRequired();
+      return;
+    }
+    throw err;
+  }
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {

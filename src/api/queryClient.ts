@@ -7,6 +7,8 @@ import { ApiError } from './client';
 export const DEFAULT_STALE_MS = 2 * 60_000;
 /** Masters (PARAMLIST, CoachType, food, countries) rarely change. */
 export const MASTER_STALE_MS = 45 * 60_000;
+/** Progress photos / client avatars — share cache across list + detail. */
+export const PHOTO_STALE_MS = 5 * 60_000;
 
 // React Query's default online/focus detection uses browser-only APIs that no-op on RN.
 onlineManager.setEventListener(setOnline =>

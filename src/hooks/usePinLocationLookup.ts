@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getLocationByPin } from '../api/masterApi';
 import { getErrorMessage } from '../api/client';
+import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { useDebouncedValue } from './useDebouncedValue';
 
@@ -35,6 +36,7 @@ export function usePinLocationLookup(
     queryFn: () => getLocationByPin(countryCode, debouncedPin),
     enabled,
     retry: false,
+    staleTime: MASTER_STALE_MS,
   });
 
   const city = (query.data?.city ?? '').trim();

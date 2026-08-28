@@ -1,5 +1,6 @@
 import { Colors } from '../constants/theme';
 import type { BmiCategory } from '../types/models';
+import { ageFromDate, parseDob } from './validation';
 
 export function getBmi(height: string | number, weight: string | number): number | null {
   const h = parseFloat(String(height));
@@ -98,15 +99,23 @@ interface ProfileLike {
   weight: string;
   height: string;
   age: string;
+  dob?: string;
   gender: string;
 }
 
-// Returns null (rather than computing on partial/zero data) until all 4 inputs are present —
-// matches the website's renderBmi(), which shows a "please complete Step 1" prompt instead.
+function resolveProfileAge(profile: ProfileLike): number {
+  const fromField = parseInt(profile.age, 10);
+  if (Number.isFinite(fromField) && fromField > 0) return fromField;
+  if (!profile.dob?.trim()) return 0;
+  const dob = parseDob(profile.dob);
+  return dob ? ageFromDate(dob) : 0;
+}
+
+/** Null until weight, height, age (or DOB), and gender are present — matches web renderBmi(). */
 export function computeBmiMetrics(profile: ProfileLike): BodyMetrics | null {
   const weight = parseFloat(profile.weight);
   const height = parseInt(profile.height, 10);
-  const age = parseInt(profile.age, 10);
+  const age = resolveProfileAge(profile);
   if (!weight || !height || !age || !profile.gender) return null;
   return computeBodyMetrics({ weight, height, age, gender: profile.gender });
 }

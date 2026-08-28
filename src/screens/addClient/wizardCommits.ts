@@ -8,6 +8,7 @@ import {
 } from '../../api/clientApi';
 import { uploadDocument } from '../../api/documentApi';
 import { getCurrentCoachCode, getCurrentCoachId } from '../../auth/session';
+import { ApiError } from '../../api/client';
 import type { BodyMetrics } from '../../utils/bmi';
 import type { AssessmentIds } from '../../api/clientApi';
 import type { ClientProfile } from '../../types/models';
@@ -18,20 +19,32 @@ export async function commitPersonal(
   ids: AssessmentIds,
 ): Promise<AssessmentIds> {
   const nextIds = await saveClientDetail(profile, ids);
+  if (!nextIds.clientCode || !nextIds.assessmentCode) {
+    throw new ApiError(
+      'Client was saved but assessment details were not returned. Please try again.',
+      0,
+    );
+  }
+
   const pending = (profile.photos ?? []).filter(p => p.dataUrl?.trim());
   if (pending.length && nextIds.clientCode) {
     const coachCode = getCurrentCoachCode() ?? '';
     const savedBy = Number(getCurrentCoachId()) || 0;
+    // Photos are optional — upload failures must not block the wizard.
     for (const photo of pending) {
-      const dataUrl = photo.dataUrl!.trim();
-      await uploadDocument({
-        base64DataUrl: dataUrl,
-        coachCode,
-        refCode: nextIds.clientCode,
-        refType: 'CLIENT',
-        docType: 'PROGRESS_PHOTO',
-        savedBy,
-      });
+      try {
+        const dataUrl = photo.dataUrl!.trim();
+        await uploadDocument({
+          base64DataUrl: dataUrl,
+          coachCode,
+          refCode: nextIds.clientCode,
+          refType: 'CLIENT',
+          docType: 'PROGRESS_PHOTO',
+          savedBy,
+        });
+      } catch {
+        /* optional upload — continue wizard */
+      }
     }
   }
   return nextIds;

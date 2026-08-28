@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import EmptyState from '../components/EmptyState';
+import ClientAvatar from '../components/ClientAvatar';
 import { HeaderHomeButton } from '../components/ScreenHeader';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
@@ -121,6 +122,10 @@ export default function ClientListScreen({
               data={filtered}
               keyExtractor={item => item.id ?? item.clientCode ?? item.name}
               showsVerticalScrollIndicator={false}
+              // Keep photo N+1 bounded to near-viewport rows (virtualization already helps).
+              initialNumToRender={8}
+              maxToRenderPerBatch={6}
+              windowSize={5}
               contentContainerStyle={[
                 filtered.length === 0 ? styles.emptyWrap : undefined,
                 { paddingBottom: Math.max(insets.bottom, 16) },
@@ -137,60 +142,67 @@ export default function ClientListScreen({
                 const meta = clientMeta(item);
                 const mobile = (item.mobileNo ?? '').trim();
                 return (
-                  <TouchableOpacity
-                    style={styles.card}
-                    onPress={() => navigation.navigate('ClientDetail', { client: item })}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{item.initials || '?'}</Text>
-                    </View>
-                    <View style={styles.info}>
-                      <Text style={styles.name} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      {meta ? (
-                        <Text style={styles.meta} numberOfLines={1}>
-                          {meta}
+                  <View style={styles.card}>
+                    <ClientAvatar
+                      clientCode={item.clientCode}
+                      initials={item.initials}
+                      size={46}
+                      allowUpload
+                    />
+                    <TouchableOpacity
+                      style={styles.cardMain}
+                      onPress={() => navigation.navigate('ClientDetail', { client: item })}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${item.name}`}
+                    >
+                      <View style={styles.info}>
+                        <Text style={styles.name} numberOfLines={1}>
+                          {item.name}
                         </Text>
-                      ) : null}
-                      {mobile ? (
+                        {meta ? (
+                          <Text style={styles.meta} numberOfLines={1}>
+                            {meta}
+                          </Text>
+                        ) : null}
+                        {mobile ? (
+                          <Text style={styles.meta} numberOfLines={1}>
+                            {mobile}
+                          </Text>
+                        ) : null}
                         <Text style={styles.meta} numberOfLines={1}>
-                          {mobile}
-                        </Text>
-                      ) : null}
-                      <Text style={styles.meta} numberOfLines={1}>
-                        {lastCheckupLabel(item.lastCheckupDate)}
-                      </Text>
-                    </View>
-                    {item.status ? (
-                      <View
-                        style={[
-                          styles.badge,
-                          item.status === 'Active' && styles.badgeActive,
-                          item.status === 'Checkup Due' && styles.badgeWarning,
-                          item.status === 'New' && styles.badgeNew,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.badgeText,
-                            item.status === 'Active' && styles.badgeActiveText,
-                            item.status === 'Checkup Due' && styles.badgeWarningText,
-                            item.status === 'New' && styles.badgeNewText,
-                          ]}
-                        >
-                          {item.status}
+                          {lastCheckupLabel(item.lastCheckupDate)}
                         </Text>
                       </View>
-                    ) : null}
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color={Colors.border}
-                      style={{ marginLeft: 6 }}
-                    />
-                  </TouchableOpacity>
+                      {item.status ? (
+                        <View
+                          style={[
+                            styles.badge,
+                            item.status === 'Active' && styles.badgeActive,
+                            item.status === 'Checkup Due' && styles.badgeWarning,
+                            item.status === 'New' && styles.badgeNew,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.badgeText,
+                              item.status === 'Active' && styles.badgeActiveText,
+                              item.status === 'Checkup Due' && styles.badgeWarningText,
+                              item.status === 'New' && styles.badgeNewText,
+                            ]}
+                          >
+                            {item.status}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={Colors.border}
+                        style={{ marginLeft: 6 }}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 );
               }}
             />
@@ -244,16 +256,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     ...Shadow.sm,
   },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  avatarText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   info: { flex: 1, minWidth: 0 },
   name: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
   meta: { fontSize: 12, color: Colors.textLight, marginTop: 1 },

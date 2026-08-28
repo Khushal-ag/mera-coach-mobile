@@ -4,7 +4,7 @@ import { Colors, Radius } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import MultiSelectField from '../../../components/MultiSelectField';
-import { useNormalizeAllParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
+import { useNormalizeHealthGoalParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
@@ -12,9 +12,14 @@ export default function HealthGoalsStep({
   form,
   update,
   onLowerFieldFocus,
-}: StepProps<ClientProfile> & { onLowerFieldFocus?: () => void }) {
+  errorFields = {},
+}: StepProps<ClientProfile> & {
+  onLowerFieldFocus?: () => void;
+  errorFields?: Record<string, boolean>;
+}) {
+  const err = (field: string) => !!errorFields[field];
   const { medicalOptions, allergyOptions, goalOptions, timelineOptions } =
-    useNormalizeAllParamFormValues(form, update);
+    useNormalizeHealthGoalParamFormValues(form, update);
 
   return (
     <View>
@@ -24,6 +29,8 @@ export default function HealthGoalsStep({
         options={medicalOptions}
         onChange={v => update('medicalConditions', v)}
         placeholder="Select conditions"
+        required
+        hasError={err('medicalConditions')}
       />
       <MultiSelectField
         label="Food Allergies"
@@ -31,6 +38,8 @@ export default function HealthGoalsStep({
         options={allergyOptions}
         onChange={v => update('foodAllergies', v)}
         placeholder="Select allergies"
+        required
+        hasError={err('foodAllergies')}
       />
 
       <View style={styles.divider} />
@@ -41,6 +50,8 @@ export default function HealthGoalsStep({
         options={goalOptions}
         onChange={v => update('primaryGoal', v)}
         placeholder="Select"
+        required
+        hasError={err('primaryGoal')}
       />
       <DropdownField
         label="Target Timeline"
@@ -48,6 +59,8 @@ export default function HealthGoalsStep({
         options={timelineOptions}
         onChange={v => update('targetTimeline', v)}
         placeholder="Select"
+        required
+        hasError={err('targetTimeline')}
       />
 
       <View style={styles.field}>

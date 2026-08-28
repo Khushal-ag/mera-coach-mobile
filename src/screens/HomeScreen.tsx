@@ -176,8 +176,9 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
     staleTime: MASTER_STALE_MS,
   });
   // Single public-list fetch (page 1, default pageSize 50) — stories reuse a mid-slice.
+  // Empty params normalize to the same key as CoachList with no filters.
   const coachesQuery = useQuery({
-    queryKey: queryKeys.coachPublicList({}),
+    queryKey: queryKeys.coachPublicList(),
     queryFn: () => getCoachPublicList(),
   });
 

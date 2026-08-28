@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import ScreenHeader from '../components/ScreenHeader';
+import ClientAvatar from '../components/ClientAvatar';
+import ProgressPhotos from '../components/ProgressPhotos';
 import { getClientDetail } from '../api/clientApi';
 import { getErrorMessage } from '../api/client';
 import { resolveMasterLabel } from '../api/masterApi';
@@ -156,9 +158,13 @@ export default function ClientDetailScreen({
       <ScreenHeader title="Client Profile" onBack={() => navigation.goBack()} />
 
       <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{client.initials || 'CL'}</Text>
-        </View>
+        <ClientAvatar
+          clientCode={client.clientCode}
+          initials={client.initials || 'CL'}
+          size={80}
+          allowUpload
+          style={{ marginRight: 0, marginBottom: 12 }}
+        />
         <Text style={styles.clientName}>{client.name}</Text>
 
         {(mobile || checkupLine) && (
@@ -200,6 +206,12 @@ export default function ClientDetailScreen({
           ) : null}
         </View>
       </View>
+
+      {client.clientCode ? (
+        <View style={styles.section}>
+          <ProgressPhotos clientCode={client.clientCode} />
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Client Information</Text>
@@ -256,7 +268,6 @@ export default function ClientDetailScreen({
                   style={[styles.actionBtn, { backgroundColor: action.bg }]}
                   onPress={action.onPress}
                   activeOpacity={0.7}
-                  disabled={action.label.startsWith('Preparing')}
                   accessibilityRole="button"
                   accessibilityLabel={action.label}
                 >
@@ -284,16 +295,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Shadow.md,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  avatarText: { color: Colors.white, fontSize: 28, fontWeight: '800' },
   clientName: {
     fontSize: 20,
     fontWeight: '800',

@@ -47,6 +47,26 @@ export interface CoachPublicListParams {
   pageSize?: number;
 }
 
+/**
+ * Backend DB column `IsProfileVisible` (int4: 1 = public). JSON may use PascalCase
+ * (`IsProfileVisible`) or camelCase (`isProfileVisible`); older shapes used `Is_profileVisible`.
+ * Set internally by Coach/save when public-page fields are updated — not on CoachSaveRequest.
+ * Confirmed on live GET /Coach/profile-by-id; public list may omit it when already filtered.
+ */
+export function parseIsProfileVisible(raw: Record<string, unknown>): boolean | undefined {
+  const v =
+    raw.IsProfileVisible ?? raw.isProfileVisible ?? raw.Is_profileVisible ?? raw.is_profileVisible;
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v === 1;
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    if (s === '1' || s === 'true') return true;
+    if (s === '0' || s === 'false') return false;
+  }
+  return undefined;
+}
+
 // Field names checked against a live GET /Coach/public response.
 interface RawPublicCoach {
   coachCode: string;
@@ -63,6 +83,10 @@ interface RawPublicCoach {
   reviewCount?: number;
   logo_Url?: string;
   profile_Pic_Url?: string;
+  /** Present on some endpoints; public list often omits when server already filters. */
+  IsProfileVisible?: boolean | number | string;
+  isProfileVisible?: boolean | number | string;
+  Is_profileVisible?: boolean | number | string;
 }
 
 interface CoachPublicListResponse {
@@ -115,9 +139,22 @@ export async function getCoachPublicList(
     page: params.page ?? 1,
     pageSize: params.pageSize ?? 50, // no pagination UI yet
   });
+  const items = data?.items || [];
+  // Prefer server-side filter (IsProfileVisible=1). Client defense in depth:
+  // - If ANY item has the flag, drop only explicit non-visible (false/0); omit/missing → keep.
+  // - If ALL items lack the flag, leave the list as-is (trust server already filtered).
+  const visibilityKnown = items.some(
+    item => parseIsProfileVisible(item as unknown as Record<string, unknown>) !== undefined,
+  );
+  const visibleItems = visibilityKnown
+    ? items.filter(item => {
+        const v = parseIsProfileVisible(item as unknown as Record<string, unknown>);
+        return v !== false;
+      })
+    : items;
   return {
-    coaches: (data?.items || []).map(mapPublicCoach),
-    totalCount: data?.totalCount ?? 0,
+    coaches: visibleItems.map(mapPublicCoach),
+    totalCount: visibilityKnown ? visibleItems.length : (data?.totalCount ?? 0),
   };
 }
 
@@ -211,6 +248,9 @@ interface RawCoachProfileFull {
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
+  IsProfileVisible?: boolean | number | string;
+  isProfileVisible?: boolean | number | string;
+  Is_profileVisible?: boolean | number | string;
 }
 
 export interface CoachProfileFull {
@@ -239,6 +279,11 @@ export interface CoachProfileFull {
   coachDesc: string;
   bmiReportTemplate: string;
   dietChartTemplate: string;
+  /**
+   * Whether this coach appears on Find a Coach / public Home.
+   * Backend sets true when public fields are saved; undefined if API omits the field.
+   */
+  isProfileVisible?: boolean;
 }
 
 export async function getCoachProfileFull(): Promise<CoachProfileFull> {
@@ -268,6 +313,7 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     coachDesc: raw.coachDesc ?? '',
     bmiReportTemplate: raw.bmiReportTemplate ?? '',
     dietChartTemplate: raw.dietChartTemplate ?? '',
+    isProfileVisible: parseIsProfileVisible(raw as unknown as Record<string, unknown>),
   };
 }
 
@@ -305,6 +351,10 @@ export async function getServicesForCategory(categoryCode: string): Promise<Mast
   return items.map(i => ({ code: i.itemCode, label: i.itemName }));
 }
 
+/**
+ * Matches OpenAPI CoachSaveRequest. Do not send IsProfileVisible — `additionalProperties: false`
+ * and the API sets IsProfileVisible internally when public-page fields are present/updated.
+ */
 export interface SaveCoachProfileParams {
   coachId: number;
   coachName: string;
@@ -340,9 +390,7 @@ export interface ChangePasswordParams {
   newPassword: string;
 }
 
-// VERIFY: currentPassword/newPassword are hashed the same way login() hashes its password
-// (matching CoachBLL.HashPassword). Not independently confirmed against a real call (needs
-// a bearer token and a real current password to test).
+/** Hashes the same way as login (CoachBLL.HashPassword). */
 export async function changePassword(params: ChangePasswordParams): Promise<void> {
   await apiPut('/v{version}/Coach/change-password', {
     currentPassword: await hashPassword(params.currentPassword),

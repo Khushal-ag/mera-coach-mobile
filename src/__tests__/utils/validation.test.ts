@@ -8,6 +8,7 @@ import {
   feetInchesToCm,
   validateHeight,
   validateClientPersonalProfile,
+  validateClientLifestyleProfile,
   validateLogin,
   validateCoachRegister,
   MANDATORY_FIELDS_BANNER,
@@ -139,6 +140,33 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     );
     expect(result.ok).toBe(false);
     expect(result.errors.email).toBeTruthy();
+  });
+});
+
+describe('validateClientLifestyleProfile', () => {
+  it('requires lifestyle and health goal fields', () => {
+    const result = validateClientLifestyleProfile(emptyProfile());
+    expect(result.ok).toBe(false);
+    expect(result.errors.medicalConditions).toBeTruthy();
+    expect(result.errors.foodAllergies).toBeTruthy();
+    expect(result.errors.primaryGoal).toBeTruthy();
+  });
+
+  it('passes when all lifestyle fields are set', () => {
+    const result = validateClientLifestyleProfile(
+      emptyProfile({
+        physicalActivity: 'LI001',
+        workType: 'LI002',
+        sleepDuration: 'LI003',
+        foodPreference: 'LI004',
+        regionalCuisine: 'LI005',
+        medicalConditions: ['LI006'],
+        foodAllergies: ['LI007'],
+        primaryGoal: 'LI008',
+        targetTimeline: 'LI009',
+      }),
+    );
+    expect(result.ok).toBe(true);
   });
 });
 

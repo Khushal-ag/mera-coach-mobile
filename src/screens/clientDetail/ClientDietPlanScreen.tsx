@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import AssessmentWizardFlow from '../addClient/AssessmentWizardFlow';
+import PdfDownloadShareButton from '../../components/PdfDownloadShareButton';
 import type { AssessmentCompleteResult } from '../addClient/AssessmentWizardFlow';
 import ClientPhaseLoadShell from '../../components/ClientPhaseLoadShell';
 import { useCheckupProfile } from '../../hooks/useCheckupProfile';
@@ -10,7 +10,6 @@ import { getDietPlanReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
-import { Colors, Shadow } from '../../constants/theme';
 import {
   dietPlanPdfQuery,
   downloadAndSharePdf,
@@ -25,7 +24,7 @@ export default function ClientDietPlanScreen({
 }: ClientsStackScreenProps<'ClientDietPlan'>) {
   const client = route.params?.client;
   const queryClient = useQueryClient();
-  const [sharingPdf, setSharingPdf] = useState(false);
+  const [preparingPdf, setPreparingPdf] = useState(false);
   const { profile, ids, isLoading, isError, error, detailReady, refetch } = useCheckupProfile(
     client,
     { assessmentIdMode: 'latest' },
@@ -50,10 +49,10 @@ export default function ClientDietPlanScreen({
     const coachCode = getCurrentCoachCode();
     const clientCode = client?.clientCode ?? ids.clientCode;
     if (!coachCode || !clientCode) {
-      Alert.alert('Cannot share PDF', 'Client information is missing.');
+      Alert.alert('Cannot download PDF', 'Client information is missing.');
       return;
     }
-    setSharingPdf(true);
+    setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
         '/v{version}/Client/diet-plan-pdf',
@@ -61,9 +60,9 @@ export default function ClientDietPlanScreen({
         'diet-plan.pdf',
       );
     } catch (err) {
-      Alert.alert('PDF failed', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
+      Alert.alert('PDF unavailable', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
     } finally {
-      setSharingPdf(false);
+      setPreparingPdf(false);
     }
   };
 
@@ -109,19 +108,7 @@ export default function ClientDietPlanScreen({
   };
 
   const shareButton = canSharePdf ? (
-    <TouchableOpacity
-      style={styles.shareBtn}
-      onPress={shareDietPdf}
-      disabled={sharingPdf}
-      accessibilityRole="button"
-      accessibilityLabel="Share diet plan PDF"
-    >
-      {sharingPdf ? (
-        <ActivityIndicator color={Colors.textDark} size="small" />
-      ) : (
-        <Ionicons name="share-outline" size={20} color={Colors.textDark} />
-      )}
-    </TouchableOpacity>
+    <PdfDownloadShareButton variant="headerOnLight" onPress={shareDietPdf} loading={preparingPdf} />
   ) : null;
 
   return (
@@ -147,15 +134,3 @@ export default function ClientDietPlanScreen({
     </ClientPhaseLoadShell>
   );
 }
-
-const styles = StyleSheet.create({
-  shareBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.md,
-  },
-});

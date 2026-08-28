@@ -10,19 +10,15 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
+import { useQueryClient } from '@tanstack/react-query';
+import { pickImagesFromCameraOrLibrary } from '../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import {
-  deleteDocument,
-  listDocuments,
-  uploadDocumentWithMeta,
-  type DocumentListItem,
-} from '../api/documentApi';
+import { deleteDocument, uploadDocumentWithMeta, type DocumentListItem } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
-import { getCurrentCoachCode, getCurrentCoachId } from '../auth/session';
+import { getCurrentCoachId } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
+import { progressPhotosCoachCode, useProgressPhotosQuery } from '../hooks/useProgressPhotosQuery';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const DOC_TYPE = 'PROGRESS_PHOTO';
@@ -33,23 +29,13 @@ interface Props {
 }
 
 export default function ProgressPhotos({ clientCode }: Props) {
-  const coachCode = getCurrentCoachCode() ?? '';
+  const coachCode = progressPhotosCoachCode();
   const queryClient = useQueryClient();
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const photosQuery = useQuery({
-    queryKey: queryKeys.progressPhotos(coachCode, clientCode),
-    queryFn: () =>
-      listDocuments({
-        coachCode,
-        refCode: clientCode,
-        refType: REF_TYPE,
-        docType: DOC_TYPE,
-      }),
-    enabled: !!coachCode && !!clientCode,
-  });
-
+  // Same query key as ClientAvatar / useClientPhotoUrl — one Document/list per client.
+  const photosQuery = useProgressPhotosQuery(clientCode);
   const photos = photosQuery.data ?? [];
 
   const invalidate = useCallback(() => {
@@ -59,25 +45,16 @@ export default function ProgressPhotos({ clientCode }: Props) {
   }, [queryClient, coachCode, clientCode]);
 
   const pickAndUpload = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access to upload progress photos.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+    const assets = await pickImagesFromCameraOrLibrary({
       quality: 0.8,
-      base64: true,
-      allowsMultipleSelection: true,
       selectionLimit: 5,
     });
-    if (result.canceled || !result.assets.length) return;
+    if (!assets.length) return;
 
     setUploading(true);
     try {
-      for (const asset of result.assets) {
-        if (!asset.base64) continue;
-        const dataUrl = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+      for (const asset of assets) {
+        const dataUrl = `data:${asset.mimeType};base64,${asset.base64}`;
         await uploadDocumentWithMeta({
           base64DataUrl: dataUrl,
           coachCode,
@@ -218,7 +195,6 @@ export default function ProgressPhotos({ clientCode }: Props) {
 const THUMB = 100;
 
 const styles = StyleSheet.create({
-  // Nested inside BasicProfileStep (already padded by the wizard); no outer margin.
   section: { marginBottom: 16 },
   headerRow: {
     flexDirection: 'row',

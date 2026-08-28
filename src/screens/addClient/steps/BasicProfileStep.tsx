@@ -12,7 +12,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { pickImagesFromCameraOrLibrary } from '../../../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius } from '../../../constants/theme';
@@ -502,27 +502,19 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
       Alert.alert('Limit reached', `You can add up to ${MAX_CLIENT_PHOTOS} photos.`);
       return;
     }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access to add client photos.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+    const assets = await pickImagesFromCameraOrLibrary({
       quality: 0.7,
-      base64: true,
-      allowsMultipleSelection: true,
       selectionLimit: remaining,
     });
-    if (result.canceled || !result.assets.length) return;
+    if (!assets.length) return;
 
     const added: PendingClientPhoto[] = [];
-    for (const asset of result.assets) {
-      if (!asset.base64 || added.length >= remaining) continue;
+    for (const asset of assets) {
+      if (added.length >= remaining) break;
       added.push({
         id: newPhotoId(),
         uri: asset.uri,
-        dataUrl: `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`,
+        dataUrl: `data:${asset.mimeType};base64,${asset.base64}`,
       });
     }
     if (!added.length) return;

@@ -2,11 +2,16 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Colors } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
-import { useNormalizeAllParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
+import { useNormalizeLifestyleParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
 
-export default function LifestylePreferencesStep({ form, update }: StepProps<ClientProfile>) {
+export default function LifestylePreferencesStep({
+  form,
+  update,
+  errorFields = {},
+}: StepProps<ClientProfile> & { errorFields?: Record<string, boolean> }) {
+  const err = (field: string) => !!errorFields[field];
   const {
     activityOptions,
     workTypeOptions,
@@ -14,7 +19,7 @@ export default function LifestylePreferencesStep({ form, update }: StepProps<Cli
     pregnancyOptions,
     foodPrefOptions,
     cuisineOptions,
-  } = useNormalizeAllParamFormValues(form, update);
+  } = useNormalizeLifestyleParamFormValues(form, update);
 
   return (
     <View>
@@ -24,6 +29,8 @@ export default function LifestylePreferencesStep({ form, update }: StepProps<Cli
         options={activityOptions}
         onChange={v => update('physicalActivity', v)}
         placeholder="Select"
+        required
+        hasError={err('physicalActivity')}
       />
       <DropdownField
         label="Work Type"
@@ -31,6 +38,8 @@ export default function LifestylePreferencesStep({ form, update }: StepProps<Cli
         options={workTypeOptions}
         onChange={v => update('workType', v)}
         placeholder="Select"
+        required
+        hasError={err('workType')}
       />
 
       <View style={styles.divider} />
@@ -41,6 +50,8 @@ export default function LifestylePreferencesStep({ form, update }: StepProps<Cli
         options={sleepOptions}
         onChange={v => update('sleepDuration', v)}
         placeholder="Select"
+        required
+        hasError={err('sleepDuration')}
       />
       {form.gender === 'F' && (
         <DropdownField
@@ -60,6 +71,8 @@ export default function LifestylePreferencesStep({ form, update }: StepProps<Cli
         options={foodPrefOptions}
         onChange={v => update('foodPreference', v)}
         placeholder="Select"
+        required
+        hasError={err('foodPreference')}
       />
       <DropdownField
         label="Regional Cuisine"
@@ -67,6 +80,8 @@ export default function LifestylePreferencesStep({ form, update }: StepProps<Cli
         options={cuisineOptions}
         onChange={v => update('regionalCuisine', v)}
         placeholder="Select"
+        required
+        hasError={err('regionalCuisine')}
       />
     </View>
   );

@@ -18,6 +18,7 @@ import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { SORT_OPTIONS } from '../data/coachDirectory';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
+import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode, isAuthenticated } from '../auth/session';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -44,16 +45,18 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
     queryFn: getCoachCategories,
+    staleTime: MASTER_STALE_MS,
   });
   const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
 
+  const listParams = {
+    coachTypeCode: activeCategory || undefined,
+    search: debouncedSearch || undefined,
+  };
   const coachesQuery = useQuery({
-    queryKey: queryKeys.coachPublicList({ coachTypeCode: activeCategory, search: debouncedSearch }),
-    queryFn: () =>
-      getCoachPublicList({
-        coachTypeCode: activeCategory || undefined,
-        search: debouncedSearch || undefined,
-      }),
+    // Normalized key shares Home's empty-filter public list cache.
+    queryKey: queryKeys.coachPublicList(listParams),
+    queryFn: () => getCoachPublicList(listParams),
   });
 
   // Live roster for the logged-in coach — public API only has marketing happyClientCount.

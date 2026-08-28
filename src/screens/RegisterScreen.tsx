@@ -82,7 +82,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
 
       Alert.alert(
         'Registration Successful',
-        'Check your email for your login password, then sign in to continue.',
+        `Your account has been created. Your login password has been shared on ${email.trim()}. Please check your email and sign in to continue.`,
         [{ text: 'OK', onPress: () => navigation.replace('Login') }],
       );
     } catch (err) {

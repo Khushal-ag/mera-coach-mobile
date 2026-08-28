@@ -31,7 +31,10 @@ import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
 import { computeBmiMetrics } from '../../utils/bmi';
-import { validateClientPersonalProfile } from '../../utils/validation';
+import {
+  validateClientPersonalProfile,
+  validateClientLifestyleProfile,
+} from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import {
   commitPersonal,
@@ -69,7 +72,7 @@ interface AssessmentWizardFlowProps {
   finishLabel?: string;
   /** When true, skip save-meals if the coach did not enter any food items (checkup/edit). */
   skipEmptyDietCommit?: boolean;
-  /** Optional control opposite the floating back (e.g. Share PDF on diet-plan shortcut). */
+  /** Optional control opposite the floating back (e.g. Download PDF on diet-plan shortcut). */
   headerRight?: React.ReactNode;
   onExit: () => void;
   onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
@@ -172,6 +175,13 @@ export default function AssessmentWizardFlow({
       }
     }
 
+    if (phaseId === 'lifestyle') {
+      if (applyValidation(validateClientLifestyleProfile(form))) {
+        setApiError('');
+        return;
+      }
+    }
+
     clearAllErrors();
     setApiError('');
     setSaving(true);
@@ -227,6 +237,12 @@ export default function AssessmentWizardFlow({
         // Optional on full assessment — skip save when the coach did not generate a plan.
         if (form.dietPlan) await commitDietPlan(form.dietPlan, ids);
         const metrics = computeBmiMetrics(form);
+        if (!metrics && flow === 'add') {
+          setApiError(
+            'Complete height, weight, date of birth or age, and gender before finishing.',
+          );
+          return;
+        }
         await finishAssessment(ids, metrics, bmiSaved, 0);
         await onComplete();
         return;
@@ -262,8 +278,8 @@ export default function AssessmentWizardFlow({
           onLowerFieldFocus: scrollLowerFieldsIntoView,
           clientCode: ids.clientCode || undefined,
         }
-      : entry.screenId === 'healthGoals'
-        ? { onLowerFieldFocus: scrollLowerFieldsIntoView }
+      : entry.screenId === 'lifestylePreferences' || entry.screenId === 'healthGoals'
+        ? { errorFields, onLowerFieldFocus: scrollLowerFieldsIntoView }
         : {};
 
   const bannerMessage = formErrorBanner || apiError || null;

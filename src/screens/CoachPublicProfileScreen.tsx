@@ -120,6 +120,8 @@ function CoachProfilePage({
     queryKey: queryKeys.coachProfileByCode(coachCode),
     queryFn: () => getCoachProfileByCode(coachCode),
     enabled: !!coachCode,
+    // Show directory row immediately; profile-by-id still fills mobile/tagline in background.
+    placeholderData: listCoach?.id === coachCode ? listCoach : undefined,
   });
 
   const myCoachCode = getCurrentCoachCode();
@@ -131,7 +133,13 @@ function CoachProfilePage({
   });
 
   const listMatch = listCoach?.id === coachCode ? listCoach : undefined;
-  const coach = mergeCoachProfile(profileQuery.data, listMatch);
+  // placeholderData shows the directory row while pending; on hard failure with no
+  // successful cache, do not fall back to list-only or WhatsApp/mobile never load
+  // and the EmptyState error path is skipped.
+  const coach =
+    profileQuery.isError && !profileQuery.data
+      ? undefined
+      : mergeCoachProfile(profileQuery.data, listMatch);
   const clientCount = coach
     ? resolvePublicClientCount({
         coachId: coach.id,

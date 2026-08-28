@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../../constants/theme';
 import ScreenHeader from '../../components/ScreenHeader';
+import PdfDownloadShareButton from '../../components/PdfDownloadShareButton';
 import { getBmiReport } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
@@ -33,7 +33,7 @@ export default function ClientBmiReportScreen({
   const insets = useSafeAreaInsets();
   const client = route.params?.client;
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
-  const [sharingPdf, setSharingPdf] = useState(false);
+  const [preparingPdf, setPreparingPdf] = useState(false);
 
   const reportQuery = useQuery({
     queryKey: queryKeys.bmiReport(ids.clientCode, ids.assessmentCode),
@@ -54,10 +54,10 @@ export default function ClientBmiReportScreen({
   const sharePdf = async () => {
     const coachCode = getCurrentCoachCode();
     if (!coachCode || !ids.clientCode) {
-      Alert.alert('Cannot share PDF', 'Client information is missing.');
+      Alert.alert('Cannot download PDF', 'Client information is missing.');
       return;
     }
-    setSharingPdf(true);
+    setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
         '/v{version}/Client/bmi-report-pdf',
@@ -69,26 +69,19 @@ export default function ClientBmiReportScreen({
         'bmi-report.pdf',
       );
     } catch (err) {
-      Alert.alert('PDF failed', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
+      Alert.alert('PDF unavailable', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
     } finally {
-      setSharingPdf(false);
+      setPreparingPdf(false);
     }
   };
 
   const pdfButton = (
-    <TouchableOpacity
-      style={styles.headerAction}
+    <PdfDownloadShareButton
+      variant="headerOnDark"
       onPress={sharePdf}
-      disabled={sharingPdf || !report}
-      accessibilityRole="button"
-      accessibilityLabel="Share BMI report PDF"
-    >
-      {sharingPdf ? (
-        <ActivityIndicator color={Colors.white} size="small" />
-      ) : (
-        <Ionicons name="share-outline" size={20} color={Colors.white} />
-      )}
-    </TouchableOpacity>
+      loading={preparingPdf}
+      disabled={!report}
+    />
   );
 
   const primaryStats = report
@@ -217,20 +210,12 @@ export default function ClientBmiReportScreen({
               )}
             </View>
 
-            <TouchableOpacity
-              style={[styles.shareBtn, sharingPdf && styles.shareBtnDisabled]}
+            <PdfDownloadShareButton
+              variant="primary"
               onPress={sharePdf}
-              disabled={sharingPdf}
-            >
-              {sharingPdf ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <>
-                  <Ionicons name="document-outline" size={18} color={Colors.white} />
-                  <Text style={styles.shareBtnText}>Share PDF with Client</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              loading={preparingPdf}
+              style={styles.pdfCta}
+            />
           </>
         )}
       </ScrollView>
@@ -382,25 +367,5 @@ const styles = StyleSheet.create({
   },
   noHistoryTitle: { fontSize: 13, fontWeight: '700', color: Colors.textDark, marginTop: 4 },
   noHistory: { fontSize: 12, color: Colors.textLight, textAlign: 'center', lineHeight: 17 },
-  headerAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.onDarkOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    paddingVertical: 14,
-    marginTop: 8,
-    ...Shadow.md,
-  },
-  shareBtnDisabled: { opacity: 0.7 },
-  shareBtnText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  pdfCta: { marginTop: 8 },
 });

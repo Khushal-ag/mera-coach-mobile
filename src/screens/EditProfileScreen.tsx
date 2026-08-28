@@ -11,7 +11,6 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
 import PhoneTextInput from '../components/PhoneTextInput';
@@ -31,17 +30,15 @@ import { getCountries, type MasterOption } from '../api/masterApi';
 import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { LOCAL_LANGUAGE_OPTIONS } from '../data/localLanguages';
-import {
-  sanitizeEmailInput,
-  sanitizePinInput,
-  validateCoachProfileEdit,
-} from '../utils/validation';
+import { sanitizePinInput, validateCoachProfileEdit } from '../utils/validation';
 import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../hooks/usePinLocationLookup';
 import { getCurrentCoachId } from '../auth/session';
 import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
+import { buildCoachDescriptionSuggestions } from '../utils/coachDescriptionSuggestions';
 import type { ProfileStackScreenProps } from '../types/navigation';
 import type { CoachProfileFull } from '../api/coachApi';
 import type { CoachCategory } from '../types/models';
@@ -102,13 +99,13 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const [categoryLabel, setCategoryLabel] = useState(
     categories.find(c => c.code === profile.coachTypeCode)?.label ?? '',
   );
-  const [mobile, setMobile] = useState(profile.mobile);
-  const [email, setEmail] = useState(profile.email);
+  const [mobile] = useState(profile.mobile);
+  const [email] = useState(profile.email);
   const [businessName, setBusinessName] = useState(profile.businessName);
-  const [experienceYears, setExperienceYears] = useState(String(profile.experienceYears || ''));
-  const [happyClientCount, setHappyClientCount] = useState(String(profile.happyClientCount || ''));
+  const [experienceYears, setExperienceYears] = useState(String(profile.experienceYears ?? ''));
+  const [happyClientCount, setHappyClientCount] = useState(String(profile.happyClientCount ?? ''));
   const [certificationCount, setCertificationCount] = useState(
-    String(profile.certificationCount || ''),
+    String(profile.certificationCount ?? ''),
   );
   const [tagline, setTagline] = useState(profile.tagline);
   const [localLanguage, setLocalLanguage] = useState(profile.localLanguage);
@@ -127,6 +124,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   // null = not edited yet => derive from profile; [] = user cleared all services.
   const [serviceLabels, setServiceLabels] = useState<string[] | null>(null);
   const [servicesForCategory, setServicesForCategory] = useState(profile.coachTypeCode);
+  const [autoSelectServices, setAutoSelectServices] = useState(false);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [profilePicUrl, setProfilePicUrl] = useState(profile.profilePicUrl);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -151,14 +149,21 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   if (servicesForCategory !== categoryCode) {
     setServicesForCategory(categoryCode);
     setServiceLabels(null);
+    setAutoSelectServices(true);
   }
 
   const servicesQuery = useQuery({
     queryKey: queryKeys.servicesForCategory(categoryCode),
     queryFn: () => getServicesForCategory(categoryCode),
     enabled: !!categoryCode,
+    staleTime: MASTER_STALE_MS,
   });
   const serviceOptions: MasterOption[] = servicesQuery.data ?? [];
+
+  if (autoSelectServices && serviceOptions.length > 0) {
+    setAutoSelectServices(false);
+    setServiceLabels(serviceOptions.map(s => s.label));
+  }
 
   const countryCode =
     countries.find(c => c.label === countryLabel)?.code ??
@@ -201,28 +206,19 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         : [];
 
   const pickImage = async (target: 'logo' | 'photo') => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access to upload an image.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      base64: true,
+    const picked = await pickImageFromCameraOrLibrary({
       allowsEditing: true,
       aspect: [1, 1],
+      quality: 0.7,
     });
-    if (result.canceled || !result.assets[0]?.base64) return;
+    if (!picked) return;
 
-    const asset = result.assets[0];
-    const localUri = asset.uri;
+    const localUri = picked.uri;
     const previousUrl = target === 'logo' ? logoUrl : profilePicUrl;
-    // Show local file URI immediately; upload returns a relative `/document/…` path.
     if (target === 'logo') setLogoUrl(localUri);
     else setProfilePicUrl(localUri);
 
-    const dataUrl = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+    const dataUrl = `data:${picked.mimeType};base64,${picked.base64}`;
     const setUploading = target === 'logo' ? setUploadingLogo : setUploadingPhoto;
     setUploading(true);
     setBanner(null);
@@ -262,6 +258,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           experienceYears,
           happyClientCount,
           certificationCount,
+          coachDesc,
+          addLine,
         }),
       )
     ) {
@@ -311,6 +309,15 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     }
   };
 
+  const descriptionSuggestions = buildCoachDescriptionSuggestions({
+    coachName,
+    categoryLabel: resolvedCategoryLabel,
+    categoryDescription: categories.find(c => c.label === resolvedCategoryLabel)?.description,
+    serviceLabels: resolvedServiceLabels,
+    experienceYears,
+    happyClientCount,
+  });
+
   return (
     <KeyboardSafeScroll
       ref={scrollRef}
@@ -319,6 +326,13 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       keyboardPadding={180}
     >
       <FormErrorBanner message={formErrorBanner || pinLookup.error} />
+
+      {profile.isProfileVisible === false ? (
+        <Text style={styles.visibilityHint}>
+          Complete public fields (experience, happy clients, description, address, pincode) and save
+          to appear on Find a Coach.
+        </Text>
+      ) : null}
 
       <View style={styles.imagesRow}>
         <ImagePickerTile
@@ -360,27 +374,26 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       <View style={styles.field}>
         <FormFieldLabel required>Mobile</FormFieldLabel>
         <PhoneTextInput
-          style={[styles.input, errorFields.mobile && styles.inputError]}
+          style={[styles.input, styles.inputReadOnly]}
           value={mobile}
-          onChangeText={v => {
-            setMobile(v);
-            clearFieldError('mobile');
-          }}
+          onChangeText={() => {}}
+          editable={false}
           placeholderTextColor={Colors.textLight}
         />
+        <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
       </View>
-      <Field
-        label="Email"
-        value={email}
-        onChangeText={v => {
-          setEmail(sanitizeEmailInput(v));
-          clearFieldError('email');
-        }}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        required
-        hasError={!!errorFields.email}
-      />
+      <View style={styles.field}>
+        <FormFieldLabel required>Email</FormFieldLabel>
+        <TextInput
+          style={[styles.input, styles.inputReadOnly, errorFields.email && styles.inputError]}
+          value={email}
+          editable={false}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholderTextColor={Colors.textLight}
+        />
+        <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
+      </View>
 
       <View style={styles.divider} />
 
@@ -395,6 +408,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               clearFieldError('experienceYears');
             }}
             keyboardType="numeric"
+            required
             hasError={!!errorFields.experienceYears}
           />
         </View>
@@ -407,6 +421,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               clearFieldError('happyClientCount');
             }}
             keyboardType="numeric"
+            required
             hasError={!!errorFields.happyClientCount}
           />
         </View>
@@ -442,17 +457,37 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       />
 
       <View style={styles.field}>
-        <FormFieldLabel>About / Description</FormFieldLabel>
+        <FormFieldLabel required>About / Description</FormFieldLabel>
         <TextInput
-          style={styles.textarea}
+          style={[styles.textarea, errorFields.coachDesc && styles.inputError]}
           multiline
           numberOfLines={4}
           value={coachDesc}
-          onChangeText={setCoachDesc}
+          onChangeText={v => {
+            setCoachDesc(v);
+            clearFieldError('coachDesc');
+          }}
           placeholder="Tell clients about your coaching style and experience"
           placeholderTextColor={Colors.textLight}
           onFocus={scrollLowerFieldsIntoView}
         />
+        <Text style={styles.suggestLabel}>Suggested descriptions — tap to use</Text>
+        <View style={styles.suggestChips}>
+          {descriptionSuggestions.map((text, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.suggestChip}
+              onPress={() => {
+                setCoachDesc(text);
+                clearFieldError('coachDesc');
+              }}
+            >
+              <Text style={styles.suggestChipText} numberOfLines={3}>
+                {text}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -483,41 +518,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       />
 
       <View style={styles.divider} />
-
-      <Field
-        label="Locality"
-        value={locality}
-        onChangeText={setLocality}
-        onFocus={scrollLowerFieldsIntoView}
-      />
-      <Field
-        label="Address Line"
-        value={addLine}
-        onChangeText={setAddLine}
-        onFocus={scrollLowerFieldsIntoView}
-      />
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Field
-            label="City"
-            value={cityCd}
-            onChangeText={setCityCd}
-            onFocus={scrollLowerFieldsIntoView}
-          />
-        </View>
-        <View style={styles.half}>
-          <Field
-            label="State"
-            value={stateCd}
-            onChangeText={setStateCd}
-            onFocus={scrollLowerFieldsIntoView}
-          />
-        </View>
-      </View>
+      <Text style={styles.sectionTitle}>Address</Text>
+      <Text style={styles.fieldHint}>Enter pincode to auto-fill city and state.</Text>
       <View style={styles.row}>
         <View style={styles.half}>
           <View style={styles.field}>
-            <FormFieldLabel>Pin Code</FormFieldLabel>
+            <FormFieldLabel required>Pin Code</FormFieldLabel>
             <View style={styles.pinInputWrap}>
               <TextInput
                 style={[
@@ -551,6 +557,41 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           />
         </View>
       </View>
+      <View style={styles.row}>
+        <View style={styles.half}>
+          <Field
+            label="City"
+            value={cityCd}
+            onChangeText={setCityCd}
+            onFocus={scrollLowerFieldsIntoView}
+          />
+        </View>
+        <View style={styles.half}>
+          <Field
+            label="State"
+            value={stateCd}
+            onChangeText={setStateCd}
+            onFocus={scrollLowerFieldsIntoView}
+          />
+        </View>
+      </View>
+      <Field
+        label="Locality"
+        value={locality}
+        onChangeText={setLocality}
+        onFocus={scrollLowerFieldsIntoView}
+      />
+      <Field
+        label="Address Line"
+        value={addLine}
+        onChangeText={v => {
+          setAddLine(v);
+          clearFieldError('addLine');
+        }}
+        required
+        hasError={!!errorFields.addLine}
+        onFocus={scrollLowerFieldsIntoView}
+      />
 
       <TouchableOpacity
         style={[
@@ -687,6 +728,35 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
   },
   inputError: { borderColor: Colors.destructive },
+  inputReadOnly: { backgroundColor: Colors.background, color: Colors.textLight },
+  fieldHintInline: {
+    fontSize: 11,
+    color: Colors.textLight,
+    marginTop: 4,
+  },
+  visibilityHint: {
+    fontSize: 12,
+    color: Colors.textLight,
+    lineHeight: 17,
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  suggestLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textLight,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  suggestChips: { gap: 8 },
+  suggestChip: {
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.sm,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  suggestChipText: { fontSize: 12, color: Colors.textDark, lineHeight: 17 },
   pinInputWrap: { position: 'relative', justifyContent: 'center' },
   pinInput: { paddingRight: 36 },
   pinLoader: { position: 'absolute', right: 12 },

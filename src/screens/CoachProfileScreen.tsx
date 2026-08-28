@@ -41,7 +41,6 @@ interface MenuItem {
 // isn't listed since its only concrete sub-feature for this app is Change Password.
 const menuItems: MenuItem[] = [
   { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
-  { icon: 'funnel-outline', label: 'My Leads', color: Colors.accent },
   { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
   { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary },
   { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: Colors.purple },
@@ -152,19 +151,6 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
               </View>
             </View>
           </View>
-
-          {profile?.tags.length ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Specializations</Text>
-              <View style={styles.tags}>
-                {profile.tags.map(tag => (
-                  <View key={tag} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
         </>
       )}
 
@@ -180,8 +166,6 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
               switch (item.label) {
                 case 'Edit Profile':
                   return navigation.navigate('EditProfile');
-                case 'My Leads':
-                  return navigation.navigate('Leads');
                 case 'Change Password':
                   return navigation.navigate('ChangePassword');
                 case 'Help & Support':
@@ -265,14 +249,6 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: Colors.textLight, marginTop: 2 },
   section: { marginHorizontal: 20, marginBottom: 16 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark, marginBottom: 10 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: {
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  tagText: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',

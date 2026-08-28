@@ -28,20 +28,34 @@ type ScalarParamKey =
 
 type ListParamKey = 'medicalConditions' | 'foodAllergies';
 
-interface ParamMasterBundle {
+export interface HealthGoalParamBundle {
+  medicalOptions: MasterOption[];
+  allergyOptions: MasterOption[];
+  goalOptions: MasterOption[];
+  timelineOptions: MasterOption[];
+}
+
+export interface LifestyleParamBundle {
   activityOptions: MasterOption[];
   workTypeOptions: MasterOption[];
   sleepOptions: MasterOption[];
   pregnancyOptions: MasterOption[];
   foodPrefOptions: MasterOption[];
   cuisineOptions: MasterOption[];
-  goalOptions: MasterOption[];
-  timelineOptions: MasterOption[];
-  medicalOptions: MasterOption[];
-  allergyOptions: MasterOption[];
 }
 
-function useParamMasterBundle(): ParamMasterBundle {
+interface ParamMasterBundle extends HealthGoalParamBundle, LifestyleParamBundle {}
+
+function useHealthGoalParamBundle(): HealthGoalParamBundle {
+  return {
+    medicalOptions: useParamMasterOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS),
+    allergyOptions: useParamMasterOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES),
+    goalOptions: useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS),
+    timelineOptions: useParamMasterOptions(PARAM_CODES.targetTimeline, TARGET_TIMELINES),
+  };
+}
+
+function useLifestyleParamBundle(): LifestyleParamBundle {
   return {
     activityOptions: useParamMasterOptions(PARAM_CODES.physicalActivity, PHYSICAL_ACTIVITY_LEVELS),
     workTypeOptions: useParamMasterOptions(PARAM_CODES.workType, WORK_TYPES),
@@ -49,38 +63,16 @@ function useParamMasterBundle(): ParamMasterBundle {
     pregnancyOptions: useParamMasterOptions(PARAM_CODES.pregnancy, PREGNANCY_BF_OPTIONS),
     foodPrefOptions: useParamMasterOptions(PARAM_CODES.foodPreference, FOOD_PREFERENCES),
     cuisineOptions: useParamMasterOptions(PARAM_CODES.regionalCuisine, REGIONAL_CUISINES),
-    goalOptions: useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS),
-    timelineOptions: useParamMasterOptions(PARAM_CODES.targetTimeline, TARGET_TIMELINES),
-    medicalOptions: useParamMasterOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS),
-    allergyOptions: useParamMasterOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES),
   };
 }
 
-/**
- * Rewrites legacy PARAMLIST labels to itemCodes so save-lifestyle writes LI00xx.
- */
-export function useNormalizeAllParamFormValues(
+function useNormalizeScalarAndListFields(
   form: ClientProfile,
   update: <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => void,
-): ParamMasterBundle {
-  const bundle = useParamMasterBundle();
-
-  const scalarFields: Record<ScalarParamKey, MasterOption[]> = {
-    physicalActivity: bundle.activityOptions,
-    workType: bundle.workTypeOptions,
-    sleepDuration: bundle.sleepOptions,
-    pregnancyBf: bundle.pregnancyOptions,
-    foodPreference: bundle.foodPrefOptions,
-    regionalCuisine: bundle.cuisineOptions,
-    primaryGoal: bundle.goalOptions,
-    targetTimeline: bundle.timelineOptions,
-  };
-
-  const listFields: Record<ListParamKey, MasterOption[]> = {
-    medicalConditions: bundle.medicalOptions,
-    foodAllergies: bundle.allergyOptions,
-  };
-
+  scalarFields: Partial<Record<ScalarParamKey, MasterOption[]>>,
+  listFields: Partial<Record<ListParamKey, MasterOption[]>>,
+  deps: unknown[],
+) {
   useEffect(() => {
     (Object.entries(scalarFields) as [ScalarParamKey, MasterOption[]][]).forEach(
       ([key, options]) => {
@@ -101,29 +93,139 @@ export function useNormalizeAllParamFormValues(
       if (!same) update(key, codes);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- migrate when values or option lists change
-  }, [
-    form.physicalActivity,
-    form.workType,
-    form.sleepDuration,
-    form.pregnancyBf,
-    form.foodPreference,
-    form.regionalCuisine,
-    form.primaryGoal,
-    form.targetTimeline,
-    form.medicalConditions,
-    form.foodAllergies,
-    bundle.activityOptions,
-    bundle.workTypeOptions,
-    bundle.sleepOptions,
-    bundle.pregnancyOptions,
-    bundle.foodPrefOptions,
-    bundle.cuisineOptions,
-    bundle.goalOptions,
-    bundle.timelineOptions,
-    bundle.medicalOptions,
-    bundle.allergyOptions,
+  }, deps);
+}
+
+/**
+ * Health-goals step only — avoids fetching lifestyle PARAMLISTs until that step mounts.
+ */
+export function useNormalizeHealthGoalParamFormValues(
+  form: ClientProfile,
+  update: <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => void,
+): HealthGoalParamBundle {
+  const bundle = useHealthGoalParamBundle();
+
+  useNormalizeScalarAndListFields(
+    form,
     update,
-  ]);
+    {
+      primaryGoal: bundle.goalOptions,
+      targetTimeline: bundle.timelineOptions,
+    },
+    {
+      medicalConditions: bundle.medicalOptions,
+      foodAllergies: bundle.allergyOptions,
+    },
+    [
+      form.primaryGoal,
+      form.targetTimeline,
+      form.medicalConditions,
+      form.foodAllergies,
+      bundle.goalOptions,
+      bundle.timelineOptions,
+      bundle.medicalOptions,
+      bundle.allergyOptions,
+      update,
+    ],
+  );
+
+  return bundle;
+}
+
+/**
+ * Lifestyle step only — shares React Query cache with DietPair / Client Detail when those mount later.
+ */
+export function useNormalizeLifestyleParamFormValues(
+  form: ClientProfile,
+  update: <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => void,
+): LifestyleParamBundle {
+  const bundle = useLifestyleParamBundle();
+
+  useNormalizeScalarAndListFields(
+    form,
+    update,
+    {
+      physicalActivity: bundle.activityOptions,
+      workType: bundle.workTypeOptions,
+      sleepDuration: bundle.sleepOptions,
+      pregnancyBf: bundle.pregnancyOptions,
+      foodPreference: bundle.foodPrefOptions,
+      regionalCuisine: bundle.cuisineOptions,
+    },
+    {},
+    [
+      form.physicalActivity,
+      form.workType,
+      form.sleepDuration,
+      form.pregnancyBf,
+      form.foodPreference,
+      form.regionalCuisine,
+      bundle.activityOptions,
+      bundle.workTypeOptions,
+      bundle.sleepOptions,
+      bundle.pregnancyOptions,
+      bundle.foodPrefOptions,
+      bundle.cuisineOptions,
+      update,
+    ],
+  );
+
+  return bundle;
+}
+
+/**
+ * Rewrites legacy PARAMLIST labels to itemCodes so save-lifestyle writes LI00xx.
+ * Prefer step-specific hooks when only one wizard step is mounted.
+ */
+export function useNormalizeAllParamFormValues(
+  form: ClientProfile,
+  update: <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => void,
+): ParamMasterBundle {
+  const health = useHealthGoalParamBundle();
+  const lifestyle = useLifestyleParamBundle();
+  const bundle: ParamMasterBundle = { ...health, ...lifestyle };
+
+  useNormalizeScalarAndListFields(
+    form,
+    update,
+    {
+      physicalActivity: bundle.activityOptions,
+      workType: bundle.workTypeOptions,
+      sleepDuration: bundle.sleepOptions,
+      pregnancyBf: bundle.pregnancyOptions,
+      foodPreference: bundle.foodPrefOptions,
+      regionalCuisine: bundle.cuisineOptions,
+      primaryGoal: bundle.goalOptions,
+      targetTimeline: bundle.timelineOptions,
+    },
+    {
+      medicalConditions: bundle.medicalOptions,
+      foodAllergies: bundle.allergyOptions,
+    },
+    [
+      form.physicalActivity,
+      form.workType,
+      form.sleepDuration,
+      form.pregnancyBf,
+      form.foodPreference,
+      form.regionalCuisine,
+      form.primaryGoal,
+      form.targetTimeline,
+      form.medicalConditions,
+      form.foodAllergies,
+      bundle.activityOptions,
+      bundle.workTypeOptions,
+      bundle.sleepOptions,
+      bundle.pregnancyOptions,
+      bundle.foodPrefOptions,
+      bundle.cuisineOptions,
+      bundle.goalOptions,
+      bundle.timelineOptions,
+      bundle.medicalOptions,
+      bundle.allergyOptions,
+      update,
+    ],
+  );
 
   return bundle;
 }

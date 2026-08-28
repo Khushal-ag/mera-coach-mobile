@@ -272,6 +272,41 @@ export function validateClientPersonalProfile(form: ClientProfile): FormValidati
   return resultFromErrors(errors);
 }
 
+/** Lifestyle + health-goals step (mirrors web Step 2 validation). */
+export function validateClientLifestyleProfile(form: ClientProfile): FormValidationResult {
+  const errors: FieldErrorMap = {};
+  putError(
+    errors,
+    'physicalActivity',
+    validateRequired(form.physicalActivity ?? '', 'Physical activity'),
+  );
+  putError(errors, 'workType', validateRequired(form.workType ?? '', 'Work type'));
+  putError(errors, 'sleepDuration', validateRequired(form.sleepDuration ?? '', 'Sleep duration'));
+  putError(
+    errors,
+    'foodPreference',
+    validateRequired(form.foodPreference ?? '', 'Food preference'),
+  );
+  putError(
+    errors,
+    'regionalCuisine',
+    validateRequired(form.regionalCuisine ?? '', 'Regional cuisine'),
+  );
+  if (!form.medicalConditions?.length) {
+    errors.medicalConditions = 'Please select at least one medical condition.';
+  }
+  if (!form.foodAllergies?.length) {
+    errors.foodAllergies = 'Please select at least one food allergy.';
+  }
+  putError(errors, 'primaryGoal', validateRequired(form.primaryGoal ?? '', 'Primary goal'));
+  putError(
+    errors,
+    'targetTimeline',
+    validateRequired(form.targetTimeline ?? '', 'Target timeline'),
+  );
+  return resultFromErrors(errors);
+}
+
 export function validateCoachContactFields(mobile: string, email: string): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'mobile', validateMobile(mobile));
@@ -308,23 +343,27 @@ export function validateCoachProfileEdit(fields: {
   pinCode: string;
   experienceYears: string;
   happyClientCount: string;
+  coachDesc: string;
+  addLine: string;
   certificationCount?: string;
 }): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'coachName', validateRequired(fields.coachName, 'Coach name'));
   if (!fields.categoryCode.trim()) errors.category = 'Coach category is required.';
   Object.assign(errors, validateCoachContactFields(fields.mobile, fields.email).errors);
-  putError(errors, 'pinCode', validatePinCode(fields.pinCode));
+  putError(errors, 'pinCode', validatePinCode(fields.pinCode, true));
   putError(
     errors,
     'experienceYears',
-    validateNonNegativeInt(fields.experienceYears, 'Experience years'),
+    validateNonNegativeInt(fields.experienceYears, 'Experience years', true),
   );
   putError(
     errors,
     'happyClientCount',
-    validateNonNegativeInt(fields.happyClientCount, 'Happy client count'),
+    validateNonNegativeInt(fields.happyClientCount, 'Happy client count', true),
   );
+  putError(errors, 'coachDesc', validateRequired(fields.coachDesc, 'Description'));
+  putError(errors, 'addLine', validateRequired(fields.addLine, 'Address'));
   putError(
     errors,
     'certificationCount',

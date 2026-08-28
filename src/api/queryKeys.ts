@@ -1,6 +1,6 @@
-export const queryKeys = {
-  coachCategories: ['coachCategories'] as const,
-  coachPublicList: (params: {
+/** Drop empty filters so Home `{}` and CoachList empty filters share one cache entry. */
+function normalizeCoachPublicListParams(
+  params: {
     coachTypeCode?: string;
     country?: string;
     state?: string;
@@ -8,7 +8,40 @@ export const queryKeys = {
     search?: string;
     page?: number;
     pageSize?: number;
-  }) => ['coachPublicList', params] as const,
+  } = {},
+) {
+  const normalized: {
+    coachTypeCode?: string;
+    country?: string;
+    state?: string;
+    city?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  } = {};
+  if (params.coachTypeCode) normalized.coachTypeCode = params.coachTypeCode;
+  if (params.country) normalized.country = params.country;
+  if (params.state) normalized.state = params.state;
+  if (params.city) normalized.city = params.city;
+  if (params.search) normalized.search = params.search;
+  if (params.page != null && params.page !== 1) normalized.page = params.page;
+  if (params.pageSize != null && params.pageSize !== 50) normalized.pageSize = params.pageSize;
+  return normalized;
+}
+
+export const queryKeys = {
+  coachCategories: ['coachCategories'] as const,
+  coachPublicList: (
+    params: {
+      coachTypeCode?: string;
+      country?: string;
+      state?: string;
+      city?: string;
+      search?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) => ['coachPublicList', normalizeCoachPublicListParams(params)] as const,
   coachProfile: ['coachProfile'] as const,
   coachProfileFull: ['coachProfileFull'] as const,
   coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,

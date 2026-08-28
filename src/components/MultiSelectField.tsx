@@ -24,6 +24,8 @@ interface MultiSelectFieldProps {
   options: MultiSelectOption[];
   onChange: (value: string[]) => void;
   placeholder?: string;
+  required?: boolean;
+  hasError?: boolean;
 }
 
 export default function MultiSelectField({
@@ -32,6 +34,8 @@ export default function MultiSelectField({
   options,
   onChange,
   placeholder,
+  required,
+  hasError,
 }: MultiSelectFieldProps) {
   const [open, setOpen] = useState(false);
   const normalized = useMemo(() => normalizeOptions(options), [options]);
@@ -52,8 +56,11 @@ export default function MultiSelectField({
 
   return (
     <View style={styles.field}>
-      <FormFieldLabel>{label}</FormFieldLabel>
-      <TouchableOpacity style={styles.box} onPress={() => setOpen(true)}>
+      <FormFieldLabel required={required}>{label}</FormFieldLabel>
+      <TouchableOpacity
+        style={[styles.box, hasError && styles.boxError]}
+        onPress={() => setOpen(true)}
+      >
         <Text style={selectedOptions.length ? styles.value : styles.placeholder}>
           {selectedOptions.length ? `${selectedOptions.length} selected` : placeholder || 'Select'}
         </Text>
@@ -119,6 +126,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 50,
   },
+  boxError: { borderColor: Colors.destructive },
   value: { fontSize: 14, color: Colors.textDark },
   placeholder: { fontSize: 14, color: Colors.textLight },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
