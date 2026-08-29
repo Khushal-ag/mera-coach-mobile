@@ -24,6 +24,7 @@ import {
   getCoachProfileFull,
   getCoachCategories,
   getServicesForCategory,
+  isPublicProfileDataSufficient,
   saveCoachProfile,
 } from '../api/coachApi';
 import { getCountries, type MasterOption } from '../api/masterApi';
@@ -33,7 +34,7 @@ import { LOCAL_LANGUAGE_OPTIONS } from '../data/localLanguages';
 import { sanitizePinInput, validateCoachProfileEdit } from '../utils/validation';
 import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../hooks/usePinLocationLookup';
-import { getCurrentCoachId } from '../auth/session';
+import { getCurrentCoachId, updateSessionFullName } from '../auth/session';
 import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -124,7 +125,10 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   // null = not edited yet => derive from profile; [] = user cleared all services.
   const [serviceLabels, setServiceLabels] = useState<string[] | null>(null);
   const [servicesForCategory, setServicesForCategory] = useState(profile.coachTypeCode);
-  const [autoSelectServices, setAutoSelectServices] = useState(false);
+  // Select all category services on load when none saved yet, and again on category change.
+  const [autoSelectServices, setAutoSelectServices] = useState(
+    () => !!profile.coachTypeCode && profile.serviceCodes.length === 0,
+  );
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [profilePicUrl, setProfilePicUrl] = useState(profile.profilePicUrl);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -270,6 +274,11 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     setSaving(true);
     try {
       const country = countries.find(c => c.label === countryLabel);
+      const experienceYearsNum = parseInt(experienceYears, 10) || 0;
+      const happyClientCountNum = parseInt(happyClientCount, 10) || 0;
+      const addLineTrimmed = addLine.trim();
+      const pinCodeTrimmed = pinCode.trim();
+      const coachDescTrimmed = coachDesc.trim();
       await saveCoachProfile({
         coachId: profile.coachId,
         coachName: coachName.trim(),
@@ -280,25 +289,36 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         serviceCodes: resolvedServiceLabels
           .map(label => serviceOptions.find(s => s.label === label)?.code)
           .filter((code): code is string => !!code),
-        experienceYears: parseInt(experienceYears, 10) || 0,
-        happyClientCount: parseInt(happyClientCount, 10) || 0,
+        experienceYears: experienceYearsNum,
+        happyClientCount: happyClientCountNum,
         certificationCount: parseInt(certificationCount, 10) || 0,
         tagline: tagline.trim(),
         localLanguage: localLanguage.trim(),
         locality: locality.trim(),
-        add_Line: addLine.trim(),
+        add_Line: addLineTrimmed,
         city_Cd: cityCd.trim(),
         state_Cd: stateCd.trim(),
-        pinCode: pinCode.trim(),
+        pinCode: pinCodeTrimmed,
         country_Cd: country?.code ?? countryLabel,
         logo_Url: logoUrl,
         profile_Pic_Url: profilePicUrl,
-        coachDesc: coachDesc.trim(),
+        coachDesc: coachDescTrimmed,
         bmiReportTemplate: bmiReportTemplate.trim(),
         dietChartTemplate: dietChartTemplate.trim(),
+        isProfileVisible: isPublicProfileDataSufficient({
+          experienceYears: experienceYearsNum,
+          happyClientCount: happyClientCountNum,
+          coachDesc: coachDescTrimmed,
+          add_Line: addLineTrimmed,
+          pinCode: pinCodeTrimmed,
+        })
+          ? 1
+          : 0,
       });
+      await updateSessionFullName(coachName.trim());
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
+      queryClient.invalidateQueries({ queryKey: ['coachPublicList'] });
       Alert.alert('Profile Updated', 'Your changes have been saved.', [
         { text: 'OK', onPress: onDone },
       ]);
@@ -327,7 +347,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     >
       <FormErrorBanner message={formErrorBanner || pinLookup.error} />
 
-      {profile.isProfileVisible === false ? (
+      {profile.isProfileVisible !== true ? (
         <Text style={styles.visibilityHint}>
           Complete public fields (experience, happy clients, description, address, pincode) and save
           to appear on Find a Coach.

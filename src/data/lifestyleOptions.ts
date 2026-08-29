@@ -80,6 +80,22 @@ export const FOOD_ALLERGIES = [
   'Seafood',
 ];
 
+/** Synthetic option — not in PARAMLIST; injected client-side for medical/allergy multi-selects. */
+export const NONE_OF_THE_BELOW = {
+  code: 'NONE_OF_THE_BELOW',
+  label: 'None of the below',
+} as const;
+
+/** Prefer a live PARAMLIST code when the master already ships this label. */
+export function resolveNoneOfTheBelowCode(options: { code: string; label: string }[]): string {
+  const hit = options.find(
+    o =>
+      o.code === NONE_OF_THE_BELOW.code ||
+      o.label.trim().toLowerCase() === NONE_OF_THE_BELOW.label.toLowerCase(),
+  );
+  return hit?.code ?? NONE_OF_THE_BELOW.code;
+}
+
 export const PRIMARY_GOALS = [
   'Weight Loss',
   'Weight Gain',

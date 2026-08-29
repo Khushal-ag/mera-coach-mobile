@@ -106,7 +106,7 @@ export default function DashboardScreen({
       icon: 'people',
       color: Colors.secondary,
       bg: Colors.secondaryLight,
-      onPress: () => navigation.navigate('Clients'),
+      onPress: () => navigation.navigate('Clients', { screen: 'ClientListHome' }),
     },
     {
       label: 'Active Leads',
@@ -300,7 +300,7 @@ export default function DashboardScreen({
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => navigation.navigate('Clients')}
+            onPress={() => navigation.navigate('Clients', { screen: 'ClientListHome' })}
             accessibilityRole="button"
             accessibilityLabel="All Clients"
           >
@@ -336,7 +336,9 @@ export default function DashboardScreen({
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Clients</Text>
           {recentClients.length > 0 ? (
-            <TouchableOpacity onPress={() => navigation.navigate('Clients')}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Clients', { screen: 'ClientListHome' })}
+            >
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           ) : null}

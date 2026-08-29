@@ -17,6 +17,24 @@ export function getBmiCategory(bmi: number | null): BmiCategory | null {
   return { label: 'Obese', color: Colors.primary, bg: Colors.primaryLight };
 }
 
+/**
+ * Prefer a positive API BMI; otherwise compute from height/weight.
+ * Treats 0 as absent — bmi-report often returns height/weight with bmi: 0 when
+ * save-bmi was skipped (Client Detail still shows a local BMI).
+ */
+export function resolveDisplayBmi(
+  input?: {
+    bmi?: number | null;
+    height?: number | string | null;
+    weight?: number | string | null;
+  } | null,
+): number | null {
+  if (!input) return null;
+  const apiBmi = input.bmi;
+  if (typeof apiBmi === 'number' && Number.isFinite(apiBmi) && apiBmi > 0) return apiBmi;
+  return getBmi(input.height ?? '', input.weight ?? '');
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

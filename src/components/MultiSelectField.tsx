@@ -26,6 +26,11 @@ interface MultiSelectFieldProps {
   placeholder?: string;
   required?: boolean;
   hasError?: boolean;
+  /**
+   * When set, selecting this option clears all others; selecting any other option
+   * clears this one (e.g. "None of the below").
+   */
+  exclusiveNoneCode?: string;
 }
 
 export default function MultiSelectField({
@@ -36,18 +41,32 @@ export default function MultiSelectField({
   placeholder,
   required,
   hasError,
+  exclusiveNoneCode,
 }: MultiSelectFieldProps) {
   const [open, setOpen] = useState(false);
   const normalized = useMemo(() => normalizeOptions(options), [options]);
 
   const selectedOptions = normalized.filter(opt => isSelected(value, opt));
 
+  const exclusiveNone = exclusiveNoneCode
+    ? normalized.find(o => o.code === exclusiveNoneCode)
+    : undefined;
+
+  const withoutExclusiveNone = (vals: string[]) => {
+    if (!exclusiveNoneCode) return vals;
+    return vals.filter(v => v !== exclusiveNoneCode && v !== exclusiveNone?.label);
+  };
+
   const toggle = (opt: MasterOption) => {
     if (isSelected(value, opt)) {
       onChange(value.filter(v => v !== opt.code && v !== opt.label));
-    } else {
-      onChange([...value.filter(v => v !== opt.label), opt.code]);
+      return;
     }
+    if (exclusiveNoneCode && opt.code === exclusiveNoneCode) {
+      onChange([opt.code]);
+      return;
+    }
+    onChange([...withoutExclusiveNone(value).filter(v => v !== opt.label), opt.code]);
   };
 
   const remove = (opt: MasterOption) => {

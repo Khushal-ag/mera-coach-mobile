@@ -299,11 +299,7 @@ export function validateClientLifestyleProfile(form: ClientProfile): FormValidat
     errors.foodAllergies = 'Please select at least one food allergy.';
   }
   putError(errors, 'primaryGoal', validateRequired(form.primaryGoal ?? '', 'Primary goal'));
-  putError(
-    errors,
-    'targetTimeline',
-    validateRequired(form.targetTimeline ?? '', 'Target timeline'),
-  );
+  // Target timeline is optional.
   return resultFromErrors(errors);
 }
 

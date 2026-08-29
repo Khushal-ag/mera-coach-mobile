@@ -1,6 +1,5 @@
 import { apiGet, apiPost, apiPut } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
-import { hashPassword } from '../utils/hash';
 import { pickCoachCreatedAt } from '../utils/experience';
 import type { Coach, CoachCategory } from '../types/models';
 import { fetchMasterItems, type MasterOption } from './masterApi';
@@ -50,8 +49,8 @@ export interface CoachPublicListParams {
 /**
  * Backend DB column `IsProfileVisible` (int4: 1 = public). JSON may use PascalCase
  * (`IsProfileVisible`) or camelCase (`isProfileVisible`); older shapes used `Is_profileVisible`.
- * Set internally by Coach/save when public-page fields are updated — not on CoachSaveRequest.
  * Confirmed on live GET /Coach/profile-by-id; public list may omit it when already filtered.
+ * On save we send camelCase `isProfileVisible` as 1/0 from public-field sufficiency.
  */
 export function parseIsProfileVisible(raw: Record<string, unknown>): boolean | undefined {
   const v =
@@ -65,6 +64,31 @@ export function parseIsProfileVisible(raw: Record<string, unknown>): boolean | u
     if (s === '0' || s === 'false') return false;
   }
   return undefined;
+}
+
+/**
+ * Same public fields required on Edit Profile: experience, happy clients, description,
+ * address, pincode. Used to set `isProfileVisible` on Coach/save.
+ */
+export function isPublicProfileDataSufficient(fields: {
+  experienceYears?: number | null;
+  happyClientCount?: number | null;
+  coachDesc?: string | null;
+  add_Line?: string | null;
+  pinCode?: string | null;
+}): boolean {
+  const pinDigits = String(fields.pinCode ?? '').replace(/\D/g, '');
+  return (
+    fields.experienceYears != null &&
+    Number.isFinite(fields.experienceYears) &&
+    fields.experienceYears >= 0 &&
+    fields.happyClientCount != null &&
+    Number.isFinite(fields.happyClientCount) &&
+    fields.happyClientCount >= 0 &&
+    !!String(fields.coachDesc ?? '').trim() &&
+    !!String(fields.add_Line ?? '').trim() &&
+    pinDigits.length === 6
+  );
 }
 
 // Field names checked against a live GET /Coach/public response.
@@ -141,15 +165,16 @@ export async function getCoachPublicList(
   });
   const items = data?.items || [];
   // Prefer server-side filter (IsProfileVisible=1). Client defense in depth:
-  // - If ANY item has the flag, drop only explicit non-visible (false/0); omit/missing → keep.
+  // - If ANY item has the flag, keep only explicit visible (true/1); omit/missing → drop.
   // - If ALL items lack the flag, leave the list as-is (trust server already filtered).
+  // Save sends isProfileVisible 1/0 from public-field sufficiency; keep this filter anyway.
   const visibilityKnown = items.some(
     item => parseIsProfileVisible(item as unknown as Record<string, unknown>) !== undefined,
   );
   const visibleItems = visibilityKnown
     ? items.filter(item => {
         const v = parseIsProfileVisible(item as unknown as Record<string, unknown>);
-        return v !== false;
+        return v === true;
       })
     : items;
   return {
@@ -281,7 +306,7 @@ export interface CoachProfileFull {
   dietChartTemplate: string;
   /**
    * Whether this coach appears on Find a Coach / public Home.
-   * Backend sets true when public fields are saved; undefined if API omits the field.
+   * undefined if API omits the field.
    */
   isProfileVisible?: boolean;
 }
@@ -352,8 +377,8 @@ export async function getServicesForCategory(categoryCode: string): Promise<Mast
 }
 
 /**
- * Matches OpenAPI CoachSaveRequest. Do not send IsProfileVisible — `additionalProperties: false`
- * and the API sets IsProfileVisible internally when public-page fields are present/updated.
+ * Coach/save body. Live OpenAPI CoachSaveRequest still omits `isProfileVisible` and sets
+ * `additionalProperties: false` — we send it anyway (int 1/0) from public-field sufficiency.
  */
 export interface SaveCoachProfileParams {
   coachId: number;
@@ -379,10 +404,14 @@ export interface SaveCoachProfileParams {
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
+  /** int4: 1 = show on public Find a Coach; computed at save when omitted. */
+  isProfileVisible?: number;
 }
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
-  await apiPost('/v{version}/Coach/save', params);
+  const isProfileVisible =
+    params.isProfileVisible ?? (isPublicProfileDataSufficient(params) ? 1 : 0);
+  await apiPost('/v{version}/Coach/save', { ...params, isProfileVisible });
 }
 
 export interface ChangePasswordParams {
@@ -390,10 +419,14 @@ export interface ChangePasswordParams {
   newPassword: string;
 }
 
-/** Hashes the same way as login (CoachBLL.HashPassword). */
+/**
+ * Send plaintext — unlike Auth/login, this endpoint hashes server-side.
+ * Client-hashing caused error 644 ("Current password is incorrect") via double-hash.
+ * OpenAPI enforces newPassword minLength 6 (plain policy); login password is minLength 1 (hash OK).
+ */
 export async function changePassword(params: ChangePasswordParams): Promise<void> {
   await apiPut('/v{version}/Coach/change-password', {
-    currentPassword: await hashPassword(params.currentPassword),
-    newPassword: await hashPassword(params.newPassword),
+    currentPassword: params.currentPassword,
+    newPassword: params.newPassword,
   });
 }

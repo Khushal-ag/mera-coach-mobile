@@ -19,6 +19,7 @@ import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { useRefreshControl, refreshControlTheme } from '../../hooks/useRefreshControl';
 import { getCurrentCoachCode } from '../../auth/session';
+import { getBmiCategory, resolveDisplayBmi } from '../../utils/bmi';
 import {
   bmiReportPdfQuery,
   downloadAndSharePdf,
@@ -48,8 +49,16 @@ export default function ClientBmiReportScreen({
       ? getErrorMessage(reportQuery.error, 'Could not load BMI report.')
       : null;
 
-  const needsToLose = (report?.weightDelta ?? 0) > 0;
+  const weightDelta = report?.weightDelta;
+  const showWeightDelta =
+    typeof weightDelta === 'number' && Number.isFinite(weightDelta) && weightDelta !== 0;
+  const needsToLose = showWeightDelta && weightDelta > 0;
   const history = report?.history ?? [];
+  const current = report?.current;
+  const currentBmi = resolveDisplayBmi(current);
+  const bmiCategory = report?.bmiCategory?.trim() || getBmiCategory(currentBmi)?.label || '';
+  const bodyFatPct =
+    typeof current?.bodyFatPct === 'number' && current.bodyFatPct > 0 ? current.bodyFatPct : null;
 
   const sharePdf = async () => {
     const coachCode = getCurrentCoachCode();
@@ -86,11 +95,10 @@ export default function ClientBmiReportScreen({
 
   const primaryStats = report
     ? [
-        { value: report.current.bmi?.toFixed(1) ?? '—', label: 'Current BMI' },
-        { value: report.bmiCategory || '—', label: 'Classification' },
+        { value: currentBmi != null ? currentBmi.toFixed(1) : '—', label: 'Current BMI' },
+        { value: bmiCategory || '—', label: 'Classification' },
         {
-          value:
-            report.current.bodyFatPct != null ? `${report.current.bodyFatPct.toFixed(1)}%` : '—',
+          value: bodyFatPct != null ? `${bodyFatPct.toFixed(1)}%` : '—',
           label: 'Body Fat %',
         },
         {
@@ -150,7 +158,7 @@ export default function ClientBmiReportScreen({
                   {report.client.location ? ` · ${report.client.location}` : ''}
                 </Text>
                 <Text style={styles.patientDate}>
-                  Assessed {report.current.assessmentDate || report.reportDate || '—'}
+                  Assessed {current?.assessmentDate || report.reportDate || '—'}
                 </Text>
               </View>
             </View>
@@ -167,7 +175,7 @@ export default function ClientBmiReportScreen({
               ))}
             </View>
 
-            {report.weightDelta != null ? (
+            {showWeightDelta ? (
               <View style={styles.deltaCard}>
                 <View style={styles.deltaIconWrap}>
                   <Ionicons
@@ -179,7 +187,7 @@ export default function ClientBmiReportScreen({
                 <View style={styles.deltaCopy}>
                   <Text style={styles.deltaValue}>
                     {needsToLose ? '−' : '+'}
-                    {Math.abs(report.weightDelta).toFixed(1)} kg
+                    {Math.abs(weightDelta).toFixed(1)} kg
                   </Text>
                   <Text style={styles.deltaLabel}>
                     {needsToLose ? 'To lose toward target' : 'To gain toward target'}
@@ -196,7 +204,7 @@ export default function ClientBmiReportScreen({
                 <Text style={styles.historyCol}>Wt</Text>
                 <Text style={styles.historyCol}>BMI</Text>
               </View>
-              <MeasurementRow row={report.current} label="Current" highlight />
+              <MeasurementRow row={current ?? {}} label="Current" highlight />
               {history.length === 0 ? (
                 <View style={styles.emptyHistory}>
                   <Ionicons name="time-outline" size={22} color={Colors.textLight} />
@@ -232,6 +240,7 @@ function MeasurementRow({
   label?: string;
   highlight?: boolean;
 }) {
+  const bmi = resolveDisplayBmi(row);
   return (
     <View style={[styles.row, highlight && styles.rowHighlight]}>
       <Text style={[styles.rowDate, styles.historyColDate]} numberOfLines={1}>
@@ -239,7 +248,7 @@ function MeasurementRow({
       </Text>
       <Text style={styles.rowValue}>{row.height ?? '—'} cm</Text>
       <Text style={styles.rowValue}>{row.weight ?? '—'} kg</Text>
-      <Text style={styles.rowValue}>{row.bmi?.toFixed(1) ?? '—'}</Text>
+      <Text style={styles.rowValue}>{bmi != null ? bmi.toFixed(1) : '—'}</Text>
     </View>
   );
 }

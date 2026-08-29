@@ -48,7 +48,23 @@ export function getCurrentCoachId(): string | undefined {
 }
 
 export function getCurrentCoachName(): string | undefined {
-  return currentCoachName;
+  return currentCoachName?.trim() || undefined;
+}
+
+/** Keep session display name in sync after Edit Profile rename (used as FCBY/savedBy). */
+export async function updateSessionFullName(fullName: string): Promise<void> {
+  const trimmed = fullName.trim();
+  if (!trimmed) return;
+  currentCoachName = trimmed;
+  const raw = await storage.getItem(KEY);
+  if (!raw) return;
+  try {
+    const session: Session = JSON.parse(raw);
+    if (session.fullName === trimmed) return;
+    await saveSession({ ...session, fullName: trimmed });
+  } catch {
+    // Memory already updated; persist best-effort.
+  }
 }
 
 // Minimal pub-sub so AppNavigator can reactively swap screen trees — see useAuthState.ts.

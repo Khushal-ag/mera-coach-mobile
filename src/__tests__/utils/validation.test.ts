@@ -150,6 +150,7 @@ describe('validateClientLifestyleProfile', () => {
     expect(result.errors.medicalConditions).toBeTruthy();
     expect(result.errors.foodAllergies).toBeTruthy();
     expect(result.errors.primaryGoal).toBeTruthy();
+    expect(result.errors.targetTimeline).toBeUndefined();
   });
 
   it('passes when all lifestyle fields are set', () => {
@@ -167,6 +168,24 @@ describe('validateClientLifestyleProfile', () => {
       }),
     );
     expect(result.ok).toBe(true);
+  });
+
+  it('allows empty target timeline', () => {
+    const result = validateClientLifestyleProfile(
+      emptyProfile({
+        physicalActivity: 'LI001',
+        workType: 'LI002',
+        sleepDuration: 'LI003',
+        foodPreference: 'LI004',
+        regionalCuisine: 'LI005',
+        medicalConditions: ['NONE_OF_THE_BELOW'],
+        foodAllergies: ['NONE_OF_THE_BELOW'],
+        primaryGoal: 'LI008',
+        targetTimeline: '',
+      }),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.errors.targetTimeline).toBeUndefined();
   });
 });
 

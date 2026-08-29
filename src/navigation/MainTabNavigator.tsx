@@ -136,7 +136,17 @@ export default function MainTabNavigator() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardStackNavigator} />
-      <Tab.Screen name="Clients" component={ClientsStackNavigator} />
+      <Tab.Screen
+        name="Clients"
+        component={ClientsStackNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            // Nested stack restores ClientDetail after opening a profile; always land on list.
+            e.preventDefault();
+            navigation.navigate('Clients', { screen: 'ClientListHome' });
+          },
+        })}
+      />
       <Tab.Screen name="Checkups" component={CheckupsStackNavigator} />
       <Tab.Screen name="Profile" component={ProfileStackNavigator} />
     </Tab.Navigator>

@@ -4,6 +4,7 @@ import { Colors, Radius } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import MultiSelectField from '../../../components/MultiSelectField';
+import { resolveNoneOfTheBelowCode } from '../../../data/lifestyleOptions';
 import { useNormalizeHealthGoalParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
@@ -20,6 +21,8 @@ export default function HealthGoalsStep({
   const err = (field: string) => !!errorFields[field];
   const { medicalOptions, allergyOptions, goalOptions, timelineOptions } =
     useNormalizeHealthGoalParamFormValues(form, update);
+  const medicalNoneCode = resolveNoneOfTheBelowCode(medicalOptions);
+  const allergyNoneCode = resolveNoneOfTheBelowCode(allergyOptions);
 
   return (
     <View>
@@ -31,6 +34,7 @@ export default function HealthGoalsStep({
         placeholder="Select conditions"
         required
         hasError={err('medicalConditions')}
+        exclusiveNoneCode={medicalNoneCode}
       />
       <MultiSelectField
         label="Food Allergies"
@@ -40,6 +44,7 @@ export default function HealthGoalsStep({
         placeholder="Select allergies"
         required
         hasError={err('foodAllergies')}
+        exclusiveNoneCode={allergyNoneCode}
       />
 
       <View style={styles.divider} />
@@ -59,7 +64,6 @@ export default function HealthGoalsStep({
         options={timelineOptions}
         onChange={v => update('targetTimeline', v)}
         placeholder="Select"
-        required
         hasError={err('targetTimeline')}
       />
 

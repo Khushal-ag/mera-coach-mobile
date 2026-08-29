@@ -1,5 +1,7 @@
 import { apiGet, apiPost } from './client';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
+import { queryClient } from './queryClient';
+import { queryKeys } from './queryKeys';
 import { MEAL_SLOT_ORDER, MEAL_SLOT_TO_API_LABEL, describeDietItems } from '../data/mealSlotLabels';
 import { rehydrateDietFromMeals, type RawClientMeal } from '../utils/mealRehydration';
 import { hasDietPlanContent, normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
@@ -8,6 +10,7 @@ import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../uti
 import { nameInitials } from '../utils/initials';
 import type { BodyMetrics } from '../utils/bmi';
 import type {
+  Coach,
   ClientProfile,
   ClientSummary,
   DietPlan,
@@ -195,8 +198,15 @@ export interface AssessmentIds {
   assessmentCode?: string;
 }
 
+/** Coach display name for FCBY/savedBy — never coach code or id. */
 function savedBy(): string {
-  return getCurrentCoachName() ?? '';
+  const fromSession = getCurrentCoachName();
+  if (fromSession) return fromSession;
+  const full = queryClient.getQueryData<{ coachName?: string }>(queryKeys.coachProfileFull);
+  const fromFull = full?.coachName?.trim();
+  if (fromFull) return fromFull;
+  const summary = queryClient.getQueryData<Coach>(queryKeys.coachProfile);
+  return summary?.name?.trim() ?? '';
 }
 
 function assessmentContext(ids: AssessmentIds) {
