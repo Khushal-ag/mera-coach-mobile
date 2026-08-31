@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { queryClient } from './src/api/queryClient';
+import { Colors } from './src/constants/theme';
 import type { RootStackParamList } from './src/types/navigation';
 
 // Path-based URLs for web (React Navigation). Empty prefixes keep native deep links off.
@@ -60,6 +62,11 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 export default function App() {
+  useEffect(() => {
+    // Match splash / brand surface so Android root view never flashes white between screens.
+    void SystemUI.setBackgroundColorAsync(Colors.secondary);
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

@@ -155,14 +155,6 @@ export function validateAge(value: string, required = true): string | null {
   return null;
 }
 
-/** Web rule: at least one of DOB or Age must be provided. */
-export function validateDobOrAge(dob: string, age: string): string | null {
-  if (!dob.trim() && !age.trim()) return 'Please enter Date of Birth or Age.';
-  if (dob.trim() && !parseDob(dob)) return 'Please enter a valid Date of Birth (DD/MM/YYYY).';
-  if (age.trim()) return validateAge(age, false);
-  return null;
-}
-
 export type FieldErrorMap = Record<string, string>;
 
 export interface FormValidationResult {

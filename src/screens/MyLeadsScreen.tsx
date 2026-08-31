@@ -282,6 +282,9 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
               data={filtered}
               keyExtractor={item => String(item.id)}
               showsVerticalScrollIndicator={false}
+              initialNumToRender={8}
+              maxToRenderPerBatch={6}
+              windowSize={5}
               contentContainerStyle={[
                 filtered.length === 0 ? styles.emptyWrap : undefined,
                 { paddingBottom: Math.max(insets.bottom, 16) },

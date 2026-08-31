@@ -156,6 +156,9 @@ export default function ReCheckupListScreen({
             data={visible}
             keyExtractor={(item, index) => item.clientCode ?? `${item.name}-${index}`}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={6}
+            windowSize={5}
             contentContainerStyle={[
               visible.length === 0 ? styles.emptyWrap : undefined,
               { paddingBottom: Math.max(insets.bottom, 16) },

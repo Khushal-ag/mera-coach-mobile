@@ -46,8 +46,6 @@ export interface LifestyleParamBundle {
   cuisineOptions: MasterOption[];
 }
 
-interface ParamMasterBundle extends HealthGoalParamBundle, LifestyleParamBundle {}
-
 function withNoneOfTheBelow(options: MasterOption[]): MasterOption[] {
   const noneCode = resolveNoneOfTheBelowCode(options);
   if (options.some(o => o.code === noneCode)) {
@@ -180,63 +178,6 @@ export function useNormalizeLifestyleParamFormValues(
       bundle.pregnancyOptions,
       bundle.foodPrefOptions,
       bundle.cuisineOptions,
-      update,
-    ],
-  );
-
-  return bundle;
-}
-
-/**
- * Rewrites legacy PARAMLIST labels to itemCodes so save-lifestyle writes LI00xx.
- * Prefer step-specific hooks when only one wizard step is mounted.
- */
-export function useNormalizeAllParamFormValues(
-  form: ClientProfile,
-  update: <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => void,
-): ParamMasterBundle {
-  const health = useHealthGoalParamBundle();
-  const lifestyle = useLifestyleParamBundle();
-  const bundle: ParamMasterBundle = { ...health, ...lifestyle };
-
-  useNormalizeScalarAndListFields(
-    form,
-    update,
-    {
-      physicalActivity: bundle.activityOptions,
-      workType: bundle.workTypeOptions,
-      sleepDuration: bundle.sleepOptions,
-      pregnancyBf: bundle.pregnancyOptions,
-      foodPreference: bundle.foodPrefOptions,
-      regionalCuisine: bundle.cuisineOptions,
-      primaryGoal: bundle.goalOptions,
-      targetTimeline: bundle.timelineOptions,
-    },
-    {
-      medicalConditions: bundle.medicalOptions,
-      foodAllergies: bundle.allergyOptions,
-    },
-    [
-      form.physicalActivity,
-      form.workType,
-      form.sleepDuration,
-      form.pregnancyBf,
-      form.foodPreference,
-      form.regionalCuisine,
-      form.primaryGoal,
-      form.targetTimeline,
-      form.medicalConditions,
-      form.foodAllergies,
-      bundle.activityOptions,
-      bundle.workTypeOptions,
-      bundle.sleepOptions,
-      bundle.pregnancyOptions,
-      bundle.foodPrefOptions,
-      bundle.cuisineOptions,
-      bundle.goalOptions,
-      bundle.timelineOptions,
-      bundle.medicalOptions,
-      bundle.allergyOptions,
       update,
     ],
   );
