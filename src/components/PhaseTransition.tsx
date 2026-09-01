@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import type { IoniconName } from '../types/icons';
 
 interface PhaseTransitionProps {
@@ -38,6 +39,8 @@ export default function PhaseTransition({
           </View>
         ) : null}
 
+        <Image source={BrandImages.phasePath} style={styles.phaseArt} resizeMode="cover" />
+
         <View style={styles.iconCircle}>
           <Ionicons name={toIcon} size={36} color={Colors.white} />
         </View>
@@ -59,11 +62,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 32,
+    paddingHorizontal: Spacing.xl,
   },
   center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 28 },
-  doneText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600' },
+  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.lg },
+  doneText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+  },
+  phaseArt: {
+    width: 220,
+    height: 132,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.lg,
+  },
   iconCircle: {
     width: 84,
     height: 84,
@@ -78,12 +91,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    fontWeight: '700',
+    fontFamily: FontFamily.bold,
   },
   toLabel: {
     color: Colors.white,
     fontSize: 26,
-    fontWeight: '800',
+    fontFamily: FontFamily.extraBold,
     marginTop: 6,
     textAlign: 'center',
   },
@@ -97,5 +110,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     ...Shadow.lg,
   },
-  continueText: { color: Colors.primary, fontWeight: '700', fontSize: 16 },
+  continueText: { color: Colors.primary, fontFamily: FontFamily.bold, fontSize: 16 },
 });

@@ -491,7 +491,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           placeholderTextColor={Colors.textLight}
           onFocus={scrollLowerFieldsIntoView}
         />
-        <Text style={styles.suggestLabel}>Suggested descriptions — tap to use</Text>
+        <Text style={styles.suggestLabel}>Suggested descriptions (tap to use)</Text>
         <View style={styles.suggestChips}>
           {descriptionSuggestions.map((text, i) => (
             <TouchableOpacity

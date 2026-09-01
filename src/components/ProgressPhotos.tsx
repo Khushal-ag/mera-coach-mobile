@@ -114,7 +114,7 @@ export default function ProgressPhotos({ clientCode }: Props) {
           )}
         </TouchableOpacity>
       </View>
-      <Text style={styles.hint}>Track client transformation with dated progress photos.</Text>
+      <Text style={styles.hint}>Add dated progress photos to track how your client is doing.</Text>
 
       {photosQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 12 }} />

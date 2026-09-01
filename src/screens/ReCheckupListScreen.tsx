@@ -12,9 +12,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
-import { HeaderHomeButton } from '../components/ScreenHeader';
+import ClientAvatar from '../components/ClientAvatar';
+import TabRootHeader from '../components/TabRootHeader';
 import { getRecheckupList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
@@ -23,6 +25,7 @@ import { getErrorMessage } from '../api/client';
 import { stripNonDigits } from '../utils/validation';
 import type { RecheckupDueClient, ClientSummary } from '../types/models';
 import type { CheckupsStackScreenProps } from '../types/navigation';
+import { navigateToDashboard } from '../utils/navigationBack';
 
 function describeOverdue(daysOverdue: number): string {
   if (daysOverdue <= 0) return 'Due today';
@@ -77,41 +80,43 @@ export default function ReCheckupListScreen({
       name: item.name,
       mobileNo: item.mobileNo,
       age: item.age,
-      initials: item.initials,
       lastCheckupDate: item.lastCheckupDate,
     };
     navigation.navigate('ClientBmi', { client });
   };
 
-  const renderRow = ({ item }: { item: RecheckupDueClient }) => (
-    <View style={styles.card}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{item.initials || '?'}</Text>
-      </View>
+  const renderRow = ({ item }: { item: RecheckupDueClient }) => {
+    const dueLabel = describeDue(item);
+    const overdueLabel = item.dueDate ? describeOverdue(item.daysOverdue) : null;
 
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.subMeta}>{describeLast(item)}</Text>
-        <View style={styles.metaRow}>
-          <Ionicons name="time-outline" size={11} color={Colors.primary} />
-          <Text style={[styles.meta, { color: Colors.primary }]}>{describeDue(item)}</Text>
+    return (
+      <View style={styles.card}>
+        <ClientAvatar clientCode={item.clientCode} size={40} />
+
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.subMeta}>{describeLast(item)}</Text>
+          <View style={styles.metaRow}>
+            <Ionicons name="time-outline" size={11} color={Colors.primary} />
+            <Text style={[styles.meta, { color: Colors.primary }]}>{dueLabel}</Text>
+          </View>
+          {overdueLabel ? <Text style={styles.overdue}>{overdueLabel}</Text> : null}
         </View>
-        <Text style={styles.overdue}>{describeOverdue(item.daysOverdue)}</Text>
-      </View>
 
-      <TouchableOpacity
-        style={styles.recheckBtn}
-        onPress={() => startCheckup(item)}
-        accessibilityRole="button"
-        accessibilityLabel={`Re-checkup for ${item.name}`}
-      >
-        <Ionicons name="clipboard-outline" size={12} color={Colors.white} />
-        <Text style={styles.recheckBtnText}>Re-checkup</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <TouchableOpacity
+          style={styles.recheckBtn}
+          onPress={() => startCheckup(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Re-checkup for ${item.name}`}
+        >
+          <Ionicons name="clipboard-outline" size={12} color={Colors.white} />
+          <Text style={styles.recheckBtnText}>Re-checkup</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const subtitle =
     dueQuery.isPending || errorMessage
@@ -122,13 +127,11 @@ export default function ReCheckupListScreen({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Checkups</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </View>
-        <HeaderHomeButton />
-      </View>
+      <TabRootHeader
+        title="Checkups"
+        subtitle={subtitle ?? undefined}
+        onBack={() => navigateToDashboard(navigation)}
+      />
 
       <View style={styles.body}>
         <View style={styles.searchWrap}>
@@ -172,7 +175,8 @@ export default function ReCheckupListScreen({
             }
             ListEmptyComponent={
               <EmptyState
-                icon={search.trim() ? 'search-outline' : 'checkmark-circle-outline'}
+                icon={search.trim() ? 'search-outline' : undefined}
+                illustration={search.trim() ? undefined : BrandImages.emptyCheckups}
                 title={search.trim() ? 'No matches' : 'No checkups due'}
                 message={
                   search.trim()
@@ -191,29 +195,18 @@ export default function ReCheckupListScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerText: { flex: 1, marginRight: 12 },
-  title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  subtitle: { color: Colors.onDarkMuted, fontSize: 13, fontWeight: '600', marginTop: 4 },
-  body: { flex: 1, padding: 20 },
+  body: { flex: 1, padding: Spacing.md },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: Radius.sm,
-    paddingHorizontal: 14,
-    height: 46,
+    paddingHorizontal: 12,
+    height: 38,
     ...Shadow.sm,
-    marginBottom: 14,
+    marginBottom: Spacing.sm,
   },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.textDark },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   emptyWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
@@ -225,22 +218,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     ...Shadow.sm,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  avatarText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
   info: { flex: 1, minWidth: 0, marginRight: 10 },
-  name: { fontSize: 14, fontWeight: '700', color: Colors.textDark, lineHeight: 18 },
+  name: { fontSize: 14, fontFamily: FontFamily.bold, color: Colors.textDark, lineHeight: 18 },
   metaRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 3, marginTop: 2 },
-  meta: { fontSize: 11, fontWeight: '700', flexShrink: 1 },
+  meta: { fontSize: 11, fontFamily: FontFamily.bold, flexShrink: 1 },
   subMeta: { fontSize: 11, color: Colors.textLight, marginTop: 1 },
-  overdue: { fontSize: 11, fontWeight: '700', color: Colors.primary, marginTop: 2 },
+  overdue: { fontSize: 11, fontFamily: FontFamily.bold, color: Colors.primary, marginTop: 2 },
   recheckBtn: {
     flexShrink: 0,
     flexDirection: 'row',
@@ -251,6 +234,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     backgroundColor: Colors.primary,
   },
-  recheckBtnText: { fontSize: 11, fontWeight: '700', color: Colors.white },
+  recheckBtnText: { fontSize: 11, fontFamily: FontFamily.bold, color: Colors.white },
   error: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

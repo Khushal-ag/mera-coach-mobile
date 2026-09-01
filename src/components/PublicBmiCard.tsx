@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import FormErrorBanner from './FormErrorBanner';
 import FormFieldLabel from './FormFieldLabel';
 import PhoneTextInput from './PhoneTextInput';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow } from '../constants/theme';
 import { submitBmiLead } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
 import { getBmi, getBmiCategory } from '../utils/bmi';
@@ -31,13 +31,12 @@ type HeightUnit = 'cm' | 'ftin';
 
 const BMI_EXPLAINS: Record<string, string> = {
   Underweight:
-    'Your BMI is below the healthy range. This may indicate insufficient nutrition or low muscle mass. A certified nutrition or fitness coach can help you build a healthier body weight safely.',
-  Normal:
-    'Great news! Your BMI is within the healthy range. A wellness or yoga coach can help you maintain this long-term and optimise your energy and fitness.',
+    'Your BMI is below the healthy range. A nutrition or fitness coach can help you build weight safely.',
+  Normal: 'Your BMI is in the healthy range. A wellness or yoga coach can help you keep it there.',
   Overweight:
-    'Your BMI is above the healthy range. Even modest weight loss of 5-10% can significantly reduce health risks. A weight management or lifestyle coach can create a practical, sustainable plan for you.',
+    'Your BMI is above the healthy range. Even a small amount of weight loss helps. A lifestyle coach can help you plan.',
   Obese:
-    'Your BMI indicates obesity, which carries significant health risks. A certified weight management or nutrition coach with a structured plan can make a real, life-changing difference.',
+    'Your BMI suggests obesity. A weight management or nutrition coach can help you work on this step by step.',
 };
 
 type Props = {
@@ -156,8 +155,7 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
       </View>
       <Text style={styles.sectionTitle}>Know Your BMI</Text>
       <Text style={styles.sectionSubtitle}>
-        Instant BMI with health category. Share your details after calculating to connect with a
-        coach.
+        Get your BMI in seconds. Share your details after to hear from a coach.
       </Text>
 
       {!expanded ? (
@@ -307,9 +305,7 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
                   >
                     <View style={styles.gateMessage}>
                       <Ionicons name="lock-closed-outline" size={22} color={Colors.white} />
-                      <Text style={styles.gateTitle}>
-                        Fill the form below to unlock your result
-                      </Text>
+                      <Text style={styles.gateTitle}>Add your details to see your result</Text>
                       <Text style={styles.gateSubtitle}>
                         Enter your name and mobile to reveal your BMI
                       </Text>
@@ -334,8 +330,8 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
               ) : (
                 <View style={styles.leadForm}>
                   <Text style={styles.leadPrompt}>
-                    Get personalised guidance — share your details and a top-rated coach will reach
-                    out. <Text style={styles.leadPromptStrong}>Free. No commitments.</Text>
+                    Share your name and mobile. A top-rated coach will call you back.{' '}
+                    <Text style={styles.leadPromptStrong}>Free, no commitment.</Text>
                   </Text>
                   <View style={styles.leadField}>
                     <FormFieldLabel required style={styles.leadLabel}>
@@ -414,10 +410,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   bmiTag: { backgroundColor: Colors.accentLight },
-  bmiTagText: { color: Colors.accent, fontSize: 11, fontWeight: '700' },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: Colors.textDark, textAlign: 'center' },
+  bmiTagText: { color: Colors.accent, fontSize: 11, fontFamily: FontFamily.bold },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    textAlign: 'center',
+  },
   sectionSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     color: Colors.textLight,
     textAlign: 'center',
     marginTop: 6,
@@ -435,7 +437,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     ...Shadow.sm,
   },
-  openBtnText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  openBtnText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 15 },
   form: { width: '100%', marginTop: 16 },
   field: { marginBottom: 14 },
   labelRow: {

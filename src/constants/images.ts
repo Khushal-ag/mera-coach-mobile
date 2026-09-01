@@ -1,0 +1,15 @@
+export const BrandImages = {
+  leafCream: require('../../assets/brand/leaf-cream.png'),
+  leafMark: require('../../assets/brand/leaf-mark.png'),
+  hero: require('../../assets/illustrations/hero-yoga.jpg'),
+  loginAtmosphere: require('../../assets/illustrations/login-atmosphere.jpg'),
+  emptyClients: require('../../assets/illustrations/empty-clients.png'),
+  emptyLeads: require('../../assets/illustrations/empty-leads.png'),
+  emptyCheckups: require('../../assets/illustrations/empty-checkups.png'),
+  emptyNotifications: require('../../assets/illustrations/empty-notifications.png'),
+  avatarDefault: require('../../assets/illustrations/avatar-default.png'),
+  phasePath: require('../../assets/illustrations/phase-path.png'),
+  dashboardSlide1: require('../../assets/illustrations/dashboard-slide-1.jpg'),
+  dashboardSlide2: require('../../assets/illustrations/dashboard-slide-2.jpg'),
+  dashboardSlide3: require('../../assets/illustrations/dashboard-slide-3.jpg'),
+} as const;

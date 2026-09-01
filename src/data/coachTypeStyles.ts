@@ -12,7 +12,7 @@ export interface CoachTypeStyle {
 // Ionicons UI can't render, so this is the source of truth instead.
 export const COACH_TYPE_STYLES: Record<string, CoachTypeStyle> = {
   CT001: { short: 'Gym', icon: 'barbell', color: Colors.secondary, bg: Colors.secondaryLight },
-  CT002: { short: 'Health', icon: 'heart', color: Colors.purple, bg: Colors.purpleLight },
+  CT002: { short: 'Health', icon: 'heart', color: Colors.primary, bg: Colors.primaryLight },
   CT003: {
     short: 'Holistic',
     icon: 'leaf',
@@ -20,17 +20,17 @@ export const COACH_TYPE_STYLES: Record<string, CoachTypeStyle> = {
     bg: Colors.secondaryLight,
   },
   CT004: { short: 'Nutrition', icon: 'nutrition', color: Colors.accent, bg: Colors.accentLight },
-  CT005: { short: 'Fitness', icon: 'walk', color: '#3b82f6', bg: '#e0ecff' },
-  CT006: { short: 'Weight Loss', icon: 'body', color: '#ec4899', bg: '#fce7f3' },
-  CT007: { short: 'Yoga', icon: 'flower', color: '#0d9488', bg: '#e0f5f3' },
+  CT005: { short: 'Fitness', icon: 'walk', color: Colors.secondaryDark, bg: Colors.accentLight },
+  CT006: { short: 'Weight Loss', icon: 'body', color: Colors.primaryDark, bg: Colors.primaryLight },
+  CT007: { short: 'Yoga', icon: 'flower', color: Colors.secondary, bg: Colors.secondaryLight },
   CT008: { short: 'Zumba', icon: 'musical-notes', color: Colors.primary, bg: Colors.primaryLight },
 };
 
 export const DEFAULT_COACH_TYPE_STYLE: CoachTypeStyle = {
   short: 'Other',
   icon: 'apps-outline',
-  color: '#6b7280',
-  bg: '#f3f4f6',
+  color: Colors.textLight,
+  bg: Colors.backgroundTan,
 };
 
 export function getCoachTypeStyle(code: string): CoachTypeStyle {

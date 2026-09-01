@@ -6,9 +6,14 @@ import { createBlankProfile } from '../data/clientProfiles';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
 import type { ClientsStackScreenProps } from '../types/navigation';
+import { navigateBack } from '../utils/navigationBack';
 
-export default function AddClientScreen({ navigation }: ClientsStackScreenProps<'AddClient'>) {
+export default function AddClientScreen({
+  navigation,
+  route,
+}: ClientsStackScreenProps<'AddClient'>) {
   const queryClient = useQueryClient();
+  const returnTo = route.params?.returnTo;
 
   const onComplete = async () => {
     const coachCode = getCurrentCoachCode();
@@ -17,16 +22,17 @@ export default function AddClientScreen({ navigation }: ClientsStackScreenProps<
       queryClient.invalidateQueries({ queryKey: queryKeys.recheckupList(coachCode) }),
     ]);
     Alert.alert('Client saved', 'The client assessment was saved successfully.', [
-      { text: 'OK', onPress: () => navigation.goBack() },
+      { text: 'OK', onPress: () => navigateBack(navigation, returnTo) },
     ]);
   };
 
   return (
     <AssessmentWizardFlow
       flow="add"
+      headerTitle="Add Client"
       initialForm={createBlankProfile()}
       finishLabel="Save Client"
-      onExit={() => navigation.goBack()}
+      onExit={() => navigateBack(navigation, returnTo)}
       onComplete={onComplete}
     />
   );

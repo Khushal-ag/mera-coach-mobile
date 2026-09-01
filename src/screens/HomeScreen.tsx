@@ -6,28 +6,39 @@ import {
   ScrollView,
   RefreshControl,
   StyleSheet,
-  Image,
+  ImageBackground,
+  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow, STORY_CARD_WIDTH } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing, storyCardWidth } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
-import { COACH_STORY_TEMPLATES } from '../data/coachSuccessStories';
+import { PLATFORM_BENEFITS } from '../data/coachSuccessStories';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
 import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { useAuthState } from '../auth/useAuthState';
+import BrandLogo from '../components/BrandLogo';
 import KeyboardSafeScroll from '../components/KeyboardSafeScroll';
+import PersonAvatar from '../components/PersonAvatar';
 import PublicBmiCard from '../components/PublicBmiCard';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { shouldShowPublicRating } from '../utils/coachPublicStats';
-import { nameInitials } from '../utils/initials';
+import { prepareCoachCardBio } from '../utils/coachDisplay';
 import { refreshControlTheme } from '../hooks/useRefreshControl';
 import type { RootScreenProps } from '../types/navigation';
-import type { HomeStat } from '../data/homeContent';
 import type { Coach } from '../types/models';
+import type { PlatformBenefit } from '../data/coachSuccessStories';
+
+const CARD_WIDTH = storyCardWidth(Dimensions.get('window').width);
+
+interface HomeStat {
+  value: string;
+  label: string;
+}
 
 function SectionLoader() {
   return (
@@ -37,86 +48,32 @@ function SectionLoader() {
   );
 }
 
-function StoryCard({
-  coach,
-  badge,
-  icon,
-  quote,
-  onPress,
-}: {
-  coach: Coach;
-  badge: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  quote: string;
-  onPress: () => void;
-}) {
-  const photoUri = resolveMediaUrl(coach.profilePicUrl);
-  const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
-  const subtitle = [coach.category, coach.city].filter(Boolean).join(', ');
-
+function BenefitCard({ item }: { item: PlatformBenefit }) {
   return (
-    <TouchableOpacity style={styles.storyCard} onPress={onPress} activeOpacity={0.85}>
-      {showRating ? (
-        <View style={styles.starsRow}>
-          {[1, 2, 3, 4, 5].map(i => (
-            <Ionicons
-              key={i}
-              name={i <= Math.round(coach.rating) ? 'star' : 'star-outline'}
-              size={12}
-              color={Colors.accent}
-            />
-          ))}
-          <Text style={styles.ratingText}>{coach.rating.toFixed(1)}</Text>
-        </View>
-      ) : null}
+    <View style={styles.storyCard}>
       <View style={styles.storyBadge}>
-        <Ionicons name={icon} size={12} color={Colors.secondary} />
+        <Ionicons name={item.icon} size={12} color={Colors.secondary} />
         <Text style={styles.storyBadgeText} numberOfLines={1}>
-          {badge}
+          {item.badge}
         </Text>
       </View>
-      <Text style={styles.quoteMark}>&ldquo;</Text>
+      <Text style={styles.storyTitle}>{item.title}</Text>
       <Text style={styles.storyQuote} numberOfLines={5}>
-        {quote}
+        {item.body}
       </Text>
-      <View style={styles.storyAuthor}>
-        <View style={styles.storyAvatar}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.storyAvatarImage} />
-          ) : (
-            <Text style={styles.storyAvatarText}>{nameInitials(coach.name)}</Text>
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.storyName} numberOfLines={1}>
-            {coach.name}
-          </Text>
-          {subtitle ? (
-            <Text style={styles.storyMeta} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
-      </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 function ReviewCard({ coach, onPress }: { coach: Coach; onPress: () => void }) {
   const photoUri = resolveMediaUrl(coach.profilePicUrl);
   const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
+  const cardBio = prepareCoachCardBio(coach.bio, coach.name, coach.tags);
 
   return (
     <TouchableOpacity style={styles.reviewCard} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.reviewHeader}>
-        <View style={styles.reviewAvatar}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.storyAvatarImage} />
-          ) : (
-            <Text style={styles.storyAvatarText}>{nameInitials(coach.name)}</Text>
-          )}
-        </View>
+        <PersonAvatar uri={photoUri} size={40} />
         <View style={{ flex: 1 }}>
           <Text style={styles.storyName} numberOfLines={1}>
             {coach.name}
@@ -133,7 +90,7 @@ function ReviewCard({ coach, onPress }: { coach: Coach; onPress: () => void }) {
               <Ionicons
                 key={i}
                 name={i <= Math.round(coach.rating) ? 'star' : 'star-outline'}
-                size={14}
+                size={13}
                 color={Colors.accent}
               />
             ))}
@@ -146,20 +103,13 @@ function ReviewCard({ coach, onPress }: { coach: Coach; onPress: () => void }) {
       ) : (
         <Text style={styles.reviewFallback}>View profile for ratings</Text>
       )}
-      {coach.bio ? (
-        <Text style={styles.reviewBio} numberOfLines={3}>
-          {coach.bio}
+      {cardBio ? (
+        <Text style={styles.reviewBio} numberOfLines={2}>
+          {cardBio}
         </Text>
       ) : null}
       <View style={styles.reviewFooter}>
-        {coach.clients > 0 ? (
-          <Text style={styles.reviewClients}>
-            Clients: <Text style={styles.reviewClientsBold}>{coach.clients}+</Text>
-          </Text>
-        ) : (
-          <View />
-        )}
-        <Text style={styles.reviewLink}>View</Text>
+        <Text style={styles.reviewLink}>View profile</Text>
       </View>
     </TouchableOpacity>
   );
@@ -186,24 +136,12 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   const categories = apiCategories?.length ? apiCategories : FALLBACK_CATEGORIES;
   const categoriesLoading = categoriesQuery.isPending && !apiCategories;
   const coachesLoading = coachesQuery.isPending;
-  const storiesLoading = coachesLoading && !coachesQuery.data;
   const reviewsLoading = coachesLoading && !coachesQuery.data;
 
   const coachTotal = coachesQuery.data?.totalCount ?? coachesQuery.data?.coaches.length ?? 0;
   const avgRating = useMemo(() => {
     const rated = (coachesQuery.data?.coaches ?? []).filter(c => c.rating > 0);
     return rated.length ? rated.reduce((sum, c) => sum + c.rating, 0) / rated.length : null;
-  }, [coachesQuery.data]);
-
-  const storyItems = useMemo(() => {
-    const all = coachesQuery.data?.coaches ?? [];
-    // Offset past the top of the list so stories don't mirror the reviews strip.
-    const coaches = all.length > 6 ? all.slice(6) : all;
-    const n = Math.min(coaches.length, COACH_STORY_TEMPLATES.length);
-    return Array.from({ length: n }, (_, i) => ({
-      coach: coaches[i],
-      template: COACH_STORY_TEMPLATES[i],
-    }));
   }, [coachesQuery.data]);
 
   const reviewCoaches = useMemo(() => {
@@ -244,15 +182,23 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   return (
     <KeyboardSafeScroll
       style={styles.container}
-      keyboardPadding={120}
+      keyboardPadding={Spacing.lg}
+      withAvoidingView={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
       }
     >
-      <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+      <ImageBackground
+        source={BrandImages.hero}
+        style={[styles.hero, { paddingTop: insets.top + Spacing.xs }]}
+        imageStyle={styles.heroImage}
+        resizeMode="cover"
+      >
+        <View style={styles.heroScrim} />
+
         {!signedIn ? (
           <TouchableOpacity
-            style={[styles.loginLink, { top: insets.top + 12 }]}
+            style={[styles.loginLink, { top: insets.top + Spacing.xs }]}
             onPress={() => navigation.navigate('Login')}
             accessibilityRole="button"
             accessibilityLabel="Log In"
@@ -261,43 +207,42 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
           </TouchableOpacity>
         ) : null}
 
-        <View style={styles.logoBox}>
-          <Ionicons name="fitness" size={30} color={Colors.white} />
-        </View>
-        <View style={styles.badge}>
-          <View style={styles.badgeDot} />
-          <Text style={styles.badgeText}>Health coaching platform</Text>
-        </View>
-        <Text style={styles.heroTitle}>
-          Grow Your{'\n'}Health Coaching{'\n'}
-          <Text style={styles.heroTitleItalic}>Business</Text>
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Manage clients, track progress and build your coaching brand, all in one powerful
-          platform.
-        </Text>
+        <View style={styles.heroInner}>
+          <BrandLogo size={48} variant="onDark" style={styles.logo} />
+          <View style={styles.badge}>
+            <View style={styles.badgeDot} />
+            <Text style={styles.badgeText}>For wellness coaches</Text>
+          </View>
+          <Text style={styles.heroTitle}>
+            For health and{'\n'}
+            <Text style={styles.heroTitleItalic}>wellness coaches</Text>
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            Manage clients, track progress, and stay on top of checkups from your phone.
+          </Text>
 
-        <View style={styles.ctaRow}>
-          <TouchableOpacity
-            style={styles.ctaPrimary}
-            onPress={() =>
-              signedIn ? navigation.navigate('Main') : navigation.navigate('Register')
-            }
-          >
-            <Ionicons name={signedIn ? 'grid' : 'person'} size={16} color={Colors.white} />
-            <Text style={styles.ctaPrimaryText}>
-              {signedIn ? 'Go to Dashboard' : 'Start as a Coach'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.ctaSecondary}
-            onPress={() => navigation.navigate('CoachList')}
-          >
-            <Ionicons name="search" size={16} color={Colors.white} />
-            <Text style={styles.ctaSecondaryText}>Find a Coach</Text>
-          </TouchableOpacity>
+          <View style={styles.ctaRow}>
+            <TouchableOpacity
+              style={styles.ctaPrimary}
+              onPress={() =>
+                signedIn ? navigation.navigate('Main') : navigation.navigate('Register')
+              }
+            >
+              <Ionicons name={signedIn ? 'grid' : 'person'} size={16} color={Colors.white} />
+              <Text style={styles.ctaPrimaryText}>
+                {signedIn ? 'Go to Dashboard' : 'Start as a Coach'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.ctaSecondary}
+              onPress={() => navigation.navigate('CoachList')}
+            >
+              <Ionicons name="search" size={16} color={Colors.white} />
+              <Text style={styles.ctaSecondaryText}>Find a Coach</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ImageBackground>
 
       {!statsReady ? (
         <View style={[styles.statsStrip, styles.statsStripLoading]}>
@@ -324,7 +269,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </View>
         <Text style={styles.sectionTitle}>Coaching for Every Goal</Text>
         <Text style={styles.sectionSubtitle}>
-          Whether it&apos;s weight loss, strength, yoga or dance, find the right coach type.
+          Weight loss, strength, yoga, or dance. Find a coach who fits your goal.
         </Text>
 
         {categoriesLoading ? (
@@ -351,46 +296,28 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 
       <PublicBmiCard onFindCoach={() => navigation.navigate('CoachList')} />
 
-      {storiesLoading || storyItems.length > 0 ? (
-        <View style={styles.storiesSection}>
-          <View style={styles.sectionTag}>
-            <Ionicons name="chatbubble-ellipses-outline" size={12} color={Colors.secondary} />
-            <Text style={styles.sectionTagText}>Coach Stories</Text>
-          </View>
-          <Text style={styles.sectionTitle}>What Our Coaches Say</Text>
-          <Text style={styles.sectionSubtitle}>
-            Real coaches, real growth: how Mera Coach helped them reach more clients.
-          </Text>
-
-          {storiesLoading ? (
-            <SectionLoader />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.carousel}
-              decelerationRate="fast"
-              snapToInterval={STORY_CARD_WIDTH + 12}
-            >
-              {storyItems.map(({ coach, template }) => (
-                <StoryCard
-                  key={coach.id}
-                  coach={coach}
-                  badge={template.badge}
-                  icon={template.icon}
-                  quote={template.quote}
-                  onPress={() =>
-                    openCoach(
-                      coach,
-                      storyItems.map(s => s.coach),
-                    )
-                  }
-                />
-              ))}
-            </ScrollView>
-          )}
+      <View style={styles.storiesSection}>
+        <View style={styles.sectionTag}>
+          <Ionicons name="leaf-outline" size={12} color={Colors.secondary} />
+          <Text style={styles.sectionTagText}>Why coaches join</Text>
         </View>
-      ) : null}
+        <Text style={styles.sectionTitle}>How Mera Coach Helps</Text>
+        <Text style={styles.sectionSubtitle}>
+          What coaches get when they join, and what clients can browse.
+        </Text>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carousel}
+          decelerationRate="fast"
+          snapToInterval={CARD_WIDTH + Spacing.sm}
+        >
+          {PLATFORM_BENEFITS.map(item => (
+            <BenefitCard key={item.badge} item={item} />
+          ))}
+        </ScrollView>
+      </View>
 
       {reviewsLoading || reviewCoaches.length > 0 ? (
         <View style={styles.reviewsSection}>
@@ -399,9 +326,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
             <Text style={styles.sectionTagText}>Reviews</Text>
           </View>
           <Text style={styles.sectionTitle}>Top Rated Coaches</Text>
-          <Text style={styles.sectionSubtitle}>
-            See ratings and reviews from coaches building their practice on Mera Coach.
-          </Text>
+          <Text style={styles.sectionSubtitle}>Ratings from coaches listed on Mera Coach.</Text>
 
           {reviewsLoading ? (
             <SectionLoader />
@@ -411,7 +336,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.carousel}
               decelerationRate="fast"
-              snapToInterval={STORY_CARD_WIDTH + 12}
+              snapToInterval={CARD_WIDTH + Spacing.sm}
             >
               {reviewCoaches.map(coach => (
                 <ReviewCard
@@ -446,7 +371,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
           </>
         ) : (
           <>
-            <Text style={styles.joinTitle}>Ready to grow your practice?</Text>
+            <Text style={styles.joinTitle}>Want to list your coaching?</Text>
             <TouchableOpacity
               style={styles.joinBtn}
               onPress={() => navigation.navigate('Register')}
@@ -456,7 +381,10 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
             </TouchableOpacity>
           </>
         )}
-        <Text style={styles.footer}>MeraCoach © 2024 · Wellness Platform</Text>
+        <View style={styles.brandLockup}>
+          <BrandLogo size={40} variant="onLight" />
+          <Text style={styles.footer}>Mera Coach © 2026 · Health & wellness coaching</Text>
+        </View>
       </View>
     </KeyboardSafeScroll>
   );
@@ -465,22 +393,27 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   hero: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 36,
-    paddingHorizontal: 24,
-    alignItems: 'center',
+    overflow: 'hidden',
+    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
-  loginLink: { position: 'absolute', right: 20, padding: 8 },
-  loginLinkText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
-  logoBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+  heroImage: { resizeMode: 'cover' },
+  heroScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.heroScrim,
   },
+  heroInner: { alignItems: 'center', zIndex: 1 },
+  loginLink: { position: 'absolute', right: Spacing.lg, padding: Spacing.xs, zIndex: 2 },
+  loginLinkText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+  },
+  logo: { marginBottom: Spacing.xs },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -489,58 +422,62 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(201,136,42,0.35)',
     borderRadius: Radius.pill,
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 6,
-    marginBottom: 18,
+    marginBottom: Spacing.sm,
   },
   badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.accent },
-  badgeText: { color: Colors.accent, fontSize: 11, fontWeight: '700' },
+  badgeText: { color: Colors.accent, fontSize: 11, fontFamily: FontFamily.bold },
   heroTitle: {
     color: Colors.white,
-    fontSize: 30,
-    fontWeight: '800',
+    fontFamily: FontFamily.extraBold,
+    fontSize: 26,
     textAlign: 'center',
-    lineHeight: 36,
+    lineHeight: 32,
   },
-  heroTitleItalic: { color: Colors.accent, fontStyle: 'italic' },
+  heroTitleItalic: {
+    color: Colors.accent,
+    fontFamily: FontFamily.displayItalic,
+  },
   heroSubtitle: {
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.78)',
+    fontFamily: FontFamily.regular,
     fontSize: 13,
     textAlign: 'center',
-    marginTop: 14,
-    lineHeight: 20,
-    paddingHorizontal: 8,
+    marginTop: Spacing.xs,
+    lineHeight: 19,
+    paddingHorizontal: Spacing.xs,
   },
-  ctaRow: { flexDirection: 'row', gap: 10, marginTop: 24, width: '100%' },
+  ctaRow: { flexDirection: 'row', gap: 10, marginTop: Spacing.sm, width: '100%' },
   ctaPrimary: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: Colors.accent,
     borderRadius: Radius.pill,
     paddingVertical: 13,
     ...Shadow.md,
   },
-  ctaPrimaryText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+  ctaPrimaryText: { color: Colors.white, fontSize: 13, fontFamily: FontFamily.bold },
   ctaSecondary: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
     borderRadius: Radius.pill,
     paddingVertical: 13,
   },
-  ctaSecondaryText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+  ctaSecondaryText: { color: Colors.white, fontSize: 13, fontFamily: FontFamily.bold },
   statsStrip: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
-    marginHorizontal: 20,
+    marginHorizontal: Spacing.lg,
     marginTop: -22,
     borderRadius: Radius.lg,
     paddingVertical: 18,
@@ -553,9 +490,15 @@ const styles = StyleSheet.create({
   },
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, backgroundColor: Colors.border },
-  statValue: { fontSize: 17, fontWeight: '800', color: Colors.secondary },
-  statLabel: { fontSize: 10, color: Colors.textLight, marginTop: 2, textAlign: 'center' },
-  categoriesSection: { padding: 20, paddingTop: 36 },
+  statValue: { fontSize: 17, fontFamily: FontFamily.extraBold, color: Colors.secondary },
+  statLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    color: Colors.textLight,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  categoriesSection: { padding: Spacing.lg, paddingTop: Spacing.lg },
   sectionTag: {
     flexDirection: 'row',
     alignSelf: 'center',
@@ -563,14 +506,20 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.pill,
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 5,
     marginBottom: 10,
   },
-  sectionTagText: { color: Colors.secondary, fontSize: 11, fontWeight: '700' },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: Colors.textDark, textAlign: 'center' },
+  sectionTagText: { color: Colors.secondary, fontSize: 11, fontFamily: FontFamily.bold },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    textAlign: 'center',
+  },
   sectionSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     color: Colors.textLight,
     textAlign: 'center',
     marginTop: 6,
@@ -578,7 +527,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   sectionLoader: { paddingVertical: 28, alignItems: 'center' },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 20 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: 20 },
   categoryCard: {
     width: '47%',
     backgroundColor: Colors.white,
@@ -594,19 +543,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  categoryLabel: { fontSize: 12, fontWeight: '700', color: Colors.textDark },
-  storiesSection: { paddingTop: 28, paddingBottom: 8 },
-  reviewsSection: { paddingTop: 28, paddingBottom: 8 },
-  carousel: { paddingHorizontal: 20, paddingTop: 18, gap: 12 },
+  categoryLabel: { fontSize: 12, fontFamily: FontFamily.bold, color: Colors.textDark },
+  storiesSection: { paddingTop: 28, paddingBottom: Spacing.xs },
+  reviewsSection: { paddingTop: 28, paddingBottom: Spacing.xs },
+  carousel: { paddingHorizontal: Spacing.lg, paddingTop: 18, gap: Spacing.sm },
   storyCard: {
-    width: STORY_CARD_WIDTH,
+    width: CARD_WIDTH,
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    padding: 16,
+    padding: Spacing.md,
     ...Shadow.sm,
   },
-  starsRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 8 },
-  ratingText: { marginLeft: 6, fontSize: 12, fontWeight: '700', color: Colors.textDark },
+  starsRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: Spacing.xs },
   storyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -616,84 +564,107 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
     maxWidth: '100%',
   },
-  storyBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.secondary, flexShrink: 1 },
-  quoteMark: {
-    fontSize: 36,
-    lineHeight: 36,
-    color: Colors.accent,
-    fontWeight: '800',
-    opacity: 0.5,
+  storyBadgeText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: Colors.secondary,
+    flexShrink: 1,
   },
-  storyQuote: { fontSize: 13, color: Colors.textDark, lineHeight: 19, marginBottom: 14 },
-  storyAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  storyAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.secondaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+  storyTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: Spacing.xs,
+    lineHeight: 20,
   },
-  storyAvatarImage: { width: '100%', height: '100%' },
-  storyAvatarText: { fontSize: 12, fontWeight: '800', color: Colors.secondary },
-  storyName: { fontSize: 13, fontWeight: '700', color: Colors.textDark },
-  storyMeta: { fontSize: 11, color: Colors.textLight, marginTop: 1 },
+  storyQuote: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    lineHeight: 19,
+  },
+  storyName: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.textDark },
+  storyMeta: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 1 },
   reviewCard: {
-    width: STORY_CARD_WIDTH,
+    width: CARD_WIDTH,
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    padding: 16,
+    padding: Spacing.md,
     ...Shadow.sm,
   },
-  reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  reviewAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.secondaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
+  reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: Spacing.sm },
   reviewRatingBlock: { marginBottom: 10 },
-  reviewScore: { fontSize: 14, fontWeight: '800', color: Colors.textDark, marginTop: 4 },
-  reviewCount: { fontSize: 12, fontWeight: '600', color: Colors.textLight },
-  reviewFallback: { fontSize: 12, color: Colors.textLight, marginBottom: 10 },
-  reviewBio: { fontSize: 12, color: Colors.textLight, lineHeight: 17, marginBottom: 12 },
+  reviewScore: {
+    fontSize: 14,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    marginTop: 4,
+  },
+  reviewCount: { fontSize: 12, fontFamily: FontFamily.semibold, color: Colors.textLight },
+  reviewFallback: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginBottom: 10,
+  },
+  reviewBio: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 17,
+    marginBottom: Spacing.sm,
+  },
   reviewFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: Colors.background,
+    paddingTop: Spacing.xs,
   },
-  reviewClients: { fontSize: 12, color: Colors.textLight },
-  reviewClientsBold: { fontWeight: '800', color: Colors.secondary },
-  reviewLink: { fontSize: 13, fontWeight: '700', color: Colors.accent },
+  reviewLink: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.accent },
   seeAllBtn: {
     flexDirection: 'row',
     alignSelf: 'center',
     alignItems: 'center',
     gap: 6,
-    marginTop: 16,
-    paddingVertical: 8,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: 14,
   },
-  seeAllText: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
-  joinSection: { alignItems: 'center', padding: 24, paddingTop: 16 },
-  joinTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark, marginBottom: 14 },
+  seeAllText: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  joinSection: {
+    alignItems: 'center',
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+    backgroundColor: Colors.backgroundTan,
+    marginTop: Spacing.md,
+  },
+  joinTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: 14,
+  },
   joinBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
     paddingVertical: 14,
     paddingHorizontal: 28,
     ...Shadow.sm,
   },
-  joinBtnText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
-  footer: { color: Colors.textLight, fontSize: 11, marginTop: 20 },
+  joinBtnText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 14 },
+  brandLockup: { alignItems: 'center', marginTop: Spacing.lg, gap: Spacing.sm },
+  footer: {
+    color: Colors.textLight,
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    textAlign: 'center',
+  },
 });

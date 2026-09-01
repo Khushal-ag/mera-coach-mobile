@@ -1,6 +1,5 @@
 import {
   buildPublicProfileStats,
-  formatPublicStat,
   resolvePublicClientCount,
   shouldShowPublicClientCount,
   shouldShowPublicRating,
@@ -47,16 +46,6 @@ describe('resolvePublicClientCount', () => {
         marketingClients: 0,
       }),
     ).toBe(0);
-  });
-});
-
-describe('formatPublicStat', () => {
-  it('formats numbers and returns null for missing', () => {
-    expect(formatPublicStat(3)).toBe('3');
-    expect(formatPublicStat(0)).toBe('0');
-    expect(formatPublicStat(42)).toBe('42');
-    expect(formatPublicStat(null)).toBeNull();
-    expect(formatPublicStat(undefined)).toBeNull();
   });
 });
 

@@ -45,7 +45,6 @@ export interface ClientSummary {
   goal?: string;
   age?: number;
   status?: string;
-  initials?: string;
   mobileNo?: string;
   /** Display-ready date string from the API (not always ISO). */
   lastCheckupDate?: string;
@@ -57,7 +56,6 @@ export interface RecheckupDueClient {
   name: string;
   mobileNo?: string;
   age?: number;
-  initials?: string;
   lastCheckupDate?: string;
   dueDate?: string;
   /** Whole days past due; 0 means due today. */

@@ -18,7 +18,7 @@ export function formatExperienceDisplay(
   }
 
   // Don't invent "0 yrs" when both sources are missing.
-  return '—';
+  return '-';
 }
 
 export function pickCoachCreatedAt(

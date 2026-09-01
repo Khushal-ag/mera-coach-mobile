@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import ScreenHeader from '../components/ScreenHeader';
 import ClientAvatar from '../components/ClientAvatar';
 import ProgressPhotos from '../components/ProgressPhotos';
@@ -30,7 +30,8 @@ import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshContr
 import { getBmi, getBmiCategory } from '../utils/bmi';
 import { lastCheckupLabel } from '../utils/recheckup';
 import type { ClientsStackScreenProps } from '../types/navigation';
-import type { IoniconName } from '../types/wizard';
+import type { IoniconName } from '../types/icons';
+import { navigateBack } from '../utils/navigationBack';
 
 interface MetricCell {
   label: string;
@@ -56,7 +57,8 @@ export default function ClientDetailScreen({
   route,
 }: ClientsStackScreenProps<'ClientDetail'>) {
   const insets = useSafeAreaInsets();
-  const client = route.params?.client || { name: 'Client', initials: 'CL' };
+  const client = route.params?.client || { name: 'Client' };
+  const returnTo = route.params?.returnTo;
 
   const detailQuery = useQuery({
     queryKey: queryKeys.clientDetail(client.clientCode, client.assessmentCode),
@@ -90,10 +92,10 @@ export default function ClientDetailScreen({
   const metrics = useMemo<MetricCell[]>(() => {
     if (!detail) return [];
     return [
-      { label: 'Age', value: detail.age != null ? `${detail.age} yrs` : '—' },
-      { label: 'Height', value: detail.height != null ? `${detail.height} cm` : '—' },
-      { label: 'Weight', value: detail.weight != null ? `${detail.weight} kg` : '—' },
-      { label: 'BMI', value: bmi ? bmi.toFixed(1) : '—' },
+      { label: 'Age', value: detail.age != null ? `${detail.age} yrs` : '-' },
+      { label: 'Height', value: detail.height != null ? `${detail.height} cm` : '-' },
+      { label: 'Weight', value: detail.weight != null ? `${detail.weight} kg` : '-' },
+      { label: 'BMI', value: bmi ? bmi.toFixed(1) : '-' },
     ];
   }, [detail, bmi]);
 
@@ -103,17 +105,17 @@ export default function ClientDetailScreen({
       {
         label: 'Goal',
         icon: 'trophy-outline',
-        value: resolveMasterLabel(detail.primaryGoal, goalOptions) || '—',
+        value: resolveMasterLabel(detail.primaryGoal, goalOptions) || '-',
       },
       {
         label: 'Diet Type',
         icon: 'restaurant-outline',
-        value: resolveMasterLabel(detail.foodPreference, dietOptions) || '—',
+        value: resolveMasterLabel(detail.foodPreference, dietOptions) || '-',
       },
       {
         label: 'Activity',
         icon: 'walk-outline',
-        value: resolveMasterLabel(detail.physicalActivity, activityOptions) || '—',
+        value: resolveMasterLabel(detail.physicalActivity, activityOptions) || '-',
       },
     ];
   }, [detail, goalOptions, dietOptions, activityOptions]);
@@ -155,15 +157,14 @@ export default function ClientDetailScreen({
         />
       }
     >
-      <ScreenHeader title="Client Profile" onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Client Profile" onBack={() => navigateBack(navigation, returnTo)} />
 
       <View style={styles.profileCard}>
         <ClientAvatar
           clientCode={client.clientCode}
-          initials={client.initials || 'CL'}
           size={80}
           allowUpload
-          style={{ marginRight: 0, marginBottom: 12 }}
+          style={{ marginRight: 0, marginBottom: Spacing.sm }}
         />
         <Text style={styles.clientName}>{client.name}</Text>
 
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   profileCard: {
     backgroundColor: Colors.white,
-    margin: 20,
+    margin: Spacing.lg,
     borderRadius: Radius.lg,
     padding: 24,
     alignItems: 'center',
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: FontFamily.extraBold,
     color: Colors.textDark,
     textAlign: 'center',
   },
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   contactLine: {
     fontSize: 13,
     color: Colors.textLight,
-    fontWeight: '500',
+    fontFamily: FontFamily.medium,
     textAlign: 'center',
   },
   chipRow: {
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     maxWidth: '100%',
   },
-  goalChipText: { color: Colors.secondary, fontSize: 12, fontWeight: '700' },
+  goalChipText: { color: Colors.secondary, fontSize: 12, fontFamily: FontFamily.bold },
   bmiBadge: {
     borderRadius: Radius.pill,
     paddingHorizontal: 12,
@@ -339,17 +340,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  bmiBadgeValue: { fontSize: 13, fontWeight: '800' },
-  bmiBadgeLabel: { fontSize: 11, fontWeight: '600' },
+  bmiBadgeValue: { fontSize: 13, fontFamily: FontFamily.extraBold },
+  bmiBadgeLabel: { fontSize: 11, fontFamily: FontFamily.semibold },
   statusBadge: {
     backgroundColor: Colors.accentLight,
     borderRadius: Radius.pill,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  statusText: { color: Colors.accent, fontSize: 12, fontWeight: '700' },
-  section: { marginHorizontal: 20, marginBottom: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark, marginBottom: 10 },
+  statusText: { color: Colors.accent, fontSize: 12, fontFamily: FontFamily.bold },
+  section: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  sectionTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: 10,
+  },
   infoCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
@@ -376,8 +382,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  metricValue: { fontSize: 20, fontWeight: '800', color: Colors.textDark },
-  metricLabel: { fontSize: 11, color: Colors.textLight, marginTop: 4, fontWeight: '600' },
+  metricValue: { fontSize: 20, fontFamily: FontFamily.extraBold, color: Colors.textDark },
+  metricLabel: {
+    fontSize: 11,
+    color: Colors.textLight,
+    marginTop: 4,
+    fontFamily: FontFamily.semibold,
+  },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -396,10 +407,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  detailLabel: { flex: 1, fontSize: 13, color: Colors.textLight, fontWeight: '500' },
+  detailLabel: { flex: 1, fontSize: 13, color: Colors.textLight, fontFamily: FontFamily.medium },
   detailValue: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FontFamily.bold,
     color: Colors.textDark,
     maxWidth: '55%',
     textAlign: 'right',
@@ -425,5 +436,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...Shadow.sm,
   },
-  actionText: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  actionText: { fontSize: 13, fontFamily: FontFamily.bold, textAlign: 'center' },
 });

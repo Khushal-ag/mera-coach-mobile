@@ -36,6 +36,28 @@ describe('buildCoachSuccessHighlights', () => {
     expect(items[2].body).toBe('Strength for busy professionals');
   });
 
+  it('skips redundant highlights when already shown on the profile screen', () => {
+    const items = buildCoachSuccessHighlights(
+      {
+        name: 'Ada Coach',
+        clients: 40,
+        experience: 5,
+        bio: 'Helps clients rebuild habits with practical weekly plans.',
+        tagline: 'Strength for busy professionals',
+        tags: ['Weight Loss', 'Nutrition'],
+        category: 'Fitness Coach',
+      },
+      {
+        skipClients: true,
+        skipExperience: true,
+        skipBio: true,
+        skipTags: true,
+      },
+    );
+
+    expect(items.map(i => i.id)).toEqual(['tagline']);
+  });
+
   it('falls back to bio when tagline is missing', () => {
     const items = buildCoachSuccessHighlights({
       name: 'Ada',

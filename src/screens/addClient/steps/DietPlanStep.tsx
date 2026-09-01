@@ -94,7 +94,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
           </View>
           <Text style={styles.emptyTitle}>No plan yet</Text>
           <Text style={styles.emptyMessage}>
-            Create a suggested meal plan tailored to goals, preferences, and activity.
+            Generate a meal plan based on this client&apos;s goals, preferences, and activity.
           </Text>
           <TouchableOpacity
             style={styles.generateBtn}

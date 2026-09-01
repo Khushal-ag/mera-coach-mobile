@@ -27,12 +27,6 @@ export function resolvePublicClientCount(opts: {
   return marketingClients;
 }
 
-/** null when missing so callers skip rendering (no placeholder dashes). */
-export function formatPublicStat(value: number | null | undefined): string | null {
-  if (value == null) return null;
-  return String(value);
-}
-
 export function shouldShowPublicClientCount(count: number | null | undefined): boolean {
   return count != null && count > 0;
 }

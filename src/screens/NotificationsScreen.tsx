@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Colors } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
 import ScreenHeader from '../components/ScreenHeader';
 import type { DashboardStackScreenProps } from '../types/navigation';
@@ -12,9 +13,9 @@ export default function NotificationsScreen({
     <View style={styles.container}>
       <ScreenHeader title="Notifications" onBack={() => navigation.goBack()} />
       <EmptyState
-        icon="notifications-outline"
-        title="Coming soon"
-        message="Check-up reminders and lead alerts will show up here once notifications go live."
+        illustration={BrandImages.emptyNotifications}
+        title="Nothing here yet"
+        message="Check-up reminders and lead alerts will show up here when we turn notifications on."
       />
     </View>
   );

@@ -7,10 +7,13 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { BrandImages } from '../constants/images';
+import BrandLogo from '../components/BrandLogo';
 import FormErrorBanner from '../components/FormErrorBanner';
 import FormFieldLabel from '../components/FormFieldLabel';
 import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
@@ -55,126 +58,134 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   };
 
   return (
-    <KeyboardSafeScroll
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={styles.inner}
-    >
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
-        <View style={styles.logoBox}>
-          <Ionicons name="fitness" size={32} color={Colors.white} />
-        </View>
-        <Text style={styles.brand}>Mera Coach</Text>
-        <Text style={styles.tagline}>Wellness Platform</Text>
-      </View>
-
-      <View style={styles.card}>
-        <FormErrorBanner message={formErrorBanner} />
-
-        <Text style={styles.cardTitle}>Coach Login</Text>
-        <Text style={styles.cardSub}>Sign in to manage your clients</Text>
-
-        <View style={styles.field}>
-          <FormFieldLabel required>Email Address</FormFieldLabel>
-          <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
-            <Ionicons
-              name="mail-outline"
-              size={18}
-              color={Colors.textLight}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="coach@meracoach.com"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={email}
-              onChangeText={v => {
-                setEmail(sanitizeEmailInput(v));
-                clearFieldError('email');
-              }}
-            />
-          </View>
+    <ImageBackground source={BrandImages.loginAtmosphere} style={styles.bg} resizeMode="cover">
+      <View style={styles.scrim} />
+      <KeyboardSafeScroll
+        ref={scrollRef}
+        style={styles.container}
+        contentContainerStyle={styles.inner}
+      >
+        <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
+          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
+          <BrandLogo size={56} variant="onDark" style={styles.logo} />
+          <Text style={styles.brand}>Mera Coach</Text>
+          <Text style={styles.tagline}>Health & wellness coaching</Text>
         </View>
 
-        <View style={styles.field}>
-          <FormFieldLabel required>Password</FormFieldLabel>
-          <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={18}
-              color={Colors.textLight}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Enter your password"
-              placeholderTextColor={Colors.textLight}
-              secureTextEntry={!showPass}
-              value={password}
-              onChangeText={v => {
-                setPassword(v);
-                clearFieldError('password');
-              }}
-              onFocus={scrollLowerFieldsIntoView}
-            />
-            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+        <View style={styles.card}>
+          <FormErrorBanner message={formErrorBanner} />
+
+          <Text style={styles.cardTitle}>Coach Login</Text>
+          <Text style={styles.cardSub}>Sign in to manage your clients</Text>
+
+          <View style={styles.field}>
+            <FormFieldLabel required>Email Address</FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
               <Ionicons
-                name={showPass ? 'eye-off-outline' : 'eye-outline'}
+                name="mail-outline"
                 size={18}
                 color={Colors.textLight}
+                style={styles.inputIcon}
               />
-            </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="coach@meracoach.com"
+                placeholderTextColor={Colors.textLight}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={v => {
+                  setEmail(sanitizeEmailInput(v));
+                  clearFieldError('email');
+                }}
+              />
+            </View>
           </View>
+
+          <View style={styles.field}>
+            <FormFieldLabel required>Password</FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={Colors.textLight}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Enter your password"
+                placeholderTextColor={Colors.textLight}
+                secureTextEntry={!showPass}
+                value={password}
+                onChangeText={v => {
+                  setPassword(v);
+                  clearFieldError('password');
+                }}
+                onFocus={scrollLowerFieldsIntoView}
+              />
+              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+                <Ionicons
+                  name={showPass ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={Colors.textLight}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.loginBtn, submitting && styles.loginBtnDisabled]}
+            onPress={handleLogin}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <>
+                <Text style={styles.loginBtnText}>Sign In</Text>
+                <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.loginBtn, submitting && styles.loginBtnDisabled]}
-          onPress={handleLogin}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator color={Colors.white} />
-          ) : (
-            <>
-              <Text style={styles.loginBtnText}>Sign In</Text>
-              <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-            </>
-          )}
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.registerLink}>
+            New coach? <Text style={styles.registerLinkBold}>Create an account →</Text>
+          </Text>
         </TouchableOpacity>
-      </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.registerLink}>
-          New coach? <Text style={styles.registerLinkBold}>Create an account →</Text>
-        </Text>
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>MeraCoach © 2024 · Wellness Platform</Text>
-    </KeyboardSafeScroll>
+        <Text style={styles.footer}>Mera Coach © 2026 · Health & wellness coaching</Text>
+      </KeyboardSafeScroll>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.secondary },
-  inner: { flexGrow: 1, alignItems: 'center' },
-  header: { alignItems: 'center', paddingBottom: 40, width: '100%', paddingHorizontal: 20 },
-  headerBack: { alignSelf: 'flex-start', marginBottom: 16 },
-  logoBox: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: Colors.onDarkOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
+  bg: { flex: 1, backgroundColor: Colors.secondary },
+  scrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(27,67,50,0.82)',
   },
-  brand: { fontSize: 28, fontWeight: '800', color: Colors.white },
+  container: { flex: 1, backgroundColor: 'transparent', zIndex: 1 },
+  inner: { flexGrow: 1, alignItems: 'center' },
+  header: {
+    alignItems: 'center',
+    paddingBottom: Spacing.lg,
+    width: '100%',
+    paddingHorizontal: Spacing.lg,
+  },
+  headerBack: { alignSelf: 'flex-start', marginBottom: Spacing.sm },
+  logo: { marginBottom: Spacing.sm },
+  brand: { fontSize: 24, fontFamily: FontFamily.extraBold, color: Colors.white },
   tagline: {
     fontSize: 12,
+    fontFamily: FontFamily.semibold,
     color: Colors.onDarkMuted,
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -184,12 +195,17 @@ const styles = StyleSheet.create({
     width: '90%',
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    padding: 28,
+    padding: Spacing.lg,
     ...Shadow.lg,
   },
-  cardTitle: { fontSize: 22, fontWeight: '700', color: Colors.textDark, marginBottom: 4 },
-  cardSub: { fontSize: 13, color: Colors.textLight, marginBottom: 24 },
-  field: { marginBottom: 16 },
+  cardTitle: { fontSize: 22, fontFamily: FontFamily.bold, color: Colors.textDark, marginBottom: 4 },
+  cardSub: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginBottom: Spacing.lg,
+  },
+  field: { marginBottom: Spacing.md },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,7 +218,7 @@ const styles = StyleSheet.create({
   },
   inputWrapError: { borderColor: Colors.destructive },
   inputIcon: { marginRight: 8 },
-  input: { flex: 1, fontSize: 14, color: Colors.textDark },
+  input: { flex: 1, fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   eyeBtn: { padding: 4 },
   loginBtn: {
     backgroundColor: Colors.primary,
@@ -215,8 +231,18 @@ const styles = StyleSheet.create({
     ...Shadow.md,
   },
   loginBtnDisabled: { opacity: 0.7 },
-  loginBtnText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
-  registerLink: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 24 },
-  registerLinkBold: { color: Colors.white, fontWeight: '700' },
-  footer: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 16 },
+  loginBtnText: { color: Colors.white, fontSize: 16, fontFamily: FontFamily.bold },
+  registerLink: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginTop: Spacing.lg,
+  },
+  registerLinkBold: { color: Colors.white, fontFamily: FontFamily.bold },
+  footer: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    marginTop: Spacing.md,
+  },
 });

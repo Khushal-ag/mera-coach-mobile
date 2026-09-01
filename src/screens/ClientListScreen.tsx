@@ -12,10 +12,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
 import ClientAvatar from '../components/ClientAvatar';
-import { HeaderHomeButton } from '../components/ScreenHeader';
+import TabRootHeader from '../components/TabRootHeader';
+import SectionTag from '../components/SectionTag';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
@@ -25,6 +27,7 @@ import { stripNonDigits } from '../utils/validation';
 import { lastCheckupLabel } from '../utils/recheckup';
 import type { ClientsStackScreenProps } from '../types/navigation';
 import type { ClientSummary } from '../types/models';
+import { navigateToDashboard } from '../utils/navigationBack';
 
 function clientMeta(item: ClientSummary): string {
   const parts: string[] = [];
@@ -63,7 +66,7 @@ export default function ClientListScreen({
   const emptyState =
     clients.length === 0
       ? {
-          icon: 'people-outline' as const,
+          illustration: BrandImages.emptyClients,
           title: 'No clients yet',
           message: 'Tap + to add your first client and start their assessment.',
         }
@@ -75,10 +78,10 @@ export default function ClientListScreen({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.title}>My Clients</Text>
-        <View style={styles.headerActions}>
-          <HeaderHomeButton />
+      <TabRootHeader
+        title="My Clients"
+        onBack={() => navigateToDashboard(navigation)}
+        right={
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => navigation.navigate('AddClient')}
@@ -86,10 +89,11 @@ export default function ClientListScreen({
           >
             <Ionicons name="add" size={22} color={Colors.white} />
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       <View style={styles.body}>
+        <SectionTag icon="people-outline" label="Client roster" />
         <View style={styles.searchWrap}>
           <Ionicons
             name="search-outline"
@@ -143,12 +147,7 @@ export default function ClientListScreen({
                 const mobile = (item.mobileNo ?? '').trim();
                 return (
                   <View style={styles.card}>
-                    <ClientAvatar
-                      clientCode={item.clientCode}
-                      initials={item.initials}
-                      size={46}
-                      allowUpload
-                    />
+                    <ClientAvatar clientCode={item.clientCode} size={46} allowUpload />
                     <TouchableOpacity
                       style={styles.cardMain}
                       onPress={() => navigation.navigate('ClientDetail', { client: item })}
@@ -215,37 +214,32 @@ export default function ClientListScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  body: { flex: 1, padding: 20 },
+  body: { flex: 1, padding: Spacing.md },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: Radius.sm,
-    paddingHorizontal: 14,
-    height: 46,
+    paddingHorizontal: 12,
+    height: 38,
     ...Shadow.sm,
-    marginBottom: 14,
+    marginBottom: Spacing.sm,
   },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.textDark },
-  count: { fontSize: 12, color: Colors.textLight, marginBottom: 10, fontWeight: '600' },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
+  count: {
+    fontSize: 12,
+    color: Colors.textLight,
+    marginBottom: 10,
+    fontFamily: FontFamily.semibold,
+  },
   emptyWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
@@ -258,13 +252,13 @@ const styles = StyleSheet.create({
   },
   cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   info: { flex: 1, minWidth: 0 },
-  name: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
+  name: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
   meta: { fontSize: 12, color: Colors.textLight, marginTop: 1 },
   badge: { borderRadius: Radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
   badgeActive: { backgroundColor: Colors.secondaryLight },
   badgeWarning: { backgroundColor: Colors.accentLight },
   badgeNew: { backgroundColor: Colors.primaryLight },
-  badgeText: { fontSize: 10, fontWeight: '700' },
+  badgeText: { fontSize: 10, fontFamily: FontFamily.bold },
   badgeActiveText: { color: Colors.secondary },
   badgeWarningText: { color: Colors.accent },
   badgeNewText: { color: Colors.primary },

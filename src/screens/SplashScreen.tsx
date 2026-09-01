@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Shadow } from '../constants/theme';
+import BrandLogo from '../components/BrandLogo';
+import { Colors, FontFamily, Spacing } from '../constants/theme';
 
 export default function SplashScreen() {
   const [fadeAnim] = useState(() => new Animated.Value(0));
@@ -19,14 +19,12 @@ export default function SplashScreen() {
       <Animated.View
         style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}
       >
-        <View style={styles.logoBox}>
-          <Ionicons name="fitness" size={44} color={Colors.white} />
-        </View>
+        <BrandLogo size={96} variant="onDark" style={styles.logo} />
         <Text style={styles.title}>Mera Coach</Text>
-        <Text style={styles.subtitle}>Wellness Platform</Text>
+        <Text style={styles.subtitle}>Health & wellness coaching</Text>
       </Animated.View>
       <Animated.Text style={[styles.tagline, { opacity: fadeAnim }]}>
-        Empowering Health Coaches
+        Health & wellness coaching
       </Animated.Text>
     </View>
   );
@@ -40,25 +38,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   content: { alignItems: 'center' },
-  logoBox: {
-    width: 90,
-    height: 90,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    ...Shadow.lg,
-  },
+  logo: { marginBottom: Spacing.lg },
   title: {
+    fontFamily: FontFamily.extraBold,
     fontSize: 36,
-    fontWeight: '800',
     color: Colors.white,
     letterSpacing: 0.5,
   },
   subtitle: {
+    fontFamily: FontFamily.semibold,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.onDarkMuted,
     marginTop: 4,
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -66,6 +56,7 @@ const styles = StyleSheet.create({
   tagline: {
     position: 'absolute',
     bottom: 50,
+    fontFamily: FontFamily.medium,
     fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 1,

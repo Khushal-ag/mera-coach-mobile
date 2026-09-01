@@ -15,8 +15,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
+import PersonAvatar from '../components/PersonAvatar';
 import ScreenHeader from '../components/ScreenHeader';
 import { getEnquiryLeads, updateEnquiryLead, type EnquiryLead } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
@@ -75,12 +77,10 @@ function LeadRow({
   return (
     <View style={styles.card}>
       <View style={styles.cardTop}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{lead.initials}</Text>
-        </View>
+        <PersonAvatar size={40} style={styles.avatar} />
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
-            {lead.clientName || '—'}
+            {lead.clientName || '-'}
           </Text>
           {lead.dateLabel ? (
             <Text style={styles.date} numberOfLines={1}>
@@ -236,7 +236,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
   const emptyState =
     leads.length === 0
       ? {
-          icon: 'funnel-outline' as const,
+          illustration: BrandImages.emptyLeads,
           title: 'No leads yet',
           message: 'Enquiries from your public profile will show up here so you can follow up.',
         }
@@ -314,21 +314,21 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  body: { flex: 1, padding: 20 },
+  body: { flex: 1, padding: Spacing.md },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: Radius.sm,
-    paddingHorizontal: 14,
-    height: 46,
+    paddingHorizontal: 12,
+    height: 38,
     ...Shadow.sm,
-    marginBottom: 14,
+    marginBottom: Spacing.sm,
   },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.textDark },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   count: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FontFamily.semibold,
     color: Colors.textLight,
     marginBottom: 10,
   },
@@ -341,18 +341,9 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  avatarText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+  avatar: { marginRight: 10 },
   info: { flex: 1, minWidth: 0, marginRight: 8 },
-  name: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
+  name: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
   date: { fontSize: 11, color: Colors.textLight, marginTop: 2 },
   lookingFor: { fontSize: 12, color: Colors.textDark, marginTop: 4, lineHeight: 16 },
   statusBadge: {
@@ -362,7 +353,7 @@ const styles = StyleSheet.create({
   },
   statusNew: { backgroundColor: Colors.accentLight },
   statusContacted: { backgroundColor: Colors.secondaryLight },
-  statusText: { fontSize: 11, fontWeight: '700' },
+  statusText: { fontSize: 11, fontFamily: FontFamily.bold },
   statusNewText: { color: Colors.accent },
   statusContactedText: { color: Colors.secondary },
   contactRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
@@ -376,14 +367,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  contactChipText: { fontSize: 12, fontWeight: '600', color: Colors.secondary, maxWidth: 200 },
+  contactChipText: {
+    fontSize: 12,
+    fontFamily: FontFamily.semibold,
+    color: Colors.secondary,
+    maxWidth: 200,
+  },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 12,
   },
-  toggleLabel: { fontSize: 13, fontWeight: '600', color: Colors.textDark },
+  toggleLabel: { fontSize: 13, fontFamily: FontFamily.semibold, color: Colors.textDark },
   notesInput: {
     marginTop: 10,
     borderWidth: 1,
@@ -392,6 +388,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     color: Colors.textDark,
     backgroundColor: Colors.background,
   },

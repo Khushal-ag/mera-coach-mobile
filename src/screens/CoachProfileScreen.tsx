@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -12,14 +11,14 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow } from '../constants/theme';
-import { HeaderHomeButton } from '../components/ScreenHeader';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import PersonAvatar from '../components/PersonAvatar';
+import BrandLogo from '../components/BrandLogo';
+import TabRootHeader from '../components/TabRootHeader';
 import { APP_DISPLAY_NAME } from '../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../utils/support';
 import { formatExperienceDisplay } from '../utils/experience';
 import { resolveMediaUrl } from '../utils/mediaUrl';
-import { nameInitials } from '../utils/initials';
 import { refreshControlTheme } from '../hooks/useRefreshControl';
 import { clearSession, getCurrentCoachCode } from '../auth/session';
 import { getCoachProfile } from '../api/coachApi';
@@ -27,7 +26,8 @@ import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getErrorMessage } from '../api/client';
 import type { ProfileStackScreenProps } from '../types/navigation';
-import type { IoniconName } from '../types/wizard';
+import type { IoniconName } from '../types/icons';
+import { navigateToDashboard } from '../utils/navigationBack';
 
 interface MenuItem {
   icon: IoniconName;
@@ -43,13 +43,12 @@ const menuItems: MenuItem[] = [
   { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
   { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
   { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary },
-  { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: Colors.purple },
+  { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: Colors.secondary },
   { icon: 'trash-outline', label: 'Delete Account', color: Colors.destructiveOrange },
   { icon: 'log-out-outline', label: 'Logout', color: Colors.destructive },
 ];
 
 export default function CoachProfileScreen({ navigation }: ProfileStackScreenProps<'ProfileHome'>) {
-  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
@@ -81,7 +80,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       ? getErrorMessage(profileQuery.error, 'Could not load profile. Pull down to try again.')
       : null;
 
-  const initials = profile?.name ? nameInitials(profile.name) : '?';
+  const photoUri = resolveMediaUrl(profile?.profilePicUrl);
 
   // Prefer live ClientList length; fall back to happyClientCount only when the list isn't loaded.
   const clientCountDisplay =
@@ -90,13 +89,12 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       : profile?.clients != null
         ? String(profile.clients)
         : clientsQuery.isPending || profileQuery.isPending
-          ? '—'
+          ? '-'
           : '0';
 
   const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
   const ratingDisplay =
-    profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '—';
-  const photoUri = resolveMediaUrl(profile?.profilePicUrl);
+    profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '-';
 
   return (
     <ScrollView
@@ -106,10 +104,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
       }
     >
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.title}>My Profile</Text>
-        <HeaderHomeButton />
-      </View>
+      <TabRootHeader title="My Profile" onBack={() => navigateToDashboard(navigation)} />
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
@@ -118,13 +113,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       ) : (
         <>
           <View style={styles.profileCard}>
-            <View style={styles.avatar}>
-              {photoUri ? (
-                <Image source={{ uri: photoUri }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarText}>{initials}</Text>
-              )}
-            </View>
+            <PersonAvatar uri={photoUri} size={80} style={styles.avatar} />
             <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
             <Text style={styles.role}>{profile?.category || ''}</Text>
             {profile?.city ? (
@@ -196,44 +185,35 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
         ))}
       </View>
 
-      <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
+      <View style={styles.brandLockup}>
+        <BrandLogo size={32} variant="onLight" />
+        <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: { color: Colors.white, fontSize: 22, fontWeight: '800' },
   profileCard: {
     backgroundColor: Colors.white,
-    margin: 20,
+    margin: Spacing.lg,
     borderRadius: Radius.lg,
     padding: 24,
     alignItems: 'center',
     ...Shadow.md,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    overflow: 'hidden',
+    marginBottom: Spacing.sm,
+    marginRight: 0,
   },
-  avatarImage: { width: '100%', height: '100%' },
-  avatarText: { color: Colors.white, fontSize: 28, fontWeight: '800' },
-  name: { fontSize: 20, fontWeight: '800', color: Colors.textDark, textAlign: 'center' },
-  role: { fontSize: 13, color: Colors.primary, fontWeight: '600', marginTop: 4 },
+  name: {
+    fontSize: 20,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    textAlign: 'center',
+  },
+  role: { fontSize: 13, color: Colors.primary, fontFamily: FontFamily.semibold, marginTop: 4 },
   location: { fontSize: 12, color: Colors.textLight, marginTop: 6 },
   statsRow: {
     flexDirection: 'row',
@@ -245,10 +225,15 @@ const styles = StyleSheet.create({
   },
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, backgroundColor: Colors.border },
-  statValue: { fontSize: 20, fontWeight: '800', color: Colors.textDark },
-  statLabel: { fontSize: 11, color: Colors.textLight, marginTop: 2 },
-  section: { marginHorizontal: 20, marginBottom: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark, marginBottom: 10 },
+  statValue: { fontSize: 20, fontFamily: FontFamily.extraBold, color: Colors.textDark },
+  statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 2 },
+  section: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  sectionTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: 10,
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -267,7 +252,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  menuLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.textDark },
-  version: { textAlign: 'center', color: Colors.textLight, fontSize: 12, paddingVertical: 20 },
+  menuLabel: { flex: 1, fontSize: 14, fontFamily: FontFamily.semibold, color: Colors.textDark },
+  brandLockup: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
+  version: {
+    textAlign: 'center',
+    color: Colors.textLight,
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+  },
   empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 40 },
 });

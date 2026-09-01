@@ -4,6 +4,14 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
 import type { ClientSummary, Coach } from './models';
 
+/** Optional back target for screens opened via cross-tab navigation (e.g. Dashboard → Add Client). */
+export type NavigationReturnTo = {
+  name: keyof MainTabParamList;
+  params?: MainTabParamList[keyof MainTabParamList];
+};
+
+type WithReturnTo<T> = T & { returnTo?: NavigationReturnTo };
+
 export type DashboardStackParamList = {
   DashboardHome: undefined;
   Leads: undefined;
@@ -12,16 +20,16 @@ export type DashboardStackParamList = {
 
 export type ClientsStackParamList = {
   ClientListHome: undefined;
-  ClientDetail: { client?: ClientSummary } | undefined;
-  AddClient: undefined;
-  ClientBmi: { client?: ClientSummary } | undefined;
-  ClientBmiReport: { client?: ClientSummary } | undefined;
-  ClientDietPlan: { client?: ClientSummary } | undefined;
+  ClientDetail: WithReturnTo<{ client?: ClientSummary }> | undefined;
+  AddClient: { returnTo?: NavigationReturnTo } | undefined;
+  ClientBmi: WithReturnTo<{ client?: ClientSummary }> | undefined;
+  ClientBmiReport: WithReturnTo<{ client?: ClientSummary }> | undefined;
+  ClientDietPlan: WithReturnTo<{ client?: ClientSummary }> | undefined;
 };
 
 export type CheckupsStackParamList = {
   CheckupListHome: undefined;
-  ClientBmi: { client?: ClientSummary } | undefined;
+  ClientBmi: WithReturnTo<{ client?: ClientSummary }> | undefined;
 };
 
 export type ProfileStackParamList = {

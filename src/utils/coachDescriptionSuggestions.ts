@@ -34,7 +34,7 @@ export function buildCoachDescriptionSuggestions(input: DescriptionSuggestionInp
       `${name} is a ${category.toLowerCase()} with ${expPhrase}, helping ${clientPhrase} reach sustainable health goals through ${services.toLowerCase()}.`,
     ),
     trimSentence(
-      `Passionate ${category.toLowerCase()} offering ${services.toLowerCase()}. I focus on practical plans, accountability, and results that fit your lifestyle.`,
+      `Passionate ${category.toLowerCase()} offering ${services.toLowerCase()}. I focus on practical plans and accountability that fit your routine.`,
     ),
   ];
 
@@ -45,7 +45,7 @@ export function buildCoachDescriptionSuggestions(input: DescriptionSuggestionInp
   } else {
     options.push(
       trimSentence(
-        `Hi, I'm ${name} — your partner for better fitness, nutrition, and daily habits. Let's build a plan that works for you.`,
+        `Hi, I'm ${name}. I help with fitness, nutrition, and daily habits. Let's build a plan that works for you.`,
       ),
     );
   }

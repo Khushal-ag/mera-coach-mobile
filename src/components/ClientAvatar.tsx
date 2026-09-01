@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Image,
   TouchableOpacity,
   ActivityIndicator,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import { uploadDocumentWithMeta } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { getCurrentCoachCode, getCurrentCoachId } from '../auth/session';
@@ -22,7 +22,6 @@ const REF_TYPE = 'CLIENT';
 
 interface ClientAvatarProps {
   clientCode?: string;
-  initials?: string;
   size?: number;
   /** Show a camera badge; tap opens camera/gallery upload. */
   allowUpload?: boolean;
@@ -33,7 +32,6 @@ interface ClientAvatarProps {
 
 export default function ClientAvatar({
   clientCode,
-  initials = '?',
   size = 46,
   allowUpload = false,
   onUploadPress,
@@ -88,7 +86,7 @@ export default function ClientAvatar({
         ) : photoUrl ? (
           <Image source={{ uri: photoUrl }} style={styles.image} />
         ) : (
-          <Text style={[styles.initials, { fontSize: size * 0.32 }]}>{initials}</Text>
+          <Image source={BrandImages.avatarDefault} style={styles.image} />
         )}
       </View>
       {allowUpload && clientCode ? (
@@ -115,7 +113,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: { width: '100%', height: '100%' },
-  initials: { color: Colors.white, fontWeight: '700' },
   uploadBadge: {
     position: 'absolute',
     width: 22,

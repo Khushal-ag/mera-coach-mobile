@@ -7,7 +7,6 @@ import { rehydrateDietFromMeals, type RawClientMeal } from '../utils/mealRehydra
 import { hasDietPlanContent, normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
 import type { FoodMaster } from './masterApi';
 import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../utils/validation';
-import { nameInitials } from '../utils/initials';
 import type { BodyMetrics } from '../utils/bmi';
 import type {
   Coach,
@@ -39,7 +38,6 @@ function mapClientListItem(raw: RawClientListItem): ClientSummary {
     mobileNo: (raw.mobileNo ?? '').trim() || undefined,
     age: raw.age,
     status: raw.status_Cd,
-    initials: raw.clientName ? nameInitials(raw.clientName) : undefined,
     lastCheckupDate,
   };
 }
@@ -82,7 +80,6 @@ function mapRecheckupListItem(raw: RawRecheckupListItem): RecheckupDueClient {
     name,
     mobileNo: (raw.mobileNo ?? '').trim() || undefined,
     age: raw.age,
-    initials: name ? nameInitials(name) : undefined,
     lastCheckupDate: (raw.lastCheckupDate ?? '').trim() || undefined,
     dueDate: (raw.dueDate ?? '').trim() || undefined,
     daysOverdue: days,
@@ -413,7 +410,6 @@ export interface EnquiryLead {
   lookingFor: string;
   isContacted: boolean;
   notes: string;
-  initials: string;
 }
 
 function mapEnquiryLead(raw: RawEnquiryLead): EnquiryLead | null {
@@ -429,7 +425,6 @@ function mapEnquiryLead(raw: RawEnquiryLead): EnquiryLead | null {
     lookingFor: (raw.lookingFor ?? '').trim(),
     isContacted: Boolean(raw.isContacted),
     notes: (raw.notes ?? '').trim(),
-    initials: clientName ? nameInitials(clientName) : '?',
   };
 }
 

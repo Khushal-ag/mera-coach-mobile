@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors } from '../constants/theme';
+import { Colors, FontFamily } from '../constants/theme';
 import type {
   CheckupsStackParamList,
   ClientsStackParamList,
@@ -13,7 +13,7 @@ import type {
   MainTabParamList,
   ProfileStackParamList,
 } from '../types/navigation';
-import type { IoniconName } from '../types/wizard';
+import type { IoniconName } from '../types/icons';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import ClientListScreen from '../screens/ClientListScreen';
@@ -124,7 +124,7 @@ export default function MainTabNavigator() {
         },
         tabBarLabel: ({ color }) => (
           <Text
-            style={{ fontSize: 10, fontWeight: '600', color }}
+            style={{ fontSize: 10, fontFamily: FontFamily.semibold, color }}
             numberOfLines={1}
             allowFontScaling={false}
             adjustsFontSizeToFit

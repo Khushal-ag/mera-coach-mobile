@@ -10,17 +10,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { Colors } from '../../constants/theme';
-import {
-  WIZARD_BACK_TOP_GAP,
-  WIZARD_CONTENT_TOP_OFFSET,
-  wizardShellStyles,
-} from '../../constants/wizardStyles';
+import { wizardShellStyles } from '../../constants/wizardStyles';
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
 import FormErrorBanner from '../../components/FormErrorBanner';
+import ScreenHeader from '../../components/ScreenHeader';
 import KeyboardSafeScroll, {
   KEYBOARD_SCROLL_PADDING,
   useScrollLowerFieldsIntoView,
@@ -72,7 +68,9 @@ interface AssessmentWizardFlowProps {
   finishLabel?: string;
   /** When true, skip save-meals if the coach did not enter any food items (checkup/edit). */
   skipEmptyDietCommit?: boolean;
-  /** Optional control opposite the floating back (e.g. Download PDF on diet-plan shortcut). */
+  /** Stack header title (e.g. Add Client, Checkup, Diet Plan). */
+  headerTitle: string;
+  /** Optional trailing header control (e.g. Download PDF on diet-plan shortcut). */
   headerRight?: React.ReactNode;
   onExit: () => void;
   onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
@@ -86,14 +84,12 @@ export default function AssessmentWizardFlow({
   commitMode = 'assessment',
   finishLabel = 'Save Client',
   skipEmptyDietCommit = false,
+  headerTitle,
   headerRight,
   onExit,
   onComplete,
 }: AssessmentWizardFlowProps) {
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const backTop = insets.top + WIZARD_BACK_TOP_GAP;
-  const contentTop = insets.top + WIZARD_CONTENT_TOP_OFFSET;
   const scrollRef = useRef<ScrollView>(null);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const coachType = COACH_TYPES[DEFAULT_COACH_TYPE]!;
@@ -292,24 +288,18 @@ export default function AssessmentWizardFlow({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.container}>
-        <TouchableOpacity
-          style={[styles.floatingBack, { top: backTop }]}
-          onPress={goBack}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.textDark} />
-        </TouchableOpacity>
-
-        {headerRight ? (
-          <View style={[styles.floatingHeaderRight, { top: backTop }]}>{headerRight}</View>
-        ) : null}
+        <ScreenHeader
+          title={headerTitle}
+          onBack={goBack}
+          right={headerRight}
+          showHome={!headerRight}
+        />
 
         <KeyboardSafeScroll
           ref={scrollRef}
           withAvoidingView={false}
           style={styles.body}
-          contentContainerStyle={[styles.bodyContent, { paddingTop: contentTop }]}
+          contentContainerStyle={styles.bodyContent}
           keyboardPadding={KEYBOARD_SCROLL_PADDING}
         >
           <View style={styles.stepBanner}>
@@ -357,11 +347,5 @@ export default function AssessmentWizardFlow({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
-  floatingHeaderRight: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
-  },
   nextBtnDisabled: { opacity: 0.7 },
 });

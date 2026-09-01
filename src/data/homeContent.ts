@@ -1,11 +1,6 @@
 import type { CoachCategory } from '../types/models';
 import { getCoachTypeStyle } from './coachTypeStyles';
 
-export interface HomeStat {
-  value: string;
-  label: string;
-}
-
 // Offline fallback while HomeScreen/RegisterScreen's live category fetch is in flight.
 // Mirrors Master/GetMasterItem?ItemType=CoachType; styling always comes from coachTypeStyles.ts.
 const FALLBACK_CATEGORY_LABELS: { code: string; label: string }[] = [

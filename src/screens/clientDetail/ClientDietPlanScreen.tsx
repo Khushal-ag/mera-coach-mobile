@@ -16,6 +16,7 @@ import {
   PDF_GENERATE_FAILED_MESSAGE,
 } from '../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../types/navigation';
+import { navigateBack } from '../../utils/navigationBack';
 
 /** Opens checkup wizard on diet plan; saves via save-diet-plan only (no full finish). */
 export default function ClientDietPlanScreen({
@@ -23,6 +24,7 @@ export default function ClientDietPlanScreen({
   route,
 }: ClientsStackScreenProps<'ClientDietPlan'>) {
   const client = route.params?.client;
+  const returnTo = route.params?.returnTo;
   const queryClient = useQueryClient();
   const [preparingPdf, setPreparingPdf] = useState(false);
   const { profile, ids, isLoading, isError, error, detailReady, refetch } = useCheckupProfile(
@@ -94,7 +96,9 @@ export default function ClientDietPlanScreen({
       ? 'Diet plan saved. Assessment status: Complete.'
       : 'Diet plan saved successfully.';
 
-    Alert.alert('Diet plan saved', message, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+    Alert.alert('Diet plan saved', message, [
+      { text: 'OK', onPress: () => navigateBack(navigation, returnTo) },
+    ]);
   };
 
   const planSettled = !ids.assessmentCode || planQuery.isFetched || planQuery.isError;
@@ -108,7 +112,7 @@ export default function ClientDietPlanScreen({
   };
 
   const shareButton = canSharePdf ? (
-    <PdfDownloadShareButton variant="headerOnLight" onPress={shareDietPdf} loading={preparingPdf} />
+    <PdfDownloadShareButton variant="headerOnDark" onPress={shareDietPdf} loading={preparingPdf} />
   ) : null;
 
   return (
@@ -121,6 +125,7 @@ export default function ClientDietPlanScreen({
       <AssessmentWizardFlow
         key={`diet-plan-${ids.clientCode}-${ids.assessmentCode}`}
         flow="checkup"
+        headerTitle="Diet Plan"
         initialForm={initialForm!}
         initialIds={ids}
         initialPhaseId="dietPlan"
@@ -128,7 +133,7 @@ export default function ClientDietPlanScreen({
         finishLabel="Save Plan"
         skipEmptyDietCommit
         headerRight={shareButton}
-        onExit={() => navigation.goBack()}
+        onExit={() => navigateBack(navigation, returnTo)}
         onComplete={onComplete}
       />
     </ClientPhaseLoadShell>

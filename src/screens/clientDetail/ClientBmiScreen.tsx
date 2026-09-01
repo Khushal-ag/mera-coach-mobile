@@ -9,6 +9,7 @@ import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CheckupsStackParamList, ClientsStackParamList } from '../../types/navigation';
+import { navigateBack } from '../../utils/navigationBack';
 
 type ClientBmiScreenProps =
   | NativeStackScreenProps<ClientsStackParamList, 'ClientBmi'>
@@ -17,6 +18,7 @@ type ClientBmiScreenProps =
 /** Full checkup: all wizard phases with previous assessment data pre-filled. */
 export default function ClientBmiScreen({ navigation, route }: ClientBmiScreenProps) {
   const client = route.params?.client;
+  const returnTo = route.params?.returnTo;
   const queryClient = useQueryClient();
   const { profile, ids, isLoading, isError, error, dataUpdatedAt, refetch } =
     useCheckupProfile(client);
@@ -40,7 +42,7 @@ export default function ClientBmiScreen({ navigation, route }: ClientBmiScreenPr
     }
 
     Alert.alert('Checkup complete', 'Assessment saved successfully.', [
-      { text: 'OK', onPress: () => navigation.goBack() },
+      { text: 'OK', onPress: () => navigateBack(navigation, returnTo) },
     ]);
   };
 
@@ -54,11 +56,12 @@ export default function ClientBmiScreen({ navigation, route }: ClientBmiScreenPr
       <AssessmentWizardFlow
         key={`checkup-${client?.clientCode}-${dataUpdatedAt}`}
         flow="checkup"
+        headerTitle="Checkup"
         initialForm={profile!}
         initialIds={ids}
         finishLabel="Save & Finish"
         skipEmptyDietCommit
-        onExit={() => navigation.goBack()}
+        onExit={() => navigateBack(navigation, returnTo)}
         onComplete={onComplete}
       />
     </ClientPhaseLoadShell>

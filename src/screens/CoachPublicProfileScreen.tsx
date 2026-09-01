@@ -19,7 +19,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow, STORY_CARD_WIDTH } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing, storyCardWidth } from '../constants/theme';
+import PersonAvatar from '../components/PersonAvatar';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import EmptyState from '../components/EmptyState';
@@ -38,8 +39,8 @@ import {
   shouldShowPublicRating,
 } from '../utils/coachPublicStats';
 import { buildCoachSuccessHighlights } from '../utils/coachPublicSocialProof';
+import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../utils/coachDisplay';
 import { resolveMediaUrl } from '../utils/mediaUrl';
-import { nameInitials } from '../utils/initials';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -74,6 +75,33 @@ type ProfilePageProps = {
 };
 
 const MAX_PAGE_DOTS = 10;
+const EXPERTISE_GRID_GAP = 10;
+
+type ExpertiseIcon = React.ComponentProps<typeof Ionicons>['name'];
+
+function iconForExpertise(tag: string): ExpertiseIcon {
+  const key = tag.toLowerCase();
+  if (key.includes('weight') && key.includes('loss')) return 'trending-down-outline';
+  if (key.includes('weight') && key.includes('gain')) return 'trending-up-outline';
+  if (key.includes('skin')) return 'sparkles-outline';
+  if (key.includes('energy') || key.includes('fitness')) return 'flash-outline';
+  if (key.includes('digest')) return 'nutrition-outline';
+  if (key.includes('bone')) return 'body-outline';
+  if (key.includes('joint')) return 'walk-outline';
+  if (key.includes('heart') || key.includes('cardio')) return 'heart-outline';
+  if (key.includes('brain')) return 'bulb-outline';
+  if (key.includes('women') || key.includes('woman')) return 'female-outline';
+  if (key.includes("men's") || /\bmen\b/.test(key)) return 'male-outline';
+  if (key.includes('breakfast')) return 'sunny-outline';
+  if (key.includes('child')) return 'happy-outline';
+  if (key.includes('sleep') || key.includes('stress')) return 'moon-outline';
+  if (key.includes('yoga') || key.includes('mind')) return 'leaf-outline';
+  if (key.includes('diet') || key.includes('nutrition') || key.includes('food'))
+    return 'restaurant-outline';
+  if (key.includes('sport') || key.includes('athlete') || key.includes('strength'))
+    return 'barbell-outline';
+  return 'medal-outline';
+}
 
 /** Prefer profile-by-id; fill gaps from the directory row. */
 function mergeCoachProfile(api: Coach | undefined, list: Coach | undefined): Coach | undefined {
@@ -158,16 +186,31 @@ function CoachProfilePage({
         reviews: coach.reviews,
       })
     : [];
+  const statsHasClients = publicStats.some(stat => stat.key === 'clients');
+  const statsHasRating = publicStats.some(stat => stat.key === 'rating');
+  const statsHasExperience = publicStats.some(stat => stat.key === 'experience');
+  const heroBio =
+    coach && coach.tags.length
+      ? stripTrailingTagsFromBio(coach.bio, coach.tags)
+      : (coach?.bio ?? '');
   const successHighlights = coach
-    ? buildCoachSuccessHighlights({
-        name: coach.name,
-        clients: clientCount ?? coach.clients,
-        experience: coach.experience,
-        bio: coach.bio,
-        tagline: coach.tagline,
-        tags: coach.tags,
-        category: coach.category,
-      })
+    ? buildCoachSuccessHighlights(
+        {
+          name: coach.name,
+          clients: clientCount ?? coach.clients,
+          experience: coach.experience,
+          bio: heroBio,
+          tagline: coach.tagline,
+          tags: coach.tags,
+          category: coach.category,
+        },
+        {
+          skipClients: statsHasClients,
+          skipExperience: statsHasExperience,
+          skipBio: !!heroBio.trim(),
+          skipTags: coach.tags.length > 0,
+        },
+      )
     : [];
   const showSuccessStories = successHighlights.length > 0;
   const scrollRef = useRef<ScrollView>(null);
@@ -210,8 +253,9 @@ function CoachProfilePage({
     );
   }
 
-  const initials = nameInitials(coach.name);
   const photoUri = resolveMediaUrl(coach.profilePicUrl);
+  const cardWidth = storyCardWidth(pageWidth);
+  const expertiseChipWidth = Math.floor((pageWidth - Spacing.lg * 2 - EXPERTISE_GRID_GAP) / 2);
   const serviceOptions = [...(coach.tags.length ? coach.tags : []), SERVICE_INQUIRY_FALLBACK];
   const showSwipeHint = pageCount > 1;
   const showDots = showSwipeHint && pageCount <= MAX_PAGE_DOTS;
@@ -279,7 +323,7 @@ function CoachProfilePage({
               />
             ) : (
               <View style={styles.photoBannerFallback}>
-                <Text style={styles.photoBannerInitials}>{initials || '?'}</Text>
+                <PersonAvatar size={128} />
               </View>
             )}
             {showLeftChevron ? (
@@ -323,9 +367,10 @@ function CoachProfilePage({
 
           <Text style={styles.name}>{coach.name}</Text>
 
-          {(showRating || (clientCount != null && clientCount > 0)) && (
+          {(showRating && !statsHasRating) ||
+          (clientCount != null && clientCount > 0 && !statsHasClients) ? (
             <View style={styles.ratingRow}>
-              {showRating ? (
+              {showRating && !statsHasRating ? (
                 <>
                   <Ionicons name="star" size={14} color={Colors.accent} />
                   <Text style={styles.ratingVal}>
@@ -333,27 +378,16 @@ function CoachProfilePage({
                   </Text>
                 </>
               ) : null}
-              {clientCount != null && clientCount > 0 ? (
+              {clientCount != null && clientCount > 0 && !statsHasClients ? (
                 <Text style={styles.ratingCount}>
-                  {showRating ? ' · ' : ''}
+                  {showRating && !statsHasRating ? ' · ' : ''}
                   {clientCount} clients
                 </Text>
               ) : null}
             </View>
-          )}
-
-          {coach.bio ? <Text style={styles.bio}>{coach.bio}</Text> : null}
-
-          {coach.tags.length > 0 ? (
-            <View style={[styles.specialtyWrap, showSwipeHint && styles.specialtyWrapTight]}>
-              {coach.tags.map(tag => (
-                <View key={tag} style={styles.specialtyTag}>
-                  <Ionicons name="checkmark" size={11} color="rgba(255,255,255,0.85)" />
-                  <Text style={styles.specialtyText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
           ) : null}
+
+          {heroBio ? <Text style={styles.bio}>{heroBio}</Text> : null}
 
           {showSwipeHint ? (
             <View style={styles.pageIndicator} pointerEvents="none">
@@ -416,7 +450,7 @@ function CoachProfilePage({
         ) : null}
 
         {coach.tags.length > 0 ? (
-          <View style={styles.section}>
+          <View style={[styles.section, styles.expertiseSection]}>
             <View style={styles.sectionTag}>
               <Ionicons name="star-outline" size={12} color={Colors.secondary} />
               <Text style={styles.sectionTagText}>Areas of Expertise</Text>
@@ -424,11 +458,13 @@ function CoachProfilePage({
             <Text style={styles.sectionTitle}>What I Specialise In</Text>
             <View style={styles.expertiseGrid}>
               {coach.tags.map(tag => (
-                <View key={tag} style={styles.expertiseCard}>
+                <View key={tag} style={[styles.expertiseChip, { width: expertiseChipWidth }]}>
                   <View style={styles.expertiseIcon}>
-                    <Ionicons name="medal-outline" size={18} color={Colors.primary} />
+                    <Ionicons name={iconForExpertise(tag)} size={15} color={Colors.primary} />
                   </View>
-                  <Text style={styles.expertiseTitle}>{tag}</Text>
+                  <Text style={styles.expertiseTitle} numberOfLines={2}>
+                    {formatExpertiseLabel(tag)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -443,7 +479,7 @@ function CoachProfilePage({
               <Text style={styles.sectionTagText}>Success Stories</Text>
             </View>
             <Text style={[styles.sectionTitle, styles.storiesSectionTitle]}>
-              Client Success Stories
+              Profile highlights
             </Text>
             <Text style={[styles.sectionSubtitle, styles.storiesSectionSubtitle]}>
               Outcomes and focus areas from {coach.name}&apos;s public profile.
@@ -453,18 +489,17 @@ function CoachProfilePage({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.successCarousel}
               decelerationRate="fast"
-              snapToInterval={STORY_CARD_WIDTH + 12}
+              snapToInterval={cardWidth + 12}
               nestedScrollEnabled
             >
               {successHighlights.map(item => (
-                <View key={item.id} style={styles.successCard}>
+                <View key={item.id} style={[styles.successCard, { width: cardWidth }]}>
                   <View style={styles.successBadge}>
                     <Ionicons name={item.icon} size={12} color={Colors.secondary} />
                     <Text style={styles.successBadgeText} numberOfLines={1}>
                       {item.badge}
                     </Text>
                   </View>
-                  <Text style={styles.quoteMark}>&ldquo;</Text>
                   <Text style={styles.successBody} numberOfLines={6}>
                     {item.body}
                   </Text>
@@ -888,7 +923,7 @@ const styles = StyleSheet.create({
   pageCounterText: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: FontFamily.bold,
     letterSpacing: 0.3,
     minWidth: 40,
     textAlign: 'center',
@@ -910,7 +945,6 @@ const styles = StyleSheet.create({
     width: 14,
     borderRadius: 3,
   },
-  specialtyWrapTight: { marginBottom: 12 },
   scrollContent: { flexGrow: 1 },
   photoBanner: {
     width: '100%',
@@ -930,7 +964,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.onDarkOverlay,
   },
-  photoBannerInitials: { color: Colors.white, fontSize: 56, fontWeight: '800' },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -947,10 +980,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  categoryBadgeText: { color: Colors.white, fontSize: 11, fontWeight: '700' },
-  name: { color: Colors.white, fontSize: 24, fontWeight: '800', marginBottom: 6 },
+  categoryBadgeText: { color: Colors.white, fontSize: 11, fontFamily: FontFamily.bold },
+  name: { color: Colors.white, fontSize: 24, fontFamily: FontFamily.extraBold, marginBottom: 6 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  ratingVal: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+  ratingVal: { color: Colors.white, fontSize: 13, fontFamily: FontFamily.bold },
   ratingCount: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
   bio: {
     color: 'rgba(255,255,255,0.7)',
@@ -960,23 +993,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingHorizontal: 6,
   },
-  specialtyWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 22,
-  },
-  specialtyTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  specialtyText: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600' },
   heroCtas: { width: '100%', gap: 10 },
   waBtn: {
     flexDirection: 'row',
@@ -987,11 +1003,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     paddingVertical: 13,
   },
-  waBtnText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+  waBtnText: { color: Colors.white, fontSize: 13, fontFamily: FontFamily.bold },
   statsStrip: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
-    marginHorizontal: 20,
+    marginHorizontal: Spacing.lg,
     marginTop: -18,
     borderRadius: Radius.lg,
     paddingVertical: 16,
@@ -999,9 +1015,15 @@ const styles = StyleSheet.create({
   },
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, backgroundColor: Colors.border },
-  statValue: { fontSize: 16, fontWeight: '800', color: Colors.secondary },
-  statLabel: { fontSize: 10, color: Colors.textLight, marginTop: 2, textAlign: 'center' },
-  section: { padding: 20, paddingTop: 32 },
+  statValue: { fontSize: 16, fontFamily: FontFamily.extraBold, color: Colors.secondary },
+  statLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    color: Colors.textLight,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  section: { padding: Spacing.lg, paddingTop: Spacing.xl },
   formSection: {
     backgroundColor: Colors.white,
     marginHorizontal: 0,
@@ -1018,33 +1040,58 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     marginBottom: 10,
   },
-  sectionTagText: { color: Colors.secondary, fontSize: 11, fontWeight: '700' },
-  sectionTitle: { fontSize: 19, fontWeight: '800', color: Colors.textDark, marginBottom: 6 },
+  sectionTagText: { color: Colors.secondary, fontSize: 11, fontFamily: FontFamily.bold },
+  sectionTitle: {
+    fontSize: 19,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    marginBottom: 6,
+  },
   sectionSubtitle: { fontSize: 12, color: Colors.textLight, lineHeight: 18, marginBottom: 18 },
-  expertiseGrid: { gap: 10, marginTop: 14 },
-  expertiseCard: {
+  expertiseSection: {
+    paddingBottom: Spacing.md,
+  },
+  expertiseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: EXPERTISE_GRID_GAP,
+    rowGap: EXPERTISE_GRID_GAP,
+    marginTop: Spacing.sm,
+  },
+  expertiseChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 48,
     backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: 14,
+    borderRadius: Radius.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     ...Shadow.sm,
   },
   expertiseIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    flexShrink: 0,
+    borderRadius: 8,
     backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
-  expertiseTitle: { fontSize: 14, fontWeight: '700', color: Colors.textDark },
-  storiesSection: { paddingTop: 32, paddingBottom: 8 },
-  storiesSectionTag: { marginLeft: 20, alignSelf: 'flex-start' },
-  storiesSectionTitle: { marginHorizontal: 20, marginBottom: 6 },
-  storiesSectionSubtitle: { marginHorizontal: 20, marginBottom: 0 },
-  successCarousel: { paddingHorizontal: 20, paddingTop: 18, gap: 12 },
+  expertiseTitle: {
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textDark,
+    lineHeight: 17,
+  },
+  storiesSection: { paddingTop: Spacing.lg, paddingBottom: Spacing.xs },
+  storiesSectionTag: { marginLeft: Spacing.lg, alignSelf: 'flex-start' },
+  storiesSectionTitle: { marginHorizontal: Spacing.lg, marginBottom: 6 },
+  storiesSectionSubtitle: { marginHorizontal: Spacing.lg, marginBottom: 0 },
+  successCarousel: { paddingHorizontal: Spacing.lg, paddingTop: 18, gap: Spacing.sm },
   successCard: {
-    width: STORY_CARD_WIDTH,
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     padding: 16,
@@ -1062,13 +1109,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     maxWidth: '100%',
   },
-  successBadgeText: { color: Colors.secondary, fontSize: 11, fontWeight: '700', flexShrink: 1 },
-  quoteMark: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: Colors.accent,
-    lineHeight: 36,
-    marginBottom: -4,
+  successBadgeText: {
+    color: Colors.secondary,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    flexShrink: 1,
   },
   successBody: { fontSize: 13, color: Colors.textLight, lineHeight: 19 },
   reviewSummaryCard: {
@@ -1079,8 +1124,13 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   reviewStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 8 },
-  reviewScore: { fontSize: 20, fontWeight: '800', color: Colors.textDark, marginBottom: 8 },
-  reviewCountText: { fontSize: 13, fontWeight: '600', color: Colors.textLight },
+  reviewScore: {
+    fontSize: 20,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    marginBottom: 8,
+  },
+  reviewCountText: { fontSize: 13, fontFamily: FontFamily.semibold, color: Colors.textLight },
   reviewPendingNote: { fontSize: 12, color: Colors.textLight, lineHeight: 17 },
   field: { marginBottom: 14 },
   input: {
@@ -1104,5 +1154,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...Shadow.md,
   },
-  submitText: { color: Colors.white, fontWeight: '700', fontSize: 16 },
+  submitText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 16 },
 });

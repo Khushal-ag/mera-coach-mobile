@@ -1,25 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, type ImageSourcePropType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
-import type { IoniconName } from '../types/wizard';
+import { Colors, FontFamily, Spacing } from '../constants/theme';
+import type { IoniconName } from '../types/icons';
 
 interface EmptyStateProps {
   icon?: IoniconName;
+  illustration?: ImageSourcePropType;
   title: string;
   message: string;
 }
 
 export default function EmptyState({
   icon = 'file-tray-outline',
+  illustration,
   title,
   message,
 }: EmptyStateProps) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.iconBox}>
-        <Ionicons name={icon} size={28} color={Colors.textLight} />
-      </View>
+      {illustration ? (
+        <Image source={illustration} style={styles.illustration} resizeMode="contain" />
+      ) : (
+        <View style={styles.iconBox}>
+          <Ionicons name={icon} size={28} color={Colors.textLight} />
+        </View>
+      )}
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
     </View>
@@ -31,8 +37,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: 48,
+  },
+  illustration: {
+    width: 168,
+    height: 168,
+    marginBottom: Spacing.md,
   },
   iconBox: {
     width: 64,
@@ -43,16 +54,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   title: {
+    fontFamily: FontFamily.extraBold,
     fontSize: 17,
-    fontWeight: '800',
     color: Colors.textDark,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
   message: {
+    fontFamily: FontFamily.regular,
     fontSize: 13,
     color: Colors.textLight,
     textAlign: 'center',

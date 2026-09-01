@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Image,
   TouchableOpacity,
   ScrollView,
   RefreshControl,
@@ -13,7 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../data/homeContent';
 import { SORT_OPTIONS } from '../data/coachDirectory';
 import { getCoachCategories, getCoachPublicList } from '../api/coachApi';
@@ -25,12 +24,15 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import DropdownField from '../components/DropdownField';
 import { HeaderBackButton } from '../components/ScreenHeader';
+import PersonAvatar from '../components/PersonAvatar';
 import { getErrorMessage } from '../api/client';
 import {
-  resolvePublicClientCount,
-  shouldShowPublicClientCount,
-  shouldShowPublicRating,
-} from '../utils/coachPublicStats';
+  formatExpertiseLabel,
+  pluralizeCoaches,
+  prepareCoachCardBio,
+  visibleCoachTags,
+} from '../utils/coachDisplay';
+import { resolvePublicClientCount, shouldShowPublicRating } from '../utils/coachPublicStats';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -59,7 +61,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     queryFn: () => getCoachPublicList(listParams),
   });
 
-  // Live roster for the logged-in coach — public API only has marketing happyClientCount.
   const myClientsQuery = useQuery({
     queryKey: queryKeys.clientList(myCoachCode),
     queryFn: () => getClientList(),
@@ -83,23 +84,24 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
 
   return (
     <View style={styles.container}>
-      <View style={[styles.banner, { paddingTop: insets.top + 12 }]}>
-        <HeaderBackButton onPress={() => navigation.goBack()} style={styles.bannerBack} />
-        <Text style={styles.bannerTitle}>Find Your Perfect Coach</Text>
-        <Text style={styles.bannerSubtitle}>
-          Browse verified coaches across Health, Fitness, Yoga, Nutrition and Lifestyle.
-        </Text>
-      </View>
+      <View style={[styles.banner, { paddingTop: insets.top + Spacing.xs }]}>
+        <View style={styles.bannerTop}>
+          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.bannerBack} />
+          <Text style={styles.bannerTitle}>Find Your Coach</Text>
+        </View>
 
-      <View style={styles.pillsBar}>
-        <View style={styles.pillsBarContent}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillsContent}
+        >
           <TouchableOpacity
             style={[styles.pill, !activeCategory && styles.pillActive]}
             onPress={() => setActiveCategory('')}
           >
             <Ionicons
               name="grid-outline"
-              size={13}
+              size={12}
               color={!activeCategory ? Colors.white : Colors.textLight}
             />
             <Text style={[styles.pillText, !activeCategory && styles.pillTextActive]}>All</Text>
@@ -112,7 +114,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             >
               <Ionicons
                 name={cat.icon}
-                size={13}
+                size={12}
                 color={activeCategory === cat.code ? Colors.white : Colors.textLight}
               />
               <Text style={[styles.pillText, activeCategory === cat.code && styles.pillTextActive]}>
@@ -120,6 +122,19 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
               </Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.toolbar}>
+        <View style={styles.searchWrap}>
+          <Ionicons name="search-outline" size={16} color={Colors.textLight} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search name, city or specialty..."
+            placeholderTextColor={Colors.textLight}
+            value={search}
+            onChangeText={setSearch}
+          />
         </View>
       </View>
 
@@ -127,6 +142,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshControl.refreshing}
@@ -135,22 +151,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           />
         }
       >
-        <View style={styles.searchWrap}>
-          <Ionicons
-            name="search-outline"
-            size={18}
-            color={Colors.textLight}
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by name, city or specialty..."
-            placeholderTextColor={Colors.textLight}
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
-
         {/* Spinner only with no list yet — not on background refetch. */}
         {coachesQuery.isPending && !coachesQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
@@ -160,10 +160,11 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           <>
             <View style={styles.resultRow}>
               <Text style={styles.resultText}>
-                Showing <Text style={styles.resultBold}>{filtered.length}</Text> coaches
+                Showing <Text style={styles.resultBold}>{filtered.length}</Text>{' '}
+                {pluralizeCoaches(filtered.length)}
               </Text>
+              <DropdownField compact value={sort} options={SORT_OPTIONS} onChange={setSort} />
             </View>
-            <DropdownField label="Sort By" value={sort} options={SORT_OPTIONS} onChange={setSort} />
 
             {filtered.map(coach => {
               const photoUri = resolveMediaUrl(coach.profilePicUrl);
@@ -174,32 +175,29 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                 liveRosterLength: myClientsQuery.data?.length,
               });
               const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
+              const cardBio = prepareCoachCardBio(coach.bio, coach.name, coach.tags);
+              const { visible: visibleTags, remaining: hiddenTagCount } = visibleCoachTags(
+                coach.tags,
+              );
+
               return (
                 <View key={coach.id} style={styles.card}>
                   <View style={styles.cardHeader}>
-                    <View style={styles.avatar}>
-                      {photoUri ? (
-                        <Image source={{ uri: photoUri }} style={styles.avatarImage} />
-                      ) : (
-                        <Text style={styles.avatarText}>
-                          {coach.name
-                            .split(' ')
-                            .map(w => w[0])
-                            .slice(0, 2)
-                            .join('')}
-                        </Text>
-                      )}
-                    </View>
+                    <PersonAvatar uri={photoUri} size={42} style={styles.avatar} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.coachName}>{coach.name}</Text>
-                      <Text style={styles.coachCategory}>{coach.category}</Text>
+                      <Text style={styles.coachName} numberOfLines={1}>
+                        {coach.name}
+                      </Text>
+                      <Text style={styles.coachCategory} numberOfLines={1}>
+                        {coach.category}
+                      </Text>
                     </View>
-                    {coach.online && (
+                    {coach.online ? (
                       <View style={styles.onlineBadge}>
                         <View style={styles.onlineDot} />
                         <Text style={styles.onlineText}>Online</Text>
                       </View>
-                    )}
+                    ) : null}
                   </View>
 
                   <View style={styles.metaRow}>
@@ -220,40 +218,41 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                     {coach.city ? (
                       <View style={styles.metaItem}>
                         <Ionicons name="location-outline" size={12} color={Colors.textLight} />
-                        <Text style={styles.metaText}>{coach.city}</Text>
+                        <Text style={styles.metaText} numberOfLines={1}>
+                          {coach.city}
+                        </Text>
                       </View>
                     ) : null}
                   </View>
 
-                  {coach.bio ? (
+                  {cardBio ? (
                     <Text style={styles.bio} numberOfLines={2}>
-                      {coach.bio}
+                      {cardBio}
                     </Text>
                   ) : null}
 
-                  <View style={styles.tagsWrap}>
-                    {coach.tags.map(tag => (
-                      <View key={tag} style={styles.tag}>
-                        <Text style={styles.tagText}>{tag}</Text>
-                      </View>
-                    ))}
-                  </View>
+                  {visibleTags.length > 0 ? (
+                    <View style={styles.tagsWrap}>
+                      {visibleTags.map(tag => (
+                        <View key={tag} style={styles.tag}>
+                          <Text style={styles.tagText}>{formatExpertiseLabel(tag)}</Text>
+                        </View>
+                      ))}
+                      {hiddenTagCount > 0 ? (
+                        <View style={styles.tagMore}>
+                          <Text style={styles.tagMoreText}>+{hiddenTagCount} more</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
 
                   <View style={styles.cardFooter}>
-                    {shouldShowPublicClientCount(clientCount) ? (
-                      <Text style={styles.clientsText}>
-                        Clients: <Text style={styles.clientsBold}>{String(clientCount)}</Text>
-                      </Text>
-                    ) : (
-                      <View />
-                    )}
                     <TouchableOpacity
                       style={styles.viewBtn}
                       onPress={() =>
                         navigation.navigate('CoachPublicProfile', {
                           coach: {
                             ...coach,
-                            // Pass live count for own card so profile placeholder matches.
                             clients: clientCount,
                           },
                           coachCode: coach.id,
@@ -279,11 +278,11 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
 
         <View style={styles.ctaCard}>
           <View style={styles.ctaIcon}>
-            <Ionicons name="school-outline" size={22} color={Colors.white} />
+            <Ionicons name="school-outline" size={20} color={Colors.white} />
           </View>
           <Text style={styles.ctaTitle}>Become a Coach</Text>
           <Text style={styles.ctaSubtitle}>
-            Join our growing community and reach thousands of clients looking for your expertise.
+            List your profile and get enquiries from people searching for a coach.
           </Text>
           <TouchableOpacity style={styles.ctaBtn} onPress={() => navigation.navigate('Register')}>
             <Ionicons name="rocket-outline" size={16} color={Colors.white} />
@@ -299,129 +298,158 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   banner: {
     backgroundColor: Colors.secondary,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingBottom: Spacing.sm,
   },
-  bannerBack: { marginBottom: 14 },
-  bannerTitle: { color: Colors.white, fontSize: 22, fontWeight: '800' },
-  bannerSubtitle: { color: Colors.onDarkMuted, fontSize: 12, marginTop: 6, lineHeight: 18 },
-  pillsBar: { backgroundColor: Colors.white, ...Shadow.sm },
-  pillsBarContent: {
+  bannerTop: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  bannerBack: { marginBottom: 0 },
+  bannerTitle: {
+    flex: 1,
+    color: Colors.white,
+    fontSize: 18,
+    fontFamily: FontFamily.extraBold,
+  },
+  pillsContent: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: 2,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     borderRadius: Radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  pillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  pillText: { fontSize: 11, color: Colors.onDarkMuted, fontFamily: FontFamily.semibold },
+  pillTextActive: { color: Colors.white },
+  toolbar: {
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    ...Shadow.sm,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.background,
+    borderRadius: Radius.sm,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    height: 38,
+  },
+  searchInput: { flex: 1, fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textDark },
+  body: { flex: 1 },
+  bodyContent: { padding: Spacing.md, paddingBottom: 40 },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  resultText: { flex: 1, fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight },
+  resultBold: { fontFamily: FontFamily.extraBold, color: Colors.textDark },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    ...Shadow.sm,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  avatar: {
+    marginRight: Spacing.xs,
+  },
+  coachName: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
+  coachCategory: {
+    fontSize: 11,
+    color: Colors.secondary,
+    fontFamily: FontFamily.semibold,
+    marginTop: 1,
+  },
+  onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.online },
+  onlineText: { fontSize: 10, color: Colors.online, fontFamily: FontFamily.bold },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 6 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 11, color: Colors.textLight, fontFamily: FontFamily.semibold },
+  bio: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 17,
+    marginBottom: 6,
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 8 },
+  tag: {
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  tagText: { fontSize: 10, color: Colors.secondary, fontFamily: FontFamily.bold },
+  tagMore: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  pillActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
-  pillText: { fontSize: 12, color: Colors.textLight, fontWeight: '600' },
-  pillTextActive: { color: Colors.white },
-  body: { flex: 1 },
-  bodyContent: { padding: 20, paddingBottom: 40 },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    paddingHorizontal: 14,
-    height: 46,
-    ...Shadow.sm,
-    marginBottom: 14,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.textDark },
-  resultRow: { marginBottom: 10 },
-  resultText: { fontSize: 12, color: Colors.textLight },
-  resultBold: { fontWeight: '800', color: Colors.textDark },
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: 16,
-    marginBottom: 14,
-    ...Shadow.sm,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  avatarImage: { width: '100%', height: '100%' },
-  avatarText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
-  coachName: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
-  coachCategory: { fontSize: 12, color: Colors.secondary, fontWeight: '600', marginTop: 2 },
-  onlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.online },
-  onlineText: { fontSize: 10, color: Colors.online, fontWeight: '700' },
-  metaRow: { flexDirection: 'row', gap: 14, marginBottom: 10 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 11, color: Colors.textLight, fontWeight: '600' },
-  bio: { fontSize: 12.5, color: Colors.textLight, lineHeight: 18, marginBottom: 10 },
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
-  tag: {
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  tagText: { fontSize: 10, color: Colors.secondary, fontWeight: '700' },
+  tagMoreText: { fontSize: 10, color: Colors.textLight, fontFamily: FontFamily.semibold },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: Colors.background,
-    paddingTop: 12,
+    paddingTop: 8,
   },
-  clientsText: { fontSize: 12, color: Colors.textLight },
-  clientsBold: { fontWeight: '800', color: Colors.textDark },
   viewBtn: {
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  viewBtnText: { color: Colors.white, fontSize: 12, fontWeight: '700' },
+  viewBtnText: { color: Colors.white, fontSize: 12, fontFamily: FontFamily.bold },
   empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
   ctaCard: {
     backgroundColor: Colors.secondary,
     borderRadius: Radius.lg,
-    padding: 24,
+    padding: Spacing.lg,
     alignItems: 'center',
     marginTop: 8,
     ...Shadow.md,
   },
   ctaIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  ctaTitle: { color: Colors.white, fontSize: 17, fontWeight: '800' },
+  ctaTitle: { color: Colors.white, fontSize: 16, fontFamily: FontFamily.extraBold },
   ctaSubtitle: {
     color: 'rgba(255,255,255,0.65)',
+    fontFamily: FontFamily.regular,
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 18,
+    marginTop: 6,
+    lineHeight: 17,
   },
   ctaBtn: {
     flexDirection: 'row',
@@ -429,9 +457,9 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: Colors.accent,
     borderRadius: Radius.pill,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 12,
   },
-  ctaBtnText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+  ctaBtnText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 13 },
 });

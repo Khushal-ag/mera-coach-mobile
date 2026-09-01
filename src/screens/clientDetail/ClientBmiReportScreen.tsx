@@ -26,6 +26,7 @@ import {
   PDF_GENERATE_FAILED_MESSAGE,
 } from '../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../types/navigation';
+import { navigateBack } from '../../utils/navigationBack';
 
 export default function ClientBmiReportScreen({
   navigation,
@@ -33,6 +34,7 @@ export default function ClientBmiReportScreen({
 }: ClientsStackScreenProps<'ClientBmiReport'>) {
   const insets = useSafeAreaInsets();
   const client = route.params?.client;
+  const returnTo = route.params?.returnTo;
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
   const [preparingPdf, setPreparingPdf] = useState(false);
 
@@ -95,14 +97,14 @@ export default function ClientBmiReportScreen({
 
   const primaryStats = report
     ? [
-        { value: currentBmi != null ? currentBmi.toFixed(1) : '—', label: 'Current BMI' },
-        { value: bmiCategory || '—', label: 'Classification' },
+        { value: currentBmi != null ? currentBmi.toFixed(1) : '-', label: 'Current BMI' },
+        { value: bmiCategory || '-', label: 'Classification' },
         {
-          value: bodyFatPct != null ? `${bodyFatPct.toFixed(1)}%` : '—',
+          value: bodyFatPct != null ? `${bodyFatPct.toFixed(1)}%` : '-',
           label: 'Body Fat %',
         },
         {
-          value: report.targetWeight != null ? `${report.targetWeight.toFixed(1)} kg` : '—',
+          value: report.targetWeight != null ? `${report.targetWeight.toFixed(1)} kg` : '-',
           label: 'Target Weight',
         },
       ]
@@ -112,7 +114,7 @@ export default function ClientBmiReportScreen({
     <View style={styles.container}>
       <ScreenHeader
         title="BMI Report"
-        onBack={() => navigation.goBack()}
+        onBack={() => navigateBack(navigation, returnTo)}
         right={pdfButton}
         showHome={false}
       />
@@ -149,16 +151,16 @@ export default function ClientBmiReportScreen({
               <View style={styles.patientCopy}>
                 <Text style={styles.patientName}>{report.client.clientName || client?.name}</Text>
                 <Text style={styles.patientMeta}>
-                  {report.client.age ?? '—'} yrs ·{' '}
+                  {report.client.age ?? '-'} yrs ·{' '}
                   {report.client.gender === 'M'
                     ? 'Male'
                     : report.client.gender === 'F'
                       ? 'Female'
-                      : '—'}
+                      : '-'}
                   {report.client.location ? ` · ${report.client.location}` : ''}
                 </Text>
                 <Text style={styles.patientDate}>
-                  Assessed {current?.assessmentDate || report.reportDate || '—'}
+                  Assessed {current?.assessmentDate || report.reportDate || '-'}
                 </Text>
               </View>
             </View>
@@ -244,11 +246,11 @@ function MeasurementRow({
   return (
     <View style={[styles.row, highlight && styles.rowHighlight]}>
       <Text style={[styles.rowDate, styles.historyColDate]} numberOfLines={1}>
-        {label || row.assessmentDate || '—'}
+        {label || row.assessmentDate || '-'}
       </Text>
-      <Text style={styles.rowValue}>{row.height ?? '—'} cm</Text>
-      <Text style={styles.rowValue}>{row.weight ?? '—'} kg</Text>
-      <Text style={styles.rowValue}>{bmi != null ? bmi.toFixed(1) : '—'}</Text>
+      <Text style={styles.rowValue}>{row.height ?? '-'} cm</Text>
+      <Text style={styles.rowValue}>{row.weight ?? '-'} kg</Text>
+      <Text style={styles.rowValue}>{bmi != null ? bmi.toFixed(1) : '-'}</Text>
     </View>
   );
 }
