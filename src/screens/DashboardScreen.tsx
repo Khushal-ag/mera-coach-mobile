@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { BrandImages } from '../constants/images';
+import BrandWordmark from '../components/BrandWordmark';
 import BrandLogo from '../components/BrandLogo';
 import ClientAvatar from '../components/ClientAvatar';
 import DashboardCarousel from '../components/DashboardCarousel';
@@ -306,8 +307,8 @@ export default function DashboardScreen({
               accessibilityRole="text"
               accessibilityLabel={APP_DISPLAY_NAME}
             >
-              <BrandLogo size={26} variant="onDark" />
-              <Text style={styles.brandWordmark}>{APP_DISPLAY_NAME}</Text>
+              <BrandLogo variant="mark" size={30} />
+              <BrandWordmark tone="onDark" size="sm" align="left" style={styles.brandWordmark} />
             </View>
             <View style={styles.headerActions}>
               <HeaderHomeButton />
@@ -459,14 +460,11 @@ const styles = StyleSheet.create({
   brandMark: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     flexShrink: 1,
+    gap: 8,
   },
   brandWordmark: {
-    color: Colors.white,
-    fontSize: 16,
-    fontFamily: FontFamily.semibold,
-    letterSpacing: 0.2,
+    marginTop: 2,
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   greetingLine: {

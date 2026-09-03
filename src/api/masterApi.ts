@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiFetch, apiGet, apiPost, withQuery } from './client';
 import type { GeneratedDietPlan } from '../types/models';
 import { normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
 import type { MasterOption } from '../utils/masterResolve';
@@ -9,12 +9,20 @@ export { resolveMasterLabel, resolveMasterCode, resolveMasterCodes } from '../ut
 interface RawMasterOption {
   itemCode: string;
   itemName: string;
+  /** FontAwesome class from Master items, e.g. "fas fa-dumbbell". */
+  icon?: string;
   description?: string;
 }
 
 /** GetMasterItem fetch; callers pass the query casing the backend expects. */
-export async function fetchMasterItems(query: Record<string, string>): Promise<RawMasterOption[]> {
-  const items = await apiGet<RawMasterOption[]>('/v{version}/Master/GetMasterItem', query);
+export async function fetchMasterItems(
+  query: Record<string, string>,
+  signal?: AbortSignal,
+): Promise<RawMasterOption[]> {
+  const items = await apiFetch<RawMasterOption[]>(
+    withQuery('/v{version}/Master/GetMasterItem', query),
+    { signal },
+  );
   return items || [];
 }
 

@@ -23,6 +23,7 @@ import { getCurrentCoachCode, isAuthenticated } from '../auth/session';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
 import DropdownField from '../components/DropdownField';
+import CategoryIcon from '../components/CategoryIcon';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import PersonAvatar from '../components/PersonAvatar';
 import { getErrorMessage } from '../api/client';
@@ -58,7 +59,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const coachesQuery = useQuery({
     // Normalized key shares Home's empty-filter public list cache.
     queryKey: queryKeys.coachPublicList(listParams),
-    queryFn: () => getCoachPublicList(listParams),
+    queryFn: ({ signal }) => getCoachPublicList(listParams, signal),
   });
 
   const myClientsQuery = useQuery({
@@ -112,8 +113,8 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
               style={[styles.pill, activeCategory === cat.code && styles.pillActive]}
               onPress={() => setActiveCategory(cat.code)}
             >
-              <Ionicons
-                name={cat.icon}
+              <CategoryIcon
+                category={cat}
                 size={12}
                 color={activeCategory === cat.code ? Colors.white : Colors.textLight}
               />

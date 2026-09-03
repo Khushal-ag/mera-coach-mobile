@@ -186,7 +186,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       </View>
 
       <View style={styles.brandLockup}>
-        <BrandLogo size={32} variant="onLight" />
+        <BrandLogo size={64} variant="full" />
         <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
       </View>
     </ScrollView>

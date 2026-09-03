@@ -1,18 +1,24 @@
-import { apiGet, apiPost, apiPut } from './client';
+import { apiFetch, apiGet, apiPost, apiPut, withQuery } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
 import { pickCoachCreatedAt } from '../utils/experience';
+import { fontAwesomeToIonicon } from '../utils/fontAwesomeToIonicon';
 import type { Coach, CoachCategory } from '../types/models';
 import { fetchMasterItems, type MasterOption } from './masterApi';
 
-export async function getCoachCategories(): Promise<CoachCategory[]> {
-  const items = await fetchMasterItems({ ItemType: 'CoachType' });
+export async function getCoachCategories(context?: {
+  signal?: AbortSignal;
+}): Promise<CoachCategory[]> {
+  const items = await fetchMasterItems({ ItemType: 'CoachType' }, context?.signal);
   return items.map(item => {
     const style = getCoachTypeStyle(item.itemCode);
     return {
       code: item.itemCode,
       label: item.itemName,
       short: style.short,
-      icon: style.icon,
+      // Keep Ionicons fallback for screens that still use `icon` directly.
+      icon: fontAwesomeToIonicon(item.icon) ?? style.icon,
+      // Prefer rendering this with FontAwesome5 (CategoryIcon).
+      faIcon: item.icon || undefined,
       color: style.color,
       bg: style.bg,
       description: item.description,
@@ -153,16 +159,20 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
 
 export async function getCoachPublicList(
   params: CoachPublicListParams = {},
+  signal?: AbortSignal,
 ): Promise<{ coaches: Coach[]; totalCount: number }> {
-  const data = await apiGet<CoachPublicListResponse>('/v{version}/Coach/public', {
-    coachTypeCode: params.coachTypeCode || undefined,
-    country: params.country || undefined,
-    state: params.state || undefined,
-    city: params.city || undefined,
-    search: params.search || undefined,
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 50, // no pagination UI yet
-  });
+  const data = await apiFetch<CoachPublicListResponse>(
+    withQuery('/v{version}/Coach/public', {
+      coachTypeCode: params.coachTypeCode || undefined,
+      country: params.country || undefined,
+      state: params.state || undefined,
+      city: params.city || undefined,
+      search: params.search || undefined,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 50, // no pagination UI yet
+    }),
+    { signal },
+  );
   const items = data?.items || [];
   // Prefer server-side filter (IsProfileVisible=1). Client defense in depth:
   // - If ANY item has the flag, keep only explicit visible (true/1); omit/missing → drop.

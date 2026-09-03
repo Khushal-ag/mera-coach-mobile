@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { BrandImages } from '../constants/images';
-import BrandLogo from '../components/BrandLogo';
+import BrandLockup from '../components/BrandLockup';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import FormErrorBanner from '../components/FormErrorBanner';
@@ -106,9 +106,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
       >
         <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
           <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
-          <BrandLogo size={56} variant="onDark" style={styles.logo} />
-          <Text style={styles.brand}>Mera Coach</Text>
-          <Text style={styles.tagline}>Health & wellness coaching</Text>
+          <BrandLockup size="lg" style={styles.logo} />
         </View>
 
         <View style={styles.card}>
@@ -260,15 +258,6 @@ const styles = StyleSheet.create({
   },
   headerBack: { alignSelf: 'flex-start', marginBottom: Spacing.sm },
   logo: { marginBottom: Spacing.sm },
-  brand: { fontSize: 24, fontFamily: FontFamily.extraBold, color: Colors.white },
-  tagline: {
-    fontSize: 12,
-    fontFamily: FontFamily.semibold,
-    color: Colors.onDarkMuted,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginTop: 4,
-  },
   card: {
     width: '90%',
     backgroundColor: Colors.white,

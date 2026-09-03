@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../types/navigation';
 
 import SplashScreen from '../screens/SplashScreen';
 import HomeScreen from '../screens/HomeScreen';
+import HomeExploreScreen from '../screens/HomeExploreScreen';
 import CoachListScreen from '../screens/CoachListScreen';
 import CoachPublicProfileScreen from '../screens/CoachPublicProfileScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -33,12 +34,22 @@ export default function AppNavigator() {
         <>
           <Stack.Screen name="Main" component={MainTabNavigator} />
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen
+            name="HomeExplore"
+            component={HomeExploreScreen}
+            options={{ gestureEnabled: true, animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="CoachList" component={CoachListScreen} />
           <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
         </>
       ) : (
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen
+            name="HomeExplore"
+            component={HomeExploreScreen}
+            options={{ gestureEnabled: true, animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="CoachList" component={CoachListScreen} />
           <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />

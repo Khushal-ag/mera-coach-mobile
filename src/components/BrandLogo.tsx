@@ -1,25 +1,32 @@
 import React from 'react';
 import { Image, StyleSheet, type StyleProp, type ImageStyle } from 'react-native';
-import { Radius } from '../constants/theme';
-import { BrandImages } from '../constants/images';
+import { BrandImages, LOGO_ASPECT } from '../constants/images';
+
+type BrandLogoVariant = 'full' | 'mark' | 'wordmark';
 
 interface BrandLogoProps {
+  /** Height in points; width follows the variant aspect ratio. */
   size?: number;
-  /** Cream leaf tile for dark headers; green mark for light surfaces. */
-  variant?: 'onDark' | 'onLight';
+  variant?: BrandLogoVariant;
   style?: StyleProp<ImageStyle>;
 }
 
-export default function BrandLogo({ size = 60, variant = 'onDark', style }: BrandLogoProps) {
+const SOURCES: Record<BrandLogoVariant, number> = {
+  full: BrandImages.logoFull,
+  mark: BrandImages.logoMark,
+  wordmark: BrandImages.logoWordmark,
+};
+
+export default function BrandLogo({ size = 60, variant = 'full', style }: BrandLogoProps) {
+  const height = size;
+  const width = size * LOGO_ASPECT[variant];
+
   return (
     <Image
-      source={variant === 'onLight' ? BrandImages.leafMark : BrandImages.leafCream}
+      source={SOURCES[variant]}
       accessibilityLabel="Mera Coach"
-      style={[
-        styles.image,
-        { width: size, height: size, borderRadius: Math.min(Radius.md, size * 0.28) },
-        style,
-      ]}
+      style={[styles.image, { width, height }, style]}
+      resizeMode="contain"
     />
   );
 }

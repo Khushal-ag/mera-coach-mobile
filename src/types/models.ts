@@ -31,7 +31,10 @@ export interface CoachCategory {
   code: string;
   label: string;
   short?: string;
+  /** Ionicons fallback when API FontAwesome is missing/unknown. */
   icon: IoniconName;
+  /** Raw FontAwesome class from Master API, e.g. "fas fa-dumbbell". */
+  faIcon?: string;
   color?: string;
   bg?: string;
   description?: string;

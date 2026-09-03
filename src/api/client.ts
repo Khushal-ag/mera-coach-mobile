@@ -12,31 +12,66 @@ export { ApiError, getErrorMessage, toUserMessage, type ApiResponseBody } from '
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 const API_VERSION = '1';
-const REQUEST_TIMEOUT_MS = 15_000;
+// Azure App Service cold starts can exceed 15s; keep this above typical wake time.
+const REQUEST_TIMEOUT_MS = 30_000;
+
+function isAbortError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  if (err.name === 'AbortError' || err.name === 'TimeoutError') return true;
+  // Expo / RN fetch surfaces cancellations as FetchRequestCanceledException.
+  return /FetchRequestCanceled|aborted|canceled|cancelled/i.test(err.message);
+}
+
+/** Abort when any of the given signals abort (timeout + React Query cancel). */
+function anySignal(signals: (AbortSignal | undefined | null)[]): AbortSignal {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+
+  for (const signal of signals) {
+    if (!signal) continue;
+    if (signal.aborted) {
+      controller.abort();
+      break;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+  }
+
+  return controller.signal;
+}
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   if (!BASE_URL) {
     throw new ApiError('API base URL is not configured. Set EXPO_PUBLIC_API_BASE_URL in .env.', 0);
   }
 
-  // Fail fast on known-offline instead of waiting through a timeout.
-  const netState = await NetInfo.fetch();
-  if (netState.isConnected === false) {
-    throw new ApiError('No internet connection. Check your network and try again.', 0);
+  // Fail fast only when NetInfo is sure we're offline. Skip the check if NetInfo
+  // is slow/unknown — awaiting NetInfo.fetch() with no timeout used to stall requests.
+  try {
+    const netState = await Promise.race([
+      NetInfo.fetch(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 800)),
+    ]);
+    if (netState && netState.isConnected === false) {
+      throw new ApiError('No internet connection. Check your network and try again.', 0);
+    }
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    // Ignore NetInfo failures and proceed to fetch.
   }
 
   const url = `${BASE_URL}${path.replace('{version}', API_VERSION)}`;
   const token = getCurrentToken();
 
-  // fetch() has no built-in timeout.
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  // fetch() has no built-in timeout — combine our timer with any caller signal (RQ).
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+  const signal = anySignal([options.signal, timeoutController.signal]);
 
   let res: Response;
   try {
     res = await fetch(url, {
       ...options,
-      signal: controller.signal,
+      signal,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -45,8 +80,12 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     });
   } catch (err) {
     // Normalize both timeout and raw network failures (DNS, TLS, connection refused) to ApiError.
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new ApiError('Request timed out. Please try again.', 0);
+    if (isAbortError(err)) {
+      if (timeoutController.signal.aborted) {
+        throw new ApiError('Request timed out. Please try again.', 0);
+      }
+      // React Query cancel (unmount / offline flip) — not a real timeout.
+      throw new ApiError('Request was cancelled.', 0);
     }
     throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
   } finally {

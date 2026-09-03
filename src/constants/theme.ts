@@ -21,6 +21,10 @@ export const Colors = {
   whatsapp: '#25D366',
   onDarkOverlay: 'rgba(255,255,255,0.15)',
   onDarkMuted: 'rgba(255,255,255,0.7)',
+  /** Mint tone for “mera” on dark green — matches client outline wordmark. */
+  brandMeraOnDark: '#a8c4b4',
+  /** Warm orange for “coach” on dark backgrounds. */
+  brandCoach: '#e8943a',
   scrim: 'rgba(0,0,0,0.4)',
   heroScrim: 'rgba(27,67,50,0.72)',
 } as const;

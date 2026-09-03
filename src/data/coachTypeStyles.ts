@@ -8,8 +8,9 @@ export interface CoachTypeStyle {
   bg: string;
 }
 
-// Keyed by the backend's itemCode. The API's own `icon` field is a FontAwesome class our
-// Ionicons UI can't render, so this is the source of truth instead.
+// Keyed by the backend's itemCode. Colors/short labels live here.
+// Icons prefer the API `icon` FontAwesome class (mapped in fontAwesomeToIonicon);
+// these Ionicons are the offline / unknown-glyph fallback.
 export const COACH_TYPE_STYLES: Record<string, CoachTypeStyle> = {
   CT001: { short: 'Gym', icon: 'barbell', color: Colors.secondary, bg: Colors.secondaryLight },
   CT002: { short: 'Health', icon: 'heart', color: Colors.primary, bg: Colors.primaryLight },

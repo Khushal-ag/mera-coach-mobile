@@ -4,7 +4,7 @@
     "slug": "meracoach",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/platform/icon.png",
     "scheme": "meracoach",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
@@ -23,13 +23,13 @@
       ],
       "adaptiveIcon": {
         "backgroundColor": "#1b4332",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/platform/android-icon-foreground.png",
+        "backgroundImage": "./assets/platform/android-icon-background.png",
+        "monochromeImage": "./assets/platform/android-icon-monochrome.png"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/platform/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -45,7 +45,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/platform/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#1b4332"
