@@ -4,7 +4,7 @@ import { Colors, Radius } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import MultiSelectField from '../../../components/MultiSelectField';
-import { resolveNoneOfTheBelowCode } from '../../../data/lifestyleOptions';
+import { resolveNoneOfTheAboveCode } from '../../../data/lifestyleOptions';
 import { useNormalizeHealthGoalParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
@@ -21,8 +21,8 @@ export default function HealthGoalsStep({
   const err = (field: string) => !!errorFields[field];
   const { medicalOptions, allergyOptions, goalOptions, timelineOptions } =
     useNormalizeHealthGoalParamFormValues(form, update);
-  const medicalNoneCode = resolveNoneOfTheBelowCode(medicalOptions);
-  const allergyNoneCode = resolveNoneOfTheBelowCode(allergyOptions);
+  const medicalNoneCode = resolveNoneOfTheAboveCode(medicalOptions);
+  const allergyNoneCode = resolveNoneOfTheAboveCode(allergyOptions);
 
   return (
     <View>

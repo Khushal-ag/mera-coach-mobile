@@ -20,7 +20,7 @@ export default function ClientBmiScreen({ navigation, route }: ClientBmiScreenPr
   const client = route.params?.client;
   const returnTo = route.params?.returnTo;
   const queryClient = useQueryClient();
-  const { profile, ids, isLoading, isError, error, dataUpdatedAt, refetch } =
+  const { profile, ids, isLoading, isError, error, dataUpdatedAt, refetch, isFetching } =
     useCheckupProfile(client);
 
   const onComplete = async () => {
@@ -52,6 +52,7 @@ export default function ClientBmiScreen({ navigation, route }: ClientBmiScreenPr
       isError={isError || !profile}
       errorMessage={getErrorMessage(error, 'Please go back and try again.')}
       onRetry={() => refetch()}
+      retrying={isFetching}
     >
       <AssessmentWizardFlow
         key={`checkup-${client?.clientCode}-${dataUpdatedAt}`}

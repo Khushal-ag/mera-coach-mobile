@@ -121,6 +121,7 @@ export default function ClientDietPlanScreen({
       isError={loadError || !initialForm}
       errorMessage={getErrorMessage(loadErrorObj, 'Please go back and try again.')}
       onRetry={retry}
+      retrying={loading || planQuery.isFetching}
     >
       <AssessmentWizardFlow
         key={`diet-plan-${ids.clientCode}-${ids.assessmentCode}`}

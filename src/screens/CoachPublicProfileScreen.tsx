@@ -26,6 +26,8 @@ import DropdownField from '../components/DropdownField';
 import EmptyState from '../components/EmptyState';
 import FormFieldLabel from '../components/FormFieldLabel';
 import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
+import ReloadState from '../components/ReloadState';
+import SectionHeading from '../components/SectionHeading';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import { SERVICE_INQUIRY_FALLBACK } from '../data/coachProfileContent';
 import { getCoachProfileByCode, submitCoachEnquiry, whatsAppUrlFromMobile } from '../api/coachApi';
@@ -163,7 +165,7 @@ function CoachProfilePage({
   const listMatch = listCoach?.id === coachCode ? listCoach : undefined;
   // placeholderData shows the directory row while pending; on hard failure with no
   // successful cache, do not fall back to list-only or WhatsApp/mobile never load
-  // and the EmptyState error path is skipped.
+  // and the ReloadState error path is skipped.
   const coach =
     profileQuery.isError && !profileQuery.data
       ? undefined
@@ -244,9 +246,12 @@ function CoachProfilePage({
             onPress={onBack}
             style={[styles.backOnLight, { top: insets.top + 12 }]}
           />
-          <EmptyState
+          <ReloadState
             title="Could not load profile"
             message={getErrorMessage(profileQuery.error, 'Please try again.')}
+            onRetry={() => void profileQuery.refetch()}
+            loading={profileQuery.isFetching}
+            showPullHint={false}
           />
         </View>
       </View>
@@ -451,11 +456,7 @@ function CoachProfilePage({
 
         {coach.tags.length > 0 ? (
           <View style={[styles.section, styles.expertiseSection]}>
-            <View style={styles.sectionTag}>
-              <Ionicons name="star-outline" size={12} color={Colors.secondary} />
-              <Text style={styles.sectionTagText}>Areas of Expertise</Text>
-            </View>
-            <Text style={styles.sectionTitle}>What I Specialise In</Text>
+            <SectionHeading title="What I Specialise In" icon="star-outline" />
             <View style={styles.expertiseGrid}>
               {coach.tags.map(tag => (
                 <View key={tag} style={[styles.expertiseChip, { width: expertiseChipWidth }]}>
@@ -474,13 +475,11 @@ function CoachProfilePage({
         {/* No named testimonials API yet. */}
         {showSuccessStories ? (
           <View style={styles.storiesSection}>
-            <View style={[styles.sectionTag, styles.storiesSectionTag]}>
-              <Ionicons name="trophy-outline" size={12} color={Colors.secondary} />
-              <Text style={styles.sectionTagText}>Success Stories</Text>
-            </View>
-            <Text style={[styles.sectionTitle, styles.storiesSectionTitle]}>
-              Profile highlights
-            </Text>
+            <SectionHeading
+              title="Success Stories"
+              icon="trophy-outline"
+              style={styles.storiesSectionHeading}
+            />
             <Text style={[styles.sectionSubtitle, styles.storiesSectionSubtitle]}>
               Outcomes and focus areas from {coach.name}&apos;s public profile.
             </Text>
@@ -512,11 +511,7 @@ function CoachProfilePage({
         {/* Aggregate rating only until a review-text endpoint exists. */}
         {showRating ? (
           <View style={styles.section}>
-            <View style={styles.sectionTag}>
-              <Ionicons name="star-outline" size={12} color={Colors.secondary} />
-              <Text style={styles.sectionTagText}>Reviews</Text>
-            </View>
-            <Text style={styles.sectionTitle}>Reviews</Text>
+            <SectionHeading title="Reviews" icon="star-outline" />
             <Text style={styles.sectionSubtitle}>
               Ratings shared for {coach.name} on Mera Coach.
             </Text>
@@ -546,11 +541,7 @@ function CoachProfilePage({
         ) : null}
 
         <View style={[styles.section, styles.formSection, { paddingBottom: 28 + insets.bottom }]}>
-          <View style={styles.sectionTag}>
-            <Ionicons name="calendar-outline" size={12} color={Colors.secondary} />
-            <Text style={styles.sectionTagText}>Get In Touch</Text>
-          </View>
-          <Text style={styles.sectionTitle}>Book Your Free Consultation</Text>
+          <SectionHeading title="Book Your Free Consultation" icon="calendar-outline" />
           <Text style={styles.sectionSubtitle}>
             Send a free enquiry to {coach.name}. They usually reply within 24 hours.
           </Text>
@@ -1029,24 +1020,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     flexGrow: 1,
   },
-  sectionTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginBottom: 10,
-  },
-  sectionTagText: { color: Colors.secondary, fontSize: 11, fontFamily: FontFamily.bold },
-  sectionTitle: {
-    fontSize: 19,
-    fontFamily: FontFamily.extraBold,
-    color: Colors.textDark,
-    marginBottom: 6,
-  },
   sectionSubtitle: { fontSize: 12, color: Colors.textLight, lineHeight: 18, marginBottom: 18 },
   expertiseSection: {
     paddingBottom: Spacing.md,
@@ -1087,8 +1060,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   storiesSection: { paddingTop: Spacing.lg, paddingBottom: Spacing.xs },
-  storiesSectionTag: { marginLeft: Spacing.lg, alignSelf: 'flex-start' },
-  storiesSectionTitle: { marginHorizontal: Spacing.lg, marginBottom: 6 },
+  storiesSectionHeading: { marginHorizontal: Spacing.lg },
   storiesSectionSubtitle: { marginHorizontal: Spacing.lg, marginBottom: 0 },
   successCarousel: { paddingHorizontal: Spacing.lg, paddingTop: 18, gap: Spacing.sm },
   successCard: {
@@ -1120,7 +1092,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     padding: 18,
-    marginTop: 14,
     ...Shadow.sm,
   },
   reviewStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 8 },

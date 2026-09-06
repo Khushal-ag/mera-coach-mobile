@@ -3,6 +3,10 @@ export interface MasterOption {
   label: string;
 }
 
+function looksLikeMasterCode(value: string): boolean {
+  return /^[A-Za-z]{2,4}\d{2,}$/.test(value.trim());
+}
+
 export function resolveMasterLabel(
   value: string | undefined | null,
   options: MasterOption[],
@@ -13,6 +17,7 @@ export function resolveMasterLabel(
   if (byCode) return byCode.label;
   const byLabel = options.find(o => o.label === v);
   if (byLabel) return byLabel.label;
+  if (looksLikeMasterCode(v)) return '';
   return v;
 }
 

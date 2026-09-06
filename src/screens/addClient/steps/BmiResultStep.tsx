@@ -12,7 +12,6 @@ interface MetricTile {
   value: string;
   label: string;
   caption: string;
-  fullWidth?: boolean;
 }
 
 function tilesFor(metrics: BodyMetrics | null): MetricTile[] {
@@ -46,7 +45,6 @@ function tilesFor(metrics: BodyMetrics | null): MetricTile[] {
       value: metrics ? `${metrics.bodyAge} yrs` : '--',
       label: 'Body Age',
       caption: 'Based on fat% vs ideal',
-      fullWidth: true,
     },
   ];
 }
@@ -58,16 +56,6 @@ export default function BmiResultStep({ form }: StepProps<ClientProfile>) {
 
   return (
     <View>
-      <View style={styles.bmiCard}>
-        <Text style={styles.bmiCaption}>Body Mass Index</Text>
-        <Text style={styles.bmiValue}>{metrics ? metrics.bmi.toFixed(1) : '--'}</Text>
-        {category ? (
-          <View style={[styles.categoryBadge, { backgroundColor: category.bg }]}>
-            <Text style={[styles.categoryText, { color: category.color }]}>{category.label}</Text>
-          </View>
-        ) : null}
-      </View>
-
       {!metrics ? (
         <View style={styles.hintCard}>
           <Ionicons name="information-circle-outline" size={18} color={Colors.accent} />
@@ -79,8 +67,20 @@ export default function BmiResultStep({ form }: StepProps<ClientProfile>) {
 
       <Text style={styles.sectionLabel}>Body composition</Text>
       <View style={styles.tilesGrid}>
+        <View style={[styles.tile, styles.bmiTile]}>
+          <Text style={styles.bmiTileCaption}>BMI</Text>
+          <Text style={styles.bmiTileValue}>{metrics ? metrics.bmi.toFixed(1) : '--'}</Text>
+          {category ? (
+            <View style={[styles.categoryBadge, { backgroundColor: category.bg }]}>
+              <Text style={[styles.categoryText, { color: category.color }]}>{category.label}</Text>
+            </View>
+          ) : (
+            <Text style={styles.bmiTileSub}>Body Mass Index</Text>
+          )}
+        </View>
+
         {tiles.map(t => (
-          <View key={t.label} style={[styles.tile, t.fullWidth && styles.tileFull]}>
+          <View key={t.label} style={styles.tile}>
             <View style={styles.tileIconWrap}>
               <Ionicons name={t.icon} size={16} color={Colors.secondary} />
             </View>
@@ -104,29 +104,6 @@ export default function BmiResultStep({ form }: StepProps<ClientProfile>) {
 }
 
 const styles = StyleSheet.create({
-  bmiCard: {
-    backgroundColor: Colors.secondary,
-    borderRadius: Radius.lg,
-    padding: 22,
-    marginBottom: 16,
-    ...Shadow.md,
-  },
-  bmiCaption: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  bmiValue: { fontSize: 48, fontWeight: '800', color: Colors.white, marginTop: 4 },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginTop: 10,
-  },
-  categoryText: { fontSize: 12, fontWeight: '700' },
   hintCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -145,14 +122,39 @@ const styles = StyleSheet.create({
   },
   tilesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
   tile: {
-    width: '47%',
-    flexGrow: 1,
+    width: '48.5%',
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     padding: 14,
     ...Shadow.sm,
   },
-  tileFull: { width: '100%', flexGrow: 0 },
+  bmiTile: {
+    backgroundColor: Colors.secondary,
+    ...Shadow.md,
+    justifyContent: 'center',
+  },
+  bmiTileCaption: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  bmiTileValue: { fontSize: 28, fontWeight: '800', color: Colors.white },
+  bmiTileSub: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 10,
+    marginTop: 6,
+  },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  categoryText: { fontSize: 11, fontWeight: '700' },
   tileIconWrap: {
     width: 28,
     height: 28,

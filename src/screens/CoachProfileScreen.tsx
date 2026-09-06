@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import PersonAvatar from '../components/PersonAvatar';
+import ReloadState from '../components/ReloadState';
 import BrandLogo from '../components/BrandLogo';
 import TabRootHeader from '../components/TabRootHeader';
 import { APP_DISPLAY_NAME } from '../config/appConfig';
@@ -109,7 +110,12 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
       ) : errorMessage ? (
-        <Text style={styles.empty}>{errorMessage}</Text>
+        <ReloadState
+          title="Could not load profile"
+          message={errorMessage}
+          onRetry={() => void profileQuery.refetch()}
+          loading={profileQuery.isFetching}
+        />
       ) : (
         <>
           <View style={styles.profileCard}>
@@ -260,5 +266,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.medium,
   },
-  empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 40 },
 });

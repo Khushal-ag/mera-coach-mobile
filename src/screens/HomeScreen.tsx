@@ -52,13 +52,15 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   }, [coachesQuery.data]);
 
   const statsReady = !coachesLoading;
-  const stats: HomeStat[] = statsReady
-    ? [
-        { value: String(coachTotal), label: 'Coaches' },
-        categories.length > 0 ? { value: String(categories.length), label: 'Categories' } : null,
-        avgRating != null ? { value: `${avgRating.toFixed(1)}/5`, label: 'Avg. Rating' } : null,
-      ].filter((s): s is HomeStat => s != null)
-    : [];
+  const canShowCoachStats = !!coachesQuery.data || !coachesQuery.isError;
+  const stats: HomeStat[] =
+    statsReady && canShowCoachStats
+      ? [
+          { value: String(coachTotal), label: 'Coaches' },
+          categories.length > 0 ? { value: String(categories.length), label: 'Categories' } : null,
+          avgRating != null ? { value: `${avgRating.toFixed(1)}/5`, label: 'Avg. Rating' } : null,
+        ].filter((s): s is HomeStat => s != null)
+      : [];
   const showStats = statsReady && stats.length >= 2;
 
   return (
@@ -121,7 +123,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
             </React.Fragment>
           ))}
         </View>
-      ) : (
+      ) : coachesLoading ? (
         <View
           style={[
             styles.statsStrip,
@@ -131,6 +133,8 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         >
           <ActivityIndicator color={Colors.secondary} />
         </View>
+      ) : (
+        <View style={{ marginBottom: insets.bottom + Spacing.sm }} />
       )}
     </View>
   );

@@ -21,9 +21,12 @@ import { queryKeys } from '../api/queryKeys';
 import { useAuthState } from '../auth/useAuthState';
 import PersonAvatar from '../components/PersonAvatar';
 import CategoryIcon from '../components/CategoryIcon';
+import PublicBmiCard from '../components/PublicBmiCard';
+import SectionHeading from '../components/SectionHeading';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import { shouldShowPublicRating } from '../utils/coachPublicStats';
+import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
 import type { Coach } from '../types/models';
 
@@ -32,22 +35,6 @@ const GRID_GAP = 10;
 const CATEGORY_ROWS = 3;
 const COACH_CARD_WIDTH = 100;
 const FEATURE_ROW_HEIGHT = 34;
-
-function SectionHeading({
-  title,
-  icon,
-}: {
-  title: string;
-  icon?: React.ComponentProps<typeof Ionicons>['name'];
-}) {
-  return (
-    <View style={styles.sectionHeading}>
-      {icon ? <Ionicons name={icon} size={13} color={Colors.secondary} /> : null}
-      <Text style={styles.sectionHeadingText}>{title}</Text>
-      {icon ? <Ionicons name={icon} size={13} color={Colors.secondary} /> : null}
-    </View>
-  );
-}
 
 function FeatureRow({
   label,
@@ -131,6 +118,10 @@ export default function HomeExploreScreen({ navigation }: RootScreenProps<'HomeE
   const categories = pickExploreCategories(allCategories);
   const categoriesLoading = categoriesQuery.isPending && !apiCategories;
   const reviewsLoading = coachesQuery.isPending && !coachesQuery.data;
+  const coachesLoadError =
+    coachesQuery.isError && !coachesQuery.data
+      ? getErrorMessage(coachesQuery.error, 'Could not load coaches. Please try again.')
+      : null;
 
   const reviewCoaches = useMemo(() => {
     const list = coachesQuery.data?.coaches ?? [];
@@ -209,6 +200,8 @@ export default function HomeExploreScreen({ navigation }: RootScreenProps<'HomeE
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <SectionHeading title="Coaching for Every Goal" icon="leaf-outline" />
 
@@ -251,11 +244,36 @@ export default function HomeExploreScreen({ navigation }: RootScreenProps<'HomeE
           ))}
         </View>
 
+        <PublicBmiCard
+          onFindCoach={() => navigation.navigate('CoachList')}
+          style={styles.bmiCard}
+        />
+
         <SectionHeading title="Top Rated Coaches" icon="star" />
 
         {reviewsLoading ? (
           <View style={styles.coachLoaderBox}>
             <ActivityIndicator color={Colors.secondary} />
+          </View>
+        ) : coachesLoadError ? (
+          <View style={styles.coachErrorBox}>
+            <Text style={styles.coachErrorText}>{coachesLoadError}</Text>
+            <TouchableOpacity
+              style={styles.coachRetryBtn}
+              onPress={() => void coachesQuery.refetch()}
+              disabled={coachesQuery.isFetching}
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
+            >
+              {coachesQuery.isFetching ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="refresh" size={14} color={Colors.white} />
+                  <Text style={styles.coachRetryText}>Try again</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         ) : reviewCoaches.length > 0 ? (
           <ScrollView
@@ -336,19 +354,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: BODY_PADDING,
     paddingTop: Spacing.sm,
   },
-  sectionHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  sectionHeadingText: {
-    fontFamily: FontFamily.displayItalic,
-    fontSize: 16,
-    color: Colors.secondary,
-    textAlign: 'center',
-  },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -403,6 +408,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     marginBottom: 12,
     ...Shadow.sm,
+  },
+  bmiCard: {
+    marginBottom: 12,
   },
   featureRowWrap: {
     height: FEATURE_ROW_HEIGHT,
@@ -505,6 +513,38 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     color: Colors.textLight,
     marginBottom: 8,
+  },
+  coachErrorBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    ...Shadow.sm,
+  },
+  coachErrorText: {
+    textAlign: 'center',
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 18,
+  },
+  coachRetryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  coachRetryText: {
+    color: Colors.white,
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
   },
   loaderBox: {
     alignItems: 'center',

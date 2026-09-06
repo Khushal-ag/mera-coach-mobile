@@ -1,4 +1,8 @@
-import { fontAwesomeToIonicon, parseFontAwesomeGlyph, parseFontAwesomeStyle } from '../../utils/fontAwesomeToIonicon';
+import {
+  fontAwesomeToIonicon,
+  parseFontAwesomeGlyph,
+  parseFontAwesomeStyle,
+} from '../../utils/fontAwesomeToIonicon';
 
 describe('fontAwesomeToIonicon', () => {
   it('parses FontAwesome class strings', () => {

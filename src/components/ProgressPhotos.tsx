@@ -34,7 +34,7 @@ export default function ProgressPhotos({ clientCode }: Props) {
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Same query key as ClientAvatar / useClientPhotoUrl — one Document/list per client.
+  // Same query key as list/detail progress gallery — one Document/list per client.
   const photosQuery = useProgressPhotosQuery(clientCode);
   const photos = photosQuery.data ?? [];
 

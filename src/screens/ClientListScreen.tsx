@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   RefreshControl,
   TouchableOpacity,
   TextInput,
@@ -15,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
+import ReloadState from '../components/ReloadState';
 import ClientAvatar from '../components/ClientAvatar';
 import TabRootHeader from '../components/TabRootHeader';
 import SectionTag from '../components/SectionTag';
@@ -62,6 +64,7 @@ export default function ClientListScreen({
   const errorMessage = clientsQuery.isError
     ? getErrorMessage(clientsQuery.error, 'Could not load clients. Pull down to try again.')
     : null;
+  const showLoadError = !!errorMessage && clients.length === 0;
 
   const emptyState =
     clients.length === 0
@@ -112,10 +115,27 @@ export default function ClientListScreen({
           />
         </View>
 
-        {clientsQuery.isPending ? (
+        {clientsQuery.isPending && !clientsQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
-        ) : errorMessage ? (
-          <Text style={styles.error}>{errorMessage}</Text>
+        ) : showLoadError ? (
+          <ScrollView
+            contentContainerStyle={styles.errorWrap}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshControl.refreshing}
+                onRefresh={refreshControl.onRefresh}
+                {...refreshControlTheme}
+              />
+            }
+          >
+            <ReloadState
+              illustration={BrandImages.emptyClients}
+              title="Could not load clients"
+              message={errorMessage!}
+              onRetry={() => void clientsQuery.refetch()}
+              loading={clientsQuery.isFetching}
+            />
+          </ScrollView>
         ) : (
           <>
             <Text style={styles.count}>
@@ -241,6 +261,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semibold,
   },
   emptyWrap: { flexGrow: 1 },
+  errorWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,5 +283,4 @@ const styles = StyleSheet.create({
   badgeActiveText: { color: Colors.secondary },
   badgeWarningText: { color: Colors.accent },
   badgeNewText: { color: Colors.primary },
-  error: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

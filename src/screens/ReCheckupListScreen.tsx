@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   RefreshControl,
   TouchableOpacity,
   TextInput,
@@ -15,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
+import ReloadState from '../components/ReloadState';
 import ClientAvatar from '../components/ClientAvatar';
 import TabRootHeader from '../components/TabRootHeader';
 import { getRecheckupList } from '../api/clientApi';
@@ -72,6 +74,7 @@ export default function ReCheckupListScreen({
   const errorMessage = dueQuery.isError
     ? getErrorMessage(dueQuery.error, 'Could not load checkups. Pull down to try again.')
     : null;
+  const showLoadError = !!errorMessage && dueClients.length === 0;
 
   const startCheckup = (item: RecheckupDueClient) => {
     const client: ClientSummary = {
@@ -119,7 +122,7 @@ export default function ReCheckupListScreen({
   };
 
   const subtitle =
-    dueQuery.isPending || errorMessage
+    dueQuery.isPending || showLoadError
       ? null
       : dueClients.length === 0
         ? 'All up to date'
@@ -150,10 +153,27 @@ export default function ReCheckupListScreen({
           />
         </View>
 
-        {dueQuery.isPending ? (
+        {dueQuery.isPending && !dueQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
-        ) : errorMessage ? (
-          <Text style={styles.error}>{errorMessage}</Text>
+        ) : showLoadError ? (
+          <ScrollView
+            contentContainerStyle={styles.errorWrap}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshControl.refreshing}
+                onRefresh={refreshControl.onRefresh}
+                {...refreshControlTheme}
+              />
+            }
+          >
+            <ReloadState
+              illustration={BrandImages.emptyCheckups}
+              title="Could not load checkups"
+              message={errorMessage!}
+              onRetry={() => void dueQuery.refetch()}
+              loading={dueQuery.isFetching}
+            />
+          </ScrollView>
         ) : (
           <FlatList
             data={visible}
@@ -208,6 +228,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   emptyWrap: { flexGrow: 1 },
+  errorWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -235,5 +256,4 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   recheckBtnText: { fontSize: 11, fontFamily: FontFamily.bold, color: Colors.white },
-  error: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

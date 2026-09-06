@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow } from '../constants/theme';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
 
@@ -39,7 +39,8 @@ export default function DropdownField({
   const [open, setOpen] = useState(false);
   const normalized = useMemo(() => normalizeOptions(options), [options]);
   const selected = normalized.find(o => o.code === value || o.label === value);
-  const display = selected?.label ?? (value || '');
+  // Avoid flashing backend item codes (e.g. PC001) before labels arrive.
+  const display = selected?.label ?? '';
 
   return (
     <View style={[styles.field, compact && styles.fieldCompact]}>
@@ -108,9 +109,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   boxError: { borderColor: Colors.destructive },
-  value: { fontSize: 14, color: Colors.textDark },
+  value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   valueCompact: { fontSize: 12, flex: 1 },
-  placeholder: { fontSize: 14, color: Colors.textLight },
+  placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
@@ -120,7 +121,12 @@ const styles = StyleSheet.create({
     maxHeight: '60%',
     ...Shadow.lg,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: Colors.textDark, marginBottom: 12 },
+  sheetTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: 12,
+  },
   optionList: { marginBottom: 8 },
   option: {
     flexDirection: 'row',
@@ -130,6 +136,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.background,
   },
-  optionText: { fontSize: 14, color: Colors.textDark },
-  optionTextActive: { color: Colors.primary, fontWeight: '700' },
+  optionText: {
+    flex: 1,
+    marginRight: 12,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    textAlign: 'left',
+  },
+  optionTextActive: { color: Colors.primary, fontFamily: FontFamily.bold },
 });

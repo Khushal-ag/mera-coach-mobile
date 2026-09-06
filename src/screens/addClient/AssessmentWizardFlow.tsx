@@ -51,6 +51,7 @@ export type AssessmentFlow = 'add' | 'checkup';
 
 export type AssessmentCompleteResult = {
   dietPlan?: SaveDietPlanResult;
+  ids?: AssessmentIds;
 };
 
 interface AssessmentWizardFlowProps {
@@ -95,12 +96,16 @@ export default function AssessmentWizardFlow({
   const coachType = COACH_TYPES[DEFAULT_COACH_TYPE]!;
 
   const phases = useMemo(() => {
-    if (flow === 'add') {
-      // Product: no BMI result step on Add Client; checkup keeps full flow.
-      return coachType.phases.filter(phase => phase.id !== 'bmiResult');
+    if (commitMode === 'dietPlan') {
+      return coachType.phases.filter(phase => phase.id === 'dietPlan');
     }
-    return coachType.phases;
-  }, [coachType, flow]);
+    if (flow === 'add') {
+      // Product: Add Client excludes BMI summary and AI diet-plan wizard phase.
+      return coachType.phases.filter(phase => phase.id !== 'bmiResult' && phase.id !== 'dietPlan');
+    }
+    // Product: Checkup excludes AI diet-plan wizard phase (separate screen button flow).
+    return coachType.phases.filter(phase => phase.id !== 'dietPlan');
+  }, [coachType, flow, commitMode]);
 
   const flatNav = useMemo<NavEntry[]>(() => {
     const list: NavEntry[] = [];
@@ -148,6 +153,19 @@ export default function AssessmentWizardFlow({
   const isLast = index === flatNav.length - 1;
   // When opened mid-flow (e.g. diet plan shortcut), back from the start screen exits.
   const goBack = () => (index <= startIndex ? onExit() : setIndex(i => i - 1));
+
+  const completeAssessment = async (
+    nextIds: AssessmentIds,
+    metrics: ReturnType<typeof computeBmiMetrics>,
+    bmiAlreadySavedNow: boolean,
+  ) => {
+    if (!metrics && flow === 'add') {
+      setApiError('Complete height, weight, date of birth or age, and gender before finishing.');
+      return;
+    }
+    await finishAssessment(nextIds, metrics, bmiAlreadySavedNow || bmiSaved, 0);
+    await onComplete({ ids: nextIds });
+  };
 
   const goNext = async () => {
     if (entry.type === 'interstitial') {
@@ -203,44 +221,42 @@ export default function AssessmentWizardFlow({
         if (!skipEmptyDietCommit || !isDietEmpty(form.diet)) {
           await commitDiet(form, ids);
         }
+        if (isLast && commitMode === 'assessment') {
+          const metrics = computeBmiMetrics(form);
+          await completeAssessment(ids, metrics, false);
+          return;
+        }
       } else if (phaseId === 'bmiResult') {
         const metrics = computeBmiMetrics(form);
+        let savedNow = false;
         if (metrics) {
           await commitBmi(metrics, ids, 0);
           setBmiSaved(true);
+          savedNow = true;
+        }
+        if (isLast && commitMode === 'assessment') {
+          await completeAssessment(ids, metrics, savedNow);
+          return;
         }
       } else if (phaseId === 'dietPlan') {
-        if (commitMode === 'dietPlan') {
-          if (!form.dietPlan) {
-            setApiError('Generate a plan before saving, or go back.');
-            return;
-          }
-          if (!hasUnsavedDietPlan) {
-            setApiError('Generate or regenerate a plan before saving.');
-            return;
-          }
-          const dietPlan = await commitDietPlan(form.dietPlan, ids);
-          if (dietPlan.clientCode || dietPlan.assessmentCode) {
-            setIds(prev => ({
-              clientCode: dietPlan.clientCode ?? prev.clientCode,
-              assessmentCode: dietPlan.assessmentCode ?? prev.assessmentCode,
-            }));
-          }
-          setHasUnsavedDietPlan(false);
-          await onComplete({ dietPlan });
+        // Diet plan only appears in the dedicated diet-plan shortcut flow.
+        if (!form.dietPlan) {
+          setApiError('Generate a plan before saving, or go back.');
           return;
         }
-        // Optional on full assessment — skip save when the coach did not generate a plan.
-        if (form.dietPlan) await commitDietPlan(form.dietPlan, ids);
-        const metrics = computeBmiMetrics(form);
-        if (!metrics && flow === 'add') {
-          setApiError(
-            'Complete height, weight, date of birth or age, and gender before finishing.',
-          );
+        if (!hasUnsavedDietPlan) {
+          setApiError('Generate or regenerate a plan before saving.');
           return;
         }
-        await finishAssessment(ids, metrics, bmiSaved, 0);
-        await onComplete();
+        const dietPlan = await commitDietPlan(form.dietPlan, ids);
+        if (dietPlan.clientCode || dietPlan.assessmentCode) {
+          setIds(prev => ({
+            clientCode: dietPlan.clientCode ?? prev.clientCode,
+            assessmentCode: dietPlan.assessmentCode ?? prev.assessmentCode,
+          }));
+        }
+        setHasUnsavedDietPlan(false);
+        await onComplete({ dietPlan, ids });
         return;
       }
       setIndex(i => i + 1);

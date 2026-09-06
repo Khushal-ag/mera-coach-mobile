@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import EmptyState from './EmptyState';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import ReloadState from './ReloadState';
 import { Colors } from '../constants/theme';
 
 interface ClientPhaseLoadShellProps {
@@ -11,6 +11,7 @@ interface ClientPhaseLoadShellProps {
   onRetry: () => void;
   children: React.ReactNode;
   emptyTitle?: string;
+  retrying?: boolean;
 }
 
 export default function ClientPhaseLoadShell({
@@ -20,6 +21,7 @@ export default function ClientPhaseLoadShell({
   onRetry,
   children,
   emptyTitle = 'Could not load client',
+  retrying = false,
 }: ClientPhaseLoadShellProps) {
   if (isLoading) {
     return (
@@ -32,15 +34,13 @@ export default function ClientPhaseLoadShell({
   if (isError) {
     return (
       <View style={styles.center}>
-        <EmptyState title={emptyTitle} message={errorMessage} />
-        <TouchableOpacity
-          style={styles.retryBtn}
-          onPress={onRetry}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading client"
-        >
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
+        <ReloadState
+          title={emptyTitle}
+          message={errorMessage}
+          onRetry={onRetry}
+          loading={retrying}
+          showPullHint={false}
+        />
       </View>
     );
   }
@@ -56,12 +56,4 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     padding: 24,
   },
-  retryBtn: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-  },
-  retryText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
 });

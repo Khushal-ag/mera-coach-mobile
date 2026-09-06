@@ -17,7 +17,7 @@ import { getCurrentCoachCode, getCurrentCoachId } from '../auth/session';
 import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
 import { useClientPhotoUrl } from '../hooks/useClientPhotoUrl';
 
-const DOC_TYPE = 'PROGRESS_PHOTO';
+const DOC_TYPE = 'PROFILE_PIC';
 const REF_TYPE = 'CLIENT';
 
 interface ClientAvatarProps {

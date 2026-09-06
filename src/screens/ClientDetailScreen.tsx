@@ -15,6 +15,7 @@ import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme'
 import ScreenHeader from '../components/ScreenHeader';
 import ClientAvatar from '../components/ClientAvatar';
 import ProgressPhotos from '../components/ProgressPhotos';
+import ReloadState from '../components/ReloadState';
 import { getClientDetail } from '../api/clientApi';
 import { getErrorMessage } from '../api/client';
 import { resolveMasterLabel } from '../api/masterApi';
@@ -219,7 +220,13 @@ export default function ClientDetailScreen({
         {client.clientCode && detailQuery.isPending ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 10 }} />
         ) : errorMessage ? (
-          <Text style={styles.empty}>{errorMessage}</Text>
+          <ReloadState
+            title="Could not load client details"
+            message={errorMessage}
+            onRetry={() => void detailQuery.refetch()}
+            loading={detailQuery.isFetching}
+            style={{ paddingVertical: 24 }}
+          />
         ) : metrics.length === 0 && detailRows.length === 0 ? (
           <Text style={styles.empty}>Details unavailable.</Text>
         ) : (

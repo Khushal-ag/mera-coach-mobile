@@ -13,8 +13,8 @@ import {
   TARGET_TIMELINES,
   MEDICAL_CONDITIONS,
   FOOD_ALLERGIES,
-  NONE_OF_THE_BELOW,
-  resolveNoneOfTheBelowCode,
+  ensureNoneOfTheAboveAtBottom,
+  coerceNoneOfTheAboveValues,
 } from '../data/lifestyleOptions';
 import type { ClientProfile } from '../types/models';
 
@@ -46,20 +46,12 @@ export interface LifestyleParamBundle {
   cuisineOptions: MasterOption[];
 }
 
-function withNoneOfTheBelow(options: MasterOption[]): MasterOption[] {
-  const noneCode = resolveNoneOfTheBelowCode(options);
-  if (options.some(o => o.code === noneCode)) {
-    return options;
-  }
-  return [...options, { code: NONE_OF_THE_BELOW.code, label: NONE_OF_THE_BELOW.label }];
-}
-
 function useHealthGoalParamBundle(): HealthGoalParamBundle {
   return {
-    medicalOptions: withNoneOfTheBelow(
+    medicalOptions: ensureNoneOfTheAboveAtBottom(
       useParamMasterOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS),
     ),
-    allergyOptions: withNoneOfTheBelow(
+    allergyOptions: ensureNoneOfTheAboveAtBottom(
       useParamMasterOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES),
     ),
     goalOptions: useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS),
@@ -100,7 +92,7 @@ function useNormalizeScalarAndListFields(
       if (!options.length) return;
       const current = form[key];
       if (!current.length) return;
-      const codes = resolveMasterCodes(current, options);
+      const codes = coerceNoneOfTheAboveValues(resolveMasterCodes(current, options), options);
       const same = codes.length === current.length && codes.every((c, i) => c === current[i]);
       if (!same) update(key, codes);
     });

@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   RefreshControl,
   TextInput,
   TouchableOpacity,
@@ -18,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import EmptyState from '../components/EmptyState';
+import ReloadState from '../components/ReloadState';
 import PersonAvatar from '../components/PersonAvatar';
 import ScreenHeader from '../components/ScreenHeader';
 import { getEnquiryLeads, updateEnquiryLead, type EnquiryLead } from '../api/clientApi';
@@ -232,6 +234,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
   const errorMessage = leadsQuery.isError
     ? getErrorMessage(leadsQuery.error, 'Could not load leads. Pull down to try again.')
     : null;
+  const showLoadError = !!errorMessage && leads.length === 0;
 
   const emptyState =
     leads.length === 0
@@ -271,10 +274,27 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
           />
         </View>
 
-        {leadsQuery.isPending ? (
+        {leadsQuery.isPending && !leadsQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
-        ) : errorMessage ? (
-          <Text style={styles.error}>{errorMessage}</Text>
+        ) : showLoadError ? (
+          <ScrollView
+            contentContainerStyle={styles.errorWrap}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshControl.refreshing}
+                onRefresh={refreshControl.onRefresh}
+                {...refreshControlTheme}
+              />
+            }
+          >
+            <ReloadState
+              illustration={BrandImages.emptyLeads}
+              title="Could not load leads"
+              message={errorMessage!}
+              onRetry={() => void leadsQuery.refetch()}
+              loading={leadsQuery.isFetching}
+            />
+          </ScrollView>
         ) : (
           <>
             {subtitle ? <Text style={styles.count}>{subtitle}</Text> : null}
@@ -333,6 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emptyWrap: { flexGrow: 1 },
+  errorWrap: { flexGrow: 1 },
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
@@ -392,5 +413,4 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     backgroundColor: Colors.background,
   },
-  error: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
 });

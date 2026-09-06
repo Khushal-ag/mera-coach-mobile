@@ -23,6 +23,10 @@ describe('resolveMasterLabel', () => {
   it('returns unknown values unchanged', () => {
     expect(resolveMasterLabel('Custom', OPTIONS)).toBe('Custom');
   });
+
+  it('hides unresolved item codes until options load', () => {
+    expect(resolveMasterLabel('PC0007', OPTIONS)).toBe('');
+  });
 });
 
 describe('resolveMasterCode', () => {

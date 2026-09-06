@@ -8,8 +8,8 @@ const DOC_TYPE = 'PROGRESS_PHOTO';
 const REF_TYPE = 'CLIENT';
 
 /**
- * Shared Document/list query for client avatars and ProgressPhotos.
- * Same key + staleTime so list rows and detail screen share one cache entry per client.
+ * Shared Document/list query for ProgressPhotos.
+ * Same key + staleTime so wizard and detail screen share one cache entry per client.
  */
 export function useProgressPhotosQuery(clientCode?: string) {
   const coachCode = getCurrentCoachCode() ?? '';

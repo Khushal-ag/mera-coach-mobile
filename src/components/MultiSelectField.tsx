@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow } from '../constants/theme';
+import { isNoneOfTheAboveValue } from '../data/lifestyleOptions';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
 
@@ -13,8 +14,19 @@ function normalizeOptions(options: MultiSelectOption[]): MasterOption[] {
   );
 }
 
-function isSelected(value: string[], opt: MasterOption): boolean {
-  return value.includes(opt.code) || value.includes(opt.label);
+/** Keep exclusive "none" sentinel last so it stays at the bottom of the sheet. */
+function pinExclusiveNoneLast(options: MasterOption[], exclusiveNoneCode?: string): MasterOption[] {
+  if (!exclusiveNoneCode) return options;
+  if (options[options.length - 1]?.code === exclusiveNoneCode) return options;
+  const none = options.find(o => o.code === exclusiveNoneCode);
+  if (!none) return options;
+  return [...options.filter(o => o.code !== exclusiveNoneCode), none];
+}
+
+function isSelected(value: string[], opt: MasterOption, exclusiveNoneCode?: string): boolean {
+  if (value.includes(opt.code) || value.includes(opt.label)) return true;
+  // Legacy "None of the below" (and synthetic code) should light up the exclusive-none row.
+  return !!exclusiveNoneCode && opt.code === exclusiveNoneCode && value.some(isNoneOfTheAboveValue);
 }
 
 interface MultiSelectFieldProps {
@@ -28,7 +40,7 @@ interface MultiSelectFieldProps {
   hasError?: boolean;
   /**
    * When set, selecting this option clears all others; selecting any other option
-   * clears this one (e.g. "None of the below").
+   * clears this one (e.g. "None of the above"). Always rendered last in the list.
    */
   exclusiveNoneCode?: string;
 }
@@ -44,9 +56,12 @@ export default function MultiSelectField({
   exclusiveNoneCode,
 }: MultiSelectFieldProps) {
   const [open, setOpen] = useState(false);
-  const normalized = useMemo(() => normalizeOptions(options), [options]);
+  const normalized = useMemo(
+    () => pinExclusiveNoneLast(normalizeOptions(options), exclusiveNoneCode),
+    [options, exclusiveNoneCode],
+  );
 
-  const selectedOptions = normalized.filter(opt => isSelected(value, opt));
+  const selectedOptions = normalized.filter(opt => isSelected(value, opt, exclusiveNoneCode));
 
   const exclusiveNone = exclusiveNoneCode
     ? normalized.find(o => o.code === exclusiveNoneCode)
@@ -54,11 +69,17 @@ export default function MultiSelectField({
 
   const withoutExclusiveNone = (vals: string[]) => {
     if (!exclusiveNoneCode) return vals;
-    return vals.filter(v => v !== exclusiveNoneCode && v !== exclusiveNone?.label);
+    return vals.filter(
+      v => v !== exclusiveNoneCode && v !== exclusiveNone?.label && !isNoneOfTheAboveValue(v),
+    );
   };
 
   const toggle = (opt: MasterOption) => {
-    if (isSelected(value, opt)) {
+    if (isSelected(value, opt, exclusiveNoneCode)) {
+      if (exclusiveNoneCode && opt.code === exclusiveNoneCode) {
+        onChange(withoutExclusiveNone(value));
+        return;
+      }
       onChange(value.filter(v => v !== opt.code && v !== opt.label));
       return;
     }
@@ -70,6 +91,10 @@ export default function MultiSelectField({
   };
 
   const remove = (opt: MasterOption) => {
+    if (exclusiveNoneCode && opt.code === exclusiveNoneCode) {
+      onChange(withoutExclusiveNone(value));
+      return;
+    }
     onChange(value.filter(v => v !== opt.code && v !== opt.label));
   };
 
@@ -80,7 +105,10 @@ export default function MultiSelectField({
         style={[styles.box, hasError && styles.boxError]}
         onPress={() => setOpen(true)}
       >
-        <Text style={selectedOptions.length ? styles.value : styles.placeholder}>
+        <Text
+          style={[selectedOptions.length ? styles.value : styles.placeholder, styles.triggerText]}
+          numberOfLines={1}
+        >
           {selectedOptions.length ? `${selectedOptions.length} selected` : placeholder || 'Select'}
         </Text>
         <Ionicons name="chevron-down" size={16} color={Colors.textLight} />
@@ -103,16 +131,32 @@ export default function MultiSelectField({
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={styles.sheet} onStartShouldSetResponder={() => true}>
             <Text style={styles.sheetTitle}>{label}</Text>
-            <ScrollView style={styles.optionList} showsVerticalScrollIndicator={false}>
-              {normalized.map(opt => {
-                const active = isSelected(value, opt);
+            <ScrollView
+              style={styles.optionList}
+              contentContainerStyle={styles.optionListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {normalized.map((opt, index) => {
+                const active = isSelected(value, opt, exclusiveNoneCode);
+                const isExclusiveNone = !!exclusiveNoneCode && opt.code === exclusiveNoneCode;
+                const isLast = index === normalized.length - 1;
                 return (
                   <TouchableOpacity
                     key={opt.code}
-                    style={styles.option}
+                    style={[
+                      styles.option,
+                      isExclusiveNone && styles.optionExclusive,
+                      isLast && styles.optionLast,
+                    ]}
                     onPress={() => toggle(opt)}
                   >
-                    <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        active && styles.optionTextActive,
+                        isExclusiveNone && styles.optionTextExclusive,
+                      ]}
+                    >
                       {opt.label}
                     </Text>
                     <View style={[styles.checkbox, active && styles.checkboxActive]}>
@@ -146,8 +190,9 @@ const styles = StyleSheet.create({
     height: 50,
   },
   boxError: { borderColor: Colors.destructive },
-  value: { fontSize: 14, color: Colors.textDark },
-  placeholder: { fontSize: 14, color: Colors.textLight },
+  triggerText: { flex: 1, marginRight: 8, textAlign: 'left' },
+  value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
+  placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   chip: {
     flexDirection: 'row',
@@ -158,7 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  chipText: { fontSize: 12, fontWeight: '600', color: Colors.secondary },
+  chipText: { fontSize: 12, fontFamily: FontFamily.semibold, color: Colors.secondary },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
@@ -168,8 +213,14 @@ const styles = StyleSheet.create({
     maxHeight: '65%',
     ...Shadow.lg,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: Colors.textDark, marginBottom: 12 },
+  sheetTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: 12,
+  },
   optionList: { marginBottom: 8 },
+  optionListContent: { paddingBottom: 4 },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -178,8 +229,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.background,
   },
-  optionText: { fontSize: 14, color: Colors.textDark },
-  optionTextActive: { color: Colors.secondary, fontWeight: '700' },
+  optionExclusive: {
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: 16,
+  },
+  optionLast: { borderBottomWidth: 0 },
+  optionText: {
+    flex: 1,
+    marginRight: 12,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    textAlign: 'left',
+  },
+  optionTextActive: { color: Colors.secondary, fontFamily: FontFamily.bold },
+  optionTextExclusive: { fontFamily: FontFamily.medium },
   checkbox: {
     width: 22,
     height: 22,
@@ -197,5 +263,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  doneText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  doneText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 14 },
 });

@@ -80,20 +80,64 @@ export const FOOD_ALLERGIES = [
   'Seafood',
 ];
 
-/** Synthetic option — not in PARAMLIST; injected client-side for medical/allergy multi-selects. */
-export const NONE_OF_THE_BELOW = {
+/**
+ * Synthetic exclusive option for medical/allergy multi-selects.
+ * `code` stays `NONE_OF_THE_BELOW` for backend compatibility; UI label is "None of the above".
+ */
+export const NONE_OF_THE_ABOVE = {
   code: 'NONE_OF_THE_BELOW',
-  label: 'None of the below',
+  label: 'None of the above',
 } as const;
 
-/** Prefer a live PARAMLIST code when the master already ships this label. */
-export function resolveNoneOfTheBelowCode(options: { code: string; label: string }[]): string {
-  const hit = options.find(
-    o =>
-      o.code === NONE_OF_THE_BELOW.code ||
-      o.label.trim().toLowerCase() === NONE_OF_THE_BELOW.label.toLowerCase(),
+const NONE_OF_THE_ABOVE_LABELS = new Set(['none of the above', 'none of the below']);
+
+function isNoneOfTheAboveOption(opt: { code: string; label: string }): boolean {
+  return (
+    opt.code === NONE_OF_THE_ABOVE.code ||
+    NONE_OF_THE_ABOVE_LABELS.has(opt.label.trim().toLowerCase())
   );
-  return hit?.code ?? NONE_OF_THE_BELOW.code;
+}
+
+/** Prefer a live PARAMLIST code when the master already ships this exclusive option. */
+export function resolveNoneOfTheAboveCode(options: { code: string; label: string }[]): string {
+  const hit = options.find(isNoneOfTheAboveOption);
+  return hit?.code ?? NONE_OF_THE_ABOVE.code;
+}
+
+/** True when a stored code/label is the exclusive none sentinel (any known wording). */
+export function isNoneOfTheAboveValue(value: string): boolean {
+  const v = value.trim();
+  if (!v) return false;
+  return isNoneOfTheAboveOption({ code: v, label: v });
+}
+
+/**
+ * Map legacy "None of the below" / synthetic codes onto the live exclusive-none code
+ * so multi-select exclusivity and chips stay consistent after master load.
+ */
+export function coerceNoneOfTheAboveValues(
+  values: string[],
+  options: { code: string; label: string }[],
+): string[] {
+  const noneCode = resolveNoneOfTheAboveCode(options);
+  return values.map(v => (isNoneOfTheAboveValue(v) ? noneCode : v));
+}
+
+/**
+ * Ensure "None of the above" exists and is always the last row.
+ * Live PARAMLIST may omit it, or include it mid-list (any known code/label) — pin to bottom.
+ * Existing server codes are preserved; display label is normalized to "None of the above".
+ */
+export function ensureNoneOfTheAboveAtBottom<T extends { code: string; label: string }>(
+  options: T[],
+): T[] {
+  const existing = options.find(isNoneOfTheAboveOption);
+  const rest = options.filter(o => !isNoneOfTheAboveOption(o));
+  const none = {
+    ...(existing ?? { code: NONE_OF_THE_ABOVE.code }),
+    label: NONE_OF_THE_ABOVE.label,
+  } as T;
+  return [...rest, none];
 }
 
 export const PRIMARY_GOALS = [

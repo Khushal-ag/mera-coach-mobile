@@ -66,4 +66,6 @@ export const queryKeys = {
   servicesForCategory: (categoryCode: string) => ['servicesForCategory', categoryCode] as const,
   progressPhotos: (coachCode: string, clientCode: string) =>
     ['progressPhotos', coachCode, clientCode] as const,
+  clientProfilePhoto: (coachCode: string, clientCode: string) =>
+    ['clientProfilePhoto', coachCode, clientCode] as const,
 };

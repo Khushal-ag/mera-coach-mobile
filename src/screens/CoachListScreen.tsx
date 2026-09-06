@@ -27,6 +27,7 @@ import CategoryIcon from '../components/CategoryIcon';
 import { HeaderBackButton } from '../components/ScreenHeader';
 import PersonAvatar from '../components/PersonAvatar';
 import { getErrorMessage } from '../api/client';
+import ReloadState from '../components/ReloadState';
 import {
   formatExpertiseLabel,
   pluralizeCoaches,
@@ -80,6 +81,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const errorMessage = coachesQuery.isError
     ? getErrorMessage(coachesQuery.error, 'Could not load coaches. Pull down to try again.')
     : null;
+  const showLoadError = !!errorMessage && !coachesQuery.data;
 
   const refreshControl = useRefreshControl(coachesQuery);
 
@@ -155,8 +157,13 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         {/* Spinner only with no list yet — not on background refetch. */}
         {coachesQuery.isPending && !coachesQuery.data ? (
           <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
-        ) : errorMessage ? (
-          <Text style={styles.empty}>{errorMessage}</Text>
+        ) : showLoadError ? (
+          <ReloadState
+            title="Could not load coaches"
+            message={errorMessage!}
+            onRetry={() => void coachesQuery.refetch()}
+            loading={coachesQuery.isFetching}
+          />
         ) : (
           <>
             <View style={styles.resultRow}>
@@ -425,7 +432,13 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   viewBtnText: { color: Colors.white, fontSize: 12, fontFamily: FontFamily.bold },
-  empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 20 },
+  empty: {
+    textAlign: 'center',
+    color: Colors.textLight,
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    marginTop: 20,
+  },
   ctaCard: {
     backgroundColor: Colors.secondary,
     borderRadius: Radius.lg,

@@ -1,14 +1,30 @@
 import { useCallback, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { listDocuments } from '../api/documentApi';
+import { PHOTO_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { resolveMediaUrl } from '../utils/mediaUrl';
-import { progressPhotosCoachCode, useProgressPhotosQuery } from './useProgressPhotosQuery';
+import { progressPhotosCoachCode } from './useProgressPhotosQuery';
 
-/** Latest client progress photo used as profile avatar on list/detail screens. */
+const DOC_TYPE = 'PROFILE_PIC';
+const REF_TYPE = 'CLIENT';
+
+/** Latest client profile photo used as avatar on list/detail screens. */
 export function useClientPhotoUrl(clientCode?: string) {
   const coachCode = progressPhotosCoachCode();
   const queryClient = useQueryClient();
-  const query = useProgressPhotosQuery(clientCode);
+  const query = useQuery({
+    queryKey: queryKeys.clientProfilePhoto(coachCode, clientCode ?? ''),
+    queryFn: () =>
+      listDocuments({
+        coachCode,
+        refCode: clientCode!,
+        refType: REF_TYPE,
+        docType: DOC_TYPE,
+      }),
+    enabled: !!coachCode && !!clientCode,
+    staleTime: PHOTO_STALE_MS,
+  });
 
   const photoUrl = useMemo(() => {
     const items = query.data ?? [];
@@ -20,9 +36,9 @@ export function useClientPhotoUrl(clientCode?: string) {
 
   const invalidate = useCallback(() => {
     if (!coachCode || !clientCode) return;
-    // Photos are not embedded in ClientList — only bust the shared photo cache.
+    // Avatars are not embedded in ClientList — bust only this photo cache.
     void queryClient.invalidateQueries({
-      queryKey: queryKeys.progressPhotos(coachCode, clientCode),
+      queryKey: queryKeys.clientProfilePhoto(coachCode, clientCode),
     });
   }, [queryClient, coachCode, clientCode]);
 

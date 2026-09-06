@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FormErrorBanner from './FormErrorBanner';
 import FormFieldLabel from './FormFieldLabel';
 import PhoneTextInput from './PhoneTextInput';
-import { Colors, FontFamily, Radius, Shadow } from '../constants/theme';
+import SectionHeading from './SectionHeading';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import { submitBmiLead } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
 import { getBmi, getBmiCategory } from '../utils/bmi';
@@ -42,9 +45,10 @@ const BMI_EXPLAINS: Record<string, string> = {
 type Props = {
   onFindCoach?: () => void;
   onFieldFocus?: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
+export default function PublicBmiCard({ onFindCoach, onFieldFocus, style }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [heightUnit, setHeightUnit] = useState<HeightUnit>('cm');
   const [heightCm, setHeightCm] = useState('');
@@ -148,12 +152,8 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
   };
 
   return (
-    <View style={styles.section}>
-      <View style={[styles.sectionTag, styles.bmiTag]}>
-        <Ionicons name="calculator-outline" size={12} color={Colors.accent} />
-        <Text style={styles.bmiTagText}>Free Health Tool</Text>
-      </View>
-      <Text style={styles.sectionTitle}>Know Your BMI</Text>
+    <View style={[styles.section, style]}>
+      <SectionHeading title="Know Your BMI" icon="calculator-outline" />
       <Text style={styles.sectionSubtitle}>
         Get your BMI in seconds. Share your details after to hear from a coach.
       </Text>
@@ -391,54 +391,36 @@ export default function PublicBmiCard({ onFindCoach, onFieldFocus }: Props) {
 
 const styles = StyleSheet.create({
   section: {
-    marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: Spacing.md,
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    padding: 20,
+    padding: Spacing.md,
     alignItems: 'center',
-    ...Shadow.sm,
-  },
-  sectionTag: {
-    flexDirection: 'row',
-    alignSelf: 'center',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginBottom: 10,
-  },
-  bmiTag: { backgroundColor: Colors.accentLight },
-  bmiTagText: { color: Colors.accent, fontSize: 11, fontFamily: FontFamily.bold },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: FontFamily.extraBold,
-    color: Colors.textDark,
-    textAlign: 'center',
+    ...Shadow.md,
   },
   sectionSubtitle: {
     fontSize: 12,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 0,
+    marginBottom: 2,
     lineHeight: 18,
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
   },
   openBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 16,
+    marginTop: Spacing.md,
     backgroundColor: Colors.accent,
     borderRadius: Radius.pill,
-    paddingVertical: 14,
-    paddingHorizontal: 22,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
     ...Shadow.sm,
   },
-  openBtnText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 15 },
-  form: { width: '100%', marginTop: 16 },
+  openBtnText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 14 },
+  form: { width: '100%', marginTop: Spacing.md },
   field: { marginBottom: 14 },
   labelRow: {
     flexDirection: 'row',
@@ -454,21 +436,32 @@ const styles = StyleSheet.create({
   },
   unitBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.pill },
   unitBtnActive: { backgroundColor: Colors.secondary },
-  unitBtnText: { fontSize: 11, fontWeight: '700', color: Colors.textLight },
+  unitBtnText: { fontSize: 11, fontFamily: FontFamily.bold, color: Colors.textLight },
   unitBtnTextActive: { color: Colors.white },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
     paddingHorizontal: 12,
     minHeight: 48,
   },
   inputIcon: { marginRight: 8 },
-  input: { flex: 1, fontSize: 15, color: Colors.textDark, paddingVertical: 10 },
-  unitSuffix: { fontSize: 12, fontWeight: '600', color: Colors.textLight, marginLeft: 4 },
+  input: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    paddingVertical: 10,
+  },
+  unitSuffix: {
+    fontSize: 12,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textLight,
+    marginLeft: 4,
+  },
   row: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
   calcBtn: {
@@ -478,16 +471,16 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: Colors.accent,
     borderRadius: Radius.pill,
-    paddingVertical: 14,
+    paddingVertical: 13,
     marginTop: 4,
     ...Shadow.sm,
   },
-  calcBtnText: { color: Colors.white, fontSize: 15, fontWeight: '700' },
+  calcBtnText: { color: Colors.white, fontSize: 14, fontFamily: FontFamily.bold },
   resultCard: {
     backgroundColor: Colors.secondary,
     borderRadius: Radius.lg,
-    padding: 22,
-    marginTop: 18,
+    padding: 20,
+    marginTop: Spacing.md,
     alignItems: 'center',
     ...Shadow.md,
   },
@@ -503,64 +496,72 @@ const styles = StyleSheet.create({
   },
   gatePanel: {
     width: '100%',
-    minHeight: 168,
+    minHeight: 160,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.secondary,
     borderRadius: Radius.md,
-    paddingVertical: 28,
+    paddingVertical: 24,
     paddingHorizontal: 16,
   },
   gateMessage: {
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     gap: 8,
   },
   gateTitle: {
     color: Colors.white,
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: FontFamily.bold,
     textAlign: 'center',
     lineHeight: 21,
   },
   gateSubtitle: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     textAlign: 'center',
     lineHeight: 17,
   },
   resultCaption: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: FontFamily.semibold,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  resultValue: { fontSize: 48, fontWeight: '800', color: Colors.white, marginTop: 4 },
+  resultValue: {
+    fontSize: 44,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.white,
+    marginTop: 4,
+  },
   categoryBadge: {
     marginTop: 10,
     borderRadius: Radius.pill,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  categoryText: { fontSize: 13, fontWeight: '700' },
+  categoryText: { fontSize: 13, fontFamily: FontFamily.bold },
   explain: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 13,
+    fontFamily: FontFamily.regular,
     lineHeight: 19,
     textAlign: 'center',
     marginTop: 14,
   },
-  leadForm: { width: '100%', marginTop: 18 },
+  leadForm: { width: '100%', marginTop: Spacing.md },
   leadPrompt: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: 13,
+    fontFamily: FontFamily.regular,
     lineHeight: 19,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
-  leadPromptStrong: { fontWeight: '700', color: Colors.white },
-  leadField: { marginBottom: 16 },
+  leadPromptStrong: { fontFamily: FontFamily.bold, color: Colors.white },
+  leadField: { marginBottom: Spacing.md },
   leadLabel: {
     color: 'rgba(255,255,255,0.92)',
     marginBottom: 10,
@@ -573,6 +574,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 48,
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     color: Colors.white,
   },
   leadBtn: {
@@ -587,11 +589,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   leadBtnDisabled: { opacity: 0.7 },
-  leadBtnText: { color: Colors.textDark, fontWeight: '700', fontSize: 14 },
-  leadSuccess: { alignItems: 'center', marginTop: 18, gap: 10 },
+  leadBtnText: { color: Colors.textDark, fontFamily: FontFamily.bold, fontSize: 14 },
+  leadSuccess: { alignItems: 'center', marginTop: Spacing.md, gap: 10 },
   leadSuccessText: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 13,
+    fontFamily: FontFamily.regular,
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -605,5 +608,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 22,
   },
-  findCoachText: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  findCoachText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 14 },
 });

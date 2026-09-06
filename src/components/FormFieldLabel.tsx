@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, type StyleProp, type TextStyle } from 'react-native';
-import { Colors } from '../constants/theme';
+import { Colors, FontFamily } from '../constants/theme';
 
 interface FormFieldLabelProps {
   children: string;
@@ -18,6 +18,6 @@ export default function FormFieldLabel({ children, required, style }: FormFieldL
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, fontWeight: '600', color: Colors.textDark, marginBottom: 6 },
-  required: { color: Colors.destructive, fontWeight: '700' },
+  label: { fontSize: 13, fontFamily: FontFamily.semibold, color: Colors.textDark, marginBottom: 6 },
+  required: { color: Colors.destructive, fontFamily: FontFamily.bold },
 });

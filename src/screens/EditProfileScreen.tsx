@@ -19,6 +19,7 @@ import FormErrorBanner from '../components/FormErrorBanner';
 import FormFieldLabel from '../components/FormFieldLabel';
 import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import ScreenHeader from '../components/ScreenHeader';
+import ReloadState from '../components/ReloadState';
 import MultiSelectField from '../components/MultiSelectField';
 import {
   getCoachProfileFull,
@@ -72,7 +73,13 @@ export default function EditProfileScreen({ navigation }: ProfileStackScreenProp
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
       ) : errorMessage ? (
-        <Text style={styles.empty}>{errorMessage}</Text>
+        <ReloadState
+          title="Could not load profile"
+          message={errorMessage}
+          onRetry={() => void profileQuery.refetch()}
+          loading={profileQuery.isFetching}
+          showPullHint={false}
+        />
       ) : (
         <EditProfileForm
           profile={profileQuery.data!}
@@ -703,7 +710,6 @@ function ImagePickerTile({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  empty: { textAlign: 'center', color: Colors.textLight, fontSize: 13, marginTop: 40 },
   body: { flex: 1 },
   bodyContent: { padding: 20 },
   imagesRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },

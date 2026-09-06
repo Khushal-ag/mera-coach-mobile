@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import AssessmentWizardFlow from './addClient/AssessmentWizardFlow';
+import type { AssessmentCompleteResult } from './addClient/AssessmentWizardFlow';
 import { createBlankProfile } from '../data/clientProfiles';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachCode } from '../auth/session';
@@ -15,15 +16,30 @@ export default function AddClientScreen({
   const queryClient = useQueryClient();
   const returnTo = route.params?.returnTo;
 
-  const onComplete = async () => {
+  const onComplete = async (result?: AssessmentCompleteResult) => {
     const coachCode = getCurrentCoachCode();
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.clientList(coachCode) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.recheckupList(coachCode) }),
     ]);
-    Alert.alert('Client saved', 'The client assessment was saved successfully.', [
-      { text: 'OK', onPress: () => navigateBack(navigation, returnTo) },
-    ]);
+    const clientCode = result?.ids?.clientCode;
+    const assessmentCode = result?.ids?.assessmentCode;
+    const buttons = [{ text: 'Done', onPress: () => navigateBack(navigation, returnTo) }];
+    if (clientCode) {
+      buttons.unshift({
+        text: 'Open Diet Plan',
+        onPress: () =>
+          navigation.navigate('ClientDietPlan', {
+            client: {
+              name: 'Client',
+              clientCode,
+              assessmentCode,
+            },
+            returnTo,
+          }),
+      });
+    }
+    Alert.alert('Client saved', 'The client assessment was saved successfully.', buttons);
   };
 
   return (

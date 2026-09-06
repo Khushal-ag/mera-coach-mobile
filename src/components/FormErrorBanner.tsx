@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius } from '../constants/theme';
+import { Colors, FontFamily, Radius } from '../constants/theme';
 
 interface FormErrorBannerProps {
   message: string | null | undefined;
@@ -29,5 +29,5 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
-  text: { color: Colors.destructive, fontSize: 13, fontWeight: '600', flex: 1 },
+  text: { color: Colors.destructive, fontSize: 13, fontFamily: FontFamily.semibold, flex: 1 },
 });

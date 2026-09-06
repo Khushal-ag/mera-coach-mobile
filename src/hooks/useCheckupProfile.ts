@@ -52,5 +52,6 @@ export function useCheckupProfile(
     error: detailQuery.error,
     dataUpdatedAt: detailQuery.dataUpdatedAt,
     refetch: detailQuery.refetch,
+    isFetching: detailQuery.isFetching,
   };
 }
