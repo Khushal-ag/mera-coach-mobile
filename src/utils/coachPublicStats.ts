@@ -1,9 +1,6 @@
 /**
- * Backend notes (confirmed against live GET /Coach/public):
- * - `happyClientCount` is Edit Profile "Happy Clients", not ClientList roster length.
- * - On the public list, `reviewCount` currently equals `happyClientCount`.
- * - profile-by-id often omits `reviewCount`; `rating` is often seeded (~3.5) at 0 reviews.
- * Prefer live roster length when the viewer is this coach and ClientList is loaded.
+ * Prefer live ClientList length when viewing your own profile.
+ * Otherwise use happyClientCount; hide rating when reviewCount is 0.
  */
 
 export type PublicStatItem = {
@@ -31,7 +28,7 @@ export function shouldShowPublicClientCount(count: number | null | undefined): b
   return count != null && count > 0;
 }
 
-/** Hide backend-seeded ratings when reviewCount is 0. */
+/** Hide seeded ratings when reviewCount is 0. */
 export function shouldShowPublicRating(rating: number, reviews: number): boolean {
   return rating > 0 && reviews > 0;
 }

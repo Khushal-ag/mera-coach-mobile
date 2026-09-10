@@ -160,7 +160,6 @@ export type FieldErrorMap = Record<string, string>;
 export interface FormValidationResult {
   ok: boolean;
   errors: FieldErrorMap;
-  /** Shared banner when any field failed. */
   banner: string | null;
 }
 
@@ -247,10 +246,7 @@ export function validateNonNegativeInt(
   return null;
 }
 
-/**
- * Personal-profile step of Add Client (mirrors web Step 1).
- * Collects every failing field so the UI can highlight them all at once.
- */
+/** Add Client step 1 validation (mirrors web). */
 export function validateClientPersonalProfile(form: ClientProfile): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'name', validateRequired(form.name, 'Full name'));
@@ -291,7 +287,6 @@ export function validateClientLifestyleProfile(form: ClientProfile): FormValidat
     errors.foodAllergies = 'Please select at least one food allergy.';
   }
   putError(errors, 'primaryGoal', validateRequired(form.primaryGoal ?? '', 'Primary goal'));
-  // Target timeline is optional.
   return resultFromErrors(errors);
 }
 
@@ -307,12 +302,25 @@ export function validateCoachRegister(fields: {
   category: string;
   mobile: string;
   email: string;
+  referralMobile?: string;
 }): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'name', validateRequired(fields.name, 'Coach name'));
   if (!fields.category.trim()) errors.category = 'Coach category is required.';
   putError(errors, 'mobile', validateMobile(fields.mobile));
   putError(errors, 'email', validateEmail(fields.email));
+
+  const referral = (fields.referralMobile ?? '').trim();
+  if (referral) {
+    putError(errors, 'referralMobile', validateMobile(referral, false));
+    if (
+      !errors.referralMobile &&
+      stripNonDigits(referral) === stripNonDigits(fields.mobile) &&
+      stripNonDigits(referral).length === 10
+    ) {
+      errors.referralMobile = 'Referral mobile cannot be the same as your mobile number.';
+    }
+  }
   return resultFromErrors(errors);
 }
 

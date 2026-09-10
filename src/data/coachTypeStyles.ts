@@ -8,7 +8,7 @@ export interface CoachTypeStyle {
   bg: string;
 }
 
-// Keyed by the backend's itemCode. Colors/short labels live here.
+// Keyed by coach-type itemCode. Colors/short labels live here.
 // Icons prefer the API `icon` FontAwesome class (mapped in fontAwesomeToIonicon);
 // these Ionicons are the offline / unknown-glyph fallback.
 export const COACH_TYPE_STYLES: Record<string, CoachTypeStyle> = {

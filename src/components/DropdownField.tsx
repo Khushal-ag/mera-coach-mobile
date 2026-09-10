@@ -39,7 +39,7 @@ export default function DropdownField({
   const [open, setOpen] = useState(false);
   const normalized = useMemo(() => normalizeOptions(options), [options]);
   const selected = normalized.find(o => o.code === value || o.label === value);
-  // Avoid flashing backend item codes (e.g. PC001) before labels arrive.
+  // Avoid flashing raw item codes (e.g. PC001) before labels arrive.
   const display = selected?.label ?? '';
 
   return (

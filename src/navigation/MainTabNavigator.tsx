@@ -29,6 +29,9 @@ import ClientDietPlanScreen from '../screens/clientDetail/ClientDietPlanScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import LegalScreen from '../screens/LegalScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import EditGalleryScreen from '../screens/EditGalleryScreen';
+import EditPackagesScreen from '../screens/EditPackagesScreen';
+import EditEventsScreen from '../screens/EditEventsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -83,6 +86,9 @@ function ProfileStackNavigator() {
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileHome" component={CoachProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <ProfileStack.Screen name="EditGallery" component={EditGalleryScreen} />
+      <ProfileStack.Screen name="EditPackages" component={EditPackagesScreen} />
+      <ProfileStack.Screen name="EditEvents" component={EditEventsScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <ProfileStack.Screen name="Legal" component={LegalScreen} />
       <ProfileStack.Screen name="Leads" component={MyLeadsScreen} />

@@ -204,4 +204,26 @@ describe('validateLogin / validateCoachRegister', () => {
       ['category', 'email', 'mobile', 'name'].sort(),
     );
   });
+
+  it('allows empty referral and rejects same-as-self mobile', () => {
+    expect(
+      validateCoachRegister({
+        name: 'Coach',
+        category: 'Yoga',
+        mobile: '9876543210',
+        email: 'a@b.com',
+        referralMobile: '',
+      }).ok,
+    ).toBe(true);
+
+    const same = validateCoachRegister({
+      name: 'Coach',
+      category: 'Yoga',
+      mobile: '9876543210',
+      email: 'a@b.com',
+      referralMobile: '9876543210',
+    });
+    expect(same.ok).toBe(false);
+    expect(same.errors.referralMobile).toMatch(/same as your mobile/i);
+  });
 });

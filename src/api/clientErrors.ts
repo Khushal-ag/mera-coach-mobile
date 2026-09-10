@@ -1,3 +1,6 @@
+/** errorCode 1 = no records → treat as empty success (null / []). */
+export const API_ERROR_NO_RECORDS = 1;
+
 interface ValidationErrorBody {
   errors: Record<string, string[]>;
 }
@@ -8,10 +11,7 @@ interface BusinessErrorEntry {
 }
 
 interface BusinessResponseBody {
-  /**
-   * Standard envelope: array of business errors. A lone object is accepted defensively.
-   * errorCode 0 (or empty) means success; non-zero entries are failures even on HTTP 200.
-   */
+  /** Business errors; lone object accepted. 0 = ok, 1 = empty, other non-zero = failure. */
   errorObj?: BusinessErrorEntry[] | BusinessErrorEntry | null;
   responseObj?: unknown;
   /** Some endpoints return a single business error at the top level. */
@@ -19,7 +19,7 @@ interface BusinessResponseBody {
   errorMessage?: string;
 }
 
-// 401 responses use ProblemDetails instead of the errorObj wrapper.
+// 401 responses use title/detail instead of the errorObj wrapper.
 interface ProblemDetailsBody {
   title?: string;
   detail?: string;
@@ -47,9 +47,33 @@ function isBusinessErrorEntry(value: unknown): value is BusinessErrorEntry {
   return entry.errorCode != null || typeof entry.errorMessage === 'string';
 }
 
-/** Normalize `errorObj` (array | single object) plus flat top-level fields into entries. */
+/** True when the envelope is only empty-resource (errorCode 1), not a real failure. */
+export function isNoRecordsBody(body: ApiResponseBody): boolean {
+  if (!body) return false;
+  const raw = body.errorObj;
+  let entries: BusinessErrorEntry[] = [];
+  if (Array.isArray(raw)) {
+    entries = raw.filter(isBusinessErrorEntry);
+  } else if (isBusinessErrorEntry(raw)) {
+    entries = [raw];
+  }
+  if (entries.length === 0 && body.errorCode != null) {
+    return Number(body.errorCode) === API_ERROR_NO_RECORDS;
+  }
+  if (entries.length === 0) return false;
+  // Only no-records (and optional success 0) — any other code is a real error.
+  return (
+    entries.every(e => {
+      const code = Number(e.errorCode);
+      return code === API_ERROR_NO_RECORDS || code === 0;
+    }) && entries.some(e => Number(e.errorCode) === API_ERROR_NO_RECORDS)
+  );
+}
+
 function businessErrorEntries(body: ApiResponseBody): BusinessErrorEntry[] {
   if (!body) return [];
+  // errorCode 1 = empty success — do not treat as a failure message.
+  if (isNoRecordsBody(body)) return [];
 
   const raw = body.errorObj;
   let entries: BusinessErrorEntry[] = [];
@@ -68,7 +92,11 @@ function businessErrorEntries(body: ApiResponseBody): BusinessErrorEntry[] {
     ];
   }
 
-  return entries.filter(e => e.errorCode != null && Number(e.errorCode) !== 0);
+  return entries.filter(e => {
+    if (e.errorCode == null) return false;
+    const code = Number(e.errorCode);
+    return code !== 0 && code !== API_ERROR_NO_RECORDS;
+  });
 }
 
 function businessErrorCode(body: ApiResponseBody): number | undefined {
@@ -76,7 +104,6 @@ function businessErrorCode(body: ApiResponseBody): number | undefined {
   return code != null && Number(code) !== 0 ? Number(code) : undefined;
 }
 
-/** Join non-empty `errorMessage` values from the business envelope (source of truth: errorObj[0]+). */
 function rawBusinessErrorMessage(body: ApiResponseBody): string | undefined {
   const messages = businessErrorEntries(body)
     .map(e => (typeof e.errorMessage === 'string' ? e.errorMessage.trim() : ''))
@@ -86,10 +113,7 @@ function rawBusinessErrorMessage(body: ApiResponseBody): string | undefined {
   return [...new Set(messages)].join('. ');
 }
 
-/**
- * Map API / thrown errors to coach-facing copy for Alerts, banners, and empty states.
- * Prefer a cleaned backend `errorMessage` over jargon; never surface stack traces or JSON dumps.
- */
+/** Map API/thrown errors to coach-facing UI copy. */
 export function toUserMessage(
   error: unknown,
   fallback = 'Something went wrong. Please try again.',
@@ -113,7 +137,6 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   return toUserMessage(error, fallback);
 }
 
-/** Strip opaque internals and map common backend phrases to readable copy. */
 export function mapToUserFacingMessage(message: string, status = 0, errorCode?: number): string {
   const trimmed = message.trim();
   if (!trimmed) return '';
@@ -135,7 +158,7 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
   if (/^object reference not set/i.test(trimmed) || /nullreferenceexception/i.test(trimmed)) {
     return 'Something went wrong on the server. Please try again.';
   }
-  // Azure/Windows Chromium (Puppeteer/Playwright) PDF generation failures.
+  // PDF generation failures often dump Chromium/browser launch text.
   if (
     /failed to launch (blink|browser)/i.test(trimmed) ||
     /side-by-side configuration is incorrect/i.test(trimmed) ||
@@ -148,7 +171,7 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
 
   const lower = trimmed.toLowerCase();
 
-  // Login / credentials (message first: backend often uses errorCode 401 for "Invalid User").
+  // Credentials copy first — errorCode 401 is also used for "Invalid User".
   if (
     lower === 'invalid user' ||
     lower === 'invalid username' ||
@@ -203,8 +226,7 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
   return trimmed;
 }
 
-// Backend uses 3 error shapes: field validation errors, {errorObj, responseObj} business
-// responses, and ProblemDetails for 401s. Check each in turn.
+// Prefer field validation, then business errorObj, then title/detail (401 shape).
 export function extractErrorMessage(body: ApiResponseBody, httpStatus: number): string | null {
   if (!body) return null;
   if (body.errors) {

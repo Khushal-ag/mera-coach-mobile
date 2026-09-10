@@ -5,6 +5,10 @@ describe('resolveDisplayBmi', () => {
     expect(resolveDisplayBmi({ bmi: 24.5, height: 162, weight: 58 })).toBe(24.5);
   });
 
+  it('reads bMI alias when bmi is absent', () => {
+    expect(resolveDisplayBmi({ bMI: 24.5, height: 162, weight: 58 })).toBe(24.5);
+  });
+
   it('computes from height/weight when API BMI is 0 (bmi-report empty save)', () => {
     const bmi = resolveDisplayBmi({ bmi: 0, height: 162, weight: 58 });
     expect(bmi).not.toBeNull();

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -28,7 +29,9 @@ import {
 } from '../data/lifestyleOptions';
 import { useParamMasterOptions } from '../hooks/useParamOptions';
 import { useRefreshControl, refreshControlTheme } from '../hooks/useRefreshControl';
+import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { getBmi, getBmiCategory } from '../utils/bmi';
+import { buildFeedbackSmsBody, buildFeedbackWebUrl, openFeedbackSms } from '../utils/feedbackSms';
 import { lastCheckupLabel } from '../utils/recheckup';
 import type { ClientsStackScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
@@ -121,6 +124,46 @@ export default function ClientDetailScreen({
     ];
   }, [detail, goalOptions, dietOptions, activityOptions]);
 
+  const askForFeedback = async () => {
+    if (!mobile) {
+      Alert.alert(
+        'Mobile required',
+        'Add a mobile number for this client before asking for feedback.',
+      );
+      return;
+    }
+    const coachCode = getCurrentCoachCode()?.trim() ?? '';
+    const clientCode = (client.clientCode ?? '').trim();
+    if (!coachCode || !clientCode) {
+      Alert.alert(
+        'Unable to send',
+        'Coach or client id is missing. Pull to refresh and try again.',
+      );
+      return;
+    }
+    const feedbackUrl = buildFeedbackWebUrl({ coachCode, clientCode });
+    if (!feedbackUrl) {
+      Alert.alert(
+        'Feedback link unavailable',
+        'Set EXPO_PUBLIC_WEB_BASE_URL so the feedback link can be built.',
+      );
+      return;
+    }
+    const body = buildFeedbackSmsBody({
+      clientName: client.name,
+      coachName: getCurrentCoachName(),
+      feedbackUrl,
+    });
+    try {
+      await openFeedbackSms({ phone: mobile, body });
+    } catch (err) {
+      Alert.alert(
+        'Could not open SMS',
+        err instanceof Error ? err.message : 'Please try again from a phone with SMS.',
+      );
+    }
+  };
+
   const actions: ActionItem[] = [
     {
       label: 'Checkup',
@@ -142,6 +185,15 @@ export default function ClientDetailScreen({
       color: Colors.secondary,
       bg: Colors.secondaryLight,
       onPress: () => navigation.navigate('ClientDietPlan', { client }),
+    },
+    {
+      label: 'Ask for feedback',
+      icon: 'chatbubble-ellipses-outline',
+      color: Colors.secondaryDark,
+      bg: Colors.secondaryLight,
+      onPress: () => {
+        void askForFeedback();
+      },
     },
   ];
 

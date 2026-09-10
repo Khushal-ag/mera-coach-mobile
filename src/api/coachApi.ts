@@ -1,8 +1,10 @@
-import { apiFetch, apiGet, apiPost, apiPut, withQuery } from './client';
+import { apiFetch, apiGet, apiPost, apiPut, withQuery, ApiError } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
 import { pickCoachCreatedAt } from '../utils/experience';
 import { fontAwesomeToIonicon } from '../utils/fontAwesomeToIonicon';
-import type { Coach, CoachCategory } from '../types/models';
+import { parseCoachEvents } from '../utils/coachEvents';
+import { parseCoachPackages } from '../utils/coachPackages';
+import type { Coach, CoachCategory, CoachEvent, CoachPackage } from '../types/models';
 import { fetchMasterItems, type MasterOption } from './masterApi';
 
 export async function getCoachCategories(context?: {
@@ -17,7 +19,6 @@ export async function getCoachCategories(context?: {
       short: style.short,
       // Keep Ionicons fallback for screens that still use `icon` directly.
       icon: fontAwesomeToIonicon(item.icon) ?? style.icon,
-      // Prefer rendering this with FontAwesome5 (CategoryIcon).
       faIcon: item.icon || undefined,
       color: style.color,
       bg: style.bg,
@@ -31,6 +32,8 @@ export interface RegisterCoachParams {
   coachTypeCode?: string;
   mobile: string;
   email: string;
+  /** Optional referrer mobile — send only when non-empty. */
+  referrerMobile?: string;
 }
 
 export interface RegisterCoachResult {
@@ -52,12 +55,7 @@ export interface CoachPublicListParams {
   pageSize?: number;
 }
 
-/**
- * Backend DB column `IsProfileVisible` (int4: 1 = public). JSON may use PascalCase
- * (`IsProfileVisible`) or camelCase (`isProfileVisible`); older shapes used `Is_profileVisible`.
- * Confirmed on live GET /Coach/profile-by-id; public list may omit it when already filtered.
- * On save we send camelCase `isProfileVisible` as 1/0 from public-field sufficiency.
- */
+/** IsProfileVisible: accept PascalCase, camelCase, or legacy Is_profileVisible. */
 export function parseIsProfileVisible(raw: Record<string, unknown>): boolean | undefined {
   const v =
     raw.IsProfileVisible ?? raw.isProfileVisible ?? raw.Is_profileVisible ?? raw.is_profileVisible;
@@ -72,10 +70,7 @@ export function parseIsProfileVisible(raw: Record<string, unknown>): boolean | u
   return undefined;
 }
 
-/**
- * Same public fields required on Edit Profile: experience, happy clients, description,
- * address, pincode. Used to set `isProfileVisible` on Coach/save.
- */
+/** Required public fields for auto isProfileVisible on Coach/save. */
 export function isPublicProfileDataSufficient(fields: {
   experienceYears?: number | null;
   happyClientCount?: number | null;
@@ -97,7 +92,6 @@ export function isPublicProfileDataSufficient(fields: {
   );
 }
 
-// Field names checked against a live GET /Coach/public response.
 interface RawPublicCoach {
   coachCode: string;
   coachName: string;
@@ -113,7 +107,6 @@ interface RawPublicCoach {
   reviewCount?: number;
   logo_Url?: string;
   profile_Pic_Url?: string;
-  /** Present on some endpoints; public list often omits when server already filters. */
   IsProfileVisible?: boolean | number | string;
   isProfileVisible?: boolean | number | string;
   Is_profileVisible?: boolean | number | string;
@@ -132,7 +125,18 @@ function splitServiceNames(serviceNames?: string): string[] {
     .filter(Boolean);
 }
 
+function pickPackagesRaw(raw: Record<string, unknown>): unknown {
+  return raw.packages ?? raw.packagesJson ?? raw.products ?? raw.productsJson;
+}
+
+function pickEventsRaw(raw: Record<string, unknown>): unknown {
+  return raw.events ?? raw.eventsJson ?? raw.coachEvents ?? raw.coachEventsJson;
+}
+
 function mapPublicCoach(raw: RawPublicCoach): Coach {
+  const bag = raw as unknown as Record<string, unknown>;
+  const packages = parseCoachPackages(pickPackagesRaw(bag));
+  const events = parseCoachEvents(pickEventsRaw(bag));
   return {
     id: raw.coachCode,
     name: raw.coachName,
@@ -145,15 +149,16 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     experience: raw.experienceYears ?? 0,
     city: raw.city_Cd ?? '',
     country: raw.country_Cd,
-    online: false, // no live presence field on the backend
+    online: false, // API has no live presence field
 
     bio: raw.coachDesc ?? '',
     tags: splitServiceNames(raw.serviceNames),
-    // Edit Profile "Happy Clients"; shown as Clients on public list/profile.
     clients: raw.happyClientCount ?? 0,
     createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
     logoUrl: raw.logo_Url ?? '',
     profilePicUrl: raw.profile_Pic_Url ?? '',
+    packages: packages.length ? packages : undefined,
+    events: events.length ? events : undefined,
   };
 }
 
@@ -161,7 +166,7 @@ export async function getCoachPublicList(
   params: CoachPublicListParams = {},
   signal?: AbortSignal,
 ): Promise<{ coaches: Coach[]; totalCount: number }> {
-  const data = await apiFetch<CoachPublicListResponse>(
+  const data = await apiFetch<CoachPublicListResponse | null>(
     withQuery('/v{version}/Coach/public', {
       coachTypeCode: params.coachTypeCode || undefined,
       country: params.country || undefined,
@@ -177,7 +182,6 @@ export async function getCoachPublicList(
   // Prefer server-side filter (IsProfileVisible=1). Client defense in depth:
   // - If ANY item has the flag, keep only explicit visible (true/1); omit/missing → drop.
   // - If ALL items lack the flag, leave the list as-is (trust server already filtered).
-  // Save sends isProfileVisible 1/0 from public-field sufficiency; keep this filter anyway.
   const visibilityKnown = items.some(
     item => parseIsProfileVisible(item as unknown as Record<string, unknown>) !== undefined,
   );
@@ -194,7 +198,10 @@ export async function getCoachPublicList(
 }
 
 export async function getCoachProfile(): Promise<Coach> {
-  const raw = await apiGet<RawPublicCoach>('/v{version}/Coach/profile');
+  const raw = await apiGet<RawPublicCoach | null>('/v{version}/Coach/profile');
+  if (raw == null) {
+    throw new ApiError('Coach profile not found.', 204);
+  }
   return mapPublicCoach(raw);
 }
 
@@ -206,30 +213,18 @@ export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
   const resolvedCode = raw.coachCode?.trim() || coachCode;
   return {
     ...mapPublicCoach({
+      ...(raw as RawPublicCoach),
       coachCode: resolvedCode,
       coachName: raw.coachName ?? '',
       coachTypeCode: raw.coachTypeCode ?? '',
       coachTypeName: (raw as { coachTypeName?: string }).coachTypeName ?? '',
-      city_Cd: raw.city_Cd,
-      country_Cd: raw.country_Cd,
-      experienceYears: raw.experienceYears,
-      happyClientCount: raw.happyClientCount,
-      coachDesc: raw.coachDesc,
-      serviceNames: (raw as { serviceNames?: string }).serviceNames,
-      rating: (raw as { rating?: number }).rating,
-      reviewCount: (raw as { reviewCount?: number }).reviewCount,
-      logo_Url: raw.logo_Url,
-      profile_Pic_Url: raw.profile_Pic_Url,
     }),
     tagline: raw.tagline?.trim() || undefined,
     mobile: normalizeCoachMobile(raw.mobile),
   };
 }
 
-/**
- * profile-by-id sometimes returns mobiles as scientific notation
- * (e.g. "9.8874e+009") when the backend stored them as floats.
- */
+/** profile-by-id sometimes returns mobiles as scientific notation (e.g. "9.8874e+009"). */
 function normalizeCoachMobile(mobile?: string | number | null): string {
   if (mobile == null) return '';
   const raw = String(mobile).trim();
@@ -237,7 +232,7 @@ function normalizeCoachMobile(mobile?: string | number | null): string {
   if (/e[+-]?\d+/i.test(raw)) {
     const n = Number(raw);
     if (Number.isFinite(n) && n > 0) {
-      // Prefer integer digit string; precision may already be lost server-side.
+      // Prefer integer digit string; float storage may already have lost precision.
       return Math.round(n).toString();
     }
   }
@@ -255,9 +250,7 @@ export function whatsAppUrlFromMobile(mobile?: string): string | null {
   return null;
 }
 
-// Confirmed against live GET /Coach/profile + OpenAPI CoachSaveRequest: edit-relevant fields
-// (mobile, address, service codes, image URLs, templates/language) that mapPublicCoach's
-// public-facing Coach model deliberately leaves out.
+// Full profile GET fields not mapped into the public Coach model.
 interface RawCoachProfileFull {
   coachId?: number;
   coachCode?: string;
@@ -286,6 +279,12 @@ interface RawCoachProfileFull {
   IsProfileVisible?: boolean | number | string;
   isProfileVisible?: boolean | number | string;
   Is_profileVisible?: boolean | number | string;
+  packages?: unknown;
+  packagesJson?: unknown;
+  products?: unknown;
+  events?: unknown;
+  eventsJson?: unknown;
+  coachEvents?: unknown;
 }
 
 export interface CoachProfileFull {
@@ -301,7 +300,6 @@ export interface CoachProfileFull {
   happyClientCount: number;
   certificationCount: number;
   tagline: string;
-  /** Diet-plan / report language code (e.g. "hi"). */
   localLanguage: string;
   locality: string;
   addLine: string;
@@ -314,15 +312,18 @@ export interface CoachProfileFull {
   coachDesc: string;
   bmiReportTemplate: string;
   dietChartTemplate: string;
-  /**
-   * Whether this coach appears on Find a Coach / public Home.
-   * undefined if API omits the field.
-   */
+  /** undefined if API omits the field. */
   isProfileVisible?: boolean;
+  packages: CoachPackage[];
+  events: CoachEvent[];
 }
 
 export async function getCoachProfileFull(): Promise<CoachProfileFull> {
-  const raw = await apiGet<RawCoachProfileFull>('/v{version}/Coach/profile');
+  const raw = await apiGet<RawCoachProfileFull | null>('/v{version}/Coach/profile');
+  if (raw == null) {
+    throw new ApiError('Coach profile not found.', 204);
+  }
+  const bag = raw as unknown as Record<string, unknown>;
   return {
     coachId: raw.coachId ?? 0,
     coachCode: raw.coachCode ?? '',
@@ -348,7 +349,9 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     coachDesc: raw.coachDesc ?? '',
     bmiReportTemplate: raw.bmiReportTemplate ?? '',
     dietChartTemplate: raw.dietChartTemplate ?? '',
-    isProfileVisible: parseIsProfileVisible(raw as unknown as Record<string, unknown>),
+    isProfileVisible: parseIsProfileVisible(bag),
+    packages: parseCoachPackages(pickPackagesRaw(bag)),
+    events: parseCoachEvents(pickEventsRaw(bag)),
   };
 }
 
@@ -381,15 +384,12 @@ export async function submitBmiLead(params: BmiLeadParams): Promise<void> {
 
 export async function getServicesForCategory(categoryCode: string): Promise<MasterOption[]> {
   if (!categoryCode) return [];
-  // Backend Service filter uses lowercase itemType (unlike Country/CoachType ItemType).
+  // Service filter uses lowercase itemType (Country/CoachType use ItemType).
   const items = await fetchMasterItems({ itemType: 'Service', filterText: categoryCode });
   return items.map(i => ({ code: i.itemCode, label: i.itemName }));
 }
 
-/**
- * Coach/save body. Live OpenAPI CoachSaveRequest still omits `isProfileVisible` and sets
- * `additionalProperties: false` — we send it anyway (int 1/0) from public-field sufficiency.
- */
+/** Coach/save body. packages/events are only attached when non-empty. */
 export interface SaveCoachProfileParams {
   coachId: number;
   coachName: string;
@@ -414,14 +414,83 @@ export interface SaveCoachProfileParams {
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
-  /** int4: 1 = show on public Find a Coach; computed at save when omitted. */
+  /** 1/0; computed from public-field sufficiency when omitted. */
   isProfileVisible?: number;
+  /** Only attached to the POST when non-empty (see saveCoachProfile). */
+  packages?: CoachPackage[];
+  /** Only attached to the POST when non-empty (see saveCoachProfile). */
+  events?: CoachEvent[];
 }
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
+  const { packages, events, ...rest } = params;
   const isProfileVisible =
     params.isProfileVisible ?? (isPublicProfileDataSufficient(params) ? 1 : 0);
-  await apiPost('/v{version}/Coach/save', { ...params, isProfileVisible });
+  const body: Record<string, unknown> = { ...rest, isProfileVisible };
+
+  // Only send when non-empty; empty arrays are omitted.
+  if (packages && packages.length > 0) {
+    body.packages = packages;
+    body.packagesJson = JSON.stringify(packages);
+  }
+  if (events && events.length > 0) {
+    body.events = events;
+    body.eventsJson = JSON.stringify(events);
+  }
+
+  await apiPost('/v{version}/Coach/save', body);
+}
+
+/**
+ * Map a loaded full profile into a Coach/save body.
+ * Includes packages/events from profile (or overrides) so dedicated editors can
+ * round-trip them; `saveCoachProfile` omits empty arrays from the wire payload.
+ */
+export function buildSaveCoachProfileParams(
+  profile: CoachProfileFull,
+  overrides?: Partial<Pick<SaveCoachProfileParams, 'packages' | 'events'>>,
+): SaveCoachProfileParams {
+  const experienceYears = profile.experienceYears;
+  const happyClientCount = profile.happyClientCount;
+  const coachDesc = profile.coachDesc;
+  const add_Line = profile.addLine;
+  const pinCode = profile.pinCode;
+  return {
+    coachId: profile.coachId,
+    coachName: profile.coachName,
+    coachTypeCode: profile.coachTypeCode,
+    mobile: profile.mobile,
+    email: profile.email,
+    businessName: profile.businessName,
+    serviceCodes: profile.serviceCodes,
+    experienceYears,
+    happyClientCount,
+    certificationCount: profile.certificationCount,
+    tagline: profile.tagline,
+    localLanguage: profile.localLanguage,
+    locality: profile.locality,
+    add_Line,
+    city_Cd: profile.cityCd,
+    state_Cd: profile.stateCd,
+    pinCode,
+    country_Cd: profile.countryCd,
+    logo_Url: profile.logoUrl,
+    profile_Pic_Url: profile.profilePicUrl,
+    coachDesc,
+    bmiReportTemplate: profile.bmiReportTemplate,
+    dietChartTemplate: profile.dietChartTemplate,
+    packages: overrides?.packages ?? profile.packages,
+    events: overrides?.events ?? profile.events,
+    isProfileVisible: isPublicProfileDataSufficient({
+      experienceYears,
+      happyClientCount,
+      coachDesc,
+      add_Line,
+      pinCode,
+    })
+      ? 1
+      : 0,
+  };
 }
 
 export interface ChangePasswordParams {
@@ -429,11 +498,7 @@ export interface ChangePasswordParams {
   newPassword: string;
 }
 
-/**
- * Send plaintext — unlike Auth/login, this endpoint hashes server-side.
- * Client-hashing caused error 644 ("Current password is incorrect") via double-hash.
- * OpenAPI enforces newPassword minLength 6 (plain policy); login password is minLength 1 (hash OK).
- */
+/** Send plaintext — do not client-hash (double-hash fails with "Current password is incorrect"). */
 export async function changePassword(params: ChangePasswordParams): Promise<void> {
   await apiPut('/v{version}/Coach/change-password', {
     currentPassword: params.currentPassword,

@@ -26,7 +26,7 @@ import { getCoachProfile } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
 import { getErrorMessage } from '../api/client';
-import type { ProfileStackScreenProps } from '../types/navigation';
+import type { ProfileStackParamList, ProfileStackScreenProps } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
 import { navigateToDashboard } from '../utils/navigationBack';
 
@@ -34,20 +34,91 @@ interface MenuItem {
   icon: IoniconName;
   label: string;
   color: string;
+  route?: keyof ProfileStackParamList;
+  action?: 'support' | 'deleteAccount' | 'logout';
 }
+
+const publicProfileItems: MenuItem[] = [
+  {
+    icon: 'images-outline',
+    label: 'Photo gallery',
+    color: Colors.secondary,
+    route: 'EditGallery',
+  },
+  {
+    icon: 'pricetags-outline',
+    label: 'Packages',
+    color: Colors.accent,
+    route: 'EditPackages',
+  },
+  {
+    icon: 'calendar-outline',
+    label: 'Events',
+    color: Colors.primary,
+    route: 'EditEvents',
+  },
+];
 
 // "Notifications" isn't listed here — it's already reachable via the bell icon on
 // DashboardScreen. "Privacy & Terms" merges what would otherwise be two near-identical
 // static-content screens (see LegalScreen). "Privacy & Security" as a separate settings hub
 // isn't listed since its only concrete sub-feature for this app is Change Password.
-const menuItems: MenuItem[] = [
-  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary },
-  { icon: 'key-outline', label: 'Change Password', color: Colors.accent },
-  { icon: 'help-circle-outline', label: 'Help & Support', color: Colors.primary },
-  { icon: 'shield-checkmark-outline', label: 'Privacy & Terms', color: Colors.secondary },
-  { icon: 'trash-outline', label: 'Delete Account', color: Colors.destructiveOrange },
-  { icon: 'log-out-outline', label: 'Logout', color: Colors.destructive },
+const settingsItems: MenuItem[] = [
+  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary, route: 'EditProfile' },
+  {
+    icon: 'key-outline',
+    label: 'Change Password',
+    color: Colors.accent,
+    route: 'ChangePassword',
+  },
+  {
+    icon: 'help-circle-outline',
+    label: 'Help & Support',
+    color: Colors.primary,
+    action: 'support',
+  },
+  {
+    icon: 'shield-checkmark-outline',
+    label: 'Privacy & Terms',
+    color: Colors.secondary,
+    route: 'Legal',
+  },
+  {
+    icon: 'trash-outline',
+    label: 'Delete Account',
+    color: Colors.destructiveOrange,
+    action: 'deleteAccount',
+  },
+  { icon: 'log-out-outline', label: 'Logout', color: Colors.destructive, action: 'logout' },
 ];
+
+function MenuRow({
+  item,
+  isLast,
+  onPress,
+}: {
+  item: MenuItem;
+  isLast?: boolean;
+  onPress: () => void;
+}) {
+  const isLogout = item.action === 'logout';
+  return (
+    <TouchableOpacity
+      style={[styles.menuItem, isLast && styles.menuItemLast]}
+      accessibilityRole="button"
+      accessibilityLabel={item.label}
+      onPress={onPress}
+    >
+      <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
+        <Ionicons name={item.icon} size={18} color={item.color} />
+      </View>
+      <Text style={[styles.menuLabel, isLogout && { color: Colors.destructive }]}>
+        {item.label}
+      </Text>
+      {!isLogout ? <Ionicons name="chevron-forward" size={16} color={Colors.border} /> : null}
+    </TouchableOpacity>
+  );
+}
 
 export default function CoachProfileScreen({ navigation }: ProfileStackScreenProps<'ProfileHome'>) {
   const [refreshing, setRefreshing] = useState(false);
@@ -96,6 +167,23 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
   const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
   const ratingDisplay =
     profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '-';
+
+  const handleMenuPress = async (item: MenuItem) => {
+    if (item.route) {
+      navigation.navigate(item.route);
+      return;
+    }
+    switch (item.action) {
+      case 'support':
+        return openSupportEmail();
+      case 'deleteAccount':
+        return openAccountDeletionEmail();
+      case 'logout':
+        // AppNavigator's useAuthState reacts to the session store and swaps back to
+        // the public screen tree on its own — no navigation call needed here.
+        await clearSession();
+    }
+  };
 
   return (
     <ScrollView
@@ -150,44 +238,24 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       )}
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Public profile</Text>
+        <Text style={styles.sectionHint}>
+          Photos, packages, and events show on your public page for prospective clients.
+        </Text>
+        {publicProfileItems.map(item => (
+          <MenuRow key={item.label} item={item} onPress={() => void handleMenuPress(item)} />
+        ))}
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
-        {menuItems.map((item, i) => (
-          <TouchableOpacity
-            key={i}
-            style={[styles.menuItem, item.label === 'Logout' && styles.menuItemLast]}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            onPress={async () => {
-              switch (item.label) {
-                case 'Edit Profile':
-                  return navigation.navigate('EditProfile');
-                case 'Change Password':
-                  return navigation.navigate('ChangePassword');
-                case 'Help & Support':
-                  return openSupportEmail();
-                case 'Privacy & Terms':
-                  return navigation.navigate('Legal');
-                case 'Delete Account':
-                  return openAccountDeletionEmail();
-                case 'Logout':
-                  // AppNavigator's useAuthState reacts to the session store and swaps back to
-                  // the public screen tree on its own — no navigation call needed here.
-                  await clearSession();
-              }
-            }}
-          >
-            <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
-              <Ionicons name={item.icon} size={18} color={item.color} />
-            </View>
-            <Text
-              style={[styles.menuLabel, item.label === 'Logout' && { color: Colors.destructive }]}
-            >
-              {item.label}
-            </Text>
-            {item.label !== 'Logout' && (
-              <Ionicons name="chevron-forward" size={16} color={Colors.border} />
-            )}
-          </TouchableOpacity>
+        {settingsItems.map((item, i) => (
+          <MenuRow
+            key={item.label}
+            item={item}
+            isLast={i === settingsItems.length - 1}
+            onPress={() => void handleMenuPress(item)}
+          />
         ))}
       </View>
 
@@ -238,6 +306,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: FontFamily.bold,
     color: Colors.textDark,
+    marginBottom: 6,
+  },
+  sectionHint: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 17,
     marginBottom: 10,
   },
   menuItem: {

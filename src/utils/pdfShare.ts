@@ -11,7 +11,7 @@ const REBUILD_MESSAGE =
   'iOS: npx expo prebuild --clean && npx expo run:ios\n' +
   'Android: npx expo prebuild --clean && npx expo run:android';
 
-/** Short coach-facing copy when the PDF API fails (e.g. server Chromium/SxS). */
+/** Short coach-facing copy when PDF generation fails. */
 export const PDF_GENERATE_FAILED_MESSAGE =
   "Couldn't generate PDF right now. Please try again later.";
 
@@ -27,14 +27,17 @@ function alertRebuildRequired(): void {
 /**
  * Load expo-sharing only when the native module is present.
  * expo-sharing's JS entry calls requireNativeModule('ExpoSharing') at evaluate time,
- * so importing it on a stale binary throws — guard first, never crash the PDF tap path.
+ * so requiring it on a stale binary throws — guard first, never crash the PDF tap path.
+ * Use lazy require (not import()) so this stays valid under Expo's `module: "preserve"`.
  */
-async function loadSharingModule(): Promise<SharingModule | null> {
+function loadSharingModule(): SharingModule | null {
   if (!requireOptionalNativeModule('ExpoSharing')) {
     return null;
   }
   try {
-    return await import('expo-sharing');
+    // Lazy require avoids top-level evaluate (and import() under module:preserve).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load
+    return require('expo-sharing') as SharingModule;
   } catch {
     return null;
   }
@@ -102,7 +105,7 @@ export async function downloadAndSharePdf(
   });
 
   if (!response.ok) {
-    // Backend PDF engines often return long Chromium/Blink/SxS dumps — never surface those.
+    // Never surface raw PDF-engine error dumps to the coach.
     throw new Error(PDF_GENERATE_FAILED_MESSAGE);
   }
 
@@ -126,7 +129,7 @@ export async function downloadAndSharePdf(
     return;
   }
 
-  const Sharing = await loadSharingModule();
+  const Sharing = loadSharingModule();
   if (!Sharing) {
     alertRebuildRequired();
     return;

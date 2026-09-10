@@ -33,6 +33,8 @@ import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { LOCAL_LANGUAGE_OPTIONS } from '../data/localLanguages';
 import { sanitizePinInput, validateCoachProfileEdit } from '../utils/validation';
+import { serializeCoachEvents } from '../utils/coachEvents';
+import { serializeCoachPackages } from '../utils/coachPackages';
 import { useFormFieldErrors } from '../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../hooks/usePinLocationLookup';
 import { getCurrentCoachId, updateSessionFullName } from '../auth/session';
@@ -132,7 +134,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   // null = not edited yet => derive from profile; [] = user cleared all services.
   const [serviceLabels, setServiceLabels] = useState<string[] | null>(null);
   const [servicesForCategory, setServicesForCategory] = useState(profile.coachTypeCode);
-  // Select all category services on load when none saved yet, and again on category change.
+  // Auto-select all services when category has none saved yet.
   const [autoSelectServices, setAutoSelectServices] = useState(
     () => !!profile.coachTypeCode && profile.serviceCodes.length === 0,
   );
@@ -156,7 +158,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const categoryCode =
     categories.find(c => c.label === resolvedCategoryLabel)?.code ?? profile.coachTypeCode;
 
-  // Adjust state during render when category changes (React-recommended pattern).
+  // Reset service selection when category changes (setState during render).
   if (servicesForCategory !== categoryCode) {
     setServicesForCategory(categoryCode);
     setServiceLabels(null);
@@ -182,7 +184,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     profile.countryCd;
 
   const pinLookup = usePinLocationLookup(pinCode, countryCode);
-  // Apply autofill when a new lookup completes (React: adjust state during render).
+  // Apply pin lookup autofill once per completed lookup.
   const [appliedLookup, setAppliedLookup] = useState<{
     key: string;
     at: number;
@@ -286,6 +288,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       const addLineTrimmed = addLine.trim();
       const pinCodeTrimmed = pinCode.trim();
       const coachDescTrimmed = coachDesc.trim();
+      // Preserve packages/events from the latest profile so core save cannot wipe them.
+      const latest = await getCoachProfileFull();
       await saveCoachProfile({
         coachId: profile.coachId,
         coachName: coachName.trim(),
@@ -312,6 +316,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         coachDesc: coachDescTrimmed,
         bmiReportTemplate: bmiReportTemplate.trim(),
         dietChartTemplate: dietChartTemplate.trim(),
+        packages: serializeCoachPackages(latest.packages),
+        events: serializeCoachEvents(latest.events),
         isProfileVisible: isPublicProfileDataSufficient({
           experienceYears: experienceYearsNum,
           happyClientCount: happyClientCountNum,
@@ -325,7 +331,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       await updateSessionFullName(coachName.trim());
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
       queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
+      queryClient.invalidateQueries({ queryKey: queryKeys.coachGallery(profile.coachCode) });
       queryClient.invalidateQueries({ queryKey: ['coachPublicList'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileByCode(profile.coachCode) });
       Alert.alert('Profile Updated', 'Your changes have been saved.', [
         { text: 'OK', onPress: onDone },
       ]);

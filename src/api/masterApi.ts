@@ -14,7 +14,7 @@ interface RawMasterOption {
   description?: string;
 }
 
-/** GetMasterItem fetch; callers pass the query casing the backend expects. */
+/** GetMasterItem fetch; query key casing must match what the endpoint expects. */
 export async function fetchMasterItems(
   query: Record<string, string>,
   signal?: AbortSignal,
@@ -44,8 +44,11 @@ export interface LocationByPin {
 export async function getLocationByPin(
   countryCode: string,
   pinCode: string,
-): Promise<LocationByPin> {
-  return apiGet<LocationByPin>('/v{version}/Master/GetLocationByPin', { countryCode, pinCode });
+): Promise<LocationByPin | null> {
+  return apiGet<LocationByPin | null>('/v{version}/Master/GetLocationByPin', {
+    countryCode,
+    pinCode,
+  });
 }
 
 export interface FoodMasterItem {

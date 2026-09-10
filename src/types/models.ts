@@ -1,5 +1,28 @@
 import type { IoniconName } from './icons';
 
+/** Coach-defined offer shown on public profile (no in-app payment). */
+export interface CoachPackage {
+  id: string;
+  name: string;
+  /** Optional display price (e.g. "₹4,999" or "Starting ₹2,999"). */
+  price: string;
+  /** Duration or session count (e.g. "8 weeks" / "12 sessions"). */
+  duration: string;
+  description: string;
+}
+
+/** Coach-hosted event for public profile showcase. */
+export interface CoachEvent {
+  id: string;
+  title: string;
+  /** Prefer YYYY-MM-DD; DD/MM/YYYY also accepted when reading. */
+  date: string;
+  time: string;
+  location: string;
+  /** Optional WhatsApp / Maps / registration URL. */
+  link: string;
+}
+
 export interface Coach {
   id: string;
   name: string;
@@ -25,6 +48,8 @@ export interface Coach {
   profilePicUrl?: string;
   /** Relative or absolute logo URL from API (`logo_Url`). */
   logoUrl?: string;
+  packages?: CoachPackage[];
+  events?: CoachEvent[];
 }
 
 export interface CoachCategory {
@@ -102,9 +127,7 @@ export interface SaveDietPlanResult {
 
 /** Local photo picked on Add Client personal step; uploaded after clientCode exists. */
 export interface PendingClientPhoto {
-  /** Stable local id for list keys / remove. */
   id: string;
-  /** Local preview URI. */
   uri: string;
   /** data-URL for Document/upload; omitted/cleared after successful upload. */
   dataUrl?: string;

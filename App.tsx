@@ -16,7 +16,7 @@ import type { RootStackParamList } from './src/types/navigation';
 
 void SplashScreen.preventAutoHideAsync();
 
-// Path-based URLs for web (React Navigation). Empty prefixes keep native deep links off.
+// Path-based URLs for web only; empty prefixes keep native deep links off.
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [],
   config: {
@@ -56,6 +56,9 @@ const linking: LinkingOptions<RootStackParamList> = {
             screens: {
               ProfileHome: 'profile',
               EditProfile: 'edit-profile',
+              EditGallery: 'edit-gallery',
+              EditPackages: 'edit-packages',
+              EditEvents: 'edit-events',
               ChangePassword: 'change-password',
               Legal: 'legal',
               Leads: 'profile-leads',

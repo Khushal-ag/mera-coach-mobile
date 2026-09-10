@@ -17,7 +17,7 @@ import { Colors, FontFamily, Spacing } from '../constants/theme';
  *
  * - **Tab root screens** (ClientList, Checkups, Profile): green header with back → Dashboard.
  *   Dashboard tab root uses its greeting header variant — no back.
- * - **Stack push screens** (ClientDetail, EditProfile, Leads, Notifications, Legal, etc.):
+ * - **Stack push screens** (ClientDetail, EditProfile, EditGallery, EditPackages, EditEvents, Leads, Notifications, Legal, etc.):
  *   ScreenHeader with onBack — back left, title center, home right (optional via showHome).
  * - **Auth / marketing hero** (Login, Register, CoachList, CoachPublicProfile): HeaderBackButton
  *   overlaid on imagery — back only, no duplicate title bar.

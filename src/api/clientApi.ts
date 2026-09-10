@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost, ApiError } from './client';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
 import { queryClient } from './queryClient';
 import { queryKeys } from './queryKeys';
@@ -147,7 +147,12 @@ export async function getClientDetail(params: {
   clientCode?: string;
   assessmentCode?: string;
 }): Promise<RawClientDetail> {
-  return apiPost<RawClientDetail>('/v{version}/Client/ClientDetail', params);
+  // errorCode 1 = no records → empty success at transport; this call needs a payload.
+  const raw = await apiPost<RawClientDetail | null>('/v{version}/Client/ClientDetail', params);
+  if (raw == null) {
+    throw new ApiError('Client not found.', 204);
+  }
+  return raw;
 }
 
 /** Same-day assessment resumes; otherwise start a fresh checkup (empty assessmentCode). */
@@ -228,10 +233,10 @@ export async function saveClientDetail(
       clientName: profile.name,
       mobileNo: profile.phone,
       emailId: profile.email,
-      // API still requires the field even though the UI no longer collects it.
+      // Field still required even though the UI no longer collects it.
       alternateMobileNo: '',
       location: profile.location,
-      // Backend expects YYYY-MM-DD (same as assessmentDate), not DD/MM/YYYY.
+      // DOB must be YYYY-MM-DD (same as assessmentDate), not DD/MM/YYYY.
       dob: toApiDob(profile.dob),
       gender: profile.gender,
       assessmentDate: formatLocalDate(),
@@ -341,12 +346,21 @@ interface RawBmiMeasurement {
   assessmentDate?: string;
   height?: number;
   weight?: number;
+  /** Preferred camelCase field when present. */
   bmi?: number;
+  /** Alias some responses use instead of `bmi`. */
+  bMI?: number;
   bodyFatPct?: number;
   visceralFat?: number;
   skeletalMusclePct?: number;
   bodyAge?: number;
   restingMetabolism?: number;
+}
+
+function normalizeBmiMeasurement(raw?: RawBmiMeasurement | null): RawBmiMeasurement | undefined {
+  if (!raw) return undefined;
+  const bmi = raw.bmi ?? raw.bMI;
+  return bmi === undefined ? raw : { ...raw, bmi };
 }
 
 export interface BmiReport {
@@ -367,18 +381,21 @@ export interface BmiReport {
   reportDate?: string;
 }
 
-export async function getBmiReport(ids: AssessmentIds): Promise<BmiReport> {
-  return apiGet<BmiReport>('/v{version}/Client/bmi-report', {
+export async function getBmiReport(ids: AssessmentIds): Promise<BmiReport | null> {
+  const raw = await apiGet<BmiReport | null>('/v{version}/Client/bmi-report', {
     coachCode: getCurrentCoachCode() ?? '',
     clientCode: ids.clientCode || undefined,
     assessmentCode: ids.assessmentCode || undefined,
   });
+  if (raw == null) return null;
+  return {
+    ...raw,
+    current: normalizeBmiMeasurement(raw.current) ?? raw.current,
+    history: raw.history?.map(row => normalizeBmiMeasurement(row) ?? row),
+  };
 }
 
-/**
- * Load a previously saved AI diet plan (JSON).
- * Returns null when none exists (HTTP 204 / empty body) or payload has no plan content.
- */
+/** Returns null when none exists (HTTP 204 / empty) or payload has no plan content. */
 export async function getDietPlanReport(ids: AssessmentIds): Promise<GeneratedDietPlan | null> {
   const raw = await apiGet<unknown>('/v{version}/Client/diet-plan-report', {
     coachCode: getCurrentCoachCode() ?? '',

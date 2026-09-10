@@ -1,18 +1,25 @@
-// Base URL comes from EXPO_PUBLIC_API_BASE_URL (see .env.example).
 import NetInfo from '@react-native-community/netinfo';
 import { clearSession, getCurrentToken } from '../auth/session';
 import {
   ApiError,
   type ApiResponseBody,
   extractErrorMessage,
+  isNoRecordsBody,
   mapToUserFacingMessage,
 } from './clientErrors';
 
-export { ApiError, getErrorMessage, toUserMessage, type ApiResponseBody } from './clientErrors';
+export {
+  ApiError,
+  API_ERROR_NO_RECORDS,
+  getErrorMessage,
+  isNoRecordsBody,
+  toUserMessage,
+  type ApiResponseBody,
+} from './clientErrors';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 const API_VERSION = '1';
-// Azure App Service cold starts can exceed 15s; keep this above typical wake time.
+// Allow slow first responses (cold API hosts); keep above ~15s.
 const REQUEST_TIMEOUT_MS = 30_000;
 
 function isAbortError(err: unknown): boolean {
@@ -22,7 +29,6 @@ function isAbortError(err: unknown): boolean {
   return /FetchRequestCanceled|aborted|canceled|cancelled/i.test(err.message);
 }
 
-/** Abort when any of the given signals abort (timeout + React Query cancel). */
 function anySignal(signals: (AbortSignal | undefined | null)[]): AbortSignal {
   const controller = new AbortController();
   const onAbort = () => controller.abort();
@@ -81,11 +87,18 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   } catch (err) {
     // Normalize both timeout and raw network failures (DNS, TLS, connection refused) to ApiError.
     if (isAbortError(err)) {
-      if (timeoutController.signal.aborted) {
+      const callerAborted = Boolean(options.signal?.aborted);
+      // Our timer fired and the caller did not cancel — real timeout.
+      if (timeoutController.signal.aborted && !callerAborted) {
         throw new ApiError('Request timed out. Please try again.', 0);
       }
-      // React Query cancel (unmount / offline flip) — not a real timeout.
-      throw new ApiError('Request was cancelled.', 0);
+      // React Query cancel (unmount / key change / offline flip). Rethrow AbortError so
+      // TanStack Query treats it as cancellation, not isError — converting to ApiError
+      // previously made routine cancels look like frequent API failures in the UI.
+      if (err instanceof Error && err.name === 'AbortError') throw err;
+      const abortErr = new Error('Aborted');
+      abortErr.name = 'AbortError';
+      throw abortErr;
     }
     throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
   } finally {
@@ -104,14 +117,20 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     await clearSession();
   }
 
-  const errorMessage = extractErrorMessage(body, res.status);
-  if (!res.ok || errorMessage) {
+  // errorCode 1 = no records → treat as empty success, not failure.
+  const noRecords = isNoRecordsBody(body);
+  const errorMessage = noRecords ? null : extractErrorMessage(body, res.status);
+  if ((!res.ok && !noRecords) || errorMessage) {
     const fallback = `Request failed (${res.status})`;
     throw new ApiError(
       errorMessage || mapToUserFacingMessage(fallback, res.status) || fallback,
       res.status,
       body,
     );
+  }
+
+  if (noRecords) {
+    return (body?.responseObj !== undefined ? body.responseObj : null) as T;
   }
 
   return (body?.responseObj !== undefined ? body.responseObj : body) as T;

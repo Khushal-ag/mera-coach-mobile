@@ -25,11 +25,21 @@ import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import EmptyState from '../components/EmptyState';
 import FormFieldLabel from '../components/FormFieldLabel';
+import CoachGallery from '../components/CoachGallery';
+import DemoModeHint from '../components/DemoModeHint';
 import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import ReloadState from '../components/ReloadState';
 import SectionHeading from '../components/SectionHeading';
+import SectionTag from '../components/SectionTag';
 import { HeaderBackButton } from '../components/ScreenHeader';
+import { USE_MVP_MOCKS } from '../config/appConfig';
 import { SERVICE_INQUIRY_FALLBACK } from '../data/coachProfileContent';
+import {
+  getSyncDemoEventsFallback,
+  getSyncDemoPackagesFallback,
+  resolveDemoEvents,
+  resolveDemoPackages,
+} from '../data/mvpMockStore';
 import { getCoachProfileByCode, submitCoachEnquiry, whatsAppUrlFromMobile } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
@@ -42,6 +52,7 @@ import {
 } from '../utils/coachPublicStats';
 import { buildCoachSuccessHighlights } from '../utils/coachPublicSocialProof';
 import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../utils/coachDisplay';
+import { getUpcomingCoachEvents } from '../utils/coachEvents';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import {
   validateMobile,
@@ -50,7 +61,7 @@ import {
   sanitizeEmailInput,
 } from '../utils/validation';
 import type { RootScreenProps } from '../types/navigation';
-import type { Coach } from '../types/models';
+import type { Coach, CoachEvent, CoachPackage } from '../types/models';
 
 interface EnquiryForm {
   name: string;
@@ -67,10 +78,8 @@ type ProfilePageProps = {
   onBack: () => void;
   pageWidth: number;
   pageHeight: number;
-  /** 0-based logical index in the real coach list (1..N indicator uses +1). */
   pageIndex?: number;
   pageCount?: number;
-  /** When wrap-around is enabled, both edge chevrons stay visible. */
   wrapAround?: boolean;
   onPrevPage?: () => void;
   onNextPage?: () => void;
@@ -105,6 +114,54 @@ function iconForExpertise(tag: string): ExpertiseIcon {
   return 'medal-outline';
 }
 
+function PackageCard({ pkg, onSelect }: { pkg: CoachPackage; onSelect: () => void }) {
+  return (
+    <TouchableOpacity style={styles.offerCard} onPress={onSelect} activeOpacity={0.75}>
+      <View style={styles.offerCardHeader}>
+        <Text style={styles.offerCardTitle} numberOfLines={2}>
+          {pkg.name}
+        </Text>
+        {pkg.price ? (
+          <Text style={styles.offerCardPrice} numberOfLines={1}>
+            {pkg.price}
+          </Text>
+        ) : null}
+      </View>
+      {pkg.duration ? <Text style={styles.offerCardMeta}>{pkg.duration}</Text> : null}
+      {pkg.description ? (
+        <Text style={styles.offerCardBody} numberOfLines={3}>
+          {pkg.description}
+        </Text>
+      ) : null}
+      <Text style={styles.offerCardCta}>Enquire about this package</Text>
+    </TouchableOpacity>
+  );
+}
+
+function EventCard({ event }: { event: CoachEvent }) {
+  const meta = [event.date, event.time, event.location].filter(Boolean).join(' · ');
+  const openLink = () => {
+    const url = event.link.trim();
+    if (!url) return;
+    const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    Linking.openURL(href).catch(() => Alert.alert('Unable to open link'));
+  };
+
+  return (
+    <View style={styles.offerCard}>
+      <Text style={styles.offerCardTitle} numberOfLines={2}>
+        {event.title}
+      </Text>
+      {meta ? <Text style={styles.offerCardMeta}>{meta}</Text> : null}
+      {event.link ? (
+        <TouchableOpacity onPress={openLink} accessibilityRole="link">
+          <Text style={styles.offerCardCta}>Open event link</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
 /** Prefer profile-by-id; fill gaps from the directory row. */
 function mergeCoachProfile(api: Coach | undefined, list: Coach | undefined): Coach | undefined {
   if (!api && !list) return undefined;
@@ -124,6 +181,8 @@ function mergeCoachProfile(api: Coach | undefined, list: Coach | undefined): Coa
     profilePicUrl: api.profilePicUrl || list.profilePicUrl,
     logoUrl: api.logoUrl || list.logoUrl,
     mobile: api.mobile || list.mobile,
+    packages: api.packages?.length ? api.packages : list.packages,
+    events: api.events?.length ? api.events : list.events,
     // Numbers from profile-by-id: keep API zeros for clients (happyClientCount) / experience.
     // reviewCount is often omitted on profile-by-id (mapped to 0) — keep list reviews then.
     rating: api.rating > 0 ? api.rating : list.rating,
@@ -150,8 +209,24 @@ function CoachProfilePage({
     queryKey: queryKeys.coachProfileByCode(coachCode),
     queryFn: () => getCoachProfileByCode(coachCode),
     enabled: !!coachCode,
-    // Show directory row immediately; profile-by-id still fills mobile/tagline in background.
     placeholderData: listCoach?.id === coachCode ? listCoach : undefined,
+  });
+
+  const demoMvpQuery = useQuery({
+    queryKey: queryKeys.coachMvpDemo(coachCode),
+    queryFn: async () => {
+      const [packagesResult, eventsResult] = await Promise.all([
+        resolveDemoPackages(coachCode, undefined),
+        resolveDemoEvents(coachCode, undefined),
+      ]);
+      return {
+        packages: packagesResult.packages,
+        events: eventsResult.events,
+        isDemo: packagesResult.isDemo || eventsResult.isDemo,
+      };
+    },
+    enabled: USE_MVP_MOCKS && !!coachCode,
+    staleTime: 30_000,
   });
 
   const myCoachCode = getCurrentCoachCode();
@@ -163,9 +238,8 @@ function CoachProfilePage({
   });
 
   const listMatch = listCoach?.id === coachCode ? listCoach : undefined;
-  // placeholderData shows the directory row while pending; on hard failure with no
-  // successful cache, do not fall back to list-only or WhatsApp/mobile never load
-  // and the ReloadState error path is skipped.
+  // placeholderData shows list row while loading; on hard failure without cache, avoid
+  // list-only fallback (WhatsApp/mobile never load and ReloadState is skipped).
   const coach =
     profileQuery.isError && !profileQuery.data
       ? undefined
@@ -261,7 +335,23 @@ function CoachProfilePage({
   const photoUri = resolveMediaUrl(coach.profilePicUrl);
   const cardWidth = storyCardWidth(pageWidth);
   const expertiseChipWidth = Math.floor((pageWidth - Spacing.lg * 2 - EXPERTISE_GRID_GAP) / 2);
-  const serviceOptions = [...(coach.tags.length ? coach.tags : []), SERVICE_INQUIRY_FALLBACK];
+  const apiPackages = coach.packages ?? [];
+  const apiEvents = coach.events ?? [];
+  const usingDemoPackages = USE_MVP_MOCKS && apiPackages.length === 0;
+  const usingDemoEvents = USE_MVP_MOCKS && apiEvents.length === 0;
+  const packages = usingDemoPackages
+    ? (demoMvpQuery.data?.packages ?? getSyncDemoPackagesFallback())
+    : apiPackages;
+  const eventsForPublic = usingDemoEvents
+    ? (demoMvpQuery.data?.events ?? getSyncDemoEventsFallback())
+    : apiEvents;
+  const upcomingEvents = getUpcomingCoachEvents(eventsForPublic);
+  const showDemoHint = usingDemoPackages || usingDemoEvents;
+  const serviceOptions = [
+    ...packages.map(p => p.name),
+    ...(coach.tags.length ? coach.tags : []),
+    SERVICE_INQUIRY_FALLBACK,
+  ];
   const showSwipeHint = pageCount > 1;
   const showDots = showSwipeHint && pageCount <= MAX_PAGE_DOTS;
   const showLeftChevron = showSwipeHint && (wrapAround || pageIndex > 0);
@@ -450,6 +540,40 @@ function CoachProfilePage({
                   <Text style={styles.statLabel}>{stat.label}</Text>
                 </View>
               </React.Fragment>
+            ))}
+          </View>
+        ) : null}
+
+        {packages.length > 0 ? (
+          <View style={styles.section}>
+            <SectionTag icon="pricetag-outline" label="Packages" />
+            <Text style={styles.sectionTitle}>Coaching packages</Text>
+            <Text style={styles.sectionSubtitle}>
+              Pick a package in the enquiry form, or message {coach.name} on WhatsApp.
+            </Text>
+            {showDemoHint && usingDemoPackages ? (
+              <DemoModeHint message="Demo packages for UI review." />
+            ) : null}
+            {packages.map(pkg => (
+              <PackageCard key={pkg.id} pkg={pkg} onSelect={() => update('service', pkg.name)} />
+            ))}
+          </View>
+        ) : null}
+
+        <CoachGallery coachCode={coach.id} hideWhenEmpty publicSection />
+
+        {upcomingEvents.length > 0 ? (
+          <View style={styles.section}>
+            <SectionTag icon="calendar-outline" label="Events" />
+            <Text style={styles.sectionTitle}>Upcoming events</Text>
+            <Text style={styles.sectionSubtitle}>
+              Workshops and sessions hosted by {coach.name}.
+            </Text>
+            {showDemoHint && usingDemoEvents ? (
+              <DemoModeHint message="Demo events for UI review." />
+            ) : null}
+            {upcomingEvents.map(event => (
+              <EventCard key={event.id} event={event} />
             ))}
           </View>
         ) : null}
@@ -732,7 +856,6 @@ export default function CoachPublicProfileScreen({
       pagerIndexRef.current = rawIndex;
 
       if (rawIndex <= 0) {
-        // Landed on clone of last → jump to real last
         jumpingRef.current = true;
         pagerIndexRef.current = codes.length;
         scrollToPagerIndex(codes.length, false);
@@ -743,7 +866,6 @@ export default function CoachPublicProfileScreen({
         return;
       }
       if (rawIndex >= lastClone) {
-        // Landed on clone of first → jump to real first
         jumpingRef.current = true;
         pagerIndexRef.current = 1;
         scrollToPagerIndex(1, false);
@@ -1020,7 +1142,58 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     flexGrow: 1,
   },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    marginBottom: 6,
+  },
   sectionSubtitle: { fontSize: 12, color: Colors.textLight, lineHeight: 18, marginBottom: 18 },
+  offerCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadow.sm,
+  },
+  offerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  offerCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+  },
+  offerCardPrice: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    color: Colors.primary,
+  },
+  offerCardMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textLight,
+    marginTop: 6,
+  },
+  offerCardBody: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  offerCardCta: {
+    marginTop: 10,
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    color: Colors.secondary,
+  },
   expertiseSection: {
     paddingBottom: Spacing.md,
   },

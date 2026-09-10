@@ -12,8 +12,7 @@ export const PARAM_CODES = {
   foodAllergies: 'PC010',
 } as const;
 
-// Offline fallbacks — confirmed against a live GetMasterItem?ItemType=PARAMLIST call per code
-// above, so they match the backend's exact vocabulary until a live fetch replaces them.
+// Offline fallbacks for PARAMLIST labels when master fetch is unavailable.
 export const FOOD_PREFERENCES = ['Vegetarian', 'Vegan', 'Eggetarian', 'Non-Vegetarian'];
 
 export const REGIONAL_CUISINES = [
@@ -82,7 +81,7 @@ export const FOOD_ALLERGIES = [
 
 /**
  * Synthetic exclusive option for medical/allergy multi-selects.
- * `code` stays `NONE_OF_THE_BELOW` for backend compatibility; UI label is "None of the above".
+ * Wire `code` is `NONE_OF_THE_BELOW`; UI label is "None of the above".
  */
 export const NONE_OF_THE_ABOVE = {
   code: 'NONE_OF_THE_BELOW',

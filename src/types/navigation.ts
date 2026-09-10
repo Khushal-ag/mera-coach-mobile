@@ -35,6 +35,9 @@ export type CheckupsStackParamList = {
 export type ProfileStackParamList = {
   ProfileHome: undefined;
   EditProfile: undefined;
+  EditGallery: undefined;
+  EditPackages: undefined;
+  EditEvents: undefined;
   ChangePassword: undefined;
   Legal: undefined;
   Leads: undefined;

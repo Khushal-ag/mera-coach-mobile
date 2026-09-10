@@ -38,6 +38,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const [category, setCategory] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
+  const [referralMobile, setReferralMobile] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const {
     errorFields,
@@ -65,11 +66,12 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const categoryLabels = categories.map(c => c.label);
 
   const handleRegister = async () => {
-    if (applyValidation(validateCoachRegister({ name, category, mobile, email }))) {
+    if (applyValidation(validateCoachRegister({ name, category, mobile, email, referralMobile }))) {
       return;
     }
 
     const coachTypeCode = categories.find(c => c.label === category)?.code;
+    const referrer = referralMobile.trim();
     clearAllErrors();
     setSubmitting(true);
     try {
@@ -78,6 +80,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         coachTypeCode,
         mobile: mobile.trim(),
         email: email.trim(),
+        ...(referrer ? { referrerMobile: referrer } : {}),
       });
 
       // Never auto-login after register — credentials are emailed; user must sign in themselves.
@@ -210,6 +213,34 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <Text style={styles.hint}>Password will be sent to this email</Text>
           </View>
 
+          <View style={styles.field}>
+            <FormFieldLabel>Referred by (mobile)</FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.referralMobile && styles.inputWrapError]}>
+              <Ionicons
+                name="people-outline"
+                size={18}
+                color={Colors.textLight}
+                style={styles.inputIcon}
+              />
+              <PhoneTextInput
+                style={styles.input}
+                placeholder="Optional 10-digit mobile"
+                placeholderTextColor={Colors.textLight}
+                value={referralMobile}
+                onChangeText={v => {
+                  setReferralMobile(v);
+                  clearFieldError('referralMobile');
+                }}
+                onFocus={scrollLowerFieldsIntoView}
+              />
+            </View>
+            {errorFields.referralMobile ? (
+              <Text style={styles.fieldError}>{errorFields.referralMobile}</Text>
+            ) : (
+              <Text style={styles.hint}>If someone recommended Mera Coach, enter their mobile</Text>
+            )}
+          </View>
+
           <TouchableOpacity
             style={[styles.registerBtn, submitting && styles.registerBtnDisabled]}
             onPress={handleRegister}
@@ -308,6 +339,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
+    marginTop: 6,
+  },
+  fieldError: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    color: Colors.destructive,
     marginTop: 6,
   },
   registerBtn: {

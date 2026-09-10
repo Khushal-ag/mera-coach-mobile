@@ -1,4 +1,4 @@
-/** Static description templates — no backend AI endpoint exists for coach profiles. */
+/** Static description templates for coach profiles. */
 
 export interface DescriptionSuggestionInput {
   coachName: string;

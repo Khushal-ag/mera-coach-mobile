@@ -86,8 +86,7 @@ interface FieldProps {
   onFocus?: () => void;
 }
 
-// Stored as 'M'/'F' — the backend's gender field (save-client-detail, generate-diet-plan) and
-// this app's own BMI formulas (utils/bmi.ts) both expect these codes, not the display words.
+// Stored as 'M'/'F' — save-client-detail, generate-diet-plan, and BMI formulas expect codes.
 const GENDER_OPTIONS = [
   { value: 'M', label: 'Male' },
   { value: 'F', label: 'Female' },

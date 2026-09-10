@@ -21,16 +21,18 @@ export function getBmiCategory(bmi: number | null): BmiCategory | null {
  * Prefer a positive API BMI; otherwise compute from height/weight.
  * Treats 0 as absent — bmi-report often returns height/weight with bmi: 0 when
  * save-bmi was skipped (Client Detail still shows a local BMI).
+ * Accepts `bMI` as well as `bmi`.
  */
 export function resolveDisplayBmi(
   input?: {
     bmi?: number | null;
+    bMI?: number | null;
     height?: number | string | null;
     weight?: number | string | null;
   } | null,
 ): number | null {
   if (!input) return null;
-  const apiBmi = input.bmi;
+  const apiBmi = input.bmi ?? input.bMI;
   if (typeof apiBmi === 'number' && Number.isFinite(apiBmi) && apiBmi > 0) return apiBmi;
   return getBmi(input.height ?? '', input.weight ?? '');
 }
@@ -60,7 +62,7 @@ interface BodyMetricsInput {
   gender: string;
 }
 
-// Matches the backend save-bmi metric formulas (same coefficients the API expects).
+// Matches save-bmi metric formulas (same coefficients the API expects).
 function computeBodyMetrics({ weight, height, age, gender }: BodyMetricsInput): BodyMetrics {
   const isMale = gender === 'M';
   const heightM = height / 100;
@@ -68,23 +70,18 @@ function computeBodyMetrics({ weight, height, age, gender }: BodyMetricsInput): 
   const bmi = round1(weight / (heightM * heightM));
   const bmiCategory = getBmiCategory(bmi)?.label ?? '';
 
-  // Body Fat % — Deurenberg 1991
   const sexFactor = isMale ? 1.0 : 0.0;
   const bodyFatPct = clamp(round1(1.2 * bmi + 0.23 * age - 10.8 * sexFactor - 5.4), 3, 60);
 
-  // Visceral Fat (1–59 scale)
   const visceralFat = Math.round(clamp(0.59 * bmi + 0.097 * age - (isMale ? 6.5 : 8.5), 1, 59));
 
-  // Skeletal Muscle % — Hume LBM
   const lbm = isMale
     ? 0.3281 * weight + 0.3393 * height - 29.5336
     : 0.2994 * weight + 0.7058 * height - 14.6712;
   const skeletalMusclePct = clamp(round1(((lbm * 0.5) / weight) * 100), 20, 60);
 
-  // Resting Metabolism (BMR) — Mifflin-St Jeor
   const restingMetabolism = Math.round(10 * weight + 6.25 * height - 5 * age + (isMale ? 5 : -161));
 
-  // Body Age
   const idealFat = isMale
     ? age < 30
       ? 15
