@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { Colors, IconSize } from '../../constants/theme';
@@ -9,8 +9,9 @@ import { SCREEN_REGISTRY } from './screenRegistry';
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import ScreenHeader from '../../components/ScreenHeader';
+import StickyFooter from '../../components/StickyFooter';
 import KeyboardSafeScroll, {
-  KEYBOARD_SCROLL_PADDING,
+  STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
 import PhaseTransition from '../../components/addClient/PhaseTransition';
@@ -291,56 +292,51 @@ export default function AssessmentWizardFlow({
   const showFinishBtn = commitMode !== 'dietPlan' || (!!form.dietPlan && hasUnsavedDietPlan);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.container}>
-        <ScreenHeader
-          title={headerTitle}
-          onBack={goBack}
-          right={headerRight}
-          showHome={!headerRight}
-        />
+    <View style={styles.container}>
+      <ScreenHeader
+        title={headerTitle}
+        onBack={goBack}
+        right={headerRight}
+        showHome={!headerRight}
+      />
 
-        <KeyboardSafeScroll
-          ref={scrollRef}
-          withAvoidingView={false}
-          style={styles.body}
-          contentContainerStyle={styles.bodyContent}
-          keyboardPadding={KEYBOARD_SCROLL_PADDING}
-        >
-          <View style={styles.stepBanner}>
-            <Ionicons name={screen.icon} size={IconSize.lg} color={Colors.white} />
-            <View style={styles.stepBannerText}>
-              <Text style={styles.stepBannerTitle}>{screen.title}</Text>
-              {screen.subtitle ? (
-                <Text style={styles.stepBannerSubtitle}>{screen.subtitle}</Text>
-              ) : null}
-            </View>
+      <KeyboardSafeScroll
+        ref={scrollRef}
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
+      >
+        <View style={styles.stepBanner}>
+          <Ionicons name={screen.icon} size={IconSize.lg} color={Colors.white} />
+          <View style={styles.stepBannerText}>
+            <Text style={styles.stepBannerTitle}>{screen.title}</Text>
+            {screen.subtitle ? (
+              <Text style={styles.stepBannerSubtitle}>{screen.subtitle}</Text>
+            ) : null}
           </View>
+        </View>
 
-          <FormErrorBanner message={bannerMessage} />
+        <FormErrorBanner message={bannerMessage} />
 
-          <StepComponent
-            form={form}
-            update={update}
-            {...(screen.componentProps || {})}
-            {...stepExtraProps}
+        <StepComponent
+          form={form}
+          update={update}
+          {...(screen.componentProps || {})}
+          {...stepExtraProps}
+        />
+      </KeyboardSafeScroll>
+
+      {showFinishBtn ? (
+        <StickyFooter>
+          <AppButton
+            label={isLast ? finishLabel : 'Next'}
+            onPress={() => void goNext()}
+            loading={saving}
+            icon={isLast ? undefined : 'arrow-forward'}
           />
-
-          {showFinishBtn ? (
-            <AppButton
-              label={isLast ? finishLabel : 'Next'}
-              onPress={() => void goNext()}
-              loading={saving}
-              icon={isLast ? undefined : 'arrow-forward'}
-              style={styles.nextBtn}
-            />
-          ) : null}
-        </KeyboardSafeScroll>
-      </View>
-    </KeyboardAvoidingView>
+        </StickyFooter>
+      ) : null}
+    </View>
   );
 }
 

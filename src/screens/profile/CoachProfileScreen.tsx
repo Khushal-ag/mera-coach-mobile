@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,28 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, PressOpacity, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+  Typography,
+} from '../../constants/theme';
 import PersonAvatar from '../../components/PersonAvatar';
 import ReloadState from '../../components/ReloadState';
 import BrandLogo from '../../components/BrandLogo';
 import TabRootHeader from '../../components/TabRootHeader';
+import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import { APP_DISPLAY_NAME } from '../../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support';
 import { formatExperienceDisplay } from '../../utils/experience';
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
+import { getProfileCompletion } from '../../utils/profileCompletion';
 import { refreshControlTheme } from '../../hooks/useRefreshControl';
 import { clearSession, getCurrentCoachCode } from '../../auth/session';
-import { getCoachProfile } from '../../api/coachApi';
+import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getErrorMessage } from '../../api/client';
@@ -70,6 +80,12 @@ const settingsItems: MenuItem[] = [
     label: 'Change Password',
     color: Colors.accent,
     route: 'ChangePassword',
+  },
+  {
+    icon: 'keypad-outline',
+    label: 'MPIN',
+    color: Colors.secondary,
+    route: 'ChangeMpin',
   },
   {
     icon: 'help-circle-outline',
@@ -127,6 +143,10 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
   });
+  const profileFullQuery = useQuery({
+    queryKey: queryKeys.coachProfileFull,
+    queryFn: getCoachProfileFull,
+  });
   // Live roster — Dashboard / Clients use the same key. Profile API's happyClientCount is
   // a separate self-reported marketing field and is often 0 even when clients exist.
   const clientsQuery = useQuery({
@@ -134,18 +154,22 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     queryFn: () => getClientList(),
   });
   const profile = profileQuery.data;
+  const profileCompletion = useMemo(
+    () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
+    [profileFullQuery.data],
+  );
 
   // Explicit pull only — do not bind RefreshControl to query.isRefetching (offscreen spinner).
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([profileQuery.refetch(), clientsQuery.refetch()])
+    Promise.all([profileQuery.refetch(), profileFullQuery.refetch(), clientsQuery.refetch()])
       .then(([profileResult]) => {
         if (profileResult.isError) {
           Alert.alert('Refresh failed', getErrorMessage(profileResult.error, 'Please try again.'));
         }
       })
       .finally(() => setRefreshing(false));
-  }, [profileQuery, clientsQuery]);
+  }, [profileQuery, profileFullQuery, clientsQuery]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
   const errorMessage =
@@ -235,6 +259,17 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
               </View>
             </View>
           </View>
+
+          {profileCompletion &&
+          (!profileCompletion.isPublicReady || profileCompletion.percent < 100) ? (
+            <View style={styles.completionSlot}>
+              <ProfileCompletionCard
+                completion={profileCompletion}
+                variant="detailed"
+                onPress={() => navigation.navigate('EditProfile')}
+              />
+            </View>
+          ) : null}
         </>
       )}
 
@@ -272,48 +307,50 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   profileCard: {
     backgroundColor: Colors.white,
-    margin: Spacing.lg,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
     borderRadius: Radius.lg,
-    padding: 24,
+    padding: Spacing.lg,
     alignItems: 'center',
-    ...Shadow.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    ...Shadow.sm,
+  },
+  completionSlot: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
   },
   avatar: {
     marginBottom: Spacing.sm,
     marginRight: 0,
   },
   name: {
-    fontSize: 20,
+    ...Typography.headline,
     fontFamily: FontFamily.extraBold,
-    color: Colors.textDark,
+    fontSize: 20,
     textAlign: 'center',
   },
   role: { fontSize: 13, color: Colors.primary, fontFamily: FontFamily.semibold, marginTop: 4 },
   location: { fontSize: 12, color: Colors.textLight, marginTop: 6 },
   statsRow: {
     flexDirection: 'row',
-    marginTop: 20,
-    borderTopWidth: 1,
+    marginTop: Spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
-    paddingTop: 16,
+    paddingTop: Spacing.md,
     width: '100%',
   },
   stat: { flex: 1, alignItems: 'center' },
-  statDivider: { width: 1, backgroundColor: Colors.border },
+  statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
   statValue: { fontSize: 20, fontFamily: FontFamily.extraBold, color: Colors.textDark },
   statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 2 },
-  section: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  section: { marginHorizontal: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.sm },
   sectionTitle: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
+    ...Typography.section,
     marginBottom: 6,
   },
   sectionHint: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    lineHeight: 17,
+    ...Typography.caption,
     marginBottom: 10,
   },
   menuItem: {
@@ -327,7 +364,6 @@ const styles = StyleSheet.create({
     minHeight: 56,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    ...Shadow.sm,
   },
   menuItemLast: { marginTop: 8 },
   menuIcon: {

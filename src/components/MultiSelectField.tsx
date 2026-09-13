@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
@@ -65,6 +66,7 @@ export default function MultiSelectField({
   exclusiveNoneCode,
 }: MultiSelectFieldProps) {
   const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const normalized = useMemo(
     () => pinExclusiveNoneLast(normalizeOptions(options), exclusiveNoneCode),
     [options, exclusiveNoneCode],
@@ -138,12 +140,17 @@ export default function MultiSelectField({
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.handle} />
             <Text style={styles.sheetTitle}>{label}</Text>
             <ScrollView
               style={styles.optionList}
               contentContainerStyle={styles.optionListContent}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
               {normalized.map((opt, index) => {
                 const active = isSelected(value, opt, exclusiveNoneCode);
@@ -213,17 +220,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
-    padding: 20,
-    maxHeight: '65%',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    maxHeight: '70%',
     ...Shadow.lg,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    marginBottom: Spacing.sm,
   },
   sheetTitle: {
     fontSize: 16,
     fontFamily: FontFamily.bold,
     color: Colors.textDark,
-    marginBottom: 12,
+    marginBottom: Spacing.sm,
   },
-  optionList: { marginBottom: 8 },
+  optionList: { maxHeight: 320, marginBottom: Spacing.xs },
   optionListContent: { paddingBottom: 4 },
   option: {
     flexDirection: 'row',

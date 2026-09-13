@@ -14,9 +14,11 @@ import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import KeyboardSafeScroll, {
+  STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
 import ScreenHeader from '../../components/ScreenHeader';
+import StickyFooter from '../../components/StickyFooter';
 import { changePassword } from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
 import type { ProfileStackScreenProps } from '../../types/navigation';
@@ -115,60 +117,65 @@ export default function ChangePasswordScreen({
   };
 
   return (
-    <KeyboardSafeScroll
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={styles.inner}
-    >
+    <View style={styles.container}>
       <ScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
 
-      <View style={styles.card}>
-        <FormErrorBanner message={error || null} />
+      <KeyboardSafeScroll
+        ref={scrollRef}
+        style={styles.body}
+        contentContainerStyle={styles.inner}
+        keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
+      >
+        <View style={styles.card}>
+          <FormErrorBanner message={error || null} />
 
-        <PasswordField
-          label="Current Password"
-          icon="lock-closed-outline"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          visible={showCurrent}
-          onToggleVisible={() => setShowCurrent(v => !v)}
-          placeholder="Enter your current password"
-        />
-        <PasswordField
-          label="New Password"
-          icon="key-outline"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          visible={showNew}
-          onToggleVisible={() => setShowNew(v => !v)}
-          placeholder="At least 6 characters"
-          onFocus={scrollLowerFieldsIntoView}
-        />
-        <PasswordField
-          label="Confirm New Password"
-          icon="key-outline"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          visible={showConfirm}
-          onToggleVisible={() => setShowConfirm(v => !v)}
-          placeholder="Re-enter your new password"
-          onFocus={scrollLowerFieldsIntoView}
-        />
+          <PasswordField
+            label="Current Password"
+            icon="lock-closed-outline"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            visible={showCurrent}
+            onToggleVisible={() => setShowCurrent(v => !v)}
+            placeholder="Enter your current password"
+          />
+          <PasswordField
+            label="New Password"
+            icon="key-outline"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            visible={showNew}
+            onToggleVisible={() => setShowNew(v => !v)}
+            placeholder="At least 6 characters"
+            onFocus={scrollLowerFieldsIntoView}
+          />
+          <PasswordField
+            label="Confirm New Password"
+            icon="key-outline"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            visible={showConfirm}
+            onToggleVisible={() => setShowConfirm(v => !v)}
+            placeholder="Re-enter your new password"
+            onFocus={scrollLowerFieldsIntoView}
+          />
+        </View>
+      </KeyboardSafeScroll>
 
+      <StickyFooter>
         <AppButton
           label="Update Password"
           onPress={() => void handleSubmit()}
           loading={submitting}
           icon="checkmark"
-          style={styles.submitBtn}
         />
-      </View>
-    </KeyboardSafeScroll>
+      </StickyFooter>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  body: { flex: 1 },
   inner: { flexGrow: 1 },
   card: {
     backgroundColor: Colors.white,
@@ -182,5 +189,4 @@ const styles = StyleSheet.create({
   inputIcon: formFieldStyles.inputIcon,
   input: formFieldStyles.input,
   eyeBtn: formFieldStyles.eyeBtn,
-  submitBtn: { marginTop: Spacing.xs },
 });

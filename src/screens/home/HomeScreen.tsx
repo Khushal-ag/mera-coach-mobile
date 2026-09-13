@@ -209,7 +209,9 @@ const styles = StyleSheet.create({
     marginTop: -16,
     borderRadius: Radius.lg,
     paddingVertical: 14,
-    ...Shadow.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    ...Shadow.md,
   },
   statsStripLoading: {
     alignItems: 'center',

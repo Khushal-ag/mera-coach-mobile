@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '../../constants/theme';
 import ScreenHeader from '../../components/ScreenHeader';
 import ReloadState from '../../components/ReloadState';
@@ -11,6 +12,7 @@ import { queryKeys } from '../../api/queryKeys';
 import type { ProfileStackScreenProps } from '../../types/navigation';
 
 export default function EditGalleryScreen({ navigation }: ProfileStackScreenProps<'EditGallery'>) {
+  const insets = useSafeAreaInsets();
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfileFull,
     queryFn: getCoachProfileFull,
@@ -40,7 +42,10 @@ export default function EditGalleryScreen({ navigation }: ProfileStackScreenProp
       ) : (
         <ScrollView
           style={styles.body}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerStyle={[
+            styles.bodyContent,
+            { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.lg },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <CoachGallery coachCode={coachCode} editable />

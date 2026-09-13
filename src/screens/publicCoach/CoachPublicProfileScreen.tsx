@@ -454,8 +454,8 @@ function CoachProfilePage({
         ref={scrollRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
-        // Keep padding inside the white form so the cream page bg never shows as a bottom strip.
-        keyboardPadding={0}
+        // Enquiry form sits at the bottom; keep room for keyboard + home indicator.
+        keyboardPadding={120}
         directionalLockEnabled
         nestedScrollEnabled
       >
@@ -728,13 +728,7 @@ function CoachProfilePage({
           </View>
         ) : null}
 
-        <View
-          style={[
-            styles.section,
-            styles.formSection,
-            { paddingBottom: Spacing.xl - 4 + insets.bottom },
-          ]}
-        >
+        <View style={[styles.section, styles.formSection, { paddingBottom: Spacing.xl - 4 }]}>
           <SectionTag icon="calendar-outline" label="Enquiry" />
           <Text style={styles.sectionTitle}>Book Your Free Consultation</Text>
           <Text style={styles.sectionSubtitle}>
@@ -1142,7 +1136,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: Spacing.md,
     backgroundColor: Colors.onDarkOverlay,
-    borderWidth: 3,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.onDarkBorderMid,
   },
   photoBannerImage: { width: '100%', height: '100%' },

@@ -127,18 +127,19 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
           <FormErrorBanner message={formErrorBanner} />
 
           <Text style={styles.cardTitle}>Create Account</Text>
-          <Text style={styles.cardSub}>Register as a coach in a few steps</Text>
 
           <View style={styles.infoBanner}>
             <Ionicons name="mail-open-outline" size={18} color={Colors.secondary} />
             <View style={styles.infoCopy}>
               <Text style={styles.infoTitle}>We&apos;ll email your login password</Text>
               <Text style={styles.infoText}>
-                After you register, finish your profile details once you sign in.
+                Use a real email you can open now. After sign-in, finish your public profile so
+                clients can find you.
               </Text>
             </View>
           </View>
 
+          <Text style={styles.sectionLabel}>Your details</Text>
           <View style={styles.field}>
             <FormFieldLabel required>Coach Name</FormFieldLabel>
             <View style={[styles.inputWrap, errorFields.name && styles.inputWrapError]}>
@@ -259,6 +260,9 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             icon="arrow-forward"
             style={styles.registerBtn}
           />
+          <Text style={styles.footerHint}>
+            By creating an account you can manage clients, leads, and your public listing.
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -305,12 +309,18 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     ...Shadow.lg,
   },
-  cardTitle: { fontSize: 22, fontFamily: FontFamily.bold, color: Colors.textDark, marginBottom: 4 },
-  cardSub: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
+  cardTitle: {
+    fontSize: 22,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
     marginBottom: Spacing.md,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: Spacing.sm,
+    letterSpacing: 0.2,
   },
   infoBanner: {
     flexDirection: 'row',
@@ -319,7 +329,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.sm,
     padding: Spacing.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   infoCopy: { flex: 1 },
   infoTitle: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
@@ -350,6 +360,14 @@ const styles = StyleSheet.create({
   },
   registerBtn: {
     marginTop: Spacing.xs,
+  },
+  footerHint: {
+    marginTop: Spacing.sm,
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   footerLink: {
     color: Colors.onDarkMuted,

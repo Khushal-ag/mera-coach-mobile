@@ -1,33 +1,7 @@
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-
 import type { Session } from '../types/models';
+import { secureStorage } from './secureStorage';
 
 const KEY = 'meracoach_session';
-
-interface SessionStorage {
-  getItem(key: string): Promise<string | null>;
-  setItem(key: string, value: string): Promise<void>;
-  deleteItem(key: string): Promise<void>;
-}
-
-// expo-secure-store isn't available on web; fall back to localStorage there.
-const storage: SessionStorage =
-  Platform.OS === 'web'
-    ? {
-        getItem: async k => (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null),
-        setItem: async (k, v) => {
-          if (typeof localStorage !== 'undefined') localStorage.setItem(k, v);
-        },
-        deleteItem: async k => {
-          if (typeof localStorage !== 'undefined') localStorage.removeItem(k);
-        },
-      }
-    : {
-        getItem: SecureStore.getItemAsync,
-        setItem: (key, value) => SecureStore.setItemAsync(key, value),
-        deleteItem: SecureStore.deleteItemAsync,
-      };
 
 // In-memory mirrors so apiFetch can read identity synchronously.
 let currentToken: string | null = null;
@@ -56,7 +30,7 @@ export async function updateSessionFullName(fullName: string): Promise<void> {
   const trimmed = fullName.trim();
   if (!trimmed) return;
   currentCoachName = trimmed;
-  const raw = await storage.getItem(KEY);
+  const raw = await secureStorage.getItem(KEY);
   if (!raw) return;
   try {
     const session: Session = JSON.parse(raw);
@@ -71,6 +45,8 @@ export async function updateSessionFullName(fullName: string): Promise<void> {
 type Listener = () => void;
 const listeners = new Set<Listener>();
 let initialized = false;
+/** Set when restoreSession drops an expired JWT (cleared on successful saveSession). */
+let expiredOnRestore = false;
 
 export function subscribeToAuthState(listener: Listener): () => void {
   listeners.add(listener);
@@ -85,6 +61,11 @@ export function isAuthenticated(): boolean {
   return currentToken !== null;
 }
 
+/** True after a cold start cleared an expired token (for login messaging). */
+export function didSessionExpireOnRestore(): boolean {
+  return expiredOnRestore;
+}
+
 function setCurrentIdentity(session: Session | null): void {
   currentToken = session?.token ?? null;
   currentCoachCode = session?.coachCode;
@@ -95,12 +76,13 @@ function setCurrentIdentity(session: Session | null): void {
 }
 
 export async function saveSession(session: Session): Promise<void> {
+  expiredOnRestore = false;
   setCurrentIdentity(session);
-  await storage.setItem(KEY, JSON.stringify(session));
+  await secureStorage.setItem(KEY, JSON.stringify(session));
 }
 
 export async function restoreSession(): Promise<Session | null> {
-  const raw = await storage.getItem(KEY);
+  const raw = await secureStorage.getItem(KEY);
   if (!raw) {
     setCurrentIdentity(null);
     return null;
@@ -108,9 +90,12 @@ export async function restoreSession(): Promise<Session | null> {
   try {
     const session: Session = JSON.parse(raw);
     if (isExpired(session.token)) {
+      // Drop the JWT only — MPIN + last login id stay in SecureStore for faster re-auth.
+      expiredOnRestore = true;
       await clearSession();
       return null;
     }
+    expiredOnRestore = false;
     setCurrentIdentity(session);
     return session;
   } catch {
@@ -121,7 +106,12 @@ export async function restoreSession(): Promise<Session | null> {
 
 export async function clearSession(): Promise<void> {
   setCurrentIdentity(null);
-  await storage.deleteItem(KEY);
+  await secureStorage.deleteItem(KEY);
+}
+
+/** True when the JWT `exp` claim is in the past (or the token cannot be decoded). */
+export function isTokenExpired(token: string): boolean {
+  return isExpired(token);
 }
 
 // Manual base64url decode — `atob` isn't guaranteed to exist in React Native's JS engine.

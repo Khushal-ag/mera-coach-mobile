@@ -4,8 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Colors, Spacing } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
-import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
+import KeyboardSafeScroll, {
+  STICKY_FOOTER_KEYBOARD_PADDING,
+} from '../../components/KeyboardSafeScroll';
 import ScreenHeader from '../../components/ScreenHeader';
+import StickyFooter from '../../components/StickyFooter';
 import ReloadState from '../../components/ReloadState';
 import CoachEventsEditor from '../../components/profile/CoachEventsEditor';
 import {
@@ -97,31 +100,32 @@ function EditEventsForm({ profile, onDone }: { profile: CoachProfileFull; onDone
   };
 
   return (
-    <KeyboardSafeScroll
-      ref={scrollRef}
-      style={styles.body}
-      contentContainerStyle={styles.bodyContent}
-      keyboardPadding={180}
-    >
-      <FormErrorBanner message={banner} />
-      <CoachEventsEditor events={draft} onChange={setEvents} coachCode={profile.coachCode} />
+    <View style={styles.formRoot}>
+      <KeyboardSafeScroll
+        ref={scrollRef}
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
+      >
+        <FormErrorBanner message={banner} />
+        <CoachEventsEditor events={draft} onChange={setEvents} coachCode={profile.coachCode} />
+      </KeyboardSafeScroll>
 
-      <AppButton
-        label="Save events"
-        onPress={() => void handleSave()}
-        loading={saving}
-        icon="checkmark"
-        style={styles.saveBtn}
-      />
-    </KeyboardSafeScroll>
+      <StickyFooter>
+        <AppButton
+          label="Save events"
+          onPress={() => void handleSave()}
+          loading={saving}
+          icon="checkmark"
+        />
+      </StickyFooter>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  formRoot: { flex: 1 },
   body: { flex: 1 },
-  bodyContent: { padding: Spacing.lg, paddingBottom: Spacing.xl },
-  saveBtn: {
-    marginTop: Spacing.md,
-  },
+  bodyContent: { padding: Spacing.lg, paddingBottom: Spacing.sm },
 });

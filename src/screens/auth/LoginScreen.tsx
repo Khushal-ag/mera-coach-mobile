@@ -31,7 +31,8 @@ import KeyboardSafeScroll, {
 } from '../../components/KeyboardSafeScroll';
 import { HeaderBackButton } from '../../components/ScreenHeader';
 import { login } from '../../api/authApi';
-import { saveSession } from '../../auth/session';
+import { getLastLoginId, markMpinUnlocked, rememberLoginId } from '../../auth/mpin';
+import { didSessionExpireOnRestore, saveSession } from '../../auth/session';
 import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateLogin } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
@@ -41,10 +42,15 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => getLastLoginId() ?? '');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [sessionHint] = useState(() =>
+    didSessionExpireOnRestore()
+      ? 'Your session expired. Sign in once, then use your MPIN next time.'
+      : null,
+  );
   const {
     errorFields,
     formErrorBanner,
@@ -60,8 +66,12 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
     clearAllErrors();
     setSubmitting(true);
     try {
-      const session = await login({ userName: email.trim(), password });
+      const trimmed = email.trim();
+      const session = await login({ userName: trimmed, password });
+      await rememberLoginId(trimmed);
       await saveSession(session);
+      // Password already proved identity for this process — skip unlock gate until next cold start.
+      markMpinUnlocked();
     } catch (err) {
       setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
@@ -84,9 +94,12 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 
         <View style={styles.card}>
           <FormErrorBanner message={formErrorBanner} />
+          {sessionHint && !formErrorBanner ? (
+            <Text style={styles.sessionHint}>{sessionHint}</Text>
+          ) : null}
 
           <Text style={styles.cardTitle}>Coach Login</Text>
-          <Text style={styles.cardSub}>Sign in to manage your clients</Text>
+          <Text style={styles.cardSub}>Sign in to manage clients, leads, and your listing</Text>
 
           <View style={styles.field}>
             <FormFieldLabel required>Email Address</FormFieldLabel>
@@ -210,6 +223,17 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
     marginBottom: Spacing.lg,
+    lineHeight: 18,
+  },
+  sessionHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    color: Colors.secondary,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+    lineHeight: 18,
   },
   field: { marginBottom: Spacing.md },
   inputWrap: formFieldStyles.wrap,

@@ -7,7 +7,8 @@ export const wizardShellStyles = {
   body: { flex: 1 },
   bodyContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    // Bottom pad comes from KeyboardSafeScroll + StickyFooter; keep content tight.
+    paddingBottom: Spacing.sm,
   },
   stepBanner: {
     flexDirection: 'row',

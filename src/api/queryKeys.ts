@@ -6,6 +6,8 @@ function normalizeCoachPublicListParams(
     state?: string;
     city?: string;
     search?: string;
+    minRating?: number;
+    sortBy?: string;
     page?: number;
     pageSize?: number;
   } = {},
@@ -16,6 +18,8 @@ function normalizeCoachPublicListParams(
     state?: string;
     city?: string;
     search?: string;
+    minRating?: number;
+    sortBy?: string;
     page?: number;
     pageSize?: number;
   } = {};
@@ -24,6 +28,8 @@ function normalizeCoachPublicListParams(
   if (params.state) normalized.state = params.state;
   if (params.city) normalized.city = params.city;
   if (params.search) normalized.search = params.search;
+  if (params.minRating != null && params.minRating > 0) normalized.minRating = params.minRating;
+  if (params.sortBy && params.sortBy !== 'rating') normalized.sortBy = params.sortBy;
   if (params.page != null && params.page !== 1) normalized.page = params.page;
   if (params.pageSize != null && params.pageSize !== 50) normalized.pageSize = params.pageSize;
   return normalized;
@@ -38,10 +44,19 @@ export const queryKeys = {
       state?: string;
       city?: string;
       search?: string;
+      minRating?: number;
+      sortBy?: string;
       page?: number;
       pageSize?: number;
     } = {},
   ) => ['coachPublicList', normalizeCoachPublicListParams(params)] as const,
+  coachPublicCities: (params: { coachTypeCode?: string; country?: string; state?: string } = {}) =>
+    [
+      'coachPublicCities',
+      params.coachTypeCode || undefined,
+      params.country || undefined,
+      params.state || undefined,
+    ] as const,
   coachProfile: ['coachProfile'] as const,
   coachProfileFull: ['coachProfileFull'] as const,
   coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,

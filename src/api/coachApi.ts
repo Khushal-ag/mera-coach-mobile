@@ -52,6 +52,10 @@ interface CoachPublicListParams {
   state?: string;
   city?: string;
   search?: string;
+  /** Minimum rating filter (e.g. 3 or 4). Omitted = any rating. */
+  minRating?: number;
+  /** Server sort: rating | reviews | experience. Default rating. */
+  sortBy?: 'rating' | 'reviews' | 'experience';
   page?: number;
   pageSize?: number;
 }
@@ -174,6 +178,8 @@ export async function getCoachPublicList(
       state: params.state || undefined,
       city: params.city || undefined,
       search: params.search || undefined,
+      minRating: params.minRating != null && params.minRating > 0 ? params.minRating : undefined,
+      sortBy: params.sortBy && params.sortBy !== 'rating' ? params.sortBy : undefined,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 50, // no pagination UI yet
     }),
@@ -196,6 +202,22 @@ export async function getCoachPublicList(
     coaches: visibleItems.map(mapPublicCoach),
     totalCount: visibilityKnown ? visibleItems.length : (data?.totalCount ?? 0),
   };
+}
+
+/** Distinct cities for Find-a-Coach dropdown (visible public coaches only). */
+export async function getCoachPublicCities(
+  params: { coachTypeCode?: string; country?: string; state?: string } = {},
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const data = await apiFetch<string[] | null>(
+    withQuery('/v{version}/Coach/public-cities', {
+      coachTypeCode: params.coachTypeCode || undefined,
+      country: params.country || undefined,
+      state: params.state || undefined,
+    }),
+    { signal },
+  );
+  return (data ?? []).map(c => c.trim()).filter(Boolean);
 }
 
 export async function getCoachProfile(): Promise<Coach> {

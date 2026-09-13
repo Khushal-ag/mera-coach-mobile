@@ -12,18 +12,29 @@ import {
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Spacing, formFieldStyles } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Shadow,
+  Spacing,
+  Typography,
+  formFieldStyles,
+} from '../../constants/theme';
 import AppButton from '../../components/AppButton';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import DropdownField from '../../components/DropdownField';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import KeyboardSafeScroll, {
+  STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
 import ScreenHeader from '../../components/ScreenHeader';
+import StickyFooter from '../../components/StickyFooter';
 import ReloadState from '../../components/ReloadState';
 import MultiSelectField from '../../components/MultiSelectField';
+import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import {
   getCoachProfileFull,
   getCoachCategories,
@@ -38,6 +49,7 @@ import { LOCAL_LANGUAGE_OPTIONS } from '../../data/localLanguages';
 import { sanitizePinInput, validateCoachProfileEdit } from '../../utils/validation';
 import { serializeCoachEvents } from '../../utils/coachEvents';
 import { serializeCoachPackages } from '../../utils/coachPackages';
+import { getProfileCompletion } from '../../utils/profileCompletion';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../../hooks/usePinLocationLookup';
 import { getCurrentCoachId, updateSessionFullName } from '../../auth/session';
@@ -361,290 +373,330 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     happyClientCount,
   });
 
+  const liveCompletion = getProfileCompletion({
+    experienceYears: parseInt(experienceYears, 10) || 0,
+    happyClientCount: parseInt(happyClientCount, 10) || 0,
+    coachDesc,
+    addLine,
+    pinCode,
+    profilePicUrl,
+  });
+
   return (
-    <KeyboardSafeScroll
-      ref={scrollRef}
-      style={styles.body}
-      contentContainerStyle={styles.bodyContent}
-      keyboardPadding={180}
-    >
-      <FormErrorBanner message={formErrorBanner || pinLookup.error} />
+    <View style={styles.formRoot}>
+      <KeyboardSafeScroll
+        ref={scrollRef}
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
+      >
+        <FormErrorBanner message={formErrorBanner || pinLookup.error} />
 
-      {profile.isProfileVisible !== true ? (
-        <Text style={styles.visibilityHint}>
-          Complete public fields (experience, happy clients, description, address, pincode) and save
-          to appear on Find a Coach.
-        </Text>
-      ) : null}
+        {!liveCompletion.isPublicReady || liveCompletion.percent < 100 ? (
+          <View style={styles.completionWrap}>
+            <ProfileCompletionCard
+              completion={liveCompletion}
+              variant="detailed"
+              showAction={false}
+            />
+          </View>
+        ) : null}
 
-      <View style={styles.imagesRow}>
-        <ImagePickerTile
-          label="Profile Photo"
-          uri={resolveMediaUrl(profilePicUrl)}
-          uploading={uploadingPhoto}
-          onPress={() => pickImage('photo')}
-        />
-        <ImagePickerTile
-          label="Logo"
-          uri={resolveMediaUrl(logoUrl)}
-          uploading={uploadingLogo}
-          onPress={() => pickImage('logo')}
-        />
-      </View>
+        <FormSection title="Photos" hint="A clear photo helps clients recognize you.">
+          <View style={styles.imagesRow}>
+            <ImagePickerTile
+              label="Profile Photo"
+              uri={resolveMediaUrl(profilePicUrl)}
+              uploading={uploadingPhoto}
+              onPress={() => pickImage('photo')}
+            />
+            <ImagePickerTile
+              label="Logo"
+              uri={resolveMediaUrl(logoUrl)}
+              uploading={uploadingLogo}
+              onPress={() => pickImage('logo')}
+            />
+          </View>
+        </FormSection>
 
-      <Field
-        label="Coach Name"
-        value={coachName}
-        onChangeText={v => {
-          setCoachName(v);
-          clearFieldError('coachName');
-        }}
-        required
-        hasError={!!errorFields.coachName}
-      />
-      <DropdownField
-        label="Category"
-        value={resolvedCategoryLabel}
-        options={categories.map(c => c.label)}
-        onChange={v => {
-          setCategoryLabel(v);
-          clearFieldError('category');
-        }}
-        placeholder="Select category"
-        required
-        hasError={!!errorFields.category}
-      />
-      <View style={styles.field}>
-        <FormFieldLabel required>Mobile</FormFieldLabel>
-        <PhoneTextInput
-          style={[styles.input, styles.inputReadOnly]}
-          value={mobile}
-          onChangeText={() => {}}
-          editable={false}
-          placeholderTextColor={Colors.textLight}
-        />
-        <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
-      </View>
-      <View style={styles.field}>
-        <FormFieldLabel required>Email</FormFieldLabel>
-        <TextInput
-          style={[styles.input, styles.inputReadOnly, errorFields.email && styles.inputError]}
-          value={email}
-          editable={false}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor={Colors.textLight}
-        />
-        <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
-      </View>
-
-      <View style={styles.divider} />
-
-      <Field label="Business Name" value={businessName} onChangeText={setBusinessName} />
-      <View style={styles.row}>
-        <View style={styles.half}>
+        <FormSection title="Identity" hint="Name and category appear on your public card.">
           <Field
-            label="Experience (yrs)"
-            value={experienceYears}
+            label="Coach Name"
+            value={coachName}
             onChangeText={v => {
-              setExperienceYears(v);
-              clearFieldError('experienceYears');
+              setCoachName(v);
+              clearFieldError('coachName');
             }}
-            keyboardType="numeric"
             required
-            hasError={!!errorFields.experienceYears}
+            hasError={!!errorFields.coachName}
           />
-        </View>
-        <View style={styles.half}>
-          <Field
-            label="Happy Clients"
-            value={happyClientCount}
-            onChangeText={v => {
-              setHappyClientCount(v);
-              clearFieldError('happyClientCount');
+          <DropdownField
+            label="Category"
+            value={resolvedCategoryLabel}
+            options={categories.map(c => c.label)}
+            onChange={v => {
+              setCategoryLabel(v);
+              clearFieldError('category');
             }}
-            keyboardType="numeric"
+            placeholder="Select category"
             required
-            hasError={!!errorFields.happyClientCount}
+            hasError={!!errorFields.category}
           />
-        </View>
-      </View>
-      <Text style={styles.fieldHint}>
-        Shown as Clients on your public card and profile. Update it here for the number others see,
-        not your live client list count.
-      </Text>
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Field
-            label="Certifications"
-            value={certificationCount}
-            onChangeText={v => {
-              setCertificationCount(v);
-              clearFieldError('certificationCount');
-            }}
-            keyboardType="numeric"
-            hasError={!!errorFields.certificationCount}
-          />
-        </View>
-        <View style={styles.half}>
-          <Field label="Tagline" value={tagline} onChangeText={setTagline} />
-        </View>
-      </View>
-
-      <MultiSelectField
-        label="Services"
-        value={resolvedServiceLabels}
-        options={serviceOptions.map(s => s.label)}
-        onChange={setServiceLabels}
-        placeholder={servicesQuery.isPending ? 'Loading services...' : 'Select services'}
-      />
-
-      <View style={styles.field}>
-        <FormFieldLabel required>About / Description</FormFieldLabel>
-        <TextInput
-          style={[styles.textarea, errorFields.coachDesc && styles.inputError]}
-          multiline
-          numberOfLines={4}
-          value={coachDesc}
-          onChangeText={v => {
-            setCoachDesc(v);
-            clearFieldError('coachDesc');
-          }}
-          placeholder="Tell clients about your coaching style and experience"
-          placeholderTextColor={Colors.textLight}
-          onFocus={scrollLowerFieldsIntoView}
-        />
-        <Text style={styles.suggestLabel}>Suggested descriptions (tap to use)</Text>
-        <View style={styles.suggestChips}>
-          {descriptionSuggestions.map((text, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.suggestChip}
-              onPress={() => {
-                setCoachDesc(text);
-                clearFieldError('coachDesc');
-              }}
-            >
-              <Text style={styles.suggestChipText} numberOfLines={3}>
-                {text}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.divider} />
-      <Text style={styles.sectionTitle}>Plan & report settings</Text>
-      <Text style={styles.fieldHint}>
-        Used for diet plans and BMI reports. Local language is stored as a code (e.g. hi for Hindi).
-      </Text>
-      <DropdownField
-        label="Local language"
-        value={localLanguage}
-        options={LOCAL_LANGUAGE_OPTIONS}
-        onChange={setLocalLanguage}
-        placeholder="Select language"
-      />
-      <Field
-        label="BMI report template"
-        value={bmiReportTemplate}
-        onChangeText={setBmiReportTemplate}
-        onFocus={scrollLowerFieldsIntoView}
-        autoCapitalize="none"
-      />
-      <Field
-        label="Diet plan template"
-        value={dietChartTemplate}
-        onChangeText={setDietChartTemplate}
-        onFocus={scrollLowerFieldsIntoView}
-        autoCapitalize="none"
-      />
-
-      <View style={styles.divider} />
-      <Text style={styles.sectionTitle}>Address</Text>
-      <Text style={styles.fieldHint}>Enter pincode to auto-fill city and state.</Text>
-      <View style={styles.row}>
-        <View style={styles.half}>
           <View style={styles.field}>
-            <FormFieldLabel required>Pin Code</FormFieldLabel>
-            <View style={styles.pinInputWrap}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.pinInput,
-                  (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
-                ]}
-                value={pinCode}
+            <FormFieldLabel required>Mobile</FormFieldLabel>
+            <PhoneTextInput
+              style={[styles.input, styles.inputReadOnly]}
+              value={mobile}
+              onChangeText={() => {}}
+              editable={false}
+              placeholderTextColor={Colors.textLight}
+            />
+            <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
+          </View>
+          <View style={styles.field}>
+            <FormFieldLabel required>Email</FormFieldLabel>
+            <TextInput
+              style={[styles.input, styles.inputReadOnly, errorFields.email && styles.inputError]}
+              value={email}
+              editable={false}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor={Colors.textLight}
+            />
+            <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
+          </View>
+        </FormSection>
+
+        <FormSection title="Professional" hint="These fields power your Find a Coach listing.">
+          <Field label="Business Name" value={businessName} onChangeText={setBusinessName} />
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <Field
+                label="Experience (yrs)"
+                value={experienceYears}
                 onChangeText={v => {
-                  setPinCode(sanitizePinInput(v));
-                  clearFieldError('pinCode');
+                  setExperienceYears(v);
+                  clearFieldError('experienceYears');
                 }}
-                keyboardType="number-pad"
-                maxLength={6}
-                placeholderTextColor={Colors.textLight}
-                onFocus={scrollLowerFieldsIntoView}
+                keyboardType="numeric"
+                required
+                hasError={!!errorFields.experienceYears}
               />
-              {pinLookup.lookingUp ? (
-                <ActivityIndicator color={Colors.primary} size="small" style={styles.pinLoader} />
-              ) : null}
+            </View>
+            <View style={styles.half}>
+              <Field
+                label="Happy Clients"
+                value={happyClientCount}
+                onChangeText={v => {
+                  setHappyClientCount(v);
+                  clearFieldError('happyClientCount');
+                }}
+                keyboardType="numeric"
+                required
+                hasError={!!errorFields.happyClientCount}
+              />
             </View>
           </View>
-        </View>
-        <View style={styles.half}>
-          <DropdownField
-            label="Country"
-            value={countryLabel}
-            options={countries.map(c => c.label)}
-            onChange={setCountryLabel}
-            placeholder="Select country"
-          />
-        </View>
-      </View>
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Field
-            label="City"
-            value={cityCd}
-            onChangeText={setCityCd}
-            onFocus={scrollLowerFieldsIntoView}
-          />
-        </View>
-        <View style={styles.half}>
-          <Field
-            label="State"
-            value={stateCd}
-            onChangeText={setStateCd}
-            onFocus={scrollLowerFieldsIntoView}
-          />
-        </View>
-      </View>
-      <Field
-        label="Locality"
-        value={locality}
-        onChangeText={setLocality}
-        onFocus={scrollLowerFieldsIntoView}
-      />
-      <Field
-        label="Address Line"
-        value={addLine}
-        onChangeText={v => {
-          setAddLine(v);
-          clearFieldError('addLine');
-        }}
-        required
-        hasError={!!errorFields.addLine}
-        onFocus={scrollLowerFieldsIntoView}
-      />
+          <Text style={styles.fieldHint}>
+            Shown as Clients on your public card. Update it for the number others see — not your
+            live roster count.
+          </Text>
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <Field
+                label="Certifications"
+                value={certificationCount}
+                onChangeText={v => {
+                  setCertificationCount(v);
+                  clearFieldError('certificationCount');
+                }}
+                keyboardType="numeric"
+                hasError={!!errorFields.certificationCount}
+              />
+            </View>
+            <View style={styles.half}>
+              <Field label="Tagline" value={tagline} onChangeText={setTagline} />
+            </View>
+          </View>
 
-      <AppButton
-        label="Save Changes"
-        onPress={() => void handleSave()}
-        loading={saving}
-        disabled={uploadingLogo || uploadingPhoto}
-        icon="checkmark"
-        style={styles.saveBtn}
-      />
-    </KeyboardSafeScroll>
+          <MultiSelectField
+            label="Services"
+            value={resolvedServiceLabels}
+            options={serviceOptions.map(s => s.label)}
+            onChange={setServiceLabels}
+            placeholder={servicesQuery.isPending ? 'Loading services...' : 'Select services'}
+          />
+
+          <View style={styles.field}>
+            <FormFieldLabel required>About / Description</FormFieldLabel>
+            <TextInput
+              style={[styles.textarea, errorFields.coachDesc && styles.inputError]}
+              multiline
+              numberOfLines={4}
+              value={coachDesc}
+              onChangeText={v => {
+                setCoachDesc(v);
+                clearFieldError('coachDesc');
+              }}
+              placeholder="Tell clients about your coaching style and experience"
+              placeholderTextColor={Colors.textLight}
+              onFocus={scrollLowerFieldsIntoView}
+            />
+            <Text style={styles.suggestLabel}>Suggested descriptions (tap to use)</Text>
+            <View style={styles.suggestChips}>
+              {descriptionSuggestions.map((text, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={styles.suggestChip}
+                  onPress={() => {
+                    setCoachDesc(text);
+                    clearFieldError('coachDesc');
+                  }}
+                >
+                  <Text style={styles.suggestChipText} numberOfLines={3}>
+                    {text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </FormSection>
+
+        <FormSection
+          title="Plan & report settings"
+          hint="Used for diet plans and BMI reports. Language is stored as a code (e.g. hi)."
+        >
+          <DropdownField
+            label="Local language"
+            value={localLanguage}
+            options={LOCAL_LANGUAGE_OPTIONS}
+            onChange={setLocalLanguage}
+            placeholder="Select language"
+          />
+          <Field
+            label="BMI report template"
+            value={bmiReportTemplate}
+            onChangeText={setBmiReportTemplate}
+            onFocus={scrollLowerFieldsIntoView}
+            autoCapitalize="none"
+          />
+          <Field
+            label="Diet plan template"
+            value={dietChartTemplate}
+            onChangeText={setDietChartTemplate}
+            onFocus={scrollLowerFieldsIntoView}
+            autoCapitalize="none"
+          />
+        </FormSection>
+
+        <FormSection title="Address" hint="Enter pincode to auto-fill city and state.">
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <View style={styles.field}>
+                <FormFieldLabel required>Pin Code</FormFieldLabel>
+                <View style={styles.pinInputWrap}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.pinInput,
+                      (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
+                    ]}
+                    value={pinCode}
+                    onChangeText={v => {
+                      setPinCode(sanitizePinInput(v));
+                      clearFieldError('pinCode');
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    placeholderTextColor={Colors.textLight}
+                    onFocus={scrollLowerFieldsIntoView}
+                  />
+                  {pinLookup.lookingUp ? (
+                    <ActivityIndicator
+                      color={Colors.primary}
+                      size="small"
+                      style={styles.pinLoader}
+                    />
+                  ) : null}
+                </View>
+              </View>
+            </View>
+            <View style={styles.half}>
+              <DropdownField
+                label="Country"
+                value={countryLabel}
+                options={countries.map(c => c.label)}
+                onChange={setCountryLabel}
+                placeholder="Select country"
+              />
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <Field
+                label="City"
+                value={cityCd}
+                onChangeText={setCityCd}
+                onFocus={scrollLowerFieldsIntoView}
+              />
+            </View>
+            <View style={styles.half}>
+              <Field
+                label="State"
+                value={stateCd}
+                onChangeText={setStateCd}
+                onFocus={scrollLowerFieldsIntoView}
+              />
+            </View>
+          </View>
+          <Field
+            label="Locality"
+            value={locality}
+            onChangeText={setLocality}
+            onFocus={scrollLowerFieldsIntoView}
+          />
+          <Field
+            label="Address Line"
+            value={addLine}
+            onChangeText={v => {
+              setAddLine(v);
+              clearFieldError('addLine');
+            }}
+            required
+            hasError={!!errorFields.addLine}
+            onFocus={scrollLowerFieldsIntoView}
+          />
+        </FormSection>
+      </KeyboardSafeScroll>
+
+      <StickyFooter>
+        <AppButton
+          label="Save Changes"
+          onPress={() => void handleSave()}
+          loading={saving}
+          disabled={uploadingLogo || uploadingPhoto}
+          icon="checkmark"
+        />
+      </StickyFooter>
+    </View>
+  );
+}
+
+function FormSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.sectionCard}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+      {children}
+    </View>
   );
 }
 
@@ -717,14 +769,32 @@ function ImagePickerTile({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  formRoot: { flex: 1 },
   body: { flex: 1 },
-  bodyContent: { padding: Spacing.lg },
-  imagesRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: 18 },
+  bodyContent: { padding: Spacing.md, paddingBottom: Spacing.sm, gap: Spacing.sm },
+  completionWrap: { marginBottom: Spacing.xs },
+  sectionCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    ...Shadow.sm,
+  },
+  sectionTitle: {
+    ...Typography.section,
+    marginBottom: 4,
+  },
+  sectionHint: {
+    ...Typography.caption,
+    marginBottom: Spacing.md,
+  },
+  imagesRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: 4 },
   imageTile: {
     flex: 1,
     height: 96,
     borderRadius: Radius.md,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.background,
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderStyle: 'dashed',
@@ -763,14 +833,6 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     marginTop: 4,
   },
-  visibilityHint: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    lineHeight: 17,
-    marginBottom: 14,
-    paddingHorizontal: 2,
-  },
   suggestLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semibold,
@@ -796,7 +858,7 @@ const styles = StyleSheet.create({
   pinInput: { paddingRight: 36 },
   pinLoader: { position: 'absolute', right: 12 },
   textarea: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.background,
     borderRadius: Radius.sm,
     borderWidth: 1.5,
     borderColor: Colors.border,
@@ -816,20 +878,5 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: -8,
     marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-    marginBottom: Spacing.xs,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginBottom: Spacing.md,
-    marginTop: 4,
-  },
-  saveBtn: {
-    marginTop: Spacing.xs,
   },
 });

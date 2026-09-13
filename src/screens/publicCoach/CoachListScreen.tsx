@@ -24,8 +24,13 @@ import {
   buttonStyles,
 } from '../../constants/theme';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../../data/homeContent';
-import { SORT_OPTIONS } from '../../data/coachDirectory';
-import { getCoachCategories, getCoachPublicList } from '../../api/coachApi';
+import {
+  RATING_FILTER_OPTIONS,
+  SORT_OPTIONS,
+  coachPublicMinRatingParam,
+  coachPublicSortParam,
+} from '../../data/coachDirectory';
+import { getCoachCategories, getCoachPublicCities, getCoachPublicList } from '../../api/coachApi';
 import { getClientList } from '../../api/clientApi';
 import { MASTER_STALE_MS } from '../../api/queryClient';
 import { queryKeys } from '../../api/queryKeys';
@@ -51,10 +56,14 @@ import { resolvePublicClientCount, shouldShowPublicRating } from '../../utils/co
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import type { RootScreenProps } from '../../types/navigation';
 
+const ALL_CITIES = 'All cities';
+
 export default function CoachListScreen({ navigation, route }: RootScreenProps<'CoachList'>) {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(route.params?.categoryCode || '');
+  const [city, setCity] = useState(ALL_CITIES);
+  const [ratingFilter, setRatingFilter] = useState(RATING_FILTER_OPTIONS[0]);
   const [sort, setSort] = useState('Top Rated');
   const debouncedSearch = useDebouncedValue(search, 400);
   const myCoachCode = getCurrentCoachCode();
@@ -66,14 +75,13 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   });
   const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
 
-  const listParams = {
-    coachTypeCode: activeCategory || undefined,
-    search: debouncedSearch || undefined,
-  };
-  const coachesQuery = useQuery({
-    // Normalized key shares Home's empty-filter public list cache.
-    queryKey: queryKeys.coachPublicList(listParams),
-    queryFn: ({ signal }) => getCoachPublicList(listParams, signal),
+  // Cities for the filter dropdown — dedicated endpoint (not a second full coach list).
+  const citiesQuery = useQuery({
+    queryKey: queryKeys.coachPublicCities({
+      coachTypeCode: activeCategory || undefined,
+    }),
+    queryFn: ({ signal }) =>
+      getCoachPublicCities({ coachTypeCode: activeCategory || undefined }, signal),
   });
 
   const myClientsQuery = useQuery({
@@ -82,14 +90,57 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     enabled: isAuthenticated() && !!myCoachCode,
   });
 
+  const cityOptions = useMemo(() => {
+    const cities = citiesQuery.data ?? [];
+    return [ALL_CITIES, ...cities];
+  }, [citiesQuery.data]);
+
+  // Keep selection valid when category shrinks the city list (no effect/setState).
+  const resolvedCity = city === ALL_CITIES || cityOptions.includes(city) ? city : ALL_CITIES;
+
+  const minRating = coachPublicMinRatingParam(ratingFilter);
+  const sortBy = coachPublicSortParam(sort);
+
+  const listParams = {
+    coachTypeCode: activeCategory || undefined,
+    search: debouncedSearch || undefined,
+    city: resolvedCity !== ALL_CITIES ? resolvedCity : undefined,
+    minRating,
+    sortBy,
+  };
+  const coachesQuery = useQuery({
+    // Normalized key shares Home's empty-filter public list cache.
+    queryKey: queryKeys.coachPublicList(listParams),
+    queryFn: ({ signal }) => getCoachPublicList(listParams, signal),
+  });
+
+  // Server applies minRating/sortBy; re-apply client-side so older API builds still filter correctly.
   const filtered = useMemo(() => {
     let list = coachesQuery.data?.coaches ?? [];
+    if (ratingFilter === '4.0+') list = list.filter(c => c.rating >= 4);
+    else if (ratingFilter === '3.0+') list = list.filter(c => c.rating >= 3);
+
     if (sort === 'Top Rated') list = [...list].sort((a, b) => b.rating - a.rating);
     else if (sort === 'Most Reviewed') list = [...list].sort((a, b) => b.reviews - a.reviews);
     else if (sort === 'Most Experience')
       list = [...list].sort((a, b) => b.experience - a.experience);
     return list;
-  }, [coachesQuery.data, sort]);
+  }, [coachesQuery.data, sort, ratingFilter]);
+
+  const hasActiveFilters =
+    !!activeCategory ||
+    !!search.trim() ||
+    resolvedCity !== ALL_CITIES ||
+    ratingFilter !== RATING_FILTER_OPTIONS[0] ||
+    sort !== 'Top Rated';
+
+  const clearFilters = () => {
+    setActiveCategory('');
+    setSearch('');
+    setCity(ALL_CITIES);
+    setRatingFilter(RATING_FILTER_OPTIONS[0]!);
+    setSort('Top Rated');
+  };
 
   const errorMessage = coachesQuery.isError
     ? getErrorMessage(coachesQuery.error, 'Could not load coaches. Pull down to try again.')
@@ -154,11 +205,42 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           onChangeText={setSearch}
           accessibilityLabel="Search coaches"
         />
+        <View style={styles.filterRow}>
+          <DropdownField
+            compact
+            value={resolvedCity}
+            options={cityOptions}
+            onChange={setCity}
+            placeholder="City"
+          />
+          <DropdownField
+            compact
+            value={ratingFilter}
+            options={RATING_FILTER_OPTIONS}
+            onChange={setRatingFilter}
+          />
+          <DropdownField compact value={sort} options={SORT_OPTIONS} onChange={setSort} />
+        </View>
+        {hasActiveFilters ? (
+          <TouchableOpacity
+            onPress={clearFilters}
+            style={styles.clearBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Clear filters"
+            activeOpacity={PressOpacity.default}
+          >
+            <Ionicons name="close-circle-outline" size={IconSize.sm} color={Colors.primary} />
+            <Text style={styles.clearText}>Clear filters</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <ScrollView
         style={styles.body}
-        contentContainerStyle={styles.bodyContent}
+        contentContainerStyle={[
+          styles.bodyContent,
+          { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.lg },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -186,7 +268,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                 Showing <Text style={styles.resultBold}>{filtered.length}</Text>{' '}
                 {pluralizeCoaches(filtered.length)}
               </Text>
-              <DropdownField compact value={sort} options={SORT_OPTIONS} onChange={setSort} />
             </View>
 
             {filtered.map(coach => {
@@ -305,7 +386,13 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
               <EmptyState
                 icon="search-outline"
                 title="No coaches found"
-                message="No coaches match your search. Try another category or keyword."
+                message={
+                  hasActiveFilters
+                    ? 'No coaches match these filters. Clear them or try another city or keyword.'
+                    : 'No coaches match your search. Try another category or keyword.'
+                }
+                actionLabel={hasActiveFilters ? 'Clear filters' : undefined}
+                onAction={hasActiveFilters ? clearFilters : undefined}
               />
             ) : null}
           </>
@@ -369,11 +456,34 @@ const styles = StyleSheet.create({
   toolbar: {
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
     ...Shadow.sm,
   },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  clearBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    marginTop: Spacing.xs,
+    paddingVertical: 2,
+  },
+  clearText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontFamily: FontFamily.semibold,
+  },
   body: { flex: 1 },
-  bodyContent: { padding: Spacing.md, paddingBottom: Spacing.xxl },
+  bodyContent: { padding: Spacing.md },
   loader: { marginVertical: Spacing.lg - 4 },
   resultRow: {
     flexDirection: 'row',
@@ -389,6 +499,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
     ...Shadow.sm,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
@@ -442,7 +554,6 @@ const styles = StyleSheet.create({
   viewBtn: {
     alignSelf: 'flex-end',
     paddingHorizontal: Spacing.md,
-    ...Shadow.sm,
   },
   ctaCard: {
     backgroundColor: Colors.secondary,

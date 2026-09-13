@@ -36,12 +36,14 @@ import SectionTag from '../../components/SectionTag';
 import { HeaderHomeButton } from '../../components/ScreenHeader';
 import { APP_DISPLAY_NAME } from '../../config/appConfig';
 import { getClientList, getEnquiryLeads, getRecheckupList } from '../../api/clientApi';
-import { getCoachProfile } from '../../api/coachApi';
+import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode, getCurrentCoachName } from '../../auth/session';
 import { getErrorMessage } from '../../api/client';
 import { refreshControlTheme } from '../../hooks/useRefreshControl';
 import { lastCheckupLabel } from '../../utils/recheckup';
+import { getProfileCompletion } from '../../utils/profileCompletion';
+import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import type { DashboardStackScreenProps } from '../../types/navigation';
 import type { ClientSummary } from '../../types/models';
 import type { IoniconName } from '../../types/icons';
@@ -134,9 +136,17 @@ export default function DashboardScreen({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
   });
+  const profileFullQuery = useQuery({
+    queryKey: queryKeys.coachProfileFull,
+    queryFn: getCoachProfileFull,
+  });
   const clients = clientsQuery.data ?? null;
   const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
   const greeting = greetingFor();
+  const profileCompletion = useMemo(
+    () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
+    [profileFullQuery.data],
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -145,6 +155,7 @@ export default function DashboardScreen({
       recheckupQuery.refetch(),
       leadsQuery.refetch(),
       profileQuery.refetch(),
+      profileFullQuery.refetch(),
     ])
       .then(([clientsResult]) => {
         if (clientsResult.isError) {
@@ -152,7 +163,7 @@ export default function DashboardScreen({
         }
       })
       .finally(() => setRefreshing(false));
-  }, [clientsQuery, recheckupQuery, leadsQuery, profileQuery]);
+  }, [clientsQuery, recheckupQuery, leadsQuery, profileQuery, profileFullQuery]);
 
   const clientsErrorMessage =
     clientsQuery.isError && !clients
@@ -377,6 +388,16 @@ export default function DashboardScreen({
       </Animated.View>
 
       <View style={styles.actionsSection}>
+        {profileCompletion &&
+        (!profileCompletion.isPublicReady || profileCompletion.percent < 100) ? (
+          <View style={styles.completionSlot}>
+            <ProfileCompletionCard
+              completion={profileCompletion}
+              onPress={() => navigation.navigate('Profile', { screen: 'EditProfile' })}
+            />
+          </View>
+        ) : null}
+
         <TouchableOpacity
           style={styles.primaryCta}
           onPress={goAddClient}
@@ -529,7 +550,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    ...Shadow.lg,
+    ...Shadow.md,
   },
   metricItem: {
     flex: 1,
@@ -566,6 +587,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
+  },
+  completionSlot: {
+    marginBottom: Spacing.sm,
   },
   primaryCta: {
     flexDirection: 'row',

@@ -27,6 +27,7 @@ import ClientBmiScreen from '../screens/clients/detail/ClientBmiScreen';
 import ClientBmiReportScreen from '../screens/clients/detail/ClientBmiReportScreen';
 import ClientDietPlanScreen from '../screens/clients/detail/ClientDietPlanScreen';
 import ChangePasswordScreen from '../screens/auth/ChangePasswordScreen';
+import ChangeMpinScreen from '../screens/auth/ChangeMpinScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import EditGalleryScreen from '../screens/profile/EditGalleryScreen';
@@ -90,6 +91,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="EditPackages" component={EditPackagesScreen} />
       <ProfileStack.Screen name="EditEvents" component={EditEventsScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <ProfileStack.Screen name="ChangeMpin" component={ChangeMpinScreen} />
       <ProfileStack.Screen name="Legal" component={LegalScreen} />
       <ProfileStack.Screen name="Leads" component={MyLeadsScreen} />
     </ProfileStack.Navigator>

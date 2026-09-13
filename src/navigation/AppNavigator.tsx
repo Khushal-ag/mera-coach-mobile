@@ -11,9 +11,24 @@ import CoachListScreen from '../screens/publicCoach/CoachListScreen';
 import CoachPublicProfileScreen from '../screens/publicCoach/CoachPublicProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import MpinSetupScreen from '../screens/auth/MpinSetupScreen';
+import MpinUnlockScreen from '../screens/auth/MpinUnlockScreen';
 import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const publicScreens = (
+  <>
+    <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen
+      name="HomeExplore"
+      component={HomeExploreScreen}
+      options={{ gestureEnabled: true, animation: 'slide_from_right' }}
+    />
+    <Stack.Screen name="CoachList" component={CoachListScreen} />
+    <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
+  </>
+);
 
 export default function AppNavigator() {
   const authStatus = useAuthState();
@@ -28,30 +43,32 @@ export default function AppNavigator() {
     return <SplashScreen />;
   }
 
+  if (authStatus === 'needsMpinUnlock') {
+    return (
+      <Stack.Navigator key="mpin-unlock" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MpinUnlock" component={MpinUnlockScreen} />
+      </Stack.Navigator>
+    );
+  }
+
+  if (authStatus === 'needsMpinSetup') {
+    return (
+      <Stack.Navigator key="mpin-setup" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MpinSetup" component={MpinSetupScreen} />
+      </Stack.Navigator>
+    );
+  }
+
   return (
     <Stack.Navigator key={authStatus} screenOptions={{ headerShown: false }}>
       {authStatus === 'signedIn' ? (
         <>
           <Stack.Screen name="Main" component={MainTabNavigator} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen
-            name="HomeExplore"
-            component={HomeExploreScreen}
-            options={{ gestureEnabled: true, animation: 'slide_from_right' }}
-          />
-          <Stack.Screen name="CoachList" component={CoachListScreen} />
-          <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
+          {publicScreens}
         </>
       ) : (
         <>
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen
-            name="HomeExplore"
-            component={HomeExploreScreen}
-            options={{ gestureEnabled: true, animation: 'slide_from_right' }}
-          />
-          <Stack.Screen name="CoachList" component={CoachListScreen} />
-          <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
+          {publicScreens}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
         </>
