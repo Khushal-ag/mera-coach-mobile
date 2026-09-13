@@ -1,6 +1,6 @@
 import { SUPPORT_EMAIL } from '../config/appConfig';
 
-export interface LegalSection {
+interface LegalSection {
   title: string;
   body: string;
 }

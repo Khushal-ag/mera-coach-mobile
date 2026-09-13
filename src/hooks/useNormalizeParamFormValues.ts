@@ -30,14 +30,14 @@ type ScalarParamKey =
 
 type ListParamKey = 'medicalConditions' | 'foodAllergies';
 
-export interface HealthGoalParamBundle {
+interface HealthGoalParamBundle {
   medicalOptions: MasterOption[];
   allergyOptions: MasterOption[];
   goalOptions: MasterOption[];
   timelineOptions: MasterOption[];
 }
 
-export interface LifestyleParamBundle {
+interface LifestyleParamBundle {
   activityOptions: MasterOption[];
   workTypeOptions: MasterOption[];
   sleepOptions: MasterOption[];

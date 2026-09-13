@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Spacing } from '../constants/theme';
+import { Colors, FontFamily, IconSize, Radius, Spacing } from '../constants/theme';
 import type { IoniconName } from '../types/icons';
 
 interface SectionTagProps {
@@ -13,7 +13,7 @@ interface SectionTagProps {
 export default function SectionTag({ icon, label, style }: SectionTagProps) {
   return (
     <View style={[styles.tag, style]}>
-      <Ionicons name={icon} size={12} color={Colors.secondary} />
+      <Ionicons name={icon} size={IconSize.xs} color={Colors.secondary} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );

@@ -13,8 +13,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { Colors, Radius, Shadow } from '../../../constants/theme';
-import FoodItemChip from '../../../components/FoodItemChip';
+import {
+  Colors,
+  FontFamily,
+  FormControl,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+  formFieldStyles,
+  buttonStyles,
+} from '../../../constants/theme';
+import FoodItemChip from '../../../components/addClient/FoodItemChip';
 import { MEAL_SLOTS } from '../../../data/dietCatalog';
 import { MEAL_SLOT_TO_API_LABEL } from '../../../data/mealSlotLabels';
 import { getFoodMaster, getFoodCalories, resolveMasterLabel } from '../../../api/masterApi';
@@ -136,7 +146,11 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
                     onRemove={() => removeItem(slotId, i)}
                   />
                 ))}
-                <TouchableOpacity style={styles.moreBtn} onPress={() => setPickerSlot(slotId)}>
+                <TouchableOpacity
+                  style={styles.moreBtn}
+                  onPress={() => setPickerSlot(slotId)}
+                  activeOpacity={PressOpacity.default}
+                >
                   <Text style={styles.moreText}>+ Add Item</Text>
                 </TouchableOpacity>
               </View>
@@ -215,82 +229,106 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
 }
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 18 },
+  section: { marginBottom: Spacing.md + 2 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
   },
-  sectionLabel: { fontSize: 14, fontWeight: '700', color: Colors.textDark },
-  sectionTotal: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  sectionLabel: { fontSize: 14, fontFamily: FontFamily.bold, color: Colors.textDark },
+  sectionTotal: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     padding: 14,
     ...Shadow.sm,
   },
-  empty: { fontSize: 13, color: Colors.textLight, marginBottom: 8, fontStyle: 'italic' },
+  empty: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginBottom: Spacing.xs,
+    fontStyle: 'italic',
+  },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   moreBtn: {
-    borderRadius: Radius.pill,
+    ...buttonStyles.compactGhost,
     borderWidth: 1,
     borderColor: Colors.primary,
     borderStyle: 'dashed',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
-  moreText: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
-  note: { fontSize: 11, color: Colors.textLight, marginTop: 4, fontStyle: 'italic' },
+  moreText: { ...buttonStyles.compactGhostText, fontSize: 12 },
+  note: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   backdropFlex: { flex: 1 },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
-    padding: 20,
+    padding: Spacing.lg - 4,
     maxHeight: '65%',
     ...Shadow.lg,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: Colors.textDark, marginBottom: 12 },
-  optionList: { marginBottom: 8 },
+  sheetTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginBottom: Spacing.sm,
+  },
+  optionList: { marginBottom: Spacing.xs },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.background,
   },
-  optionText: { fontSize: 14, color: Colors.textDark },
-  optionKcal: { fontSize: 12, color: Colors.textLight, fontWeight: '600' },
-  noFoods: { fontSize: 13, color: Colors.textLight, textAlign: 'center', paddingVertical: 16 },
+  optionText: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
+  optionKcal: { fontSize: 12, color: Colors.textLight, fontFamily: FontFamily.semibold },
+  noFoods: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
+  },
   aiRow: {
-    marginTop: 12,
+    marginTop: Spacing.sm,
     paddingTop: 14,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.background,
   },
-  aiLabel: { fontSize: 13, fontWeight: '700', color: Colors.secondary, marginBottom: 8 },
-  aiInputRow: { flexDirection: 'row', gap: 8 },
+  aiLabel: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: Colors.secondary,
+    marginBottom: Spacing.xs,
+  },
+  aiInputRow: { flexDirection: 'row', gap: Spacing.xs },
   aiInput: {
+    ...formFieldStyles.wrap,
+    ...formFieldStyles.wrapSurface,
+    ...formFieldStyles.input,
     flex: 1,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.sm,
-    paddingHorizontal: 12,
-    height: 44,
-    fontSize: 14,
-    color: Colors.textDark,
+    height: FormControl.compactHeight + 8,
   },
   aiBtn: {
+    ...buttonStyles.compact,
     backgroundColor: Colors.secondary,
     borderRadius: Radius.sm,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    minWidth: 64,
+    paddingHorizontal: Spacing.md,
   },
-  aiBtnText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
-  aiError: { fontSize: 12, color: Colors.primary, marginTop: 6 },
+  aiBtnText: buttonStyles.compactText,
+  aiError: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.primary, marginTop: 6 },
 });

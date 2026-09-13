@@ -3,10 +3,17 @@ import {
   buildFeedbackSmsBody,
   buildFeedbackWebUrl,
   buildSmsUrl,
+  isValidSmsPhone,
   normalizeSmsPhone,
 } from '../../utils/feedbackSms';
 
 describe('feedbackSms', () => {
+  const originalOS = Platform.OS;
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
   it('builds feedback URL with coach and client codes', () => {
     const url = buildFeedbackWebUrl({ coachCode: 'C1', clientCode: 'CL9' });
     expect(url).toContain('/feedback?');
@@ -27,8 +34,29 @@ describe('feedbackSms', () => {
   it('prefixes Indian 10-digit mobiles with +91 for SMS', () => {
     expect(normalizeSmsPhone('9823456712')).toBe('+919823456712');
     expect(normalizeSmsPhone('91 98234 56712')).toBe('+919823456712');
+    expect(normalizeSmsPhone('+91-98234-56712')).toBe('+919823456712');
+  });
 
-    const separator = Platform.OS === 'ios' ? '&' : '?';
-    expect(buildSmsUrl('9823456712', 'Hi')).toBe(`sms:+919823456712${separator}body=Hi`);
+  it('rejects missing or too-short mobiles', () => {
+    expect(isValidSmsPhone('')).toBe(false);
+    expect(isValidSmsPhone('---')).toBe(false);
+    expect(isValidSmsPhone('12345')).toBe(false);
+    expect(isValidSmsPhone('9823456712')).toBe(true);
+    expect(buildSmsUrl('', 'Hi')).toBeNull();
+    expect(buildSmsUrl('123', 'Hi')).toBeNull();
+  });
+
+  it('builds iOS sms:/open?addresses= URL with encoded +', () => {
+    Platform.OS = 'ios';
+    expect(buildSmsUrl('9823456712', 'Hi Priya')).toBe(
+      'sms:/open?addresses=%2B919823456712&body=Hi%20Priya',
+    );
+  });
+
+  it('builds Android sms:+E164?body= URL', () => {
+    Platform.OS = 'android';
+    expect(buildSmsUrl('9823456712', 'Hi Priya')).toBe(
+      'sms:+919823456712?body=Hi%20Priya',
+    );
   });
 });

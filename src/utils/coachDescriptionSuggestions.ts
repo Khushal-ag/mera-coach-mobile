@@ -1,6 +1,6 @@
 /** Static description templates for coach profiles. */
 
-export interface DescriptionSuggestionInput {
+interface DescriptionSuggestionInput {
   coachName: string;
   categoryLabel: string;
   categoryDescription?: string;

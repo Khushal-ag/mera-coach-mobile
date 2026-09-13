@@ -1,11 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Shadow } from '../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  FormControl,
+  Radius,
+  Shadow,
+  Spacing,
+  formFieldStyles,
+} from '../constants/theme';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
 
-export type DropdownOption = string | MasterOption;
+type DropdownOption = string | MasterOption;
 
 function normalizeOptions(options: DropdownOption[]): MasterOption[] {
   return options.map(opt =>
@@ -90,34 +98,28 @@ export default function DropdownField({
 }
 
 const styles = StyleSheet.create({
-  field: { marginBottom: 16 },
+  field: { marginBottom: Spacing.md },
   fieldCompact: { marginBottom: 0, flexShrink: 1, maxWidth: '52%' },
   box: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...formFieldStyles.wrap,
+    ...formFieldStyles.wrapSurface,
     justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 12,
-    height: 50,
   },
   boxCompact: {
-    height: 34,
-    paddingHorizontal: 10,
+    height: FormControl.compactHeight,
+    paddingHorizontal: Spacing.sm - 2,
     borderWidth: 1,
   },
-  boxError: { borderColor: Colors.destructive },
-  value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
+  boxError: formFieldStyles.wrapError,
+  value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark, flex: 1 },
   valueCompact: { fontSize: 12, flex: 1 },
-  placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight },
+  placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight, flex: 1 },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
-    padding: 20,
+    padding: Spacing.lg,
     maxHeight: '60%',
     ...Shadow.lg,
   },
@@ -125,20 +127,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FontFamily.bold,
     color: Colors.textDark,
-    marginBottom: 12,
+    marginBottom: Spacing.sm,
   },
-  optionList: { marginBottom: 8 },
+  optionList: { marginBottom: Spacing.xs },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.background,
+    minHeight: 48,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
   },
   optionText: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.sm,
     fontSize: 14,
     fontFamily: FontFamily.regular,
     color: Colors.textDark,

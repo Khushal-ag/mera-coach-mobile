@@ -1,12 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Shadow } from '../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Shadow,
+  Spacing,
+  formFieldStyles,
+  ChipControl,
+  buttonStyles,
+} from '../constants/theme';
 import { isNoneOfTheAboveValue } from '../data/lifestyleOptions';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
 
-export type MultiSelectOption = string | MasterOption;
+type MultiSelectOption = string | MasterOption;
 
 function normalizeOptions(options: MultiSelectOption[]): MasterOption[] {
   return options.map(opt =>
@@ -177,31 +186,26 @@ export default function MultiSelectField({
 }
 
 const styles = StyleSheet.create({
-  field: { marginBottom: 16 },
+  field: { marginBottom: Spacing.md },
   box: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...formFieldStyles.wrap,
+    ...formFieldStyles.wrapSurface,
     justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 12,
-    height: 50,
   },
-  boxError: { borderColor: Colors.destructive },
-  triggerText: { flex: 1, marginRight: 8, textAlign: 'left' },
+  boxError: formFieldStyles.wrapError,
+  triggerText: { flex: 1, marginRight: Spacing.xs, textAlign: 'left' },
   value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm - 2 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: ChipControl.radius,
+    paddingHorizontal: ChipControl.paddingHorizontal,
+    paddingVertical: ChipControl.paddingVertical,
+    minHeight: ChipControl.minHeight,
   },
   chipText: { fontSize: 12, fontFamily: FontFamily.semibold, color: Colors.secondary },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
@@ -257,11 +261,9 @@ const styles = StyleSheet.create({
   },
   checkboxActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
   doneBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 8,
+    ...buttonStyles.primary,
+    marginTop: Spacing.xs,
+    minHeight: 48,
   },
-  doneText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 14 },
+  doneText: buttonStyles.primaryText,
 });

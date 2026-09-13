@@ -2,7 +2,7 @@ import { apiPost } from './client';
 import { hashPassword } from '../utils/hash';
 import type { Session } from '../types/models';
 
-export interface LoginParams {
+interface LoginParams {
   userName: string;
   password: string;
   userType?: string;

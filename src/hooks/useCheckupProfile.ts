@@ -4,7 +4,7 @@ import { queryKeys } from '../api/queryKeys';
 import { useMappedClientProfile } from './useMappedClientProfile';
 import type { ClientSummary } from '../types/models';
 
-export type CheckupAssessmentIdMode = 'checkup' | 'latest';
+type CheckupAssessmentIdMode = 'checkup' | 'latest';
 
 /**
  * assessmentCode: '' loads latest assessment.

@@ -1,6 +1,6 @@
 import type { DietItem, DietPlan } from '../types/models';
 
-export interface MealSlot {
+interface MealSlot {
   id: string;
   label: string;
   defaults: DietItem[];

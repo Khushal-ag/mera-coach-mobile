@@ -1,5 +1,5 @@
 import type { TextStyle, ViewStyle } from 'react-native';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from './theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing, buttonStyles } from './theme';
 
 // Plain objects, not StyleSheet.create, so consumers can spread these into their own.
 export const wizardShellStyles = {
@@ -7,7 +7,7 @@ export const wizardShellStyles = {
   body: { flex: 1 },
   bodyContent: {
     padding: Spacing.lg,
-    paddingBottom: 40,
+    paddingBottom: Spacing.xxl,
   },
   stepBanner: {
     flexDirection: 'row',
@@ -25,17 +25,49 @@ export const wizardShellStyles = {
     fontSize: 15,
     fontFamily: FontFamily.bold,
   },
-  stepBannerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 2 },
-  nextBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.xs,
-    ...Shadow.sm,
+  stepBannerSubtitle: {
+    color: Colors.onDarkMuted,
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
   },
-  nextText: { color: Colors.white, fontFamily: FontFamily.bold, fontSize: 15 },
+  nextBtn: {
+    marginTop: Spacing.xs,
+  },
+  nextText: buttonStyles.primaryText,
+} satisfies Record<string, ViewStyle | TextStyle>;
+
+/** Shared choice pills for wizard gender / unit toggles. */
+export const wizardPillStyles = {
+  row: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: Spacing.xs },
+  pill: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  pillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  pillText: {
+    fontSize: 13,
+    color: Colors.textLight,
+    fontFamily: FontFamily.semibold,
+  },
+  pillActiveText: { color: Colors.white },
+  unitPill: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  unitPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  unitPillText: {
+    fontSize: 12,
+    color: Colors.textLight,
+    fontFamily: FontFamily.semibold,
+  },
+  unitPillTextActive: { color: Colors.white },
 } satisfies Record<string, ViewStyle | TextStyle>;

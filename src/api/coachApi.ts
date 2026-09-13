@@ -11,13 +11,14 @@ export async function getCoachCategories(context?: {
   signal?: AbortSignal;
 }): Promise<CoachCategory[]> {
   const items = await fetchMasterItems({ ItemType: 'CoachType' }, context?.signal);
+  // Return every active CoachType from Master — do not filter to a local allowlist.
   return items.map(item => {
-    const style = getCoachTypeStyle(item.itemCode);
+    const style = getCoachTypeStyle(item.itemCode, item.itemName);
     return {
       code: item.itemCode,
       label: item.itemName,
       short: style.short,
-      // Keep Ionicons fallback for screens that still use `icon` directly.
+      // Prefer API FontAwesome → Ionicon; else brand/style fallback (including unknown codes).
       icon: fontAwesomeToIonicon(item.icon) ?? style.icon,
       faIcon: item.icon || undefined,
       color: style.color,
@@ -27,7 +28,7 @@ export async function getCoachCategories(context?: {
   });
 }
 
-export interface RegisterCoachParams {
+interface RegisterCoachParams {
   coachName: string;
   coachTypeCode?: string;
   mobile: string;
@@ -36,7 +37,7 @@ export interface RegisterCoachParams {
   referrerMobile?: string;
 }
 
-export interface RegisterCoachResult {
+interface RegisterCoachResult {
   plainPassword: string;
   [key: string]: unknown;
 }
@@ -45,7 +46,7 @@ export async function registerCoach(params: RegisterCoachParams): Promise<Regist
   return apiPost<RegisterCoachResult>('/v{version}/Coach/save', params);
 }
 
-export interface CoachPublicListParams {
+interface CoachPublicListParams {
   coachTypeCode?: string;
   country?: string;
   state?: string;
@@ -56,7 +57,7 @@ export interface CoachPublicListParams {
 }
 
 /** IsProfileVisible: accept PascalCase, camelCase, or legacy Is_profileVisible. */
-export function parseIsProfileVisible(raw: Record<string, unknown>): boolean | undefined {
+function parseIsProfileVisible(raw: Record<string, unknown>): boolean | undefined {
   const v =
     raw.IsProfileVisible ?? raw.isProfileVisible ?? raw.Is_profileVisible ?? raw.is_profileVisible;
   if (v === undefined || v === null) return undefined;
@@ -355,7 +356,7 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
   };
 }
 
-export interface CoachEnquiryParams {
+interface CoachEnquiryParams {
   coachCode?: string;
   clientName: string;
   clientMobile: string;
@@ -367,7 +368,7 @@ export async function submitCoachEnquiry(params: CoachEnquiryParams): Promise<vo
   await apiPost('/v{version}/Coach/enquiry', params);
 }
 
-export interface BmiLeadParams {
+interface BmiLeadParams {
   clientName: string;
   clientMobile: string;
   gender?: string;
@@ -390,7 +391,7 @@ export async function getServicesForCategory(categoryCode: string): Promise<Mast
 }
 
 /** Coach/save body. packages/events are only attached when non-empty. */
-export interface SaveCoachProfileParams {
+interface SaveCoachProfileParams {
   coachId: number;
   coachName: string;
   coachTypeCode: string;
@@ -493,7 +494,7 @@ export function buildSaveCoachProfileParams(
   };
 }
 
-export interface ChangePasswordParams {
+interface ChangePasswordParams {
   currentPassword: string;
   newPassword: string;
 }

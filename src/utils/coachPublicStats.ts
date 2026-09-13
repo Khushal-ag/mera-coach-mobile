@@ -3,7 +3,7 @@
  * Otherwise use happyClientCount; hide rating when reviewCount is 0.
  */
 
-export type PublicStatItem = {
+type PublicStatItem = {
   key: string;
   value: string;
   label: string;

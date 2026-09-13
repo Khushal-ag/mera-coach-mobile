@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const KEYBOARD_SCROLL_PADDING = 160;
 
-export type KeyboardSafeScrollProps = Omit<ScrollViewProps, 'contentContainerStyle' | 'style'> & {
+type KeyboardSafeScrollProps = Omit<ScrollViewProps, 'contentContainerStyle' | 'style'> & {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;

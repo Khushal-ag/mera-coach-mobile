@@ -1,6 +1,6 @@
 import { ApiError, apiGet, apiPost } from './client';
 
-export interface UploadDocumentParams {
+interface UploadDocumentParams {
   base64DataUrl: string;
   coachCode: string;
   refCode: string;
@@ -9,7 +9,7 @@ export interface UploadDocumentParams {
   savedBy: number;
 }
 
-export interface UploadDocumentResult {
+interface UploadDocumentResult {
   url: string;
   docId?: number;
 }
@@ -21,9 +21,7 @@ export async function uploadDocument(params: UploadDocumentParams): Promise<stri
 }
 
 /** Like uploadDocument, plus docId when the API includes it (progress-photo uploads). */
-export async function uploadDocumentWithMeta(
-  params: UploadDocumentParams,
-): Promise<UploadDocumentResult> {
+async function uploadDocumentWithMeta(params: UploadDocumentParams): Promise<UploadDocumentResult> {
   const data = await apiPost<{ url?: string; docId?: number } | string>(
     '/v{version}/Document/upload',
     params,
@@ -48,7 +46,7 @@ export interface DocumentListItem {
   fcdt?: string;
 }
 
-export interface ListDocumentsParams {
+interface ListDocumentsParams {
   coachCode: string;
   refCode: string;
   refType: string;
@@ -89,7 +87,7 @@ export async function listDocuments(params: ListDocumentsParams): Promise<Docume
     .filter(item => item.docId > 0 && item.filePath.length > 0);
 }
 
-export interface DeleteDocumentParams {
+interface DeleteDocumentParams {
   docId: number;
   coachCode: string;
 }

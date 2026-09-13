@@ -88,5 +88,10 @@ export default function LifestylePreferencesStep({
 }
 
 const styles = StyleSheet.create({
-  divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginBottom: 16,
+    marginTop: 4,
+  },
 });

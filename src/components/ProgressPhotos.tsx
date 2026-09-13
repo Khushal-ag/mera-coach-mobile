@@ -13,7 +13,15 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { pickImagesFromCameraOrLibrary } from '../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../constants/theme';
+import {
+  Colors,
+  Radius,
+  Shadow,
+  Spacing,
+  Typography,
+  buttonStyles,
+  PressOpacity,
+} from '../constants/theme';
 import { deleteDocument, uploadDocument, type DocumentListItem } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { getCurrentCoachId } from '../auth/session';
@@ -130,7 +138,7 @@ export default function ProgressPhotos({ clientCode }: Props) {
             return (
               <View key={item.docId} style={styles.thumbWrap}>
                 <TouchableOpacity
-                  activeOpacity={0.85}
+                  activeOpacity={PressOpacity.default}
                   onPress={() => {
                     if (!uri) return;
                     setLightboxUri(uri);
@@ -198,36 +206,31 @@ export default function ProgressPhotos({ clientCode }: Props) {
 const THUMB = 100;
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 16 },
+  section: { marginBottom: Spacing.md },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
-  hint: { fontSize: 12, color: Colors.textLight, marginBottom: 10, lineHeight: 17 },
+  sectionTitle: { ...Typography.section },
+  hint: { ...Typography.caption, marginBottom: Spacing.sm - 2, lineHeight: 17 },
   uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    ...buttonStyles.compact,
+    paddingHorizontal: Spacing.sm,
   },
-  uploadBtnDisabled: { opacity: 0.7 },
-  uploadBtnText: { color: Colors.white, fontSize: 12, fontWeight: '700' },
+  uploadBtnDisabled: buttonStyles.disabled,
+  uploadBtnText: buttonStyles.compactText,
   empty: {
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    padding: 24,
+    padding: Spacing.lg,
     ...Shadow.sm,
   },
-  emptyText: { fontSize: 13, color: Colors.textLight },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  emptyText: { ...Typography.label, color: Colors.textLight },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm - 2 },
   thumbWrap: { width: THUMB, position: 'relative' },
   thumb: {
     width: THUMB,
@@ -238,8 +241,8 @@ const styles = StyleSheet.create({
   thumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   deleteBtn: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: Spacing.xxs,
+    right: Spacing.xxs,
     backgroundColor: Colors.white,
     borderRadius: 12,
     width: 24,
@@ -248,18 +251,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...Shadow.sm,
   },
-  lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
+  lightbox: { flex: 1, backgroundColor: Colors.lightboxScrim },
   lightboxBackdrop: { ...StyleSheet.absoluteFill },
-  lightboxContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  lightboxContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg - 4,
+  },
   lightboxImage: { width: '100%', height: 400 },
   lightboxClose: {
     position: 'absolute',
     top: 48,
-    right: 20,
+    right: Spacing.lg - 4,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },

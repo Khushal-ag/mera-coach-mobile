@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Spacing } from '../constants/theme';
+import { Colors, FontFamily, Spacing, TouchTarget } from '../constants/theme';
 import { HeaderBackButton, HeaderHomeButton } from './ScreenHeader';
 
 interface TabRootHeaderProps {
@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: TouchTarget.min,
   },
   textBlock: { flex: 1, marginRight: Spacing.sm },
   textBlockWithBack: { marginLeft: Spacing.sm },
@@ -72,6 +73,6 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.xs,
   },
 });

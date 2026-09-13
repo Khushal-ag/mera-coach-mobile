@@ -45,17 +45,38 @@ export function normalizeSmsPhone(phone: string): string {
   return digits;
 }
 
-/** Native SMS composer. iOS uses `&body=`, Android uses `?body=`. */
-export function buildSmsUrl(phone: string, body: string): string {
+/** True when phone normalizes to a usable E.164-style recipient (≥10 digits). */
+export function isValidSmsPhone(phone: string): boolean {
+  const digits = stripNonDigits(normalizeSmsPhone(phone));
+  return digits.length >= 10;
+}
+
+/**
+ * Native SMS composer URL.
+ * iOS: `sms:/open?addresses=` so To: is set; encode `+` as `%2B` (raw `+` is
+ * treated as a space and drops the recipient while still filling body).
+ * Android: `sms:+E164?body=`.
+ */
+export function buildSmsUrl(phone: string, body: string): string | null {
+  if (!isValidSmsPhone(phone)) return null;
+
   const recipient = normalizeSmsPhone(phone);
-  const encoded = encodeURIComponent(body);
-  const separator = Platform.OS === 'ios' ? '&' : '?';
-  return `sms:${recipient}${separator}body=${encoded}`;
+  const encodedBody = encodeURIComponent(body);
+
+  if (Platform.OS === 'ios') {
+    return `sms:/open?addresses=${encodeURIComponent(recipient)}&body=${encodedBody}`;
+  }
+
+  return `sms:${recipient}?body=${encodedBody}`;
 }
 
 export async function openFeedbackSms(params: { phone: string; body: string }): Promise<void> {
   const url = buildSmsUrl(params.phone, params.body);
-  const canOpen = await Linking.canOpenURL(url);
+  if (!url) {
+    throw new Error('A valid mobile number is required to send feedback by SMS.');
+  }
+  // Query the scheme only — full sms: URLs with long bodies often fail canOpenURL on iOS.
+  const canOpen = await Linking.canOpenURL('sms:');
   if (!canOpen) {
     throw new Error('SMS is not available on this device.');
   }

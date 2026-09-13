@@ -73,7 +73,7 @@ export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScr
   T
 >;
 
-export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
+type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, T>,
   NativeStackScreenProps<RootStackParamList>
 >;

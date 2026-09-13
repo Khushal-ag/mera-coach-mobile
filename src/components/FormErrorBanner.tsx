@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius } from '../constants/theme';
+import { Colors, FontFamily, IconSize, Radius, Spacing } from '../constants/theme';
 
 interface FormErrorBannerProps {
   message: string | null | undefined;
@@ -11,7 +11,7 @@ export default function FormErrorBanner({ message }: FormErrorBannerProps) {
   if (!message) return null;
   return (
     <View style={styles.banner} accessibilityRole="alert">
-      <Ionicons name="alert-circle" size={18} color={Colors.destructive} />
+      <Ionicons name="alert-circle" size={IconSize.md} color={Colors.destructive} />
       <Text style={styles.text}>{message}</Text>
     </View>
   );
@@ -22,12 +22,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.destructiveSoft,
     borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: Colors.destructive,
-    padding: 12,
-    marginBottom: 16,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  text: { color: Colors.destructive, fontSize: 13, fontFamily: FontFamily.semibold, flex: 1 },
+  text: {
+    color: Colors.destructive,
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    flex: 1,
+  },
 });

@@ -1,7 +1,7 @@
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-export interface PickedImage {
+interface PickedImage {
   uri: string;
   base64: string;
   mimeType: string;
@@ -38,7 +38,7 @@ function promptImageSource(): Promise<'camera' | 'library' | null> {
   });
 }
 
-export interface PickImageOptions {
+interface PickImageOptions {
   allowsEditing?: boolean;
   aspect?: [number, number];
   quality?: number;

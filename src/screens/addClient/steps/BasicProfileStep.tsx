@@ -15,7 +15,16 @@ import {
 import { pickImagesFromCameraOrLibrary } from '../../../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius } from '../../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  IconSize,
+  PressOpacity,
+  Radius,
+  Spacing,
+  formFieldStyles,
+} from '../../../constants/theme';
+import { wizardPillStyles } from '../../../constants/wizardStyles';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import PhoneTextInput from '../../../components/PhoneTextInput';
 import ProgressPhotos from '../../../components/ProgressPhotos';
@@ -141,7 +150,7 @@ function Field({
     <View style={styles.field}>
       <FormFieldLabel required={required}>{label}</FormFieldLabel>
       <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
-        <Ionicons name={icon} size={17} color={Colors.textLight} style={styles.icon} />
+        <Ionicons name={icon} size={IconSize.md} color={Colors.textLight} style={styles.icon} />
         {inputMode === 'phone' ? (
           <PhoneTextInput
             {...inputProps}
@@ -286,7 +295,11 @@ function DobField({ form, update, hasError }: StepProps<ClientProfile> & { hasEr
     <View style={styles.field}>
       <FormFieldLabel required>Date of Birth</FormFieldLabel>
       <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
-        <TouchableOpacity style={styles.dobPressable} onPress={openPicker} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.dobPressable}
+          onPress={openPicker}
+          activeOpacity={PressOpacity.strong}
+        >
           <Ionicons
             name="calendar-outline"
             size={17}
@@ -532,7 +545,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
           <TouchableOpacity
             style={styles.photoActionBtn}
             onPress={pickPhotos}
-            activeOpacity={0.7}
+            activeOpacity={PressOpacity.strong}
             accessibilityRole="button"
             accessibilityLabel="Add client photos"
           >
@@ -718,8 +731,8 @@ export default function BasicProfileStep({
 }
 
 const styles = StyleSheet.create({
-  field: { marginBottom: 16 },
-  photoField: { marginBottom: 20 },
+  field: { marginBottom: Spacing.md },
+  photoField: { marginBottom: Spacing.lg - 4 },
   photoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -732,23 +745,29 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Colors.primaryLight,
     borderRadius: Radius.pill,
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: 7,
   },
-  photoActionText: { fontSize: 12, fontWeight: '700', color: Colors.primary },
-  photoHint: { fontSize: 11, color: Colors.textLight, lineHeight: 15, marginBottom: 10 },
+  photoActionText: { fontSize: 12, fontFamily: FontFamily.bold, color: Colors.primary },
+  photoHint: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 15,
+    marginBottom: 10,
+  },
   photoEmpty: {
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderStyle: 'dashed',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
-  photoEmptyText: { fontSize: 13, color: Colors.textLight, fontWeight: '600' },
+  photoEmptyText: { fontSize: 13, fontFamily: FontFamily.semibold, color: Colors.textLight },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   photoThumbWrap: { width: PHOTO_THUMB, position: 'relative' },
   photoThumb: {
@@ -782,42 +801,34 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 12,
-    height: 50,
+    ...formFieldStyles.wrap,
+    ...formFieldStyles.wrapSurface,
   },
-  inputWrapError: { borderColor: Colors.destructive },
+  inputWrapError: formFieldStyles.wrapError,
   dobPressable: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  icon: { marginRight: 8 },
-  input: { flex: 1, fontSize: 14, color: Colors.textDark, paddingVertical: 0 },
+  icon: formFieldStyles.inputIcon,
+  input: formFieldStyles.input,
   placeholder: { color: Colors.textLight },
-  hint: { fontSize: 11, color: Colors.textLight, marginTop: 6 },
-  row: { flexDirection: 'row', gap: 12 },
+  hint: { fontSize: 11, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 6 },
+  row: { flexDirection: 'row', gap: Spacing.sm },
   half: { flex: 1 },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pickerRow: wizardPillStyles.row,
   pickerRowError: {
     borderWidth: 1.5,
     borderColor: Colors.destructive,
     borderRadius: Radius.sm,
     padding: 4,
   },
-  pill: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+  pill: wizardPillStyles.pill,
+  pillActive: wizardPillStyles.pillActive,
+  pillText: wizardPillStyles.pillText,
+  pillActiveText: wizardPillStyles.pillActiveText,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginBottom: Spacing.md,
+    marginTop: 4,
   },
-  pillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  pillText: { fontSize: 13, color: Colors.textLight, fontWeight: '600' },
-  pillActiveText: { color: Colors.white },
-  divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
   heightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -825,47 +836,45 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   unitToggle: { flexDirection: 'row', gap: 6 },
-  unitPill: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+  unitPill: wizardPillStyles.unitPill,
+  unitPillActive: wizardPillStyles.unitPillActive,
+  unitPillText: wizardPillStyles.unitPillText,
+  unitPillTextActive: wizardPillStyles.unitPillTextActive,
+  unitSuffix: {
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textLight,
+    marginLeft: 4,
   },
-  unitPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  unitPillText: { fontSize: 12, color: Colors.textLight, fontWeight: '600' },
-  unitPillTextActive: { color: Colors.white },
-  unitSuffix: { fontSize: 13, fontWeight: '600', color: Colors.textLight, marginLeft: 4 },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: Colors.scrim,
   },
   modalDismissArea: { flex: 1 },
   modalSheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
-    paddingBottom: 28,
+    paddingBottom: Spacing.xl - 4,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  modalTitle: { fontSize: 15, fontWeight: '700', color: Colors.textDark },
-  modalCancel: { fontSize: 16, fontWeight: '600', color: Colors.textLight },
-  modalDone: { fontSize: 16, fontWeight: '700', color: Colors.primary },
+  modalTitle: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
+  modalCancel: { fontSize: 16, fontFamily: FontFamily.semibold, color: Colors.textLight },
+  modalDone: { fontSize: 16, fontFamily: FontFamily.bold, color: Colors.primary },
   wheelRow: {
     flexDirection: 'row',
     height: WHEEL_ITEM_HEIGHT * WHEEL_VISIBLE,
-    marginTop: 8,
-    marginHorizontal: 8,
+    marginTop: Spacing.xs,
+    marginHorizontal: Spacing.xs,
     position: 'relative',
   },
   wheelHighlight: {
@@ -884,13 +893,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wheelItemText: { fontSize: 16, color: Colors.textLight, fontWeight: '500' },
-  wheelItemTextActive: { color: Colors.textDark, fontWeight: '700', fontSize: 17 },
+  wheelItemText: { fontSize: 16, color: Colors.textLight, fontFamily: FontFamily.medium },
+  wheelItemTextActive: { color: Colors.textDark, fontFamily: FontFamily.bold, fontSize: 17 },
   draftPreview: {
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: Spacing.sm,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FontFamily.semibold,
     color: Colors.primary,
   },
 });

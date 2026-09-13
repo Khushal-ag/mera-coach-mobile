@@ -7,9 +7,9 @@ import type { ClientSummary } from '../types/models';
  */
 export const RECHECKUP_INTERVAL_DAYS = 7;
 
-export type CheckupUrgency = 'never' | 'overdue' | 'due' | 'ok';
+type CheckupUrgency = 'never' | 'overdue' | 'due' | 'ok';
 
-export interface CheckupStatus {
+interface CheckupStatus {
   urgency: CheckupUrgency;
   /** Whole days since the last checkup; null when there has never been one. */
   daysSince: number | null;
@@ -83,7 +83,7 @@ const URGENCY_RANK: Record<CheckupUrgency, number> = {
   ok: 3,
 };
 
-export interface RankedClient {
+interface RankedClient {
   client: ClientSummary;
   status: CheckupStatus;
 }

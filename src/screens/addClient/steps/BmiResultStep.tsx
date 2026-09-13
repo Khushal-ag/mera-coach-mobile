@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow } from '../../../constants/theme';
+import { Colors, FontFamily, IconSize, Radius, Shadow, Spacing } from '../../../constants/theme';
 import { getBmiCategory, computeBmiMetrics } from '../../../utils/bmi';
 import type { BodyMetrics } from '../../../utils/bmi';
 import type { ClientProfile } from '../../../types/models';
@@ -58,7 +58,7 @@ export default function BmiResultStep({ form }: StepProps<ClientProfile>) {
     <View>
       {!metrics ? (
         <View style={styles.hintCard}>
-          <Ionicons name="information-circle-outline" size={18} color={Colors.accent} />
+          <Ionicons name="information-circle-outline" size={IconSize.md} color={Colors.accent} />
           <Text style={styles.hint}>
             Enter age, gender, height and weight in the basic profile to calculate these metrics.
           </Text>
@@ -82,7 +82,7 @@ export default function BmiResultStep({ form }: StepProps<ClientProfile>) {
         {tiles.map(t => (
           <View key={t.label} style={styles.tile}>
             <View style={styles.tileIconWrap}>
-              <Ionicons name={t.icon} size={16} color={Colors.secondary} />
+              <Ionicons name={t.icon} size={IconSize.sm} color={Colors.secondary} />
             </View>
             <Text style={styles.tileValue}>{t.value}</Text>
             <Text style={styles.tileLabel}>{t.label}</Text>
@@ -93,7 +93,7 @@ export default function BmiResultStep({ form }: StepProps<ClientProfile>) {
 
       {metrics ? (
         <View style={styles.saveHint}>
-          <Ionicons name="information-circle-outline" size={16} color={Colors.secondary} />
+          <Ionicons name="information-circle-outline" size={IconSize.sm} color={Colors.secondary} />
           <Text style={styles.saveHintText}>
             Continuing or opening a report saves this reading to the client&apos;s history.
           </Text>
@@ -110,17 +110,23 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: Colors.accentLight,
     borderRadius: Radius.md,
-    padding: 12,
-    marginBottom: 16,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  hint: { flex: 1, fontSize: 12, color: Colors.textLight, lineHeight: 18 },
+  hint: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 18,
+  },
   sectionLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FontFamily.bold,
     color: Colors.textDark,
     marginBottom: 10,
   },
-  tilesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
+  tilesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: Spacing.md + 2 },
   tile: {
     width: '48.5%',
     backgroundColor: Colors.white,
@@ -134,17 +140,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bmiTileCaption: {
-    color: 'rgba(255,255,255,0.75)',
+    color: Colors.onDarkCaption,
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: FontFamily.semibold,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  bmiTileValue: { fontSize: 28, fontWeight: '800', color: Colors.white },
+  bmiTileValue: { fontSize: 28, fontFamily: FontFamily.extraBold, color: Colors.white },
   bmiTileSub: {
-    color: 'rgba(255,255,255,0.65)',
+    color: Colors.onDarkSoft,
     fontSize: 10,
+    fontFamily: FontFamily.regular,
     marginTop: 6,
   },
   categoryBadge: {
@@ -152,9 +159,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    marginTop: 8,
+    marginTop: Spacing.xs,
   },
-  categoryText: { fontSize: 11, fontWeight: '700' },
+  categoryText: { fontSize: 11, fontFamily: FontFamily.bold },
   tileIconWrap: {
     width: 28,
     height: 28,
@@ -162,18 +169,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
-  tileValue: { fontSize: 20, fontWeight: '800', color: Colors.secondary },
-  tileLabel: { fontSize: 12, fontWeight: '700', color: Colors.textDark, marginTop: 2 },
-  tileCaption: { fontSize: 10, color: Colors.textLight, marginTop: 2, lineHeight: 14 },
+  tileValue: { fontSize: 20, fontFamily: FontFamily.extraBold, color: Colors.secondary },
+  tileLabel: {
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+    marginTop: 2,
+  },
+  tileCaption: {
+    fontSize: 10,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginTop: 2,
+    lineHeight: 14,
+  },
   saveHint: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.md,
-    padding: 12,
+    padding: Spacing.sm,
   },
-  saveHintText: { flex: 1, fontSize: 12, color: Colors.textLight, lineHeight: 18 },
+  saveHintText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 18,
+  },
 });

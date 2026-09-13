@@ -1,13 +1,13 @@
 import type { IoniconName } from '../types/icons';
 
-export interface CoachPhase {
+interface CoachPhase {
   id: string;
   label: string;
   icon: IoniconName;
   screens: string[];
 }
 
-export interface CoachTypeConfig {
+interface CoachTypeConfig {
   id: string;
   label: string;
   phases: CoachPhase[];

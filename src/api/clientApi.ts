@@ -42,7 +42,7 @@ function mapClientListItem(raw: RawClientListItem): ClientSummary {
   };
 }
 
-export interface GetClientListParams {
+interface GetClientListParams {
   coachCode?: string;
   searchOption?: string;
   searchText?: string;
@@ -86,7 +86,7 @@ function mapRecheckupListItem(raw: RawRecheckupListItem): RecheckupDueClient {
   };
 }
 
-export interface GetRecheckupListParams {
+interface GetRecheckupListParams {
   coachCode?: string;
   searchOption?: string;
   searchText?: string;
@@ -363,7 +363,7 @@ function normalizeBmiMeasurement(raw?: RawBmiMeasurement | null): RawBmiMeasurem
   return bmi === undefined ? raw : { ...raw, bmi };
 }
 
-export interface BmiReport {
+interface BmiReport {
   client: { clientName?: string; age?: number; gender?: string; location?: string };
   coach: {
     businessName?: string;
@@ -453,7 +453,7 @@ export async function getEnquiryLeads(coachCode?: string): Promise<EnquiryLead[]
   return (items || []).map(mapEnquiryLead).filter((l): l is EnquiryLead => l != null);
 }
 
-export interface UpdateEnquiryLeadParams {
+interface UpdateEnquiryLeadParams {
   leadId: number;
   isContacted?: boolean;
   notes?: string;

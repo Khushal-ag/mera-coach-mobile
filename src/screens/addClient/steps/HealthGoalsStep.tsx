@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
-import { Colors, Radius } from '../../../constants/theme';
+import { Colors, FontFamily, Spacing, formFieldStyles } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import MultiSelectField from '../../../components/MultiSelectField';
@@ -85,17 +85,22 @@ export default function HealthGoalsStep({
 }
 
 const styles = StyleSheet.create({
-  field: { marginBottom: 16 },
-  divider: { height: 1, backgroundColor: Colors.border, marginBottom: 16, marginTop: 4 },
+  field: { marginBottom: Spacing.md },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginBottom: Spacing.md,
+    marginTop: 4,
+  },
   textarea: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 12,
-    fontSize: 14,
-    color: Colors.textDark,
+    ...formFieldStyles.wrap,
+    ...formFieldStyles.wrapSurface,
     height: 90,
+    paddingVertical: Spacing.sm,
+    alignItems: 'flex-start',
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
     textAlignVertical: 'top',
   },
 });

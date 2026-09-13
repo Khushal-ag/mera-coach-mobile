@@ -6,7 +6,7 @@ import {
   subscribeToAuthState,
 } from './session';
 
-export type AuthStatus = 'loading' | 'signedIn' | 'signedOut';
+type AuthStatus = 'loading' | 'signedIn' | 'signedOut';
 
 function getSnapshot(): AuthStatus {
   if (!isAuthInitialized()) return 'loading';

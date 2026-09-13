@@ -4,13 +4,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthState } from '../auth/useAuthState';
 import type { RootStackParamList } from '../types/navigation';
 
-import SplashScreen from '../screens/SplashScreen';
-import HomeScreen from '../screens/HomeScreen';
-import HomeExploreScreen from '../screens/HomeExploreScreen';
-import CoachListScreen from '../screens/CoachListScreen';
-import CoachPublicProfileScreen from '../screens/CoachPublicProfileScreen';
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
+import SplashScreen from '../screens/home/SplashScreen';
+import HomeScreen from '../screens/home/HomeScreen';
+import HomeExploreScreen from '../screens/home/HomeExploreScreen';
+import CoachListScreen from '../screens/publicCoach/CoachListScreen';
+import CoachPublicProfileScreen from '../screens/publicCoach/CoachPublicProfileScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

@@ -34,7 +34,7 @@ export async function getCountries(): Promise<MasterOption[]> {
   return mapMasterOptions(await fetchMasterItems({ ItemType: 'Country' }));
 }
 
-export interface LocationByPin {
+interface LocationByPin {
   pinCode?: string;
   city?: string;
   state?: string;

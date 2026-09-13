@@ -1,27 +1,19 @@
 import React, { useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { Colors } from '../../constants/theme';
+import { Colors, IconSize } from '../../constants/theme';
 import { wizardShellStyles } from '../../constants/wizardStyles';
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
+import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import ScreenHeader from '../../components/ScreenHeader';
 import KeyboardSafeScroll, {
   KEYBOARD_SCROLL_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
-import PhaseTransition from '../../components/PhaseTransition';
+import PhaseTransition from '../../components/addClient/PhaseTransition';
 import { isDietEmpty } from '../../data/dietCatalog';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
@@ -47,7 +39,7 @@ type NavEntry =
   | { type: 'interstitial'; phaseIndex: number }
   | { type: 'screen'; screenId: string; phaseIndex: number };
 
-export type AssessmentFlow = 'add' | 'checkup';
+type AssessmentFlow = 'add' | 'checkup';
 
 export type AssessmentCompleteResult = {
   dietPlan?: SaveDietPlanResult;
@@ -319,7 +311,7 @@ export default function AssessmentWizardFlow({
           keyboardPadding={KEYBOARD_SCROLL_PADDING}
         >
           <View style={styles.stepBanner}>
-            <Ionicons name={screen.icon} size={20} color={Colors.white} />
+            <Ionicons name={screen.icon} size={IconSize.lg} color={Colors.white} />
             <View style={styles.stepBannerText}>
               <Text style={styles.stepBannerTitle}>{screen.title}</Text>
               {screen.subtitle ? (
@@ -338,22 +330,13 @@ export default function AssessmentWizardFlow({
           />
 
           {showFinishBtn ? (
-            <TouchableOpacity
-              style={[styles.nextBtn, saving && styles.nextBtnDisabled]}
-              onPress={goNext}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <>
-                  <Text style={styles.nextText}>{isLast ? finishLabel : 'Next'}</Text>
-                  {!isLast ? (
-                    <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-                  ) : null}
-                </>
-              )}
-            </TouchableOpacity>
+            <AppButton
+              label={isLast ? finishLabel : 'Next'}
+              onPress={() => void goNext()}
+              loading={saving}
+              icon={isLast ? undefined : 'arrow-forward'}
+              style={styles.nextBtn}
+            />
           ) : null}
         </KeyboardSafeScroll>
       </View>
@@ -363,5 +346,4 @@ export default function AssessmentWizardFlow({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
-  nextBtnDisabled: { opacity: 0.7 },
 });

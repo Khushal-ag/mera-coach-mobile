@@ -1,11 +1,11 @@
 import React from 'react';
-import { Dimensions, Text } from 'react-native';
+import { Dimensions, StyleSheet, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, FontFamily } from '../constants/theme';
+import { Colors, FontFamily, IconSize, Spacing, TouchTarget } from '../constants/theme';
 import type {
   CheckupsStackParamList,
   ClientsStackParamList,
@@ -15,23 +15,23 @@ import type {
 } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
 
-import DashboardScreen from '../screens/DashboardScreen';
-import ClientListScreen from '../screens/ClientListScreen';
-import ClientDetailScreen from '../screens/ClientDetailScreen';
-import AddClientScreen from '../screens/AddClientScreen';
-import MyLeadsScreen from '../screens/MyLeadsScreen';
-import ReCheckupListScreen from '../screens/ReCheckupListScreen';
-import CoachProfileScreen from '../screens/CoachProfileScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
-import ClientBmiScreen from '../screens/clientDetail/ClientBmiScreen';
-import ClientBmiReportScreen from '../screens/clientDetail/ClientBmiReportScreen';
-import ClientDietPlanScreen from '../screens/clientDetail/ClientDietPlanScreen';
-import ChangePasswordScreen from '../screens/ChangePasswordScreen';
-import LegalScreen from '../screens/LegalScreen';
-import EditProfileScreen from '../screens/EditProfileScreen';
-import EditGalleryScreen from '../screens/EditGalleryScreen';
-import EditPackagesScreen from '../screens/EditPackagesScreen';
-import EditEventsScreen from '../screens/EditEventsScreen';
+import DashboardScreen from '../screens/dashboard/DashboardScreen';
+import ClientListScreen from '../screens/clients/ClientListScreen';
+import ClientDetailScreen from '../screens/clients/detail/ClientDetailScreen';
+import AddClientScreen from '../screens/addClient/AddClientScreen';
+import MyLeadsScreen from '../screens/clients/MyLeadsScreen';
+import ReCheckupListScreen from '../screens/checkups/ReCheckupListScreen';
+import CoachProfileScreen from '../screens/profile/CoachProfileScreen';
+import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
+import ClientBmiScreen from '../screens/clients/detail/ClientBmiScreen';
+import ClientBmiReportScreen from '../screens/clients/detail/ClientBmiReportScreen';
+import ClientDietPlanScreen from '../screens/clients/detail/ClientDietPlanScreen';
+import ChangePasswordScreen from '../screens/auth/ChangePasswordScreen';
+import LegalScreen from '../screens/profile/LegalScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import EditGalleryScreen from '../screens/profile/EditGalleryScreen';
+import EditPackagesScreen from '../screens/profile/EditPackagesScreen';
+import EditEventsScreen from '../screens/profile/EditEventsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -47,7 +47,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, { active: IoniconName; inactive:
 };
 
 const TAB_COUNT = Object.keys(TAB_ICONS).length;
-const TAB_BAR_BASE_HEIGHT = 62;
+const TAB_BAR_BASE_HEIGHT = 64;
 
 function DashboardStackNavigator() {
   return (
@@ -111,26 +111,26 @@ export default function MainTabNavigator() {
         tabBarStyle: {
           backgroundColor: Colors.white,
           borderTopColor: Colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: StyleSheet.hairlineWidth,
           paddingBottom: bottomPad,
-          paddingTop: 6,
+          paddingTop: Spacing.xs,
           height: TAB_BAR_BASE_HEIGHT + insets.bottom,
         },
-        tabBarItemStyle: { width: tabWidth, paddingHorizontal: 0 },
+        tabBarItemStyle: { width: tabWidth, paddingHorizontal: 0, minHeight: TouchTarget.min },
         tabBarIconStyle: { marginBottom: -2 },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           const icons = TAB_ICONS[route.name];
           return (
             <Ionicons
               name={focused ? icons.active : icons.inactive}
-              size={size - 2}
+              size={IconSize.xl}
               color={color}
             />
           );
         },
         tabBarLabel: ({ color }) => (
           <Text
-            style={{ fontSize: 10, fontFamily: FontFamily.semibold, color }}
+            style={{ fontSize: 11, fontFamily: FontFamily.semibold, color, marginTop: 1 }}
             numberOfLines={1}
             allowFontScaling={false}
             adjustsFontSizeToFit

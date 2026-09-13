@@ -5,7 +5,7 @@ import type { IoniconName } from '../types/icons';
  * Derive highlights from happyClientCount, experience, tagline/bio, and services.
  */
 
-export interface CoachSuccessHighlight {
+interface CoachSuccessHighlight {
   id: string;
   badge: string;
   icon: IoniconName;

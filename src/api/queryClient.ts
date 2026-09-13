@@ -4,7 +4,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { ApiError } from './clientErrors';
 
 /** Default list/detail freshness — long enough to avoid tab/app-focus churn. */
-export const DEFAULT_STALE_MS = 2 * 60_000;
+const DEFAULT_STALE_MS = 2 * 60_000;
 /** Masters (PARAMLIST, CoachType, food, countries) rarely change. */
 export const MASTER_STALE_MS = 45 * 60_000;
 /** Progress photos / client avatars — share cache across list + detail. */

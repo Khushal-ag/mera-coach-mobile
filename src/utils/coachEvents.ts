@@ -1,7 +1,7 @@
 import type { CoachEvent } from '../types/models';
 
 export const MAX_COACH_EVENTS = 10;
-export const PUBLIC_UPCOMING_EVENTS = 3;
+const PUBLIC_UPCOMING_EVENTS = 3;
 
 export function createEmptyEvent(): CoachEvent {
   return {

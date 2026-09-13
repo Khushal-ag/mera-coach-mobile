@@ -54,7 +54,7 @@ export function parseFontAwesomeGlyph(icon: string | null | undefined): string |
   return null;
 }
 
-export type FontAwesomeStyle = 'solid' | 'regular' | 'brand';
+type FontAwesomeStyle = 'solid' | 'regular' | 'brand';
 
 export function parseFontAwesomeStyle(icon: string | null | undefined): FontAwesomeStyle {
   if (!icon) return 'solid';

@@ -8,7 +8,7 @@ import { useDebouncedValue } from './useDebouncedValue';
 const PIN_LENGTH = 6;
 const DEBOUNCE_MS = 400;
 
-export interface PinLocationResult {
+interface PinLocationResult {
   city: string;
   state: string;
 }

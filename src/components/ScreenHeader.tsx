@@ -10,7 +10,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Spacing } from '../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  HitSlop,
+  IconSize,
+  PressOpacity,
+  Spacing,
+  TouchTarget,
+} from '../constants/theme';
 
 /**
  * Screen chrome patterns (see also TabRootHeader for tab roots):
@@ -40,13 +48,18 @@ export function HeaderBackButton({
 }: HeaderBackButtonProps) {
   return (
     <TouchableOpacity
-      style={[styles.backBtn, onDark ? styles.backBtnOnDark : styles.backBtnOnLight, style]}
+      style={[styles.chromeBtn, onDark ? styles.chromeOnDark : styles.chromeOnLight, style]}
       onPress={onPress}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      hitSlop={HitSlop.sm}
+      activeOpacity={PressOpacity.default}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <Ionicons name="arrow-back" size={20} color={onDark ? Colors.white : Colors.textDark} />
+      <Ionicons
+        name="arrow-back"
+        size={IconSize.lg}
+        color={onDark ? Colors.white : Colors.textDark}
+      />
     </TouchableOpacity>
   );
 }
@@ -70,13 +83,18 @@ export function HeaderHomeButton({
 
   return (
     <TouchableOpacity
-      style={[styles.backBtn, onDark ? styles.backBtnOnDark : styles.backBtnOnLight, style]}
+      style={[styles.chromeBtn, onDark ? styles.chromeOnDark : styles.chromeOnLight, style]}
       onPress={handlePress}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      hitSlop={HitSlop.sm}
+      activeOpacity={PressOpacity.default}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <Ionicons name="home-outline" size={20} color={onDark ? Colors.white : Colors.textDark} />
+      <Ionicons
+        name="home-outline"
+        size={IconSize.lg}
+        color={onDark ? Colors.white : Colors.textDark}
+      />
     </TouchableOpacity>
   );
 }
@@ -123,20 +141,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: FontFamily.bold,
     textAlign: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: Spacing.xs,
   },
-  spacer: { width: 36, height: 36 },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  spacer: { width: TouchTarget.header, height: TouchTarget.header },
+  chromeBtn: {
+    width: TouchTarget.header,
+    height: TouchTarget.header,
+    borderRadius: TouchTarget.header / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backBtnOnDark: {
+  chromeOnDark: {
     backgroundColor: Colors.onDarkOverlay,
   },
-  backBtnOnLight: {
+  chromeOnLight: {
     backgroundColor: Colors.white,
   },
 });

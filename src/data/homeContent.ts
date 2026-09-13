@@ -1,8 +1,10 @@
 import type { CoachCategory } from '../types/models';
 import { getCoachTypeStyle } from './coachTypeStyles';
 
-// Offline fallback while HomeScreen/RegisterScreen's live category fetch is in flight.
-// Mirrors Master/GetMasterItem?ItemType=CoachType; styling always comes from coachTypeStyles.ts.
+/**
+ * Offline-only seed used while GetMasterItem?ItemType=CoachType is in flight or fails.
+ * Not an allowlist — live UI always prefers the full API list (including new codes).
+ */
 const FALLBACK_CATEGORY_LABELS: { code: string; label: string }[] = [
   { code: 'CT001', label: 'Gym Trainer' },
   { code: 'CT002', label: 'Health & Wellness Coach' },
@@ -15,6 +17,6 @@ const FALLBACK_CATEGORY_LABELS: { code: string; label: string }[] = [
 ];
 
 export const COACH_CATEGORIES: CoachCategory[] = FALLBACK_CATEGORY_LABELS.map(({ code, label }) => {
-  const style = getCoachTypeStyle(code);
+  const style = getCoachTypeStyle(code, label);
   return { code, label, short: style.short, icon: style.icon, color: style.color, bg: style.bg };
 });

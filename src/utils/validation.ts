@@ -27,11 +27,11 @@ export function formatLocalDate(date = new Date()): string {
 }
 
 /** True only when the whole string is an integer (rejects "12abc"). */
-export function isStrictInt(value: string): boolean {
+function isStrictInt(value: string): boolean {
   return /^\d+$/.test(value.trim());
 }
 
-export function isStrictNumber(value: string): boolean {
+function isStrictNumber(value: string): boolean {
   return /^\d+(\.\d+)?$/.test(value.trim());
 }
 
@@ -105,12 +105,12 @@ export function toDisplayDob(value: string): string {
   return d ? formatDob(d) : '';
 }
 
-export function isValidEmail(value: string): boolean {
+function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value.trim());
 }
 
 /** Indian mobile: exactly 10 digits starting with 6-9. */
-export function isValidIndianMobile(value: string): boolean {
+function isValidIndianMobile(value: string): boolean {
   const digits = stripNonDigits(value);
   return digits.length === 10 && /^[6-9]/.test(digits);
 }
@@ -120,7 +120,7 @@ export function validateRequired(value: string, fieldLabel: string): string | nu
   return null;
 }
 
-export function validateEmail(value: string, required = true): string | null {
+function validateEmail(value: string, required = true): string | null {
   const trimmed = value.trim();
   if (!trimmed) return required ? 'Email address is required.' : null;
   if (!isValidEmail(trimmed)) return 'Please enter a valid email address.';
@@ -139,7 +139,7 @@ export function validateMobile(value: string, required = true): string | null {
   return null;
 }
 
-export function validatePinCode(value: string, required = false): string | null {
+function validatePinCode(value: string, required = false): string | null {
   const trimmed = value.trim();
   if (!trimmed) return required ? 'Pin code is required.' : null;
   const digits = stripNonDigits(trimmed);
@@ -147,7 +147,7 @@ export function validatePinCode(value: string, required = false): string | null 
   return null;
 }
 
-export function validateAge(value: string, required = true): string | null {
+function validateAge(value: string, required = true): string | null {
   if (!value.trim()) return required ? 'Age is required.' : null;
   if (!isStrictInt(value)) return 'Please enter a valid age (5-100).';
   const age = parseInt(value, 10);
@@ -233,7 +233,7 @@ export function validateWeight(value: string): string | null {
   return null;
 }
 
-export function validateNonNegativeInt(
+function validateNonNegativeInt(
   value: string,
   fieldLabel: string,
   required = false,
@@ -290,7 +290,7 @@ export function validateClientLifestyleProfile(form: ClientProfile): FormValidat
   return resultFromErrors(errors);
 }
 
-export function validateCoachContactFields(mobile: string, email: string): FormValidationResult {
+function validateCoachContactFields(mobile: string, email: string): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'mobile', validateMobile(mobile));
   putError(errors, 'email', validateEmail(email));

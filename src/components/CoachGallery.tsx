@@ -17,7 +17,15 @@ import {
   COACH_GALLERY_REF_TYPE,
 } from '../config/appConfig';
 import { BrandImages } from '../constants/images';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+  buttonStyles,
+} from '../constants/theme';
 import {
   deleteDocument,
   listDocuments,
@@ -270,7 +278,7 @@ export default function CoachGallery({
                     disabled={busy || deletingDocId != null}
                     accessibilityRole="button"
                     accessibilityLabel="Remove unavailable photo"
-                    activeOpacity={0.85}
+                    activeOpacity={PressOpacity.default}
                   >
                     {busy ? (
                       <ActivityIndicator color={Colors.primary} size="small" />
@@ -284,7 +292,7 @@ export default function CoachGallery({
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
-                    activeOpacity={0.85}
+                    activeOpacity={PressOpacity.default}
                     onPress={() => setLightboxUri(uri)}
                     accessibilityRole="button"
                     accessibilityLabel="View gallery photo"
@@ -382,16 +390,11 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    ...buttonStyles.compact,
+    paddingHorizontal: Spacing.sm,
   },
-  uploadBtnDisabled: { opacity: 0.7 },
-  uploadBtnText: { color: Colors.white, fontSize: 12, fontFamily: FontFamily.bold },
+  uploadBtnDisabled: buttonStyles.disabled,
+  uploadBtnText: buttonStyles.compactText,
   emptyCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
@@ -450,7 +453,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   deleteBtnBusy: { opacity: 0.7 },
-  lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
+  lightbox: { flex: 1, backgroundColor: Colors.lightboxScrim },
   lightboxBackdrop: { ...StyleSheet.absoluteFill },
   lightboxContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   lightboxImage: { width: '100%', height: 400 },
@@ -461,7 +464,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },

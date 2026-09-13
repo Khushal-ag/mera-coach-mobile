@@ -3,17 +3,24 @@ import {
   View,
   Text,
   Image,
-  TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   type ImageSourcePropType,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  IconSize,
+  Radius,
+  Shadow,
+  Spacing,
+  Typography,
+} from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import type { IoniconName } from '../types/icons';
+import AppButton from './AppButton';
 
 interface ReloadStateProps {
   title?: string;
@@ -46,29 +53,21 @@ export default function ReloadState({
         <Image source={illustration} style={styles.illustration} resizeMode="contain" />
       ) : (
         <View style={styles.iconBox}>
-          <Ionicons name={icon} size={30} color={Colors.primary} />
+          <Ionicons name={icon} size={IconSize.xxl} color={Colors.primary} />
         </View>
       )}
 
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
 
-      <TouchableOpacity
-        style={[styles.retryBtn, loading && styles.retryBtnDisabled]}
+      <AppButton
+        label={retryLabel}
         onPress={onRetry}
-        disabled={loading}
-        accessibilityRole="button"
-        accessibilityLabel={retryLabel}
-      >
-        {loading ? (
-          <ActivityIndicator color={Colors.white} size="small" />
-        ) : (
-          <>
-            <Ionicons name="refresh" size={16} color={Colors.white} />
-            <Text style={styles.retryText}>{retryLabel}</Text>
-          </>
-        )}
-      </TouchableOpacity>
+        loading={loading}
+        icon="refresh"
+        iconPosition="left"
+        style={styles.retryBtn}
+      />
 
       {showPullHint ? <Text style={styles.hint}>Pull down to refresh works too.</Text> : null}
     </View>
@@ -81,7 +80,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
-    paddingVertical: 40,
+    paddingVertical: Spacing.xxl,
   },
   illustration: {
     width: 180,
@@ -91,7 +90,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 72,
     height: 72,
-    borderRadius: 24,
+    borderRadius: Radius.lg,
     backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -106,8 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   message: {
-    fontFamily: FontFamily.regular,
-    fontSize: 14,
+    ...Typography.body,
     color: Colors.textLight,
     textAlign: 'center',
     lineHeight: 21,
@@ -115,28 +113,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   retryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 22,
-    paddingVertical: 13,
     minWidth: 148,
-    ...Shadow.md,
-  },
-  retryBtnDisabled: { opacity: 0.75 },
-  retryText: {
-    color: Colors.white,
-    fontFamily: FontFamily.bold,
-    fontSize: 15,
   },
   hint: {
     marginTop: Spacing.md,
-    fontFamily: FontFamily.medium,
-    fontSize: 11,
-    color: Colors.textLight,
+    ...Typography.micro,
     textAlign: 'center',
   },
 });
