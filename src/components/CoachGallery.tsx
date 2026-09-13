@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,23 +15,22 @@ import {
   COACH_GALLERY_DOC_TYPE,
   COACH_GALLERY_MAX_PHOTOS,
   COACH_GALLERY_REF_TYPE,
-  USE_MVP_MOCKS,
 } from '../config/appConfig';
+import { BrandImages } from '../constants/images';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import {
   deleteDocument,
   listDocuments,
-  uploadDocumentWithMeta,
+  uploadDocument,
   type DocumentListItem,
 } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { PHOTO_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
 import { getCurrentCoachId } from '../auth/session';
-import DemoModeHint from './DemoModeHint';
-import { resolveDemoGallery, saveDemoGallery } from '../data/mvpMockStore';
 import { pickImagesFromCameraOrLibrary } from '../utils/imagePicker';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { isDegenerateImageSize, resolveMediaUrl } from '../utils/mediaUrl';
+import EmptyState from './EmptyState';
 import SectionTag from './SectionTag';
 
 interface Props {
@@ -43,36 +42,13 @@ interface Props {
   publicSection?: boolean;
 }
 
-interface GalleryQueryResult {
-  photos: DocumentListItem[];
-  isDemo: boolean;
-}
-
-async function loadGallery(coachCode: string): Promise<GalleryQueryResult> {
-  let apiPhotos: DocumentListItem[] = [];
-  let apiFailed = false;
-
-  try {
-    apiPhotos = await listDocuments({
-      coachCode,
-      refCode: coachCode,
-      refType: COACH_GALLERY_REF_TYPE,
-      docType: COACH_GALLERY_DOC_TYPE,
-    });
-  } catch (err) {
-    if (!USE_MVP_MOCKS) throw err;
-    apiFailed = true;
-  }
-
-  if (!USE_MVP_MOCKS) {
-    return { photos: apiPhotos, isDemo: false };
-  }
-
-  if (apiPhotos.length > 0 && !apiFailed) {
-    return { photos: apiPhotos, isDemo: false };
-  }
-
-  return resolveDemoGallery(coachCode, []);
+async function loadGallery(coachCode: string): Promise<DocumentListItem[]> {
+  return listDocuments({
+    coachCode,
+    refCode: coachCode,
+    refType: COACH_GALLERY_REF_TYPE,
+    docType: COACH_GALLERY_DOC_TYPE,
+  });
 }
 
 export default function CoachGallery({
@@ -82,24 +58,51 @@ export default function CoachGallery({
   publicSection = false,
 }: Props) {
   const queryClient = useQueryClient();
-  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<number | null>(null);
+  const [failedDocIds, setFailedDocIds] = useState<Set<number>>(() => new Set());
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+
+  const galleryKey = queryKeys.coachGallery(coachCode);
 
   const galleryQuery = useQuery({
-    queryKey: queryKeys.coachGallery(coachCode),
+    queryKey: galleryKey,
     queryFn: () => loadGallery(coachCode),
     enabled: !!coachCode,
     staleTime: PHOTO_STALE_MS,
   });
 
-  const photos = galleryQuery.data?.photos ?? [];
-  const isDemo = galleryQuery.data?.isDemo ?? false;
+  const photos = useMemo(() => galleryQuery.data ?? [], [galleryQuery.data]);
+  const visiblePhotos = useMemo(() => {
+    return photos
+      .map(item => {
+        const uri = resolveMediaUrl(item.filePath);
+        const failed = failedDocIds.has(item.docId);
+        if (!uri || failed) {
+          // Public: hide broken/missing. Editor: keep a visible broken tile so delete works.
+          if (!editable) return null;
+          return { item, uri: '', broken: true as const };
+        }
+        return { item, uri, broken: false as const };
+      })
+      .filter(
+        (row): row is { item: DocumentListItem; uri: string; broken: boolean } => row != null,
+      );
+  }, [photos, failedDocIds, editable]);
   const atCap = photos.length >= COACH_GALLERY_MAX_PHOTOS;
 
   const invalidate = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.coachGallery(coachCode) });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.coachMvpDemo(coachCode) });
-  }, [queryClient, coachCode]);
+    void queryClient.invalidateQueries({ queryKey: galleryKey });
+  }, [queryClient, galleryKey]);
+
+  const markFailed = useCallback((docId: number) => {
+    setFailedDocIds(prev => {
+      if (prev.has(docId)) return prev;
+      const next = new Set(prev);
+      next.add(docId);
+      return next;
+    });
+  }, []);
 
   const pickAndUpload = async () => {
     if (atCap) {
@@ -116,25 +119,9 @@ export default function CoachGallery({
 
     setUploading(true);
     try {
-      if (USE_MVP_MOCKS && isDemo) {
-        const next = [...photos];
-        for (const asset of assets) {
-          if (next.length >= COACH_GALLERY_MAX_PHOTOS) break;
-          const dataUrl = `data:${asset.mimeType};base64,${asset.base64}`;
-          next.push({
-            docId: -(Date.now() + next.length),
-            filePath: dataUrl,
-            fcdt: 'Demo',
-          });
-        }
-        await saveDemoGallery(coachCode, next);
-        invalidate();
-        return;
-      }
-
       for (const asset of assets) {
         const dataUrl = `data:${asset.mimeType};base64,${asset.base64}`;
-        await uploadDocumentWithMeta({
+        await uploadDocument({
           base64DataUrl: dataUrl,
           coachCode,
           refCode: coachCode,
@@ -143,6 +130,7 @@ export default function CoachGallery({
           savedBy: Number(getCurrentCoachId()) || 0,
         });
       }
+      setFailedDocIds(new Set());
       invalidate();
     } catch (err) {
       Alert.alert(
@@ -154,39 +142,64 @@ export default function CoachGallery({
     }
   };
 
-  const confirmDelete = (item: DocumentListItem) => {
+  const removePhoto = useCallback(
+    async (item: DocumentListItem) => {
+      if (!coachCode || deletingDocId != null) return;
+
+      const docId = item.docId;
+      const previous = queryClient.getQueryData<DocumentListItem[]>(galleryKey);
+      setDeletingDocId(docId);
+
+      // Drop the tile immediately (including Unavailable orphans) and stop in-flight
+      // list refetches from putting the row back before Document/delete finishes.
+      await queryClient.cancelQueries({ queryKey: galleryKey });
+      queryClient.setQueryData<DocumentListItem[]>(galleryKey, old =>
+        (old ?? []).filter(row => row.docId !== docId),
+      );
+      setFailedDocIds(prev => {
+        if (!prev.has(docId)) return prev;
+        const next = new Set(prev);
+        next.delete(docId);
+        return next;
+      });
+
+      try {
+        await deleteDocument({ docId, coachCode });
+        invalidate();
+      } catch (err) {
+        if (previous) {
+          queryClient.setQueryData(galleryKey, previous);
+        } else {
+          invalidate();
+        }
+        Alert.alert('Delete failed', getErrorMessage(err, 'Please try again.'));
+      } finally {
+        setDeletingDocId(null);
+      }
+    },
+    [coachCode, deletingDocId, galleryKey, invalidate, queryClient],
+  );
+
+  const confirmDelete = (item: DocumentListItem, broken: boolean) => {
     Alert.alert(
-      'Delete photo?',
-      isDemo
-        ? 'This demo photo will be removed from this device only.'
+      broken ? 'Remove unavailable photo?' : 'Delete photo?',
+      broken
+        ? 'This file is missing on the server. Remove it from your gallery?'
         : 'This gallery photo will be removed permanently.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Remove',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              if (USE_MVP_MOCKS && isDemo) {
-                await saveDemoGallery(
-                  coachCode,
-                  photos.filter(p => p.docId !== item.docId),
-                );
-                invalidate();
-                return;
-              }
-              await deleteDocument({ docId: item.docId, coachCode });
-              invalidate();
-            } catch (err) {
-              Alert.alert('Delete failed', getErrorMessage(err, 'Please try again.'));
-            }
+          onPress: () => {
+            void removePhoto(item);
           },
         },
       ],
     );
   };
 
-  if (hideWhenEmpty && !galleryQuery.isPending && photos.length === 0) {
+  if (hideWhenEmpty && !galleryQuery.isPending && visiblePhotos.length === 0) {
     return null;
   }
 
@@ -196,7 +209,6 @@ export default function CoachGallery({
         <View style={styles.publicHeader}>
           <SectionTag icon="images-outline" label="Gallery" />
           <Text style={styles.publicTitle}>Photo gallery</Text>
-          {isDemo ? <DemoModeHint message="Demo photos for UI review." /> : null}
         </View>
       ) : (
         <View style={styles.headerRow}>
@@ -222,52 +234,86 @@ export default function CoachGallery({
         </View>
       )}
       {editable ? (
-        <>
-          {isDemo ? <DemoModeHint /> : null}
-          <Text style={styles.hint}>
-            Show clients your sessions, transformations, and coaching space. Up to{' '}
-            {COACH_GALLERY_MAX_PHOTOS} photos.
-          </Text>
-        </>
+        <Text style={styles.hint}>
+          Show clients your sessions, transformations, and coaching space. Up to{' '}
+          {COACH_GALLERY_MAX_PHOTOS} photos.
+        </Text>
       ) : null}
 
       {galleryQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 12 }} />
-      ) : photos.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="images-outline" size={28} color={Colors.textLight} />
-          <Text style={styles.emptyText}>
-            {editable ? 'No gallery photos yet.' : 'No photos yet.'}
-          </Text>
-        </View>
+      ) : visiblePhotos.length === 0 ? (
+        editable ? (
+          <View style={styles.emptyCard}>
+            <EmptyState
+              illustration={BrandImages.emptyCheckups}
+              title="No gallery photos yet"
+              message="Tap Add to showcase your sessions, transformations, and coaching space."
+            />
+          </View>
+        ) : (
+          <View style={styles.empty}>
+            <Ionicons name="images-outline" size={28} color={Colors.textLight} />
+            <Text style={styles.emptyText}>No photos yet.</Text>
+          </View>
+        )
       ) : (
         <View style={styles.grid}>
-          {photos.map(item => {
-            const uri = resolveMediaUrl(item.filePath);
+          {visiblePhotos.map(({ item, uri, broken }) => {
+            const busy = deletingDocId === item.docId;
             return (
-              <View key={item.docId} style={styles.thumbWrap}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => uri && setLightboxUri(uri)}
-                  accessibilityRole="button"
-                  accessibilityLabel="View gallery photo"
-                >
-                  {uri ? (
-                    <Image source={{ uri }} style={styles.thumb} />
-                  ) : (
-                    <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                      <Ionicons name="image-outline" size={24} color={Colors.textLight} />
-                    </View>
-                  )}
-                </TouchableOpacity>
+              <View key={item.docId} style={styles.thumbWrap} collapsable={false}>
+                {broken ? (
+                  <TouchableOpacity
+                    style={[styles.thumb, styles.thumbBroken]}
+                    onPress={() => confirmDelete(item, true)}
+                    disabled={busy || deletingDocId != null}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove unavailable photo"
+                    activeOpacity={0.85}
+                  >
+                    {busy ? (
+                      <ActivityIndicator color={Colors.primary} size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="image-outline" size={22} color={Colors.textLight} />
+                        <Text style={styles.thumbBrokenText}>Unavailable</Text>
+                        <Text style={styles.thumbBrokenHint}>Tap to remove</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => setLightboxUri(uri)}
+                    accessibilityRole="button"
+                    accessibilityLabel="View gallery photo"
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={styles.thumb}
+                      onError={() => markFailed(item.docId)}
+                      onLoad={e => {
+                        const { width, height } = e.nativeEvent.source;
+                        if (isDegenerateImageSize(width, height)) markFailed(item.docId);
+                      }}
+                    />
+                  </TouchableOpacity>
+                )}
                 {editable ? (
                   <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => confirmDelete(item)}
+                    style={[styles.deleteBtn, busy && styles.deleteBtnBusy]}
+                    onPress={() => confirmDelete(item, broken)}
+                    disabled={busy || deletingDocId != null}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     accessibilityRole="button"
-                    accessibilityLabel="Delete photo"
+                    accessibilityLabel={broken ? 'Remove unavailable photo' : 'Delete photo'}
                   >
-                    <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
+                    {busy ? (
+                      <ActivityIndicator color={Colors.destructive} size="small" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
+                    )}
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -346,6 +392,14 @@ const styles = StyleSheet.create({
   },
   uploadBtnDisabled: { opacity: 0.7 },
   uploadBtnText: { color: Colors.white, fontSize: 12, fontFamily: FontFamily.bold },
+  emptyCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+    ...Shadow.sm,
+  },
   empty: {
     alignItems: 'center',
     gap: 8,
@@ -361,13 +415,32 @@ const styles = StyleSheet.create({
     width: THUMB,
     height: THUMB,
     borderRadius: Radius.sm,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.backgroundTan,
   },
-  thumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  thumbBroken: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.backgroundTan,
+  },
+  thumbBrokenText: {
+    fontSize: 9,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textLight,
+  },
+  thumbBrokenHint: {
+    fontSize: 8,
+    fontFamily: FontFamily.regular,
+    color: Colors.primary,
+  },
   deleteBtn: {
     position: 'absolute',
     top: 4,
     right: 4,
+    zIndex: 2,
+    elevation: 3,
     backgroundColor: Colors.white,
     borderRadius: 12,
     width: 24,
@@ -376,6 +449,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...Shadow.sm,
   },
+  deleteBtnBusy: { opacity: 0.7 },
   lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
   lightboxBackdrop: { ...StyleSheet.absoluteFill },
   lightboxContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },

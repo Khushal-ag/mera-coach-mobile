@@ -69,6 +69,4 @@ export const queryKeys = {
   clientProfilePhoto: (coachCode: string, clientCode: string) =>
     ['clientProfilePhoto', coachCode, clientCode] as const,
   coachGallery: (coachCode: string) => ['coachGallery', coachCode] as const,
-  /** Local AsyncStorage overlay for packages / events when USE_MVP_MOCKS. */
-  coachMvpDemo: (coachCode: string) => ['coachMvpDemo', coachCode] as const,
 };

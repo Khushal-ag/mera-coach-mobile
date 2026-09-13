@@ -35,6 +35,7 @@ yarn-error.*
 
 # QA / local capture artifacts
 qa-screenshots/
+.tmp-screenshots/
 
 # local env files
 .env

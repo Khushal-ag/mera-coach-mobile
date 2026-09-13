@@ -145,7 +145,7 @@ export default function ClientDetailScreen({
     if (!feedbackUrl) {
       Alert.alert(
         'Feedback link unavailable',
-        'Set EXPO_PUBLIC_WEB_BASE_URL so the feedback link can be built.',
+        'Coach or client id is missing, so the feedback link could not be built.',
       );
       return;
     }

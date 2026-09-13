@@ -35,7 +35,7 @@ import {
   visibleCoachTags,
 } from '../utils/coachDisplay';
 import { resolvePublicClientCount, shouldShowPublicRating } from '../utils/coachPublicStats';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { resolveCoachPhotoUrl } from '../utils/mediaUrl';
 import type { RootScreenProps } from '../types/navigation';
 
 export default function CoachListScreen({ navigation, route }: RootScreenProps<'CoachList'>) {
@@ -175,7 +175,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             </View>
 
             {filtered.map(coach => {
-              const photoUri = resolveMediaUrl(coach.profilePicUrl);
+              const photoUri = resolveCoachPhotoUrl(coach);
               const clientCount = resolvePublicClientCount({
                 coachId: coach.id,
                 marketingClients: coach.clients,

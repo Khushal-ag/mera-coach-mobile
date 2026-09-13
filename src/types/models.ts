@@ -9,6 +9,8 @@ export interface CoachPackage {
   /** Duration or session count (e.g. "8 weeks" / "12 sessions"). */
   duration: string;
   description: string;
+  /** Optional cover image path/URL from Document upload (stored in packagesJson). */
+  imageUrl?: string;
 }
 
 /** Coach-hosted event for public profile showcase. */
@@ -21,6 +23,8 @@ export interface CoachEvent {
   location: string;
   /** Optional WhatsApp / Maps / registration URL. */
   link: string;
+  /** Optional cover image path/URL from Document upload (stored in eventsJson). */
+  imageUrl?: string;
 }
 
 export interface Coach {

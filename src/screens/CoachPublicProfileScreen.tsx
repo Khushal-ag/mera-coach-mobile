@@ -20,26 +20,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontFamily, Radius, Shadow, Spacing, storyCardWidth } from '../constants/theme';
+import { BrandImages } from '../constants/images';
 import PersonAvatar from '../components/PersonAvatar';
 import PhoneTextInput from '../components/PhoneTextInput';
 import DropdownField from '../components/DropdownField';
 import EmptyState from '../components/EmptyState';
 import FormFieldLabel from '../components/FormFieldLabel';
 import CoachGallery from '../components/CoachGallery';
-import DemoModeHint from '../components/DemoModeHint';
 import KeyboardSafeScroll, { useScrollLowerFieldsIntoView } from '../components/KeyboardSafeScroll';
 import ReloadState from '../components/ReloadState';
 import SectionHeading from '../components/SectionHeading';
 import SectionTag from '../components/SectionTag';
 import { HeaderBackButton } from '../components/ScreenHeader';
-import { USE_MVP_MOCKS } from '../config/appConfig';
 import { SERVICE_INQUIRY_FALLBACK } from '../data/coachProfileContent';
-import {
-  getSyncDemoEventsFallback,
-  getSyncDemoPackagesFallback,
-  resolveDemoEvents,
-  resolveDemoPackages,
-} from '../data/mvpMockStore';
 import { getCoachProfileByCode, submitCoachEnquiry, whatsAppUrlFromMobile } from '../api/coachApi';
 import { getClientList } from '../api/clientApi';
 import { queryKeys } from '../api/queryKeys';
@@ -53,7 +46,7 @@ import {
 import { buildCoachSuccessHighlights } from '../utils/coachPublicSocialProof';
 import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../utils/coachDisplay';
 import { getUpcomingCoachEvents } from '../utils/coachEvents';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { isDegenerateImageSize, resolveMediaUrl } from '../utils/mediaUrl';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -115,31 +108,71 @@ function iconForExpertise(tag: string): ExpertiseIcon {
 }
 
 function PackageCard({ pkg, onSelect }: { pkg: CoachPackage; onSelect: () => void }) {
+  const imageUri = resolveMediaUrl(pkg.imageUrl);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [trackedImage, setTrackedImage] = useState(pkg.imageUrl);
+  if (pkg.imageUrl !== trackedImage) {
+    setTrackedImage(pkg.imageUrl);
+    setImageFailed(false);
+  }
+  const showImage = Boolean(imageUri) && !imageFailed;
+
   return (
     <TouchableOpacity style={styles.offerCard} onPress={onSelect} activeOpacity={0.75}>
-      <View style={styles.offerCardHeader}>
-        <Text style={styles.offerCardTitle} numberOfLines={2}>
-          {pkg.name}
-        </Text>
-        {pkg.price ? (
-          <Text style={styles.offerCardPrice} numberOfLines={1}>
-            {pkg.price}
+      <View style={styles.offerImageWrap}>
+        {showImage ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.offerImage}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+            onLoad={e => {
+              const { width, height } = e.nativeEvent.source;
+              if (isDegenerateImageSize(width, height)) setImageFailed(true);
+            }}
+          />
+        ) : (
+          <Image
+            source={BrandImages.emptyCheckups}
+            style={styles.offerImagePlaceholder}
+            resizeMode="contain"
+          />
+        )}
+      </View>
+      <View style={styles.offerCardBodyWrap}>
+        <View style={styles.offerCardHeader}>
+          <Text style={styles.offerCardTitle} numberOfLines={2}>
+            {pkg.name}
+          </Text>
+          {pkg.price ? (
+            <Text style={styles.offerCardPrice} numberOfLines={1}>
+              {pkg.price}
+            </Text>
+          ) : null}
+        </View>
+        {pkg.duration ? <Text style={styles.offerCardMeta}>{pkg.duration}</Text> : null}
+        {pkg.description ? (
+          <Text style={styles.offerCardBody} numberOfLines={3}>
+            {pkg.description}
           </Text>
         ) : null}
+        <Text style={styles.offerCardCta}>Enquire about this package</Text>
       </View>
-      {pkg.duration ? <Text style={styles.offerCardMeta}>{pkg.duration}</Text> : null}
-      {pkg.description ? (
-        <Text style={styles.offerCardBody} numberOfLines={3}>
-          {pkg.description}
-        </Text>
-      ) : null}
-      <Text style={styles.offerCardCta}>Enquire about this package</Text>
     </TouchableOpacity>
   );
 }
 
 function EventCard({ event }: { event: CoachEvent }) {
   const meta = [event.date, event.time, event.location].filter(Boolean).join(' · ');
+  const imageUri = resolveMediaUrl(event.imageUrl);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [trackedImage, setTrackedImage] = useState(event.imageUrl);
+  if (event.imageUrl !== trackedImage) {
+    setTrackedImage(event.imageUrl);
+    setImageFailed(false);
+  }
+  const showImage = Boolean(imageUri) && !imageFailed;
+
   const openLink = () => {
     const url = event.link.trim();
     if (!url) return;
@@ -149,15 +182,37 @@ function EventCard({ event }: { event: CoachEvent }) {
 
   return (
     <View style={styles.offerCard}>
-      <Text style={styles.offerCardTitle} numberOfLines={2}>
-        {event.title}
-      </Text>
-      {meta ? <Text style={styles.offerCardMeta}>{meta}</Text> : null}
-      {event.link ? (
-        <TouchableOpacity onPress={openLink} accessibilityRole="link">
-          <Text style={styles.offerCardCta}>Open event link</Text>
-        </TouchableOpacity>
-      ) : null}
+      <View style={styles.offerImageWrap}>
+        {showImage ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.offerImage}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+            onLoad={e => {
+              const { width, height } = e.nativeEvent.source;
+              if (isDegenerateImageSize(width, height)) setImageFailed(true);
+            }}
+          />
+        ) : (
+          <Image
+            source={BrandImages.emptyLeads}
+            style={styles.offerImagePlaceholder}
+            resizeMode="contain"
+          />
+        )}
+      </View>
+      <View style={styles.offerCardBodyWrap}>
+        <Text style={styles.offerCardTitle} numberOfLines={2}>
+          {event.title}
+        </Text>
+        {meta ? <Text style={styles.offerCardMeta}>{meta}</Text> : null}
+        {event.link ? (
+          <TouchableOpacity onPress={openLink} accessibilityRole="link">
+            <Text style={styles.offerCardCta}>Open event link</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -210,23 +265,6 @@ function CoachProfilePage({
     queryFn: () => getCoachProfileByCode(coachCode),
     enabled: !!coachCode,
     placeholderData: listCoach?.id === coachCode ? listCoach : undefined,
-  });
-
-  const demoMvpQuery = useQuery({
-    queryKey: queryKeys.coachMvpDemo(coachCode),
-    queryFn: async () => {
-      const [packagesResult, eventsResult] = await Promise.all([
-        resolveDemoPackages(coachCode, undefined),
-        resolveDemoEvents(coachCode, undefined),
-      ]);
-      return {
-        packages: packagesResult.packages,
-        events: eventsResult.events,
-        isDemo: packagesResult.isDemo || eventsResult.isDemo,
-      };
-    },
-    enabled: USE_MVP_MOCKS && !!coachCode,
-    staleTime: 30_000,
   });
 
   const myCoachCode = getCurrentCoachCode();
@@ -293,6 +331,14 @@ function CoachProfilePage({
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const photoSourcePath = coach?.profilePicUrl || coach?.logoUrl || '';
+  const photoUri = resolveMediaUrl(photoSourcePath);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [trackedPhotoPath, setTrackedPhotoPath] = useState(photoSourcePath);
+  if (photoSourcePath !== trackedPhotoPath) {
+    setTrackedPhotoPath(photoSourcePath);
+    setPhotoFailed(false);
+  }
   const update = <K extends keyof EnquiryForm>(key: K, val: EnquiryForm[K]) =>
     setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
 
@@ -332,21 +378,11 @@ function CoachProfilePage({
     );
   }
 
-  const photoUri = resolveMediaUrl(coach.profilePicUrl);
+  const showPhoto = Boolean(photoUri) && !photoFailed;
   const cardWidth = storyCardWidth(pageWidth);
   const expertiseChipWidth = Math.floor((pageWidth - Spacing.lg * 2 - EXPERTISE_GRID_GAP) / 2);
-  const apiPackages = coach.packages ?? [];
-  const apiEvents = coach.events ?? [];
-  const usingDemoPackages = USE_MVP_MOCKS && apiPackages.length === 0;
-  const usingDemoEvents = USE_MVP_MOCKS && apiEvents.length === 0;
-  const packages = usingDemoPackages
-    ? (demoMvpQuery.data?.packages ?? getSyncDemoPackagesFallback())
-    : apiPackages;
-  const eventsForPublic = usingDemoEvents
-    ? (demoMvpQuery.data?.events ?? getSyncDemoEventsFallback())
-    : apiEvents;
-  const upcomingEvents = getUpcomingCoachEvents(eventsForPublic);
-  const showDemoHint = usingDemoPackages || usingDemoEvents;
+  const packages = coach.packages ?? [];
+  const upcomingEvents = getUpcomingCoachEvents(coach.events ?? []);
   const serviceOptions = [
     ...packages.map(p => p.name),
     ...(coach.tags.length ? coach.tags : []),
@@ -410,11 +446,12 @@ function CoachProfilePage({
           <HeaderBackButton onPress={onBack} style={styles.heroBack} />
 
           <View style={styles.photoBanner}>
-            {photoUri ? (
+            {showPhoto ? (
               <Image
                 source={{ uri: photoUri }}
                 style={styles.photoBannerImage}
                 resizeMode="cover"
+                onError={() => setPhotoFailed(true)}
               />
             ) : (
               <View style={styles.photoBannerFallback}>
@@ -551,9 +588,6 @@ function CoachProfilePage({
             <Text style={styles.sectionSubtitle}>
               Pick a package in the enquiry form, or message {coach.name} on WhatsApp.
             </Text>
-            {showDemoHint && usingDemoPackages ? (
-              <DemoModeHint message="Demo packages for UI review." />
-            ) : null}
             {packages.map(pkg => (
               <PackageCard key={pkg.id} pkg={pkg} onSelect={() => update('service', pkg.name)} />
             ))}
@@ -569,9 +603,6 @@ function CoachProfilePage({
             <Text style={styles.sectionSubtitle}>
               Workshops and sessions hosted by {coach.name}.
             </Text>
-            {showDemoHint && usingDemoEvents ? (
-              <DemoModeHint message="Demo events for UI review." />
-            ) : null}
             {upcomingEvents.map(event => (
               <EventCard key={event.id} event={event} />
             ))}
@@ -1152,11 +1183,28 @@ const styles = StyleSheet.create({
   offerCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    padding: Spacing.md,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.border,
+    overflow: 'hidden',
     ...Shadow.sm,
+  },
+  offerImageWrap: {
+    height: 140,
+    backgroundColor: Colors.backgroundTan,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  offerImagePlaceholder: {
+    width: '62%',
+    height: '72%',
+  },
+  offerCardBodyWrap: {
+    padding: Spacing.md,
   },
   offerCardHeader: {
     flexDirection: 'row',

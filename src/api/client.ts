@@ -65,7 +65,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     // Ignore NetInfo failures and proceed to fetch.
   }
 
-  const url = `${BASE_URL}${path.replace('{version}', API_VERSION)}`;
+  const url = `${BASE_URL.replace(/\/$/, '')}${path.replace('{version}', API_VERSION)}`;
   const token = getCurrentToken();
 
   // fetch() has no built-in timeout — combine our timer with any caller signal (RQ).

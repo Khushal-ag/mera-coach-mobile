@@ -30,18 +30,24 @@ bun run android
 
 ## Environment
 
-| Variable                         | Required | Purpose                                                                   |
-| -------------------------------- | -------- | ------------------------------------------------------------------------- |
-| `EXPO_PUBLIC_API_BASE_URL`       | Yes      | API base URL                                                              |
-| `EXPO_PUBLIC_WEB_BASE_URL`       | No       | Public site for feedback SMS links (defaults to `https://mera-coach.com`) |
-| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | No       | Privacy policy URL (e.g. Play Console)                                    |
-| `EXPO_PUBLIC_USE_MVP_MOCKS`      | No       | Demo packages / events / gallery when API is empty (default `true`)       |
+| Variable                         | Required | Purpose                                        |
+| -------------------------------- | -------- | ---------------------------------------------- |
+| `EXPO_PUBLIC_API_BASE_URL`       | Yes      | API base URL (including Document + image URLs) |
+| `EXPO_PUBLIC_WEB_BASE_URL`       | No       | Public site for feedback SMS links             |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | No       | Privacy policy URL (e.g. Play Console)         |
 
-See `.env.example`. For EAS production builds, set these as EAS secrets.
+Photos (gallery, logo, profile, progress, packages, events) upload and resolve against the same `EXPO_PUBLIC_API_BASE_URL` host (`/document/...` under that API’s wwwroot). For cloud images, point `API_BASE` at the deployed Azure API. A local API serves its own local wwwroot unless the API is configured for shared storage.
 
-### MVP demo mocks
+See `.env.example` for variable names. For EAS production builds, set these as EAS secrets.
 
-With `EXPO_PUBLIC_USE_MVP_MOCKS` enabled (default when unset), the app seeds sample packages / events / gallery and saves edits to on-device storage so Edit Packages / Events / Gallery and the public profile stay in sync for UI review. Set `EXPO_PUBLIC_USE_MVP_MOCKS=false` to show empty sections when the API returns none. Restart Expo after changing the flag.
+### MVP persistence (API)
+
+Requires API DB scripts:
+
+- `AlterTable_MstCoach_AddReferrerPackagesEvents.sql` — `ReferrerMobile`, `PackagesJson`, `EventsJson`
+- `CreateTable_ClientFeedback.sql` — feedback from the web form
+
+Feedback SMS opens `{EXPO_PUBLIC_WEB_BASE_URL}/feedback?coachCode=&clientCode=` (web page + `POST /v1/Coach/feedback`).
 
 ## Scripts
 
@@ -79,7 +85,7 @@ src/
   api/          HTTP client + endpoint modules
   auth/         Secure session storage
   components/   Shared UI
-  data/         Static content + MVP demo mocks
+  data/         Static content
   screens/      App screens
   navigation/   React Navigation trees
   utils/        Validation, BMI, SMS, parsers

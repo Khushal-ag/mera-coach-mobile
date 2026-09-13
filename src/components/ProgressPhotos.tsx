@@ -14,7 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { pickImagesFromCameraOrLibrary } from '../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Shadow } from '../constants/theme';
-import { deleteDocument, uploadDocumentWithMeta, type DocumentListItem } from '../api/documentApi';
+import { deleteDocument, uploadDocument, type DocumentListItem } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { getCurrentCoachId } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
@@ -31,8 +31,8 @@ interface Props {
 export default function ProgressPhotos({ clientCode }: Props) {
   const coachCode = progressPhotosCoachCode();
   const queryClient = useQueryClient();
-  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
   // Same query key as list/detail progress gallery — one Document/list per client.
   const photosQuery = useProgressPhotosQuery(clientCode);
@@ -55,7 +55,7 @@ export default function ProgressPhotos({ clientCode }: Props) {
     try {
       for (const asset of assets) {
         const dataUrl = `data:${asset.mimeType};base64,${asset.base64}`;
-        await uploadDocumentWithMeta({
+        await uploadDocument({
           base64DataUrl: dataUrl,
           coachCode,
           refCode: clientCode,
@@ -131,7 +131,10 @@ export default function ProgressPhotos({ clientCode }: Props) {
               <View key={item.docId} style={styles.thumbWrap}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  onPress={() => uri && setLightboxUri(uri)}
+                  onPress={() => {
+                    if (!uri) return;
+                    setLightboxUri(uri);
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="View progress photo"
                 >

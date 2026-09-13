@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
 import { BrandImages } from '../constants/images';
-import { uploadDocumentWithMeta } from '../api/documentApi';
+import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
 import { getCurrentCoachCode, getCurrentCoachId } from '../auth/session';
 import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
@@ -59,7 +59,7 @@ export default function ClientAvatar({
     setUploading(true);
     try {
       const coachCode = getCurrentCoachCode() ?? '';
-      await uploadDocumentWithMeta({
+      await uploadDocument({
         base64DataUrl: `data:${picked.mimeType};base64,${picked.base64}`,
         coachCode,
         refCode: clientCode,

@@ -416,9 +416,9 @@ export interface SaveCoachProfileParams {
   dietChartTemplate?: string;
   /** 1/0; computed from public-field sufficiency when omitted. */
   isProfileVisible?: number;
-  /** Only attached to the POST when non-empty (see saveCoachProfile). */
+  /** Attached when provided (including empty arrays to clear). */
   packages?: CoachPackage[];
-  /** Only attached to the POST when non-empty (see saveCoachProfile). */
+  /** Attached when provided (including empty arrays to clear). */
   events?: CoachEvent[];
 }
 
@@ -428,12 +428,12 @@ export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<
     params.isProfileVisible ?? (isPublicProfileDataSufficient(params) ? 1 : 0);
   const body: Record<string, unknown> = { ...rest, isProfileVisible };
 
-  // Only send when non-empty; empty arrays are omitted.
-  if (packages && packages.length > 0) {
+  // Always send when defined so empty arrays clear PackagesJson / EventsJson on the API.
+  if (packages !== undefined) {
     body.packages = packages;
     body.packagesJson = JSON.stringify(packages);
   }
-  if (events && events.length > 0) {
+  if (events !== undefined) {
     body.events = events;
     body.eventsJson = JSON.stringify(events);
   }
@@ -444,7 +444,7 @@ export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<
 /**
  * Map a loaded full profile into a Coach/save body.
  * Includes packages/events from profile (or overrides) so dedicated editors can
- * round-trip them; `saveCoachProfile` omits empty arrays from the wire payload.
+ * round-trip them; empty arrays are sent so clears persist.
  */
 export function buildSaveCoachProfileParams(
   profile: CoachProfileFull,

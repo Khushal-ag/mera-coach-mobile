@@ -11,6 +11,7 @@ export function createEmptyEvent(): CoachEvent {
     time: '',
     location: '',
     link: '',
+    imageUrl: '',
   };
 }
 
@@ -23,6 +24,7 @@ export function parseCoachEvents(raw: unknown): CoachEvent[] {
       const row = item as Record<string, unknown>;
       const title = String(row.title ?? row.name ?? '').trim();
       if (!title) return null;
+      const imageUrl = String(row.imageUrl ?? row.image ?? '').trim();
       return {
         id: String(row.id ?? `evt_${index}`),
         title,
@@ -30,6 +32,7 @@ export function parseCoachEvents(raw: unknown): CoachEvent[] {
         time: String(row.time ?? row.eventTime ?? '').trim(),
         location: String(row.location ?? row.city ?? '').trim(),
         link: String(row.link ?? row.url ?? '').trim(),
+        ...(imageUrl ? { imageUrl } : {}),
       } satisfies CoachEvent;
     })
     .filter((e): e is CoachEvent => !!e)
@@ -47,7 +50,11 @@ export function validateCoachEventsDraft(events: CoachEvent[]): string | null {
     const event = events[i]!;
     const title = event.title.trim();
     const hasDetails =
-      event.date.trim() || event.time.trim() || event.location.trim() || event.link.trim();
+      event.date.trim() ||
+      event.time.trim() ||
+      event.location.trim() ||
+      event.link.trim() ||
+      (event.imageUrl ?? '').trim();
     if (!title && hasDetails) {
       return `Event ${i + 1} needs a title before saving.`;
     }
@@ -60,14 +67,18 @@ export function validateCoachEventsDraft(events: CoachEvent[]): string | null {
 
 export function serializeCoachEvents(events: CoachEvent[]): CoachEvent[] {
   return events
-    .map(e => ({
-      id: e.id || createEmptyEvent().id,
-      title: e.title.trim(),
-      date: e.date.trim(),
-      time: e.time.trim(),
-      location: e.location.trim(),
-      link: e.link.trim(),
-    }))
+    .map(e => {
+      const imageUrl = (e.imageUrl ?? '').trim();
+      return {
+        id: e.id || createEmptyEvent().id,
+        title: e.title.trim(),
+        date: e.date.trim(),
+        time: e.time.trim(),
+        location: e.location.trim(),
+        link: e.link.trim(),
+        ...(imageUrl ? { imageUrl } : {}),
+      };
+    })
     .filter(e => e.title)
     .slice(0, MAX_COACH_EVENTS);
 }

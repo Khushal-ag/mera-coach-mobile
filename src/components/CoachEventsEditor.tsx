@@ -1,37 +1,110 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Spacing } from '../constants/theme';
+import { COACH_EVENT_IMAGE_DOC_TYPE, COACH_GALLERY_REF_TYPE } from '../config/appConfig';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { uploadDocument } from '../api/documentApi';
+import { getErrorMessage } from '../api/client';
+import { getCurrentCoachId } from '../auth/session';
 import FormFieldLabel from './FormFieldLabel';
+import OfferImageField from './OfferImageField';
 import type { CoachEvent } from '../types/models';
 import { MAX_COACH_EVENTS, createEmptyEvent } from '../utils/coachEvents';
+import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
 
 interface Props {
   events: CoachEvent[];
   onChange: (next: CoachEvent[]) => void;
+  coachCode: string;
 }
 
-export default function CoachEventsEditor({ events, onChange }: Props) {
+export default function CoachEventsEditor({ events, onChange, coachCode }: Props) {
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const eventsRef = useRef(events);
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
+
+  const commit = (next: CoachEvent[]) => {
+    eventsRef.current = next;
+    onChange(next);
+  };
+
   const updateAt = (index: number, patch: Partial<CoachEvent>) => {
-    onChange(events.map((e, i) => (i === index ? { ...e, ...patch } : e)));
+    commit(eventsRef.current.map((e, i) => (i === index ? { ...e, ...patch } : e)));
   };
 
   const removeAt = (index: number) => {
-    onChange(events.filter((_, i) => i !== index));
+    commit(eventsRef.current.filter((_, i) => i !== index));
   };
 
   const addEvent = () => {
-    if (events.length >= MAX_COACH_EVENTS) return;
-    onChange([...events, createEmptyEvent()]);
+    if (eventsRef.current.length >= MAX_COACH_EVENTS) return;
+    commit([...eventsRef.current, createEmptyEvent()]);
+  };
+
+  const pickImage = async (index: number) => {
+    const event = eventsRef.current[index];
+    if (!event || !coachCode) return;
+
+    const picked = await pickImageFromCameraOrLibrary({
+      allowsEditing: true,
+      aspect: [16, 10],
+      quality: 0.75,
+    });
+    if (!picked) return;
+
+    const previousUrl = event.imageUrl ?? '';
+    const eventId = event.id;
+    updateAt(index, { imageUrl: picked.uri });
+    setUploadingId(eventId);
+    try {
+      const url = await uploadDocument({
+        base64DataUrl: `data:${picked.mimeType};base64,${picked.base64}`,
+        coachCode,
+        refCode: coachCode,
+        refType: COACH_GALLERY_REF_TYPE,
+        docType: COACH_EVENT_IMAGE_DOC_TYPE,
+        savedBy: Number(getCurrentCoachId()) || 0,
+      });
+      const latestIndex = eventsRef.current.findIndex(e => e.id === eventId);
+      if (latestIndex >= 0) updateAt(latestIndex, { imageUrl: url });
+    } catch (err) {
+      const latestIndex = eventsRef.current.findIndex(e => e.id === eventId);
+      if (latestIndex >= 0) updateAt(latestIndex, { imageUrl: previousUrl });
+      Alert.alert(
+        'Upload failed',
+        getErrorMessage(err, 'Could not upload photo. Please try again.'),
+      );
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTitle}>Events</Text>
-      <Text style={styles.hint}>
-        Showcase workshops, bootcamps, or group sessions. Upcoming ones appear on your public
-        profile.
-      </Text>
+      <View style={styles.intro}>
+        <View style={styles.introIcon}>
+          <Ionicons name="calendar-outline" size={18} color={Colors.secondary} />
+        </View>
+        <View style={styles.introText}>
+          <Text style={styles.sectionTitle}>Events</Text>
+          <Text style={styles.hint}>
+            Showcase workshops, bootcamps, or group sessions. Upcoming ones appear on your public
+            profile. Past events stay here for your records.
+          </Text>
+        </View>
+      </View>
+
+      {events.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="calendar-outline" size={28} color={Colors.textLight} />
+          <Text style={styles.emptyTitle}>No events yet</Text>
+          <Text style={styles.emptyMessage}>
+            Add an upcoming workshop or session with a cover photo for your public profile.
+          </Text>
+        </View>
+      ) : null}
 
       {events.map((event, index) => (
         <View key={event.id} style={styles.card}>
@@ -46,6 +119,15 @@ export default function CoachEventsEditor({ events, onChange }: Props) {
               <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
             </TouchableOpacity>
           </View>
+
+          <OfferImageField
+            imageUrl={event.imageUrl}
+            uploading={uploadingId === event.id}
+            onPick={() => void pickImage(index)}
+            onRemove={() => updateAt(index, { imageUrl: '' })}
+            accessibilityLabel={`event ${index + 1} photo`}
+          />
+
           <Field
             label="Title"
             required
@@ -90,7 +172,7 @@ export default function CoachEventsEditor({ events, onChange }: Props) {
 
       {events.length < MAX_COACH_EVENTS ? (
         <TouchableOpacity style={styles.addBtn} onPress={addEvent}>
-          <Ionicons name="add-circle-outline" size={18} color={Colors.secondary} />
+          <Ionicons name="add-circle-outline" size={18} color={Colors.white} />
           <Text style={styles.addBtnText}>Add event</Text>
         </TouchableOpacity>
       ) : null}
@@ -131,26 +213,63 @@ function Field({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: Spacing.md },
+  intro: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  introIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: Colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  introText: { flex: 1 },
   sectionTitle: {
     fontSize: 15,
     fontFamily: FontFamily.bold,
     color: Colors.textDark,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   hint: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
-    lineHeight: 16,
-    marginBottom: Spacing.md,
+    lineHeight: 17,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    ...Shadow.sm,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+  },
+  emptyMessage: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 17,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.sm,
+    padding: Spacing.md,
     marginBottom: Spacing.sm,
+    ...Shadow.sm,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -176,9 +295,14 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
+    alignSelf: 'stretch',
+    backgroundColor: Colors.secondary,
+    borderRadius: Radius.pill,
+    paddingVertical: 12,
+    marginTop: 4,
+    ...Shadow.sm,
   },
-  addBtnText: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  addBtnText: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.white },
 });

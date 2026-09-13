@@ -10,13 +10,12 @@ import {
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Shadow, Spacing } from '../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
 import FormErrorBanner from '../components/FormErrorBanner';
 import KeyboardSafeScroll from '../components/KeyboardSafeScroll';
 import ScreenHeader from '../components/ScreenHeader';
 import ReloadState from '../components/ReloadState';
 import CoachEventsEditor from '../components/CoachEventsEditor';
-import DemoModeHint from '../components/DemoModeHint';
 import {
   buildSaveCoachProfileParams,
   getCoachProfileFull,
@@ -25,9 +24,8 @@ import {
 } from '../api/coachApi';
 import { getErrorMessage } from '../api/client';
 import { queryKeys } from '../api/queryKeys';
-import { USE_MVP_MOCKS } from '../config/appConfig';
-import { resolveDemoEvents, saveDemoEvents } from '../data/mvpMockStore';
 import { serializeCoachEvents, validateCoachEventsDraft } from '../utils/coachEvents';
+import { isPendingLocalMediaUrl } from '../utils/mediaUrl';
 import type { ProfileStackScreenProps } from '../types/navigation';
 import type { CoachEvent } from '../types/models';
 
@@ -65,20 +63,8 @@ export default function EditEventsScreen({ navigation }: ProfileStackScreenProps
 
 function EditEventsForm({ profile, onDone }: { profile: CoachProfileFull; onDone: () => void }) {
   const scrollRef = useRef<ScrollView>(null);
-  const seedQuery = useQuery({
-    queryKey: [...queryKeys.coachMvpDemo(profile.coachCode), 'events-edit'] as const,
-    queryFn: () => resolveDemoEvents(profile.coachCode, profile.events),
-    enabled: USE_MVP_MOCKS,
-    initialData:
-      (profile.events?.length ?? 0) > 0
-        ? { events: profile.events ?? [], isDemo: false }
-        : undefined,
-  });
-
-  const seeded = USE_MVP_MOCKS ? seedQuery.data : { events: profile.events ?? [], isDemo: false };
   const [events, setEvents] = useState<CoachEvent[] | null>(null);
-  const draft = events ?? seeded?.events ?? [];
-  const isDemo = seeded?.isDemo ?? false;
+  const draft = events ?? profile.events ?? [];
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -89,29 +75,15 @@ function EditEventsForm({ profile, onDone }: { profile: CoachProfileFull; onDone
       setBanner(eventsError);
       return;
     }
+    if (draft.some(e => isPendingLocalMediaUrl(e.imageUrl))) {
+      setBanner('Please wait for the event photo upload to finish.');
+      return;
+    }
 
     setBanner(null);
     setSaving(true);
     try {
       const serialized = serializeCoachEvents(draft);
-
-      if (USE_MVP_MOCKS) {
-        await saveDemoEvents(profile.coachCode, serialized);
-        queryClient.invalidateQueries({ queryKey: queryKeys.coachMvpDemo(profile.coachCode) });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.coachProfileByCode(profile.coachCode),
-        });
-        Alert.alert(
-          'Events saved',
-          isDemo
-            ? 'Saved on this device for demo. The API does not store events yet.'
-            : 'Your events have been updated.',
-          [{ text: 'OK', onPress: onDone }],
-        );
-        return;
-      }
-
-      // Reload so we merge against the latest profile and do not wipe other fields.
       const latest = await getCoachProfileFull();
       await saveCoachProfile(
         buildSaveCoachProfileParams(latest, {
@@ -132,10 +104,6 @@ function EditEventsForm({ profile, onDone }: { profile: CoachProfileFull; onDone
     }
   };
 
-  if (USE_MVP_MOCKS && !seeded) {
-    return <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />;
-  }
-
   return (
     <KeyboardSafeScroll
       ref={scrollRef}
@@ -144,8 +112,7 @@ function EditEventsForm({ profile, onDone }: { profile: CoachProfileFull; onDone
       keyboardPadding={180}
     >
       <FormErrorBanner message={banner} />
-      {isDemo ? <DemoModeHint /> : null}
-      <CoachEventsEditor events={draft} onChange={setEvents} />
+      <CoachEventsEditor events={draft} onChange={setEvents} coachCode={profile.coachCode} />
 
       <TouchableOpacity
         style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
@@ -181,5 +148,5 @@ const styles = StyleSheet.create({
     ...Shadow.md,
   },
   saveBtnDisabled: { opacity: 0.7 },
-  saveText: { color: Colors.white, fontSize: 16, fontWeight: '700' },
+  saveText: { color: Colors.white, fontSize: 16, fontFamily: FontFamily.bold },
 });

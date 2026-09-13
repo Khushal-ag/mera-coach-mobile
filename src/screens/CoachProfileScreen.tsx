@@ -19,7 +19,7 @@ import TabRootHeader from '../components/TabRootHeader';
 import { APP_DISPLAY_NAME } from '../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../utils/support';
 import { formatExperienceDisplay } from '../utils/experience';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { resolveCoachPhotoUrl } from '../utils/mediaUrl';
 import { refreshControlTheme } from '../hooks/useRefreshControl';
 import { clearSession, getCurrentCoachCode } from '../auth/session';
 import { getCoachProfile } from '../api/coachApi';
@@ -152,7 +152,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       ? getErrorMessage(profileQuery.error, 'Could not load profile. Pull down to try again.')
       : null;
 
-  const photoUri = resolveMediaUrl(profile?.profilePicUrl);
+  const photoUri = resolveCoachPhotoUrl(profile ?? {});
 
   // Prefer live ClientList length; fall back to happyClientCount only when the list isn't loaded.
   const clientCountDisplay =

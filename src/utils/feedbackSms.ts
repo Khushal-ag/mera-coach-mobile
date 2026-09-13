@@ -1,12 +1,12 @@
 import { Linking, Platform } from 'react-native';
-import { FEEDBACK_WEB_BASE_URL } from '../config/appConfig';
+import { WEB_BASE_URL } from '../config/appConfig';
 import { stripNonDigits } from './validation';
 
 export function buildFeedbackWebUrl(params: {
   coachCode: string;
   clientCode: string;
 }): string | null {
-  const base = FEEDBACK_WEB_BASE_URL.replace(/\/$/, '');
+  const base = WEB_BASE_URL.replace(/\/$/, '');
   const coachCode = params.coachCode.trim();
   const clientCode = params.clientCode.trim();
   if (!base || !coachCode || !clientCode) return null;
@@ -31,12 +31,26 @@ export function buildFeedbackSmsBody(params: {
   return `${greeting}, please share quick feedback${coachBit} on Mera Coach:\n${params.feedbackUrl}`;
 }
 
+/**
+ * Indian 10-digit mobiles need +91 for the Messages app to resolve the
+ * recipient (same convention as WhatsApp links). Longer values already
+ * include a country code.
+ */
+export function normalizeSmsPhone(phone: string): string {
+  const digits = stripNonDigits(phone);
+  if (!digits) return '';
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+  if (digits.length > 10) return `+${digits}`;
+  return digits;
+}
+
 /** Native SMS composer. iOS uses `&body=`, Android uses `?body=`. */
 export function buildSmsUrl(phone: string, body: string): string {
-  const digits = stripNonDigits(phone);
+  const recipient = normalizeSmsPhone(phone);
   const encoded = encodeURIComponent(body);
   const separator = Platform.OS === 'ios' ? '&' : '?';
-  return `sms:${digits}${separator}body=${encoded}`;
+  return `sms:${recipient}${separator}body=${encoded}`;
 }
 
 export async function openFeedbackSms(params: { phone: string; body: string }): Promise<void> {

@@ -40,7 +40,7 @@ import { usePinLocationLookup } from '../hooks/usePinLocationLookup';
 import { getCurrentCoachId, updateSessionFullName } from '../auth/session';
 import { MASTER_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { isPendingLocalMediaUrl, resolveMediaUrl } from '../utils/mediaUrl';
 import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
 import { buildCoachDescriptionSuggestions } from '../utils/coachDescriptionSuggestions';
 import type { ProfileStackScreenProps } from '../types/navigation';
@@ -256,7 +256,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   };
 
   const handleSave = async () => {
-    if (uploadingLogo || uploadingPhoto) {
+    if (
+      uploadingLogo ||
+      uploadingPhoto ||
+      isPendingLocalMediaUrl(logoUrl) ||
+      isPendingLocalMediaUrl(profilePicUrl)
+    ) {
       setBanner('Please wait for the image upload to finish.');
       return;
     }

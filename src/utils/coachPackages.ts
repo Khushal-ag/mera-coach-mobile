@@ -9,6 +9,7 @@ export function createEmptyPackage(): CoachPackage {
     price: '',
     duration: '',
     description: '',
+    imageUrl: '',
   };
 }
 
@@ -21,12 +22,14 @@ export function parseCoachPackages(raw: unknown): CoachPackage[] {
       const row = item as Record<string, unknown>;
       const name = String(row.name ?? row.title ?? '').trim();
       if (!name) return null;
+      const imageUrl = String(row.imageUrl ?? row.image ?? '').trim();
       return {
         id: String(row.id ?? `pkg_${index}`),
         name,
         price: String(row.price ?? row.priceInr ?? '').trim(),
         duration: String(row.duration ?? row.sessions ?? row.durationOrSessions ?? '').trim(),
         description: String(row.description ?? row.desc ?? '').trim(),
+        ...(imageUrl ? { imageUrl } : {}),
       } satisfies CoachPackage;
     })
     .filter((p): p is CoachPackage => !!p)
@@ -37,7 +40,11 @@ export function validateCoachPackagesDraft(packages: CoachPackage[]): string | n
   for (let i = 0; i < packages.length; i++) {
     const pkg = packages[i]!;
     const name = pkg.name.trim();
-    const hasDetails = pkg.price.trim() || pkg.duration.trim() || pkg.description.trim();
+    const hasDetails =
+      pkg.price.trim() ||
+      pkg.duration.trim() ||
+      pkg.description.trim() ||
+      (pkg.imageUrl ?? '').trim();
     if (!name && hasDetails) {
       return `Package ${i + 1} needs a name before saving.`;
     }
@@ -47,13 +54,17 @@ export function validateCoachPackagesDraft(packages: CoachPackage[]): string | n
 
 export function serializeCoachPackages(packages: CoachPackage[]): CoachPackage[] {
   return packages
-    .map(p => ({
-      id: p.id || createEmptyPackage().id,
-      name: p.name.trim(),
-      price: p.price.trim(),
-      duration: p.duration.trim(),
-      description: p.description.trim(),
-    }))
+    .map(p => {
+      const imageUrl = (p.imageUrl ?? '').trim();
+      return {
+        id: p.id || createEmptyPackage().id,
+        name: p.name.trim(),
+        price: p.price.trim(),
+        duration: p.duration.trim(),
+        description: p.description.trim(),
+        ...(imageUrl ? { imageUrl } : {}),
+      };
+    })
     .filter(p => p.name)
     .slice(0, MAX_COACH_PACKAGES);
 }

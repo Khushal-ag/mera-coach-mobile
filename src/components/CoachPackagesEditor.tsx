@@ -1,37 +1,110 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Spacing } from '../constants/theme';
+import { COACH_GALLERY_REF_TYPE, COACH_PACKAGE_IMAGE_DOC_TYPE } from '../config/appConfig';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../constants/theme';
+import { uploadDocument } from '../api/documentApi';
+import { getErrorMessage } from '../api/client';
+import { getCurrentCoachId } from '../auth/session';
 import FormFieldLabel from './FormFieldLabel';
+import OfferImageField from './OfferImageField';
 import type { CoachPackage } from '../types/models';
 import { MAX_COACH_PACKAGES, createEmptyPackage } from '../utils/coachPackages';
+import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
 
 interface Props {
   packages: CoachPackage[];
   onChange: (next: CoachPackage[]) => void;
+  coachCode: string;
 }
 
-export default function CoachPackagesEditor({ packages, onChange }: Props) {
+export default function CoachPackagesEditor({ packages, onChange, coachCode }: Props) {
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const packagesRef = useRef(packages);
+  useEffect(() => {
+    packagesRef.current = packages;
+  }, [packages]);
+
+  const commit = (next: CoachPackage[]) => {
+    packagesRef.current = next;
+    onChange(next);
+  };
+
   const updateAt = (index: number, patch: Partial<CoachPackage>) => {
-    onChange(packages.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+    commit(packagesRef.current.map((p, i) => (i === index ? { ...p, ...patch } : p)));
   };
 
   const removeAt = (index: number) => {
-    onChange(packages.filter((_, i) => i !== index));
+    commit(packagesRef.current.filter((_, i) => i !== index));
   };
 
   const addPackage = () => {
-    if (packages.length >= MAX_COACH_PACKAGES) return;
-    onChange([...packages, createEmptyPackage()]);
+    if (packagesRef.current.length >= MAX_COACH_PACKAGES) return;
+    commit([...packagesRef.current, createEmptyPackage()]);
+  };
+
+  const pickImage = async (index: number) => {
+    const pkg = packagesRef.current[index];
+    if (!pkg || !coachCode) return;
+
+    const picked = await pickImageFromCameraOrLibrary({
+      allowsEditing: true,
+      aspect: [16, 10],
+      quality: 0.75,
+    });
+    if (!picked) return;
+
+    const previousUrl = pkg.imageUrl ?? '';
+    const pkgId = pkg.id;
+    updateAt(index, { imageUrl: picked.uri });
+    setUploadingId(pkgId);
+    try {
+      const url = await uploadDocument({
+        base64DataUrl: `data:${picked.mimeType};base64,${picked.base64}`,
+        coachCode,
+        refCode: coachCode,
+        refType: COACH_GALLERY_REF_TYPE,
+        docType: COACH_PACKAGE_IMAGE_DOC_TYPE,
+        savedBy: Number(getCurrentCoachId()) || 0,
+      });
+      const latestIndex = packagesRef.current.findIndex(p => p.id === pkgId);
+      if (latestIndex >= 0) updateAt(latestIndex, { imageUrl: url });
+    } catch (err) {
+      const latestIndex = packagesRef.current.findIndex(p => p.id === pkgId);
+      if (latestIndex >= 0) updateAt(latestIndex, { imageUrl: previousUrl });
+      Alert.alert(
+        'Upload failed',
+        getErrorMessage(err, 'Could not upload photo. Please try again.'),
+      );
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTitle}>Product packages</Text>
-      <Text style={styles.hint}>
-        Offer 1 to {MAX_COACH_PACKAGES} coaching packages on your public profile. No in-app payment.
-        Enquiries come via WhatsApp or the form.
-      </Text>
+      <View style={styles.intro}>
+        <View style={styles.introIcon}>
+          <Ionicons name="pricetag-outline" size={18} color={Colors.secondary} />
+        </View>
+        <View style={styles.introText}>
+          <Text style={styles.sectionTitle}>Product packages</Text>
+          <Text style={styles.hint}>
+            Offer 1 to {MAX_COACH_PACKAGES} coaching packages on your public profile. No in-app
+            payment. Enquiries come via WhatsApp or the form.
+          </Text>
+        </View>
+      </View>
+
+      {packages.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Ionicons name="cube-outline" size={28} color={Colors.textLight} />
+          <Text style={styles.emptyTitle}>No packages yet</Text>
+          <Text style={styles.emptyMessage}>
+            Add a package with a cover photo so clients know what you offer.
+          </Text>
+        </View>
+      ) : null}
 
       {packages.map((pkg, index) => (
         <View key={pkg.id} style={styles.card}>
@@ -46,6 +119,15 @@ export default function CoachPackagesEditor({ packages, onChange }: Props) {
               <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
             </TouchableOpacity>
           </View>
+
+          <OfferImageField
+            imageUrl={pkg.imageUrl}
+            uploading={uploadingId === pkg.id}
+            onPick={() => void pickImage(index)}
+            onRemove={() => updateAt(index, { imageUrl: '' })}
+            accessibilityLabel={`package ${index + 1} photo`}
+          />
+
           <Field
             label="Name"
             required
@@ -83,7 +165,7 @@ export default function CoachPackagesEditor({ packages, onChange }: Props) {
 
       {packages.length < MAX_COACH_PACKAGES ? (
         <TouchableOpacity style={styles.addBtn} onPress={addPackage}>
-          <Ionicons name="add-circle-outline" size={18} color={Colors.secondary} />
+          <Ionicons name="add-circle-outline" size={18} color={Colors.white} />
           <Text style={styles.addBtnText}>Add package</Text>
         </TouchableOpacity>
       ) : null}
@@ -125,26 +207,63 @@ function Field({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: Spacing.md },
+  intro: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  introIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: Colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  introText: { flex: 1 },
   sectionTitle: {
     fontSize: 15,
     fontFamily: FontFamily.bold,
     color: Colors.textDark,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   hint: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
-    lineHeight: 16,
-    marginBottom: Spacing.md,
+    lineHeight: 17,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    ...Shadow.sm,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+  },
+  emptyMessage: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 17,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.sm,
+    padding: Spacing.md,
     marginBottom: Spacing.sm,
+    ...Shadow.sm,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -171,9 +290,14 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
+    alignSelf: 'stretch',
+    backgroundColor: Colors.secondary,
+    borderRadius: Radius.pill,
+    paddingVertical: 12,
+    marginTop: 4,
+    ...Shadow.sm,
   },
-  addBtnText: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  addBtnText: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.white },
 });

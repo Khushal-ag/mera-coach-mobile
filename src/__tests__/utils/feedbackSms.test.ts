@@ -1,4 +1,10 @@
-import { buildFeedbackSmsBody, buildFeedbackWebUrl } from '../../utils/feedbackSms';
+import { Platform } from 'react-native';
+import {
+  buildFeedbackSmsBody,
+  buildFeedbackWebUrl,
+  buildSmsUrl,
+  normalizeSmsPhone,
+} from '../../utils/feedbackSms';
 
 describe('feedbackSms', () => {
   it('builds feedback URL with coach and client codes', () => {
@@ -16,5 +22,13 @@ describe('feedbackSms', () => {
     });
     expect(body).toContain('Hi Priya');
     expect(body).toContain('https://mera-coach.com/feedback');
+  });
+
+  it('prefixes Indian 10-digit mobiles with +91 for SMS', () => {
+    expect(normalizeSmsPhone('9823456712')).toBe('+919823456712');
+    expect(normalizeSmsPhone('91 98234 56712')).toBe('+919823456712');
+
+    const separator = Platform.OS === 'ios' ? '&' : '?';
+    expect(buildSmsUrl('9823456712', 'Hi')).toBe(`sms:+919823456712${separator}body=Hi`);
   });
 });

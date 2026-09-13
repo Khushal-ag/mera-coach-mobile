@@ -24,7 +24,7 @@ import CategoryIcon from '../components/CategoryIcon';
 import PublicBmiCard from '../components/PublicBmiCard';
 import SectionHeading from '../components/SectionHeading';
 import { HeaderBackButton } from '../components/ScreenHeader';
-import { resolveMediaUrl } from '../utils/mediaUrl';
+import { resolveCoachPhotoUrl } from '../utils/mediaUrl';
 import { shouldShowPublicRating } from '../utils/coachPublicStats';
 import { getErrorMessage } from '../api/client';
 import type { RootScreenProps } from '../types/navigation';
@@ -59,7 +59,7 @@ function FeatureRow({
 }
 
 function CoachTile({ coach, onPress }: { coach: Coach; onPress: () => void }) {
-  const photoUri = resolveMediaUrl(coach.profilePicUrl);
+  const photoUri = resolveCoachPhotoUrl(coach);
   const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
 
   return (
