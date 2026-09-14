@@ -137,9 +137,37 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   return toUserMessage(error, fallback);
 }
 
+/** Shown when the API surfaces a SQL / infra connectivity failure. */
+export const FRIENDLY_SERVER_UNREACHABLE =
+  "Can't reach the server right now. Please try again in a moment.";
+
+/** Shown for client-side timeouts / status -1 network failures. */
+export const FRIENDLY_NETWORK = 'Could not reach the server. Check your connection and try again.';
+
+/** True for ADO.NET / SQL Server connection dump text that must never reach the UI. */
+export function isSqlServerInfraMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    /sql server/i.test(lower) ||
+    /named pipes/i.test(lower) ||
+    /could not open a connection to sql server/i.test(lower) ||
+    /network-related or instance-specific error/i.test(lower) ||
+    /error:\s*40\b/i.test(lower) ||
+    /ado\.?\s*net/i.test(lower) ||
+    /sqlconnection|sqlclient|microsoft\.data\.sqlclient|system\.data\.sqlclient/i.test(lower) ||
+    /connection string/i.test(lower) ||
+    /sql network interfaces/i.test(lower) ||
+    /provider:\s*(tcp|named pipes|shared memory)/i.test(lower) ||
+    /login failed for user/i.test(lower)
+  );
+}
+
 export function mapToUserFacingMessage(message: string, status = 0, errorCode?: number): string {
   const trimmed = message.trim();
-  if (!trimmed) return '';
+  if (!trimmed) {
+    if (status === -1) return FRIENDLY_NETWORK;
+    return '';
+  }
 
   // Never show stack traces or raw JSON / array dumps.
   if (/\n\s+at\s+/.test(trimmed) || /stack trace/i.test(trimmed)) {
@@ -150,6 +178,11 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
     (trimmed.startsWith('[') && trimmed.endsWith(']'))
   ) {
     return '';
+  }
+
+  // SQL / ADO.NET infra dumps from Azure when the DB is unreachable.
+  if (isSqlServerInfraMessage(trimmed)) {
+    return FRIENDLY_SERVER_UNREACHABLE;
   }
 
   if (/key was not present in the dictionary/i.test(trimmed)) {
@@ -191,6 +224,17 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
     (lower.includes('jwt') && lower.includes('expired'))
   ) {
     return 'Your session has expired. Please sign in again.';
+  }
+
+  // Client timeout / offline-style status (some stacks use -1 for network failure).
+  if (status === -1) {
+    return FRIENDLY_NETWORK;
+  }
+  if (lower === 'timeout' || lower === 'network request failed') {
+    return FRIENDLY_NETWORK;
+  }
+  if (lower.startsWith('request timed out')) {
+    return 'Request timed out. Please try again.';
   }
 
   // HTTP/business 401 without a more specific phrase (stale token, empty body, etc.).

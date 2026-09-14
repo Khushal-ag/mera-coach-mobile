@@ -11,7 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.meracoach.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "icon": "./assets/platform/icon.png"
     },
     "android": {
       "package": "com.meracoach.app",
@@ -26,7 +27,8 @@
         "foregroundImage": "./assets/platform/android-icon-foreground.png",
         "backgroundImage": "./assets/platform/android-icon-background.png",
         "monochromeImage": "./assets/platform/android-icon-monochrome.png"
-      }
+      },
+      "icon": "./assets/platform/icon.png"
     },
     "web": {
       "favicon": "./assets/platform/favicon.png",

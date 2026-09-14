@@ -2,8 +2,12 @@ import {
   ApiError,
   API_ERROR_NO_RECORDS,
   extractErrorMessage,
+  FRIENDLY_NETWORK,
+  FRIENDLY_SERVER_UNREACHABLE,
   getErrorMessage,
   isNoRecordsBody,
+  isSqlServerInfraMessage,
+  mapToUserFacingMessage,
   toUserMessage,
 } from '../../api/clientErrors';
 
@@ -116,5 +120,55 @@ describe('NoRecords (errorCode 1) empty success', () => {
         422,
       ),
     ).toBe('Diet plan generation failed');
+  });
+});
+
+describe('SQL Server / network sanitization', () => {
+  const namedPipesDump =
+    'A network-related or instance-specific error occurred while establishing a connection to SQL Server. The server was not found or was not accessible. Named Pipes Provider, error: 40 - Could not open a connection to SQL Server';
+
+  it('detects SQL Server / Named Pipes infra dumps', () => {
+    expect(isSqlServerInfraMessage(namedPipesDump)).toBe(true);
+    expect(isSqlServerInfraMessage("Login failed for user 'sa'.")).toBe(true);
+    expect(isSqlServerInfraMessage('ClientCode is required.')).toBe(false);
+    expect(isSqlServerInfraMessage('Invalid User')).toBe(false);
+  });
+
+  it('replaces SQL Server connection dumps with a short human message', () => {
+    const err = new ApiError(namedPipesDump, 200, {
+      errorObj: [{ errorCode: 500, errorMessage: namedPipesDump }],
+      responseObj: null,
+    });
+
+    expect(toUserMessage(err)).toBe(FRIENDLY_SERVER_UNREACHABLE);
+    expect(getErrorMessage(err, 'fallback')).toBe(FRIENDLY_SERVER_UNREACHABLE);
+    expect(mapToUserFacingMessage(namedPipesDump)).toBe(FRIENDLY_SERVER_UNREACHABLE);
+  });
+
+  it('maps status -1 and bare timeout strings to a clear network message', () => {
+    expect(mapToUserFacingMessage('', -1)).toBe(FRIENDLY_NETWORK);
+    expect(mapToUserFacingMessage('timeout', -1)).toBe(FRIENDLY_NETWORK);
+    expect(mapToUserFacingMessage('Network request failed')).toBe(FRIENDLY_NETWORK);
+    expect(toUserMessage(new ApiError('timeout', -1))).toBe(FRIENDLY_NETWORK);
+    expect(mapToUserFacingMessage('Request timed out. Please try again.')).toBe(
+      'Request timed out. Please try again.',
+    );
+  });
+
+  it('does not hide real business validation errors', () => {
+    expect(
+      toUserMessage(
+        new ApiError('x', 200, {
+          errorObj: [{ errorCode: 644, errorMessage: 'ClientCode is required.' }],
+        }),
+      ),
+    ).toBe('ClientCode is required.');
+    expect(
+      toUserMessage(
+        new ApiError('x', 200, {
+          errorObj: [{ errorCode: 401, errorMessage: 'Invalid User' }],
+        }),
+      ),
+    ).toBe(FRIENDLY_LOGIN);
   });
 });
