@@ -1,6 +1,8 @@
 # Releasing Mera Coach
 
-Production path: **GitHub → CI checks → EAS production build → GitHub Release**.
+Production path: **GitHub → CI checks → EAS Android APK → GitHub Release**.
+
+iOS store / TestFlight builds are **not** part of the release pipeline yet (no Apple Developer account). The app still runs on the iOS Simulator / Expo Go for development.
 
 ## Versioning
 
@@ -14,7 +16,7 @@ Keep these in sync for every public release:
 
 Native store build numbers:
 
-- **Android** `versionCode` and **iOS** `buildNumber` in `app.json` are starting values.
+- **Android** `versionCode` (and **iOS** `buildNumber` when iOS shipping resumes) in `app.json` are starting values.
 - EAS profile `production` / `production-apk` sets `autoIncrement: true` with `cli.appVersionSource: "remote"`, so EAS bumps remote build numbers on each cloud build.
 
 Use **semver**:
@@ -25,12 +27,14 @@ Use **semver**:
 
 ## EAS profiles (`eas.json`)
 
-| Profile          | Purpose                                                                 |
-| ---------------- | ----------------------------------------------------------------------- |
-| `development`    | Dev client, internal                                                    |
-| `preview`        | Internal channel; Android **APK**                                       |
-| `production`     | Store builds (Android **AAB** by default, iOS store IPA) + `eas submit` |
-| `production-apk` | Extends `production` with Android **APK** for GitHub Release downloads  |
+| Profile          | Purpose                                                                |
+| ---------------- | ---------------------------------------------------------------------- |
+| `development`    | Dev client, internal                                                   |
+| `preview`        | Internal channel; Android **APK**                                      |
+| `production`     | Store builds (Android **AAB** by default; iOS when credentials exist)  |
+| `production-apk` | Extends `production` with Android **APK** for GitHub Release downloads |
+
+Release CI always uses `production-apk` on **Android only**.
 
 ## Secrets & env
 
@@ -55,7 +59,7 @@ Set on the Expo project (EAS Secrets / environment for production), **not** in t
 Also complete once:
 
 1. `eas login` and `eas init` (writes `extra.eas.projectId` into `app.json`).
-2. Android keystore + Apple credentials via EAS credentials (or local `eas credentials`).
+2. Android keystore via EAS credentials (or local `eas credentials`). Apple credentials only when an Apple Developer account is available.
 
 ## Cut a release
 
@@ -67,7 +71,7 @@ bun run release
 # bump + commit + push main + tag: ./scripts/release.sh --bump X.Y.Z
 ```
 
-The script validates `package.json` / `app.json` versions, creates annotated tag `vX.Y.Z`, and pushes it to trigger the Release workflow. Requires `EXPO_TOKEN` as a GitHub Actions secret. See `./scripts/release.sh --help`.
+The script validates `package.json` / `app.json` versions, creates annotated tag `vX.Y.Z`, and pushes it to trigger the Release workflow (Android APK only). Requires `EXPO_TOKEN` as a GitHub Actions secret. See `./scripts/release.sh --help`.
 
 Manual path:
 
@@ -81,22 +85,28 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Or, after the tag exists on the remote, run **Actions → Release → Run workflow** with that tag and a platform choice (`android` / `ios` / `all`). Manual dispatch does **not** create tags (avoids double-triggering).
+Or, after the tag exists on the remote, run **Actions → Release → Run workflow** with that tag. Manual dispatch does **not** create tags (avoids double-triggering).
 
 5. The Release workflow:
    - Re-runs typecheck, lint, tests
-   - Builds Android with `production-apk` (when selected) and attaches the APK to the GitHub Release
-   - Optionally builds iOS with `production` (TestFlight / App Store path — IPA is **not** attached for sideloading)
+   - Builds Android with `production-apk` and attaches the APK to the GitHub Release
+
+## Android-only build (local)
+
+```bash
+eas build --platform android --profile production-apk
+```
 
 ## Store submit (manual after EAS build)
 
 ```bash
 eas submit --platform android --profile production
-eas submit --platform ios --profile production
 ```
 
-Requires Play Console / App Store Connect listings (privacy URL, screenshots, content rating, etc.).
+Requires a Play Console listing (privacy URL, screenshots, content rating, etc.).
+
+iOS submit (`eas submit --platform ios`) is deferred until an Apple Developer account and App Store Connect listing exist.
 
 ## Release notes
 
-The workflow writes a structured body (version table, download notes, recent commits). For a custom blurb, edit the GitHub Release after publish, or start from `.github/release-template.md`.
+The workflow writes a structured body (version table, Android download notes, recent commits). For a custom blurb, edit the GitHub Release after publish, or start from `.github/release-template.md`.

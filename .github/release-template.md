@@ -1,8 +1,7 @@
 # Mera Coach — Release $TAG
 
 **Version:** $VERSION  
-**Android package:** `com.meracoach.app`  
-**iOS bundle:** `com.meracoach.app`
+**Android package:** `com.meracoach.app`
 
 ## Highlights
 
@@ -11,7 +10,7 @@
 ## Downloads
 
 - **Android APK** — attached when the Release workflow builds `production-apk`.
-- **iOS** — TestFlight / App Store after EAS production build + `eas submit` (IPA is not a GitHub sideload asset).
+- **iOS** — not distributed yet (Apple Developer account required). Simulator / Expo Go still work for development.
 
 ## Notes
 

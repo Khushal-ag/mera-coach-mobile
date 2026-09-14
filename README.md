@@ -17,7 +17,7 @@ Coaches manage clients, deliver assessments, and keep the public listing that br
 
 [![CI][badge-ci]][actions-ci]
 [![Release][badge-release-version]][releases]
-![iOS and Android][badge-platforms]
+![Android][badge-platforms]
 
 <br />
 
@@ -39,7 +39,7 @@ Coaches manage clients, deliver assessments, and keep the public listing that br
 | **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS        |
 | **05** | **Build presence** | My Profile hub — gallery, packages, and events for the public listing              |
 
-Mobile app for [mera-coach.com][website] · Expo · iOS & Android · API via `EXPO_PUBLIC_API_BASE_URL` (photos & PDFs on the same host)
+Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS later) · API via `EXPO_PUBLIC_API_BASE_URL` (photos & PDFs on the same host)
 
 ---
 
@@ -141,13 +141,13 @@ Mobile app for [mera-coach.com][website] · Expo · iOS & Android · API via `EX
 
 ## Download Mera Coach
 
-| Channel                         | What you get                                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **[GitHub Releases][releases]** | Android **APK** is published there after a tag `vX.Y.Z` and a successful [Release][workflow-release] run — none yet |
-| **iOS**                         | Built with EAS `production` for App Store / TestFlight — IPA is **not** attached for sideloading                    |
-| Google Play / App Store         | Not linked here yet — use `eas submit` when listings are ready                                                      |
+| Channel                         | What you get                                                                                               |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **[GitHub Releases][releases]** | Android **APK** after a tag `vX.Y.Z` and a successful [Release][workflow-release] run — none published yet |
+| **iOS**                         | Not distributed yet (Apple Developer account required). Simulator / Expo Go still work for development     |
+| Google Play                     | Not linked here yet — use `eas submit --platform android` when a Play listing is ready                     |
 
-Prefer Releases assets or official store listings once published. No fabricated store URLs.
+Prefer Releases APK assets or the official Play listing once published. No fabricated store URLs.
 
 <div align="center">
 
@@ -246,11 +246,11 @@ Never commit real `.env` values. Support: `hello@mera-coach.com`
 
 ## Releases
 
-Production path: **tag `vX.Y.Z` → CI checks → EAS build → GitHub Release**.
+Production path: **tag `vX.Y.Z` → CI checks → EAS Android APK → GitHub Release**.
 
 - Version rule: `package.json` = `app.json` `expo.version` = tag `vX.Y.Z`
 - Android: `production-apk` → APK on the GitHub Release
-- iOS: `production` → App Store / TestFlight path (no sideload IPA asset)
+- iOS distribution: deferred until an Apple Developer account exists
 - Full guide: [`docs/RELEASING.md`][doc-releasing]
 
 <details>
@@ -259,7 +259,7 @@ Production path: **tag `vX.Y.Z` → CI checks → EAS build → GitHub Release**
 ```bash
 eas login
 eas build --profile preview --platform android        # internal APK
-eas build --profile production --platform all         # store AAB + iOS
+eas build --profile production --platform android     # store AAB
 eas build --profile production-apk --platform android # GitHub APK
 ```
 
@@ -314,7 +314,7 @@ MIT — see [`LICENSE`][doc-license].
 [badge-releases]: https://img.shields.io/badge/Releases-All_builds-c9882a?style=for-the-badge
 [badge-ci]: https://github.com/Khushal-ag/mera-coach-mobile/actions/workflows/ci.yml/badge.svg
 [badge-release-version]: https://img.shields.io/github/v/release/Khushal-ag/mera-coach-mobile?include_prereleases&label=release
-[badge-platforms]: https://img.shields.io/badge/iOS_%7C_Android-lightgrey
+[badge-platforms]: https://img.shields.io/badge/Android-lightgrey
 [badge-apk]: https://img.shields.io/badge/Android_APK-via_GitHub_Releases-1b4332?style=for-the-badge
 
 <!-- GitHub (repo, releases, issues, actions) -->

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Tag-and-push release for Mera Coach (CI runs EAS via GitHub Actions).
+# Tag-and-push release for Mera Coach (CI builds Android APK via GitHub Actions).
+# iOS is not part of the release pipeline yet (no Apple Developer account).
 # Usage:
 #   bun run release
 #   ./scripts/release.sh
 #   ./scripts/release.sh --bump 1.0.1
 #   ./scripts/release.sh 1.0.1          # same as --bump
 #   ./scripts/release.sh --allow-branch
-#   ./scripts/release.sh --local-apk    # optional: also run eas build locally
+#   ./scripts/release.sh --local-apk    # optional: also run eas build (Android) locally
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -31,7 +32,8 @@ Options:
   -h, --help       Show this help
 
 Requires: clean working tree, main in sync with origin (unless --allow-branch),
-and EXPO_TOKEN set as a GitHub Actions secret for the Release workflow.
+and EXPO_TOKEN set as a GitHub Actions secret for the Release workflow
+(Android APK only).
 USAGE
 }
 
@@ -261,13 +263,13 @@ fi
 
 cat <<OUT
 
-Release $TAG pushed.
+Release $TAG pushed (Android APK via Release workflow).
 
 Next:
   • Actions (Release workflow): ${REPO_WEB}/actions/workflows/release.yml
   • Releases page:             ${REPO_WEB}/releases
 
-Reminder: GitHub Actions needs the EXPO_TOKEN secret set for EAS builds
+Reminder: GitHub Actions needs the EXPO_TOKEN secret set for EAS Android builds
 (expo.dev → Access tokens → repo Settings → Secrets → Actions).
 
 OUT
