@@ -1,0 +1,387 @@
+name: Release
+
+# Cut a release by tagging vX.Y.Z (package.json + app.json expo.version must match)
+# or via workflow_dispatch with the same tag.
+#
+# Flow: validate → EAS builds → GitHub Release
+# - Android: production-apk → APK attached to the release
+# - iOS: production → App Store / TestFlight path only (no IPA sideload asset)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0). Required for manual runs.'
+        required: true
+        type: string
+      platforms:
+        description: 'EAS platforms to build'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      app_version: ${{ steps.meta.outputs.app_version }}
+      platforms: ${{ steps.meta.outputs.platforms }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+            PLATFORMS="${{ inputs.platforms }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            PLATFORMS="android"
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must match vX.Y.Z (got: $TAG)" >&2
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          APP_VERSION="$(node -p "require('./app.json').expo.version")"
+
+          if [[ "$PKG_VERSION" != "$VERSION" || "$APP_VERSION" != "$VERSION" ]]; then
+            echo "Version mismatch: tag=$VERSION package.json=$PKG_VERSION app.json=$APP_VERSION" >&2
+            echo "Bump package.json and app.json expo.version before tagging." >&2
+            exit 1
+          fi
+
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "app_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun run test
+
+  build-android:
+    name: EAS Android APK
+    needs: validate
+    if: needs.validate.outputs.platforms == 'android' || needs.validate.outputs.platforms == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      build_id: ${{ steps.eas.outputs.build_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Expo / EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build production APK on EAS
+        id: eas
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "EXPO_TOKEN secret is not set. Add it under GitHub → Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+
+          BUILD_JSON="$(eas build --platform android --profile production-apk --non-interactive --wait --json)"
+          printf '%s' "$BUILD_JSON" > "$RUNNER_TEMP/eas-android.json"
+
+          BUILD_ID="$(node -e "
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/eas-android.json', 'utf8'));
+            const b = Array.isArray(d) ? d[0] : d;
+            if (!b?.id) process.exit(1);
+            process.stdout.write(String(b.id));
+          ")"
+          BUILD_URL="$(node -e "
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/eas-android.json', 'utf8'));
+            const b = Array.isArray(d) ? d[0] : d;
+            process.stdout.write(b?.artifacts?.buildUrl || b?.artifacts?.applicationArchiveUrl || '');
+          ")"
+
+          if [[ -z "$BUILD_URL" ]]; then
+            VIEW_JSON="$(eas build:view "$BUILD_ID" --json)"
+            printf '%s' "$VIEW_JSON" > "$RUNNER_TEMP/eas-android-view.json"
+            BUILD_URL="$(node -e "
+              const fs = require('fs');
+              const d = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/eas-android-view.json', 'utf8'));
+              process.stdout.write(d?.artifacts?.buildUrl || d?.artifacts?.applicationArchiveUrl || '');
+            ")"
+          fi
+
+          if [[ -z "$BUILD_URL" ]]; then
+            echo "Could not resolve Android artifact URL for build $BUILD_ID." >&2
+            exit 1
+          fi
+
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Download APK
+        env:
+          TAG: ${{ needs.validate.outputs.release_tag }}
+          BUILD_URL: ${{ steps.eas.outputs.build_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-assets"
+          APK_PATH="$RUNNER_TEMP/release-assets/MeraCoach-${TAG}-android.apk"
+          curl --fail --location --output "$APK_PATH" "$BUILD_URL"
+          ls -lh "$APK_PATH"
+
+      - name: Upload APK for release job
+        uses: actions/upload-artifact@v4
+        with:
+          name: mera-coach-android-apk
+          path: ${{ runner.temp }}/release-assets/MeraCoach-${{ needs.validate.outputs.release_tag }}-android.apk
+          if-no-files-found: error
+          retention-days: 5
+
+  build-ios:
+    name: EAS iOS (TestFlight / App Store)
+    needs: validate
+    if: needs.validate.outputs.platforms == 'ios' || needs.validate.outputs.platforms == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      build_id: ${{ steps.eas.outputs.build_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Expo / EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build iOS production on EAS
+        id: eas
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "EXPO_TOKEN secret is not set." >&2
+            exit 1
+          fi
+
+          # Store IPA for App Store Connect / TestFlight — not attached to GitHub Releases.
+          BUILD_JSON="$(eas build --platform ios --profile production --non-interactive --wait --json)"
+          printf '%s' "$BUILD_JSON" > "$RUNNER_TEMP/eas-ios.json"
+
+          BUILD_ID="$(node -e "
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/eas-ios.json', 'utf8'));
+            const b = Array.isArray(d) ? d[0] : d;
+            if (!b?.id) process.exit(1);
+            process.stdout.write(String(b.id));
+          ")"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "iOS EAS build $BUILD_ID finished. Submit with: eas submit --platform ios --profile production --id $BUILD_ID"
+
+  github-release:
+    name: GitHub Release
+    needs: [validate, build-android, build-ios]
+    if: |
+      always() &&
+      needs.validate.result == 'success' &&
+      (needs.build-android.result == 'success' || needs.build-android.result == 'skipped') &&
+      (needs.build-ios.result == 'success' || needs.build-ios.result == 'skipped') &&
+      (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Need tags for commit-range notes and --verify-tag
+          fetch-tags: true
+
+      - name: Download Android APK
+        if: needs.build-android.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: mera-coach-android-apk
+          path: release-assets
+
+      - name: Compose release notes
+        id: notes
+        env:
+          TAG: ${{ needs.validate.outputs.release_tag }}
+          VERSION: ${{ needs.validate.outputs.app_version }}
+          ANDROID_RESULT: ${{ needs.build-android.result }}
+          IOS_RESULT: ${{ needs.build-ios.result }}
+          ANDROID_BUILD_ID: ${{ needs.build-android.outputs.build_id }}
+          IOS_BUILD_ID: ${{ needs.build-ios.outputs.build_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+
+          {
+            echo "## Mera Coach ${TAG}"
+            echo ""
+            echo "Coach mobile app for [mera-coach.com](https://mera-coach.com) — Expo / React Native."
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Version** | \`${VERSION}\` |"
+            echo "| **Android package** | \`com.meracoach.app\` |"
+            echo "| **iOS bundle** | \`com.meracoach.app\` |"
+            echo ""
+            echo "### Downloads"
+            echo ""
+            if [[ "$ANDROID_RESULT" == "success" ]]; then
+              echo "- **Android APK** — attached as \`MeraCoach-${TAG}-android.apk\` (EAS profile \`production-apk\`)."
+              echo "- EAS build id: \`${ANDROID_BUILD_ID}\`"
+            else
+              echo "- **Android APK** — not produced in this run."
+            fi
+            echo ""
+            if [[ "$IOS_RESULT" == "success" ]]; then
+              echo "- **iOS** — EAS production build \`${IOS_BUILD_ID}\` completed."
+              echo "- Distribute via **TestFlight** / **App Store** after \`eas submit\` (IPA is **not** attached here for sideloading)."
+            else
+              echo "- **iOS** — not built in this run. Use \`eas build --platform ios --profile production\`, then submit to App Store Connect / TestFlight."
+            fi
+            echo ""
+            echo "### Notes"
+            echo ""
+            echo "- API base URL and related \`EXPO_PUBLIC_*\` values are baked at EAS build time."
+            echo "- See \`docs/RELEASING.md\` in the repository for versioning and secrets."
+            echo ""
+            if git describe --tags --abbrev=0 "${TAG}^" >/dev/null 2>&1; then
+              PREV="$(git describe --tags --abbrev=0 "${TAG}^")"
+              echo "### Commits since ${PREV}"
+              echo ""
+              git log "${PREV}..${TAG}" --pretty=format:'- %s (%h)' --no-merges || true
+              echo ""
+            fi
+          } > "$NOTES_FILE"
+
+          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure release tag exists
+        env:
+          TAG: ${{ needs.validate.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Tag push events already have the tag. Manual runs must use an existing tag
+          # (do not push a new tag here — that would re-trigger this workflow).
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG does not exist locally after checkout." >&2
+            echo "Create and push it first: git tag $TAG && git push origin $TAG" >&2
+            echo "Or push the tag only and let the tag trigger run the release." >&2
+            exit 1
+          fi
+          echo "Using existing tag $TAG → $(git rev-parse "$TAG")"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.release_tag }}
+          NOTES_FILE: ${{ steps.notes.outputs.notes_file }}
+          ANDROID_RESULT: ${{ needs.build-android.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ASSETS=()
+          if [[ "$ANDROID_RESULT" == "success" ]]; then
+            APK="$(find release-assets -name 'MeraCoach-*-android.apk' -type f | head -n 1)"
+            if [[ -z "$APK" ]]; then
+              echo "Expected APK under release-assets/ was missing." >&2
+              exit 1
+            fi
+            ASSETS+=("$APK")
+          fi
+
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "${GITHUB_REPOSITORY}" --notes-file "$NOTES_FILE" --title "Mera Coach ${TAG}"
+            if ((${#ASSETS[@]})); then
+              gh release upload "$TAG" "${ASSETS[@]}" --repo "${GITHUB_REPOSITORY}" --clobber
+            fi
+          else
+            if ((${#ASSETS[@]})); then
+              gh release create "$TAG" "${ASSETS[@]}" \
+                --repo "${GITHUB_REPOSITORY}" \
+                --title "Mera Coach ${TAG}" \
+                --notes-file "$NOTES_FILE" \
+                --verify-tag
+            else
+              gh release create "$TAG" \
+                --repo "${GITHUB_REPOSITORY}" \
+                --title "Mera Coach ${TAG}" \
+                --notes-file "$NOTES_FILE" \
+                --verify-tag
+            fi
+          fi
