@@ -59,6 +59,18 @@ Also complete once:
 
 ## Cut a release
 
+One-command path (preferred): after versions match on a clean `main` that is pushed to origin:
+
+```bash
+bun run release
+# or: ./scripts/release.sh
+# bump + commit + push main + tag: ./scripts/release.sh --bump X.Y.Z
+```
+
+The script validates `package.json` / `app.json` versions, creates annotated tag `vX.Y.Z`, and pushes it to trigger the Release workflow. Requires `EXPO_TOKEN` as a GitHub Actions secret. See `./scripts/release.sh --help`.
+
+Manual path:
+
 1. Ensure `main` is green (CI workflow).
 2. Bump `package.json` `version` and `app.json` `expo.version` to the same `X.Y.Z`.
 3. Commit on `main`.

@@ -1,6 +1,6 @@
 <div align="center">
 
-![Mera Coach — Guide · Support · Transform][logo-full]
+<img src="assets/brand/logo-full.png" width="240" height="194" alt="Mera Coach — Guide · Support · Transform" />
 
 # Mera Coach
 
@@ -281,7 +281,7 @@ MIT — see [`LICENSE`][doc-license].
 
 <div align="center">
 
-![Mera Coach mark][logo-mark]
+<img src="assets/brand/logo-mark.png" width="64" height="65" alt="Mera Coach mark" />
 
 <sub>Built for coaches on [mera-coach.com][website]</sub>
 
@@ -289,7 +289,7 @@ MIT — see [`LICENSE`][doc-license].
 
 <!-- Link & asset references -->
 
-<!-- Brand / logos -->
+<!-- Brand / logos (hero/footer use HTML <img width/height>; refs kept for reuse) -->
 
 [logo-full]: assets/brand/logo-full.png
 [logo-mark]: assets/brand/logo-mark.png

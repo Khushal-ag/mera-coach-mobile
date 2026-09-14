@@ -33,12 +33,28 @@
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
             "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1", "0A2A.1", "3B52.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1", "85F4.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
           }
         ]
       },
       "infoPlist": {
         "CFBundleDisplayName": "Mera Coach",
-        "LSApplicationQueriesSchemes": ["mailto", "sms", "tel"]
+        "LSApplicationQueriesSchemes": ["mailto", "sms", "tel", "mailto", "sms", "tel"]
       }
     },
     "android": {
@@ -46,6 +62,8 @@
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.RECORD_AUDIO",
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
@@ -90,6 +108,12 @@
         "projectId": "4ea7fb73-5e9f-42bf-9dea-e39a9278cc00"
       }
     },
-    "owner": "khushal-ag"
+    "owner": "khushal-ag",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4ea7fb73-5e9f-42bf-9dea-e39a9278cc00"
+    }
   }
 }
