@@ -50,3 +50,8 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/** Wipe all React Query entries (logout / 401 / account switch). */
+export function clearAppQueryCache(): void {
+  queryClient.clear();
+}

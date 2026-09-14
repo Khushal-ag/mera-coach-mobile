@@ -11,7 +11,7 @@ import {
   markMpinUnlocked,
   verifyStoredMpin,
 } from '../../auth/mpin';
-import { clearSession } from '../../auth/session';
+import { logoutLocal } from '../../auth/logout';
 
 const MAX_ATTEMPTS = 5;
 
@@ -44,7 +44,7 @@ export default function MpinUnlockScreen() {
           setError('Too many attempts. Sign in with your password.');
           await clearMpin();
           await clearMpinSetupDeferred();
-          await clearSession();
+          await logoutLocal();
           return;
         }
         setError('Incorrect MPIN. Try again.');
@@ -68,7 +68,7 @@ export default function MpinUnlockScreen() {
             void (async () => {
               await clearMpin();
               await clearMpinSetupDeferred();
-              await clearSession();
+              await logoutLocal();
             })();
           },
         },

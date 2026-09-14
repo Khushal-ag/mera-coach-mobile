@@ -60,6 +60,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               EditPackages: 'edit-packages',
               EditEvents: 'edit-events',
               ChangePassword: 'change-password',
+              ChangeMpin: 'change-mpin',
               Legal: 'legal',
               Leads: 'profile-leads',
             },

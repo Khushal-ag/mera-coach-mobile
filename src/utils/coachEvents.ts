@@ -1,4 +1,5 @@
 import type { CoachEvent } from '../types/models';
+import { coerceJsonList } from './coerceJsonList';
 
 export const MAX_COACH_EVENTS = 10;
 const PUBLIC_UPCOMING_EVENTS = 3;
@@ -17,7 +18,7 @@ export function createEmptyEvent(): CoachEvent {
 
 /** Accept arrays or JSON strings from profile GET/save responses. */
 export function parseCoachEvents(raw: unknown): CoachEvent[] {
-  const list = coerceList(raw);
+  const list = coerceJsonList(raw);
   return list
     .map((item, index) => {
       if (!item || typeof item !== 'object') return null;
@@ -135,19 +136,4 @@ function parseEventDateMs(value: string): number | null {
 
   const fallback = Date.parse(trimmed);
   return Number.isFinite(fallback) ? fallback : null;
-}
-
-function coerceList(raw: unknown): unknown[] {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    if (!trimmed) return [];
-    try {
-      const parsed = JSON.parse(trimmed) as unknown;
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
 }

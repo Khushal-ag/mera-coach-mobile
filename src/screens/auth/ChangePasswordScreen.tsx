@@ -5,6 +5,7 @@ import {
   Colors,
   HitSlop,
   IconSize,
+  PressOpacity,
   Radius,
   Shadow,
   Spacing,
@@ -20,7 +21,7 @@ import KeyboardSafeScroll, {
 import ScreenHeader from '../../components/ScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import { changePassword } from '../../api/coachApi';
-import { getErrorMessage } from '../../api/client';
+import { toUserMessage } from '../../api/client';
 import type { ProfileStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/wizard';
 
@@ -69,6 +70,7 @@ function PasswordField({
           onPress={onToggleVisible}
           style={styles.eyeBtn}
           hitSlop={HitSlop.sm}
+          activeOpacity={PressOpacity.default}
           accessibilityRole="button"
           accessibilityLabel={visible ? `Hide ${label}` : `Show ${label}`}
         >
@@ -110,7 +112,7 @@ export default function ChangePasswordScreen({
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      setError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setError(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }

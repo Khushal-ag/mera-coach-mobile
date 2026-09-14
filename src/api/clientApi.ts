@@ -1,7 +1,5 @@
 import { apiGet, apiPost, ApiError } from './client';
 import { getCurrentCoachCode, getCurrentCoachName } from '../auth/session';
-import { queryClient } from './queryClient';
-import { queryKeys } from './queryKeys';
 import { MEAL_SLOT_ORDER, MEAL_SLOT_TO_API_LABEL, describeDietItems } from '../data/mealSlotLabels';
 import { rehydrateDietFromMeals, type RawClientMeal } from '../utils/mealRehydration';
 import { hasDietPlanContent, normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
@@ -9,7 +7,6 @@ import type { FoodMaster } from './masterApi';
 import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../utils/validation';
 import type { BodyMetrics } from '../utils/bmi';
 import type {
-  Coach,
   ClientProfile,
   ClientSummary,
   DietPlan,
@@ -200,15 +197,9 @@ export interface AssessmentIds {
   assessmentCode?: string;
 }
 
-/** Coach display name for FCBY/savedBy — never coach code or id. */
-function savedBy(): string {
-  const fromSession = getCurrentCoachName();
-  if (fromSession) return fromSession;
-  const full = queryClient.getQueryData<{ coachName?: string }>(queryKeys.coachProfileFull);
-  const fromFull = full?.coachName?.trim();
-  if (fromFull) return fromFull;
-  const summary = queryClient.getQueryData<Coach>(queryKeys.coachProfile);
-  return summary?.name?.trim() ?? '';
+/** Coach display name for Client API FCBY fields — never coach code/id, never from RQ cache. */
+function savedByDisplayName(): string {
+  return getCurrentCoachName() ?? '';
 }
 
 function assessmentContext(ids: AssessmentIds) {
@@ -216,7 +207,7 @@ function assessmentContext(ids: AssessmentIds) {
     assessmentCode: ids.assessmentCode,
     coachCode: getCurrentCoachCode(),
     clientCode: ids.clientCode,
-    savedBy: savedBy(),
+    savedBy: savedByDisplayName(),
   };
 }
 
@@ -243,7 +234,7 @@ export async function saveClientDetail(
       age: parseInt(profile.age, 10) || 0,
       weight: parseFloat(profile.weight) || 0,
       height: parseFloat(profile.height) || 0,
-      savedBy: savedBy(),
+      savedBy: savedByDisplayName(),
     },
   );
   return { clientCode: data.clientCode, assessmentCode: data.assessmentCode };
@@ -297,7 +288,7 @@ export async function saveBmi(
     restingMetabolism: metrics.restingMetabolism,
     bodyAge: metrics.bodyAge,
     totalDailyIntakeCal,
-    savedBy: savedBy(),
+    savedBy: savedByDisplayName(),
   });
 }
 
@@ -338,7 +329,7 @@ export async function saveDietPlan(
 export async function markComplete(ids: AssessmentIds): Promise<void> {
   await apiPost('/v{version}/Client/mark-complete', {
     assessmentCode: ids.assessmentCode,
-    savedBy: savedBy(),
+    savedBy: savedByDisplayName(),
   });
 }
 

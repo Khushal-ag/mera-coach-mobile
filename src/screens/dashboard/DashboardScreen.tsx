@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Alert,
   Animated,
   AccessibilityInfo,
 } from 'react-native';
@@ -23,12 +22,12 @@ import {
   Shadow,
   Spacing,
   TouchTarget,
-  statusChipStyles,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import BrandWordmark from '../../components/BrandWordmark';
 import BrandLogo from '../../components/BrandLogo';
 import ClientAvatar from '../../components/ClientAvatar';
+import ClientStatusChip from '../../components/ClientStatusChip';
 import DashboardCarousel from '../../components/dashboard/DashboardCarousel';
 import EmptyState from '../../components/EmptyState';
 import ReloadState from '../../components/ReloadState';
@@ -40,7 +39,7 @@ import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode, getCurrentCoachName } from '../../auth/session';
 import { getErrorMessage } from '../../api/client';
-import { refreshControlTheme } from '../../hooks/useRefreshControl';
+import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
 import { lastCheckupLabel } from '../../utils/recheckup';
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
@@ -86,7 +85,6 @@ export default function DashboardScreen({
   navigation,
 }: DashboardStackScreenProps<'DashboardHome'>) {
   const insets = useSafeAreaInsets();
-  const [refreshing, setRefreshing] = useState(false);
   const coachCode = getCurrentCoachCode();
   const [heroFade] = useState(() => new Animated.Value(0));
   const [heroSlide] = useState(() => new Animated.Value(14));
@@ -148,22 +146,13 @@ export default function DashboardScreen({
     [profileFullQuery.data],
   );
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    Promise.all([
-      clientsQuery.refetch(),
-      recheckupQuery.refetch(),
-      leadsQuery.refetch(),
-      profileQuery.refetch(),
-      profileFullQuery.refetch(),
-    ])
-      .then(([clientsResult]) => {
-        if (clientsResult.isError) {
-          Alert.alert('Refresh failed', getErrorMessage(clientsResult.error, 'Please try again.'));
-        }
-      })
-      .finally(() => setRefreshing(false));
-  }, [clientsQuery, recheckupQuery, leadsQuery, profileQuery, profileFullQuery]);
+  const { refreshing, onRefresh } = useQueriesRefreshControl([
+    clientsQuery,
+    recheckupQuery,
+    leadsQuery,
+    profileQuery,
+    profileFullQuery,
+  ]);
 
   const clientsErrorMessage =
     clientsQuery.isError && !clients
@@ -276,6 +265,9 @@ export default function DashboardScreen({
                   params: { client: c, returnTo: RETURN_TO_DASHBOARD },
                 })
               }
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${c.name}`}
             >
               <ClientAvatar clientCode={c.clientCode} size={44} />
               <View style={styles.clientInfo}>
@@ -289,21 +281,7 @@ export default function DashboardScreen({
                 ) : null}
               </View>
               {c.status ? (
-                <View
-                  style={[
-                    styles.statusBadge,
-                    c.status === 'Active' ? styles.statusActive : styles.statusWarning,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      c.status === 'Active' ? styles.statusActiveText : styles.statusWarningText,
-                    ]}
-                  >
-                    {c.status}
-                  </Text>
-                </View>
+                <ClientStatusChip status={c.status} />
               ) : (
                 <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
               )}
@@ -725,16 +703,6 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     marginTop: 2,
   },
-  statusBadge: {
-    ...statusChipStyles.base,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
-  },
-  statusActive: { backgroundColor: Colors.secondaryLight },
-  statusWarning: { backgroundColor: Colors.accentLight },
-  statusText: { fontSize: 10, fontFamily: FontFamily.bold },
-  statusActiveText: { color: Colors.secondary },
-  statusWarningText: { color: Colors.accent },
   tipsCard: {
     backgroundColor: Colors.backgroundTan,
     borderRadius: Radius.md,

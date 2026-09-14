@@ -15,6 +15,7 @@ import { pickImagesFromCameraOrLibrary } from '../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
+  HitSlop,
   Radius,
   Shadow,
   Spacing,
@@ -24,7 +25,7 @@ import {
 } from '../constants/theme';
 import { deleteDocument, uploadDocument, type DocumentListItem } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
-import { getCurrentCoachId } from '../auth/session';
+import { getDocumentSavedById } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
 import { progressPhotosCoachCode, useProgressPhotosQuery } from '../hooks/useProgressPhotosQuery';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -69,7 +70,7 @@ export default function ProgressPhotos({ clientCode }: Props) {
           refCode: clientCode,
           refType: REF_TYPE,
           docType: DOC_TYPE,
-          savedBy: Number(getCurrentCoachId()) || 0,
+          savedBy: getDocumentSavedById(),
         });
       }
       invalidate();
@@ -157,6 +158,8 @@ export default function ProgressPhotos({ clientCode }: Props) {
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   onPress={() => confirmDelete(item)}
+                  activeOpacity={PressOpacity.default}
+                  hitSlop={HitSlop.sm}
                   accessibilityRole="button"
                   accessibilityLabel="Delete photo"
                 >

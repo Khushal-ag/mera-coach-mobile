@@ -79,7 +79,9 @@ export function HeaderHomeButton({
   accessibilityLabel = 'Home',
 }: HeaderHomeButtonProps) {
   const navigation = useNavigation();
-  const handlePress = onPress ?? (() => navigation.navigate('Home'));
+  // Public discovery hub (Find a Coach). Prefer Explore over marketing Home so
+  // signed-in coaches can browse profiles without an extra hop.
+  const handlePress = onPress ?? (() => navigation.navigate('HomeExplore'));
 
   return (
     <TouchableOpacity

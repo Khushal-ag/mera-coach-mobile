@@ -90,6 +90,31 @@ export async function restoreMpinState(): Promise<void> {
   notify();
 }
 
+/** Fail closed after a broken SecureStore restore so splash cannot hang forever. */
+export function markMpinRestoreFailed(): void {
+  configured = false;
+  setupDeferred = false;
+  unlockedThisSession = false;
+  initialized = true;
+  notify();
+}
+
+/**
+ * Drop MPIN when its owner email does not match the restored session / last login id.
+ * Prevents a desynced verifier from unlocking another coach's JWT.
+ */
+export async function ensureMpinMatchesLogin(
+  expectedLoginId: string | null | undefined,
+): Promise<void> {
+  const expected = expectedLoginId?.trim();
+  if (!expected || !configured) return;
+  const stored = await readStoredMpin();
+  if (!stored) return;
+  if (stored.loginId.toLowerCase() !== expected.toLowerCase()) {
+    await clearMpin();
+  }
+}
+
 /** Persist email/mobile used at login so password screens can prefill after JWT expiry. */
 export async function rememberLoginId(loginId: string): Promise<void> {
   const trimmed = loginId.trim();
@@ -153,20 +178,6 @@ async function clearMpinOnly(): Promise<void> {
 /** Clears MPIN verifier only (keeps last login id for password prefill). */
 export async function clearMpin(): Promise<void> {
   await clearMpinOnly();
-  unlockedThisSession = false;
-  notify();
-}
-
-/** Full local credential wipe (logout / forgot MPIN → password reset path). */
-export async function clearMpinAndLoginId(): Promise<void> {
-  await Promise.all([
-    secureStorage.deleteItem(MPIN_KEY),
-    secureStorage.deleteItem(LOGIN_ID_KEY),
-    secureStorage.deleteItem(DEFERRED_KEY),
-  ]);
-  configured = false;
-  setupDeferred = false;
-  lastLoginId = null;
   unlockedThisSession = false;
   notify();
 }

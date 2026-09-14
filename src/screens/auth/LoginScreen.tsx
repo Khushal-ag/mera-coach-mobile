@@ -33,6 +33,7 @@ import { HeaderBackButton } from '../../components/ScreenHeader';
 import { login } from '../../api/authApi';
 import { getLastLoginId, markMpinUnlocked, rememberLoginId } from '../../auth/mpin';
 import { didSessionExpireOnRestore, saveSession } from '../../auth/session';
+import { clearAppQueryCache } from '../../api/queryClient';
 import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateLogin } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
@@ -69,7 +70,14 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       const trimmed = email.trim();
       const session = await login({ userName: trimmed, password });
       await rememberLoginId(trimmed);
-      await saveSession(session);
+      // Drop prior coach/client cache before activating the new session
+      // (saveSession does not clear RQ; logout/401 go through clearSession).
+      clearAppQueryCache();
+      await saveSession({
+        ...session,
+        // Ensure MPIN owner checks have an email even if the API omits it.
+        email: session.email?.trim() || trimmed,
+      });
       // Password already proved identity for this process — skip unlock gate until next cold start.
       markMpinUnlocked();
     } catch (err) {
@@ -153,6 +161,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
                 onPress={() => setShowPass(!showPass)}
                 style={styles.eyeBtn}
                 hitSlop={HitSlop.sm}
+                activeOpacity={PressOpacity.default}
                 accessibilityRole="button"
                 accessibilityLabel={showPass ? 'Hide password' : 'Show password'}
               >

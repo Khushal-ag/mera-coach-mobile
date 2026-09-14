@@ -190,6 +190,9 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
                       if (pickerSlot) addItem(pickerSlot, { name: food.name, kcal: food.cal });
                       closePicker();
                     }}
+                    activeOpacity={PressOpacity.default}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${food.name}`}
                   >
                     <Text style={styles.optionText}>{food.name}</Text>
                     <Text style={styles.optionKcal}>{food.cal} kcal</Text>
@@ -210,7 +213,14 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
                     value={aiQuery}
                     onChangeText={setAiQuery}
                   />
-                  <TouchableOpacity style={styles.aiBtn} onPress={askAi} disabled={aiLoading}>
+                  <TouchableOpacity
+                    style={styles.aiBtn}
+                    onPress={askAi}
+                    disabled={aiLoading}
+                    activeOpacity={PressOpacity.default}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add food with AI calorie estimate"
+                  >
                     {aiLoading ? (
                       <ActivityIndicator color={Colors.white} size="small" />
                     ) : (

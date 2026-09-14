@@ -79,8 +79,7 @@ export default function ClientDietPlanScreen({
         queryClient.invalidateQueries({
           queryKey: queryKeys.dietPlanReport(client.clientCode, assessmentCode),
         }),
-        // Prefix: Client Detail + checkup variants for this client.
-        queryClient.invalidateQueries({ queryKey: ['clientDetail', client.clientCode] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.clientDetailRoot(client.clientCode) }),
       );
     }
     if (becameComplete) {

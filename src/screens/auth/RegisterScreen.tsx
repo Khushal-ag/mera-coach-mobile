@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
@@ -29,17 +30,20 @@ import DropdownField from '../../components/DropdownField';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import KeyboardSafeScroll, {
+  STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
+import StickyFooter from '../../components/StickyFooter';
 import { HeaderBackButton } from '../../components/ScreenHeader';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../../data/homeContent';
 import { getCoachCategories, registerCoach } from '../../api/coachApi';
+import { MASTER_STALE_MS } from '../../api/queryClient';
+import { queryKeys } from '../../api/queryKeys';
 import { clearSession } from '../../auth/session';
-import { getErrorMessage } from '../../api/client';
+import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateCoachRegister } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../../types/navigation';
-import type { CoachCategory } from '../../types/models';
 
 export default function RegisterScreen({ navigation }: RootScreenProps<'Register'>) {
   const insets = useSafeAreaInsets();
@@ -60,19 +64,13 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
     setBanner,
   } = useFormFieldErrors();
 
-  const [categories, setCategories] = useState<CoachCategory[]>(FALLBACK_CATEGORIES);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-
-  useEffect(() => {
-    getCoachCategories()
-      .then(list => {
-        if (list.length) setCategories(list);
-      })
-      .catch(() => {
-        /* keep fallback list on network failure */
-      })
-      .finally(() => setCategoriesLoading(false));
-  }, []);
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.coachCategories,
+    queryFn: getCoachCategories,
+    staleTime: MASTER_STALE_MS,
+  });
+  const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
+  const categoriesLoading = categoriesQuery.isPending;
 
   const categoryLabels = categories.map(c => c.label);
 
@@ -103,7 +101,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         [{ text: 'OK', onPress: () => navigation.replace('Login') }],
       );
     } catch (err) {
-      setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -112,178 +110,185 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   return (
     <ImageBackground source={BrandImages.loginAtmosphere} style={styles.bg} resizeMode="cover">
       <View style={styles.scrim} />
-      <KeyboardSafeScroll
-        ref={scrollRef}
-        style={styles.container}
-        contentContainerStyle={styles.inner}
-        keyboardPadding={180}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
-          <BrandLockup size="lg" style={styles.logo} />
-        </View>
-
-        <View style={styles.card}>
-          <FormErrorBanner message={formErrorBanner} />
-
-          <Text style={styles.cardTitle}>Create Account</Text>
-
-          <View style={styles.infoBanner}>
-            <Ionicons name="mail-open-outline" size={18} color={Colors.secondary} />
-            <View style={styles.infoCopy}>
-              <Text style={styles.infoTitle}>We&apos;ll email your login password</Text>
-              <Text style={styles.infoText}>
-                Use a real email you can open now. After sign-in, finish your public profile so
-                clients can find you.
-              </Text>
-            </View>
+      <View style={styles.shell}>
+        <KeyboardSafeScroll
+          ref={scrollRef}
+          style={styles.container}
+          contentContainerStyle={styles.inner}
+          keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
+        >
+          <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
+            <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
+            <BrandLockup size="lg" style={styles.logo} />
           </View>
 
-          <Text style={styles.sectionLabel}>Your details</Text>
-          <View style={styles.field}>
-            <FormFieldLabel required>Coach Name</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.name && styles.inputWrapError]}>
-              <Ionicons
-                name="person-outline"
-                size={IconSize.md}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Your full name"
-                placeholderTextColor={Colors.textLight}
-                value={name}
-                onChangeText={v => {
-                  setName(v);
-                  clearFieldError('name');
-                }}
-              />
+          <View style={styles.card}>
+            <FormErrorBanner message={formErrorBanner} />
+
+            <Text style={styles.cardTitle}>Create Account</Text>
+
+            <View style={styles.infoBanner}>
+              <Ionicons name="mail-open-outline" size={18} color={Colors.secondary} />
+              <View style={styles.infoCopy}>
+                <Text style={styles.infoTitle}>We&apos;ll email your login password</Text>
+                <Text style={styles.infoText}>
+                  Use a real email you can open now. After sign-in, finish your public profile so
+                  clients can find you.
+                </Text>
+              </View>
             </View>
+
+            <Text style={styles.sectionLabel}>Your details</Text>
+            <View style={styles.field}>
+              <FormFieldLabel required>Coach Name</FormFieldLabel>
+              <View style={[styles.inputWrap, errorFields.name && styles.inputWrapError]}>
+                <Ionicons
+                  name="person-outline"
+                  size={IconSize.md}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Your full name"
+                  placeholderTextColor={Colors.textLight}
+                  value={name}
+                  onChangeText={v => {
+                    setName(v);
+                    clearFieldError('name');
+                  }}
+                />
+              </View>
+            </View>
+
+            <DropdownField
+              label="Coach Category"
+              value={category}
+              options={categoryLabels}
+              onChange={v => {
+                setCategory(v);
+                clearFieldError('category');
+              }}
+              placeholder={categoriesLoading ? 'Loading categories...' : 'Select a category'}
+              required
+              hasError={!!errorFields.category}
+            />
+
+            <View style={styles.field}>
+              <FormFieldLabel required>Mobile Number</FormFieldLabel>
+              <View style={[styles.inputWrap, errorFields.mobile && styles.inputWrapError]}>
+                <Ionicons
+                  name="call-outline"
+                  size={IconSize.md}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
+                <PhoneTextInput
+                  style={styles.input}
+                  placeholder="10-digit mobile number"
+                  placeholderTextColor={Colors.textLight}
+                  value={mobile}
+                  onChangeText={v => {
+                    setMobile(v);
+                    clearFieldError('mobile');
+                  }}
+                  onFocus={scrollLowerFieldsIntoView}
+                />
+              </View>
+            </View>
+
+            <View style={styles.field}>
+              <FormFieldLabel required>Email Address</FormFieldLabel>
+              <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+                <Ionicons
+                  name="mail-outline"
+                  size={IconSize.md}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="you@example.com"
+                  placeholderTextColor={Colors.textLight}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={email}
+                  onChangeText={v => {
+                    setEmail(sanitizeEmailInput(v));
+                    clearFieldError('email');
+                  }}
+                  onFocus={scrollLowerFieldsIntoView}
+                />
+              </View>
+              <Text style={styles.hint}>Password will be sent to this email</Text>
+            </View>
+
+            <View style={styles.field}>
+              <FormFieldLabel>Referred by (mobile)</FormFieldLabel>
+              <View style={[styles.inputWrap, errorFields.referralMobile && styles.inputWrapError]}>
+                <Ionicons
+                  name="people-outline"
+                  size={IconSize.md}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
+                <PhoneTextInput
+                  style={styles.input}
+                  placeholder="Optional 10-digit mobile"
+                  placeholderTextColor={Colors.textLight}
+                  value={referralMobile}
+                  onChangeText={v => {
+                    setReferralMobile(v);
+                    clearFieldError('referralMobile');
+                  }}
+                  onFocus={scrollLowerFieldsIntoView}
+                />
+              </View>
+              {errorFields.referralMobile ? (
+                <Text style={styles.fieldError}>{errorFields.referralMobile}</Text>
+              ) : (
+                <Text style={styles.hint}>
+                  If someone recommended Mera Coach, enter their mobile
+                </Text>
+              )}
+            </View>
+
+            <Text style={styles.footerHint}>
+              By creating an account you can manage clients, leads, and your public listing.
+            </Text>
           </View>
 
-          <DropdownField
-            label="Coach Category"
-            value={category}
-            options={categoryLabels}
-            onChange={v => {
-              setCategory(v);
-              clearFieldError('category');
-            }}
-            placeholder={categoriesLoading ? 'Loading categories...' : 'Select a category'}
-            required
-            hasError={!!errorFields.category}
-          />
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={PressOpacity.soft}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in"
+          >
+            <Text style={styles.footerLink}>
+              Already registered? <Text style={styles.footerLinkBold}>Sign in</Text>
+            </Text>
+          </TouchableOpacity>
 
-          <View style={styles.field}>
-            <FormFieldLabel required>Mobile Number</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.mobile && styles.inputWrapError]}>
-              <Ionicons
-                name="call-outline"
-                size={IconSize.md}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <PhoneTextInput
-                style={styles.input}
-                placeholder="10-digit mobile number"
-                placeholderTextColor={Colors.textLight}
-                value={mobile}
-                onChangeText={v => {
-                  setMobile(v);
-                  clearFieldError('mobile');
-                }}
-                onFocus={scrollLowerFieldsIntoView}
-              />
-            </View>
-          </View>
+          <Text style={styles.footer}>Mera Coach © 2026 · Health & wellness coaching</Text>
+        </KeyboardSafeScroll>
 
-          <View style={styles.field}>
-            <FormFieldLabel required>Email Address</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
-              <Ionicons
-                name="mail-outline"
-                size={IconSize.md}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="you@example.com"
-                placeholderTextColor={Colors.textLight}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={email}
-                onChangeText={v => {
-                  setEmail(sanitizeEmailInput(v));
-                  clearFieldError('email');
-                }}
-                onFocus={scrollLowerFieldsIntoView}
-              />
-            </View>
-            <Text style={styles.hint}>Password will be sent to this email</Text>
-          </View>
-
-          <View style={styles.field}>
-            <FormFieldLabel>Referred by (mobile)</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.referralMobile && styles.inputWrapError]}>
-              <Ionicons
-                name="people-outline"
-                size={IconSize.md}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <PhoneTextInput
-                style={styles.input}
-                placeholder="Optional 10-digit mobile"
-                placeholderTextColor={Colors.textLight}
-                value={referralMobile}
-                onChangeText={v => {
-                  setReferralMobile(v);
-                  clearFieldError('referralMobile');
-                }}
-                onFocus={scrollLowerFieldsIntoView}
-              />
-            </View>
-            {errorFields.referralMobile ? (
-              <Text style={styles.fieldError}>{errorFields.referralMobile}</Text>
-            ) : (
-              <Text style={styles.hint}>If someone recommended Mera Coach, enter their mobile</Text>
-            )}
-          </View>
-
+        <StickyFooter>
           <AppButton
             label="Create Account"
             onPress={() => void handleRegister()}
             loading={submitting}
             icon="arrow-forward"
-            style={styles.registerBtn}
           />
-          <Text style={styles.footerHint}>
-            By creating an account you can manage clients, leads, and your public listing.
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Login')}
-          activeOpacity={PressOpacity.soft}
-          accessibilityRole="button"
-          accessibilityLabel="Sign in"
-        >
-          <Text style={styles.footerLink}>
-            Already registered? <Text style={styles.footerLinkBold}>Sign in</Text>
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.footer}>Mera Coach © 2026 · Health & wellness coaching</Text>
-      </KeyboardSafeScroll>
+        </StickyFooter>
+      </View>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.secondary },
+  shell: { flex: 1, zIndex: 1 },
   scrim: {
     position: 'absolute',
     top: 0,
@@ -292,7 +297,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: Colors.authScrim,
   },
-  container: { flex: 1, backgroundColor: 'transparent', zIndex: 1 },
+  container: { flex: 1, backgroundColor: 'transparent' },
   inner: { flexGrow: 1, alignItems: 'center', paddingBottom: Spacing.lg },
   header: {
     alignItems: 'center',
@@ -358,11 +363,8 @@ const styles = StyleSheet.create({
     color: Colors.destructive,
     marginTop: 6,
   },
-  registerBtn: {
-    marginTop: Spacing.xs,
-  },
   footerHint: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     fontSize: 11,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,

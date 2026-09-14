@@ -416,4 +416,29 @@ export const statusChipStyles = {
     fontSize: 11,
     fontFamily: FontFamily.bold,
   },
+  /** Dense list badges (client list / dashboard). */
+  compact: {
+    borderRadius: ChipControl.radius,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  compactText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+  },
+  toneActive: { backgroundColor: Colors.secondaryLight },
+  toneWarning: { backgroundColor: Colors.accentLight },
+  toneNew: { backgroundColor: Colors.primaryLight },
+  toneActiveText: { color: Colors.secondary },
+  toneWarningText: { color: Colors.accent },
+  toneNewText: { color: Colors.primary },
 };
+
+/** Maps API client status labels to shared chip tones (label text is always shown). */
+export function clientStatusTone(status: string): 'active' | 'warning' | 'new' {
+  if (status === 'Active') return 'active';
+  if (status === 'New') return 'new';
+  return 'warning';
+}

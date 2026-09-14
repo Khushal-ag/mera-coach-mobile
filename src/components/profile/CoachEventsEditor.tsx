@@ -14,7 +14,7 @@ import {
 } from '../../constants/theme';
 import { uploadDocument } from '../../api/documentApi';
 import { getErrorMessage } from '../../api/client';
-import { getCurrentCoachId } from '../../auth/session';
+import { getDocumentSavedById } from '../../auth/session';
 import FormFieldLabel from '../FormFieldLabel';
 import OfferImageField from './OfferImageField';
 import type { CoachEvent } from '../../types/models';
@@ -74,7 +74,7 @@ export default function CoachEventsEditor({ events, onChange, coachCode }: Props
         refCode: coachCode,
         refType: COACH_GALLERY_REF_TYPE,
         docType: COACH_EVENT_IMAGE_DOC_TYPE,
-        savedBy: Number(getCurrentCoachId()) || 0,
+        savedBy: getDocumentSavedById(),
       });
       const latestIndex = eventsRef.current.findIndex(e => e.id === eventId);
       if (latestIndex >= 0) updateAt(latestIndex, { imageUrl: url });

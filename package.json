@@ -52,6 +52,7 @@
     "prebuild": "expo prebuild",
     "doctor": "expo-doctor",
     "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check ."

@@ -5,23 +5,15 @@ import {
   FlatList,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Colors,
-  FontFamily,
-  PressOpacity,
-  Radius,
-  Shadow,
-  Spacing,
-  buttonStyles,
-} from '../../constants/theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
+import AppButton from '../../components/AppButton';
 import EmptyState from '../../components/EmptyState';
 import ReloadState from '../../components/ReloadState';
 import ClientAvatar from '../../components/ClientAvatar';
@@ -116,16 +108,15 @@ export default function ReCheckupListScreen({
           {overdueLabel ? <Text style={styles.overdue}>{overdueLabel}</Text> : null}
         </View>
 
-        <TouchableOpacity
-          style={styles.recheckBtn}
+        <AppButton
+          label="Re-checkup"
           onPress={() => startCheckup(item)}
-          accessibilityRole="button"
+          size="compact"
+          icon="clipboard-outline"
+          iconPosition="left"
           accessibilityLabel={`Re-checkup for ${item.name}`}
-          activeOpacity={PressOpacity.default}
-        >
-          <Ionicons name="clipboard-outline" size={12} color={Colors.white} />
-          <Text style={styles.recheckBtnText}>Re-checkup</Text>
-        </TouchableOpacity>
+          style={styles.recheckBtn}
+        />
       </View>
     );
   };
@@ -240,8 +231,6 @@ const styles = StyleSheet.create({
   overdue: { fontSize: 11, fontFamily: FontFamily.bold, color: Colors.primary, marginTop: 2 },
   recheckBtn: {
     flexShrink: 0,
-    ...buttonStyles.compact,
     paddingHorizontal: Spacing.sm,
   },
-  recheckBtnText: buttonStyles.compactText,
 });

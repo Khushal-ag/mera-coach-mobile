@@ -1,15 +1,20 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import {
+  ensureMpinMatchesLogin,
+  getLastLoginId,
   isMpinConfigured,
   isMpinInitialized,
   isMpinSetupDeferred,
   isMpinUnlocked,
+  markMpinRestoreFailed,
   restoreMpinState,
   subscribeToMpinState,
 } from './mpin';
 import {
+  getCurrentEmail,
   isAuthInitialized,
   isAuthenticated,
+  markAuthRestoreFailed,
   restoreSession,
   subscribeToAuthState,
 } from './session';
@@ -40,16 +45,35 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+/**
+ * Cold-start restore must run once per JS process.
+ * Home / HomeExplore also call useAuthState for UI; re-running restoreMpinState
+ * would clear unlockedThisSession and re-show the MPIN gate on every Home tap.
+ */
+let restorePromise: Promise<void> | null = null;
+
+function ensureAuthRestored(): Promise<void> {
+  if (!restorePromise) {
+    restorePromise = (async () => {
+      try {
+        await restoreMpinState();
+        await restoreSession();
+        // Prefer session email; fall back to remembered login id from SecureStore.
+        await ensureMpinMatchesLogin(getCurrentEmail() ?? getLastLoginId());
+      } catch {
+        // SecureStore / parse failures must not leave splash on 'loading' forever.
+        markMpinRestoreFailed();
+        markAuthRestoreFailed();
+      }
+    })();
+  }
+  return restorePromise;
+}
+
 // No call site needs to manually navigate on login/logout — the session/MPIN stores drive the tree.
 export function useAuthState(): AuthStatus {
   useEffect(() => {
-    void (async () => {
-      await restoreMpinState();
-      await restoreSession();
-      // Password login already proved identity for this process; unlock after restore if
-      // saveSession raced ahead... restore always locks MPIN, so unlock only happens via
-      // login / verify / setup. Cold start correctly stays locked.
-    })();
+    void ensureAuthRestored();
   }, []);
 
   return useSyncExternalStore(subscribe, getSnapshot);

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  PressOpacity,
   Radius,
   Shadow,
   Spacing,
@@ -52,9 +53,9 @@ import { serializeCoachPackages } from '../../utils/coachPackages';
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../../hooks/usePinLocationLookup';
-import { getCurrentCoachId, updateSessionFullName } from '../../auth/session';
+import { getDocumentSavedById, updateSessionFullName } from '../../auth/session';
 import { MASTER_STALE_MS } from '../../api/queryClient';
-import { queryKeys } from '../../api/queryKeys';
+import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
 import { isPendingLocalMediaUrl, resolveMediaUrl } from '../../utils/mediaUrl';
 import { pickImageFromCameraOrLibrary } from '../../utils/imagePicker';
 import { buildCoachDescriptionSuggestions } from '../../utils/coachDescriptionSuggestions';
@@ -257,7 +258,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         refCode: profile.coachCode,
         refType: 'COACH',
         docType: target === 'logo' ? 'LOGO' : 'PROFILE_PIC',
-        savedBy: Number(getCurrentCoachId()) || profile.coachId,
+        savedBy: getDocumentSavedById(profile.coachId),
       });
       if (target === 'logo') setLogoUrl(url);
       else setProfilePicUrl(url);
@@ -349,11 +350,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           : 0,
       });
       await updateSessionFullName(coachName.trim());
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachGallery(profile.coachCode) });
-      queryClient.invalidateQueries({ queryKey: ['coachPublicList'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileByCode(profile.coachCode) });
+      invalidateCoachProfileCaches(queryClient, profile.coachCode, { gallery: true });
       Alert.alert('Profile Updated', 'Your changes have been saved.', [
         { text: 'OK', onPress: onDone },
       ]);
@@ -444,25 +441,35 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           />
           <View style={styles.field}>
             <FormFieldLabel required>Mobile</FormFieldLabel>
-            <PhoneTextInput
-              style={[styles.input, styles.inputReadOnly]}
-              value={mobile}
-              onChangeText={() => {}}
-              editable={false}
-              placeholderTextColor={Colors.textLight}
-            />
+            <View style={[styles.inputWrap, styles.inputReadOnly]}>
+              <PhoneTextInput
+                style={styles.input}
+                value={mobile}
+                onChangeText={() => {}}
+                editable={false}
+                placeholderTextColor={Colors.textLight}
+              />
+            </View>
             <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
           </View>
           <View style={styles.field}>
             <FormFieldLabel required>Email</FormFieldLabel>
-            <TextInput
-              style={[styles.input, styles.inputReadOnly, errorFields.email && styles.inputError]}
-              value={email}
-              editable={false}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor={Colors.textLight}
-            />
+            <View
+              style={[
+                styles.inputWrap,
+                styles.inputReadOnly,
+                errorFields.email && styles.inputError,
+              ]}
+            >
+              <TextInput
+                style={styles.input}
+                value={email}
+                editable={false}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={Colors.textLight}
+              />
+            </View>
             <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
           </View>
         </FormSection>
@@ -530,7 +537,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           <View style={styles.field}>
             <FormFieldLabel required>About / Description</FormFieldLabel>
             <TextInput
-              style={[styles.textarea, errorFields.coachDesc && styles.inputError]}
+              style={[styles.textarea, errorFields.coachDesc && styles.textareaError]}
               multiline
               numberOfLines={4}
               value={coachDesc}
@@ -552,6 +559,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                     setCoachDesc(text);
                     clearFieldError('coachDesc');
                   }}
+                  activeOpacity={PressOpacity.default}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use suggestion: ${text.slice(0, 48)}`}
                 >
                   <Text style={styles.suggestChipText} numberOfLines={3}>
                     {text}
@@ -594,13 +604,15 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
             <View style={styles.half}>
               <View style={styles.field}>
                 <FormFieldLabel required>Pin Code</FormFieldLabel>
-                <View style={styles.pinInputWrap}>
+                <View
+                  style={[
+                    styles.inputWrap,
+                    styles.pinInputWrap,
+                    (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
+                  ]}
+                >
                   <TextInput
-                    style={[
-                      styles.input,
-                      styles.pinInput,
-                      (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
-                    ]}
+                    style={[styles.input, styles.pinInput]}
                     value={pinCode}
                     onChangeText={v => {
                       setPinCode(sanitizePinInput(v));
@@ -726,17 +738,19 @@ function Field({
   return (
     <View style={styles.field}>
       <FormFieldLabel required={required}>{label}</FormFieldLabel>
-      <TextInput
-        style={[styles.input, hasError && styles.inputError]}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType || 'default'}
-        maxLength={maxLength}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={autoCapitalize === 'none' ? false : undefined}
-        placeholderTextColor={Colors.textLight}
-        onFocus={onFocus}
-      />
+      <View style={[styles.inputWrap, hasError && styles.inputError]}>
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType || 'default'}
+          maxLength={maxLength}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCapitalize === 'none' ? false : undefined}
+          placeholderTextColor={Colors.textLight}
+          onFocus={onFocus}
+        />
+      </View>
     </View>
   );
 }
@@ -753,7 +767,15 @@ function ImagePickerTile({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.imageTile} onPress={onPress} disabled={uploading}>
+    <TouchableOpacity
+      style={styles.imageTile}
+      onPress={onPress}
+      disabled={uploading}
+      activeOpacity={PressOpacity.default}
+      accessibilityRole="button"
+      accessibilityLabel={uri ? `Change ${label}` : `Upload ${label}`}
+      accessibilityState={{ busy: uploading, disabled: uploading }}
+    >
       {uri ? <Image source={{ uri }} style={styles.imagePreview} /> : null}
       {uploading ? (
         <View style={[styles.imageOverlay, !uri && styles.imageOverlayFill]}>
@@ -820,11 +842,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   field: { marginBottom: Spacing.md },
-  input: {
+  inputWrap: {
     ...formFieldStyles.wrap,
     ...formFieldStyles.wrapSurface,
-    ...formFieldStyles.input,
   },
+  input: formFieldStyles.input,
   inputError: formFieldStyles.wrapError,
   inputReadOnly: formFieldStyles.wrapDisabled,
   fieldHintInline: {
@@ -854,7 +876,7 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     lineHeight: 17,
   },
-  pinInputWrap: { position: 'relative', justifyContent: 'center' },
+  pinInputWrap: { position: 'relative' },
   pinInput: { paddingRight: 36 },
   pinLoader: { position: 'absolute', right: 12 },
   textarea: {
@@ -869,6 +891,7 @@ const styles = StyleSheet.create({
     height: 90,
     textAlignVertical: 'top',
   },
+  textareaError: formFieldStyles.wrapError,
   row: { flexDirection: 'row', gap: Spacing.sm },
   half: { flex: 1 },
   fieldHint: {

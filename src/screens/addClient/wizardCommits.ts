@@ -7,7 +7,7 @@ import {
   markComplete,
 } from '../../api/clientApi';
 import { uploadDocument } from '../../api/documentApi';
-import { getCurrentCoachCode, getCurrentCoachId } from '../../auth/session';
+import { getCurrentCoachCode, getDocumentSavedById } from '../../auth/session';
 import { ApiError } from '../../api/client';
 import type { BodyMetrics } from '../../utils/bmi';
 import type { AssessmentIds } from '../../api/clientApi';
@@ -29,7 +29,7 @@ export async function commitPersonal(
   const pending = (profile.photos ?? []).filter(p => p.dataUrl?.trim());
   if (pending.length && nextIds.clientCode) {
     const coachCode = getCurrentCoachCode() ?? '';
-    const savedBy = Number(getCurrentCoachId()) || 0;
+    const savedBy = getDocumentSavedById();
     // Photos are optional — upload failures must not block the wizard.
     for (const photo of pending) {
       try {

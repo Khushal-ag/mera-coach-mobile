@@ -26,7 +26,9 @@ import {
 } from '../../../constants/theme';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ClientAvatar from '../../../components/ClientAvatar';
+import ClientStatusChip from '../../../components/ClientStatusChip';
 import ProgressPhotos from '../../../components/ProgressPhotos';
+import EmptyState from '../../../components/EmptyState';
 import ReloadState from '../../../components/ReloadState';
 import { getClientDetail } from '../../../api/clientApi';
 import { getErrorMessage } from '../../../api/client';
@@ -175,7 +177,7 @@ export default function ClientDetailScreen({
     } catch (err) {
       Alert.alert(
         'Could not open SMS',
-        err instanceof Error ? err.message : 'Please try again from a phone with SMS.',
+        getErrorMessage(err, 'Please try again from a phone with SMS.'),
       );
     }
   };
@@ -264,11 +266,7 @@ export default function ClientDetailScreen({
               </Text>
             </View>
           ) : null}
-          {client.status ? (
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{client.status}</Text>
-            </View>
-          ) : null}
+          {client.status ? <ClientStatusChip status={client.status} /> : null}
         </View>
       </View>
 
@@ -291,7 +289,12 @@ export default function ClientDetailScreen({
             style={styles.reload}
           />
         ) : metrics.length === 0 && detailRows.length === 0 ? (
-          <Text style={styles.empty}>Details unavailable.</Text>
+          <EmptyState
+            icon="document-text-outline"
+            title="Details unavailable"
+            message="Client details could not be loaded for this profile."
+            style={styles.emptyBox}
+          />
         ) : (
           <View style={styles.infoCard}>
             <View style={styles.metricsGrid}>
@@ -407,11 +410,6 @@ const styles = StyleSheet.create({
   },
   bmiBadgeValue: { fontSize: 13, fontFamily: FontFamily.extraBold },
   bmiBadgeLabel: { ...Typography.micro, fontFamily: FontFamily.semibold },
-  statusBadge: {
-    ...statusChipStyles.base,
-    backgroundColor: Colors.accentLight,
-  },
-  statusText: { ...statusChipStyles.text, color: Colors.accent },
   section: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md },
   sectionTitle: {
     ...Typography.section,
@@ -487,7 +485,7 @@ const styles = StyleSheet.create({
     maxWidth: '55%',
     textAlign: 'right',
   },
-  empty: { ...Typography.label, color: Colors.textLight, marginTop: 6 },
+  emptyBox: { flex: 0, paddingVertical: Spacing.lg },
   actionGrid: { gap: Spacing.sm - 2 },
   actionRow: { flexDirection: 'row', gap: Spacing.sm - 2 },
   actionBtn: {

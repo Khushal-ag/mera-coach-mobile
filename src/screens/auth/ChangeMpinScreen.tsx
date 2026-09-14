@@ -15,6 +15,7 @@ import {
   verifyStoredMpin,
 } from '../../auth/mpin';
 import { isValidMpinFormat } from '../../utils/mpinCrypto';
+import { toUserMessage } from '../../api/client';
 import type { ProfileStackScreenProps } from '../../types/navigation';
 
 type Step = 'current' | 'create' | 'confirm';
@@ -89,8 +90,8 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
         Alert.alert('MPIN updated', 'Your MPIN has been saved.', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
-      } catch {
-        setError('Could not save MPIN. Please try again.');
+      } catch (err) {
+        setError(toUserMessage(err, 'Could not save MPIN. Please try again.'));
         setPin('');
         setStep(hasExisting ? 'current' : 'create');
         setDraft('');

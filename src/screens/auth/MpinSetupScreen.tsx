@@ -7,6 +7,7 @@ import AppButton from '../../components/AppButton';
 import BrandLockup from '../../components/BrandLockup';
 import MpinKeypad from '../../components/auth/MpinKeypad';
 import { deferMpinSetup, getLastLoginId, setMpin } from '../../auth/mpin';
+import { toUserMessage } from '../../api/client';
 import { isValidMpinFormat } from '../../utils/mpinCrypto';
 
 type Step = 'create' | 'confirm';
@@ -51,8 +52,8 @@ export default function MpinSetupScreen() {
       setError(null);
       try {
         await setMpin(value, getLastLoginId() ?? undefined);
-      } catch {
-        setError('Could not save MPIN. Please try again.');
+      } catch (err) {
+        setError(toUserMessage(err, 'Could not save MPIN. Please try again.'));
         setPin('');
         setStep('create');
         setDraft('');

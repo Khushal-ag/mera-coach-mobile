@@ -9,6 +9,7 @@ import {
   Radius,
   Shadow,
   Spacing,
+  TouchTarget,
   Typography,
 } from '../../constants/theme';
 import { PRIVACY_POLICY_URL } from '../../config/appConfig';
@@ -65,6 +66,8 @@ export default function LegalScreen({ navigation }: ProfileStackScreenProps<'Leg
               style={styles.actionBtn}
               onPress={() => openPrivacyPolicyUrl()}
               activeOpacity={PressOpacity.default}
+              accessibilityRole="link"
+              accessibilityLabel="View privacy policy online"
             >
               <Ionicons name="open-outline" size={IconSize.sm} color={Colors.secondary} />
               <Text style={styles.actionText}>View privacy policy online</Text>
@@ -74,6 +77,8 @@ export default function LegalScreen({ navigation }: ProfileStackScreenProps<'Leg
             style={styles.actionBtn}
             onPress={() => openAccountDeletionEmail()}
             activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel="Request account deletion"
           >
             <Ionicons name="mail-outline" size={IconSize.sm} color={Colors.secondary} />
             <Text style={styles.actionText}>Request account deletion</Text>
@@ -105,7 +110,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: Spacing.sm - 2,
-    minHeight: 40,
+    minHeight: TouchTarget.min,
     borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

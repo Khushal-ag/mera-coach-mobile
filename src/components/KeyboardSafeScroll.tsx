@@ -82,8 +82,8 @@ const KeyboardSafeScroll = forwardRef<ScrollView, KeyboardSafeScrollProps>(
 export default KeyboardSafeScroll;
 
 /**
- * Call from lower TextInput `onFocus` after keyboard resize.
- * Prefer `scrollFieldIntoView` when you have a field Y offset; this scrolls near the end.
+ * Call from lower TextInput `onFocus` after keyboard resize — scrolls near the end
+ * so fields above a sticky footer stay visible.
  */
 export function useScrollLowerFieldsIntoView(
   scrollRef: RefObject<ScrollView | null>,
@@ -94,21 +94,6 @@ export function useScrollLowerFieldsIntoView(
       scrollRef.current?.scrollToEnd({ animated: true });
     }, delayMs);
   }, [scrollRef, delayMs]);
-}
-
-/** Scroll so a focused field near `y` in content coords stays above the keyboard / sticky footer. */
-export function useScrollFieldIntoView(scrollRef: RefObject<ScrollView | null>, delayMs = 160) {
-  return useCallback(
-    (y: number, extraOffset = 120) => {
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({
-          y: Math.max(0, y - extraOffset),
-          animated: true,
-        });
-      }, delayMs);
-    },
-    [scrollRef, delayMs],
-  );
 }
 
 const styles = StyleSheet.create({

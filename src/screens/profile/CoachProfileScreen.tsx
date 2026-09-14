@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,8 +29,9 @@ import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support'
 import { formatExperienceDisplay } from '../../utils/experience';
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import { getProfileCompletion } from '../../utils/profileCompletion';
-import { refreshControlTheme } from '../../hooks/useRefreshControl';
-import { clearSession, getCurrentCoachCode } from '../../auth/session';
+import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
+import { getCurrentCoachCode } from '../../auth/session';
+import { logoutLocal } from '../../auth/logout';
 import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
@@ -138,7 +138,6 @@ function MenuRow({
 }
 
 export default function CoachProfileScreen({ navigation }: ProfileStackScreenProps<'ProfileHome'>) {
-  const [refreshing, setRefreshing] = useState(false);
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
@@ -159,17 +158,11 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     [profileFullQuery.data],
   );
 
-  // Explicit pull only — do not bind RefreshControl to query.isRefetching (offscreen spinner).
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    Promise.all([profileQuery.refetch(), profileFullQuery.refetch(), clientsQuery.refetch()])
-      .then(([profileResult]) => {
-        if (profileResult.isError) {
-          Alert.alert('Refresh failed', getErrorMessage(profileResult.error, 'Please try again.'));
-        }
-      })
-      .finally(() => setRefreshing(false));
-  }, [profileQuery, profileFullQuery, clientsQuery]);
+  const { refreshing, onRefresh } = useQueriesRefreshControl([
+    profileQuery,
+    profileFullQuery,
+    clientsQuery,
+  ]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
   const errorMessage =
@@ -206,7 +199,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       case 'logout':
         // AppNavigator's useAuthState reacts to the session store and swaps back to
         // the public screen tree on its own — no navigation call needed here.
-        await clearSession();
+        await logoutLocal();
     }
   };
 

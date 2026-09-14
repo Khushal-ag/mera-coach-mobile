@@ -37,13 +37,9 @@ interface RegisterCoachParams {
   referrerMobile?: string;
 }
 
-interface RegisterCoachResult {
-  plainPassword: string;
-  [key: string]: unknown;
-}
-
-export async function registerCoach(params: RegisterCoachParams): Promise<RegisterCoachResult> {
-  return apiPost<RegisterCoachResult>('/v{version}/Coach/save', params);
+/** Credentials are emailed by the API — the app never reads the response body. */
+export async function registerCoach(params: RegisterCoachParams): Promise<void> {
+  await apiPost('/v{version}/Coach/save', params);
 }
 
 interface CoachPublicListParams {
@@ -200,7 +196,9 @@ export async function getCoachPublicList(
     : items;
   return {
     coaches: visibleItems.map(mapPublicCoach),
-    totalCount: visibilityKnown ? visibleItems.length : (data?.totalCount ?? 0),
+    // Prefer server totalCount even when we drop hidden rows on this page —
+    // visibleItems.length is only a page slice and undercounts the directory.
+    totalCount: data?.totalCount ?? visibleItems.length,
   };
 }
 

@@ -33,7 +33,6 @@ import {
   formFieldStyles,
   storyCardWidth,
 } from '../../constants/theme';
-import { BrandImages } from '../../constants/images';
 import AppButton from '../../components/AppButton';
 import PersonAvatar from '../../components/PersonAvatar';
 import PhoneTextInput from '../../components/PhoneTextInput';
@@ -42,11 +41,14 @@ import EmptyState from '../../components/EmptyState';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import CoachGallery from '../../components/CoachGallery';
 import KeyboardSafeScroll, {
+  STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
 import ReloadState from '../../components/ReloadState';
 import SectionTag from '../../components/SectionTag';
+import StickyFooter from '../../components/StickyFooter';
 import { HeaderBackButton } from '../../components/ScreenHeader';
+import { EventCard, PackageCard } from '../../components/publicCoach/CoachOfferCards';
 import { SERVICE_INQUIRY_FALLBACK } from '../../data/coachProfileContent';
 import {
   getCoachProfileByCode,
@@ -64,8 +66,10 @@ import {
 } from '../../utils/coachPublicStats';
 import { buildCoachSuccessHighlights } from '../../utils/coachPublicSocialProof';
 import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../../utils/coachDisplay';
+import { iconForExpertise } from '../../utils/expertiseIcons';
 import { getUpcomingCoachEvents } from '../../utils/coachEvents';
-import { isDegenerateImageSize, resolveMediaUrl } from '../../utils/mediaUrl';
+import { mergeCoachProfile } from '../../utils/mergeCoachProfile';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -73,7 +77,7 @@ import {
   sanitizeEmailInput,
 } from '../../utils/validation';
 import type { RootScreenProps } from '../../types/navigation';
-import type { Coach, CoachEvent, CoachPackage } from '../../types/models';
+import type { Coach } from '../../types/models';
 
 interface EnquiryForm {
   name: string;
@@ -98,172 +102,6 @@ type ProfilePageProps = {
 };
 
 const MAX_PAGE_DOTS = 10;
-
-type ExpertiseIcon = React.ComponentProps<typeof Ionicons>['name'];
-
-function iconForExpertise(tag: string): ExpertiseIcon {
-  const key = tag.toLowerCase();
-  if (key.includes('weight') && key.includes('loss')) return 'trending-down-outline';
-  if (key.includes('weight') && key.includes('gain')) return 'trending-up-outline';
-  if (key.includes('skin')) return 'sparkles-outline';
-  if (key.includes('energy') || key.includes('fitness')) return 'flash-outline';
-  if (key.includes('digest')) return 'nutrition-outline';
-  if (key.includes('bone')) return 'body-outline';
-  if (key.includes('joint')) return 'walk-outline';
-  if (key.includes('heart') || key.includes('cardio')) return 'heart-outline';
-  if (key.includes('brain')) return 'bulb-outline';
-  if (key.includes('women') || key.includes('woman')) return 'female-outline';
-  if (key.includes("men's") || /\bmen\b/.test(key)) return 'male-outline';
-  if (key.includes('breakfast')) return 'sunny-outline';
-  if (key.includes('child')) return 'happy-outline';
-  if (key.includes('sleep') || key.includes('stress')) return 'moon-outline';
-  if (key.includes('yoga') || key.includes('mind')) return 'leaf-outline';
-  if (key.includes('diet') || key.includes('nutrition') || key.includes('food'))
-    return 'restaurant-outline';
-  if (key.includes('sport') || key.includes('athlete') || key.includes('strength'))
-    return 'barbell-outline';
-  return 'medal-outline';
-}
-
-function PackageCard({ pkg, onSelect }: { pkg: CoachPackage; onSelect: () => void }) {
-  const imageUri = resolveMediaUrl(pkg.imageUrl);
-  const [imageFailed, setImageFailed] = useState(false);
-  const [trackedImage, setTrackedImage] = useState(pkg.imageUrl);
-  if (pkg.imageUrl !== trackedImage) {
-    setTrackedImage(pkg.imageUrl);
-    setImageFailed(false);
-  }
-  const showImage = Boolean(imageUri) && !imageFailed;
-
-  return (
-    <TouchableOpacity style={styles.offerCard} onPress={onSelect} activeOpacity={PressOpacity.soft}>
-      <View style={styles.offerImageWrap}>
-        {showImage ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.offerImage}
-            resizeMode="cover"
-            onError={() => setImageFailed(true)}
-            onLoad={e => {
-              const { width, height } = e.nativeEvent.source;
-              if (isDegenerateImageSize(width, height)) setImageFailed(true);
-            }}
-          />
-        ) : (
-          <Image
-            source={BrandImages.emptyCheckups}
-            style={styles.offerImagePlaceholder}
-            resizeMode="contain"
-          />
-        )}
-      </View>
-      <View style={styles.offerCardBodyWrap}>
-        <View style={styles.offerCardHeader}>
-          <Text style={styles.offerCardTitle} numberOfLines={2}>
-            {pkg.name}
-          </Text>
-          {pkg.price ? (
-            <Text style={styles.offerCardPrice} numberOfLines={1}>
-              {pkg.price}
-            </Text>
-          ) : null}
-        </View>
-        {pkg.duration ? <Text style={styles.offerCardMeta}>{pkg.duration}</Text> : null}
-        {pkg.description ? (
-          <Text style={styles.offerCardBody} numberOfLines={3}>
-            {pkg.description}
-          </Text>
-        ) : null}
-        <Text style={styles.offerCardCta}>Enquire about this package</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function EventCard({ event }: { event: CoachEvent }) {
-  const meta = [event.date, event.time, event.location].filter(Boolean).join(' · ');
-  const imageUri = resolveMediaUrl(event.imageUrl);
-  const [imageFailed, setImageFailed] = useState(false);
-  const [trackedImage, setTrackedImage] = useState(event.imageUrl);
-  if (event.imageUrl !== trackedImage) {
-    setTrackedImage(event.imageUrl);
-    setImageFailed(false);
-  }
-  const showImage = Boolean(imageUri) && !imageFailed;
-
-  const openLink = () => {
-    const url = event.link.trim();
-    if (!url) return;
-    const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    Linking.openURL(href).catch(() => Alert.alert('Unable to open link'));
-  };
-
-  return (
-    <View style={styles.offerCard}>
-      <View style={styles.offerImageWrap}>
-        {showImage ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.offerImage}
-            resizeMode="cover"
-            onError={() => setImageFailed(true)}
-            onLoad={e => {
-              const { width, height } = e.nativeEvent.source;
-              if (isDegenerateImageSize(width, height)) setImageFailed(true);
-            }}
-          />
-        ) : (
-          <Image
-            source={BrandImages.emptyLeads}
-            style={styles.offerImagePlaceholder}
-            resizeMode="contain"
-          />
-        )}
-      </View>
-      <View style={styles.offerCardBodyWrap}>
-        <Text style={styles.offerCardTitle} numberOfLines={2}>
-          {event.title}
-        </Text>
-        {meta ? <Text style={styles.offerCardMeta}>{meta}</Text> : null}
-        {event.link ? (
-          <TouchableOpacity onPress={openLink} accessibilityRole="link">
-            <Text style={styles.offerCardCta}>Open event link</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-/** Prefer profile-by-id; fill gaps from the directory row. */
-function mergeCoachProfile(api: Coach | undefined, list: Coach | undefined): Coach | undefined {
-  if (!api && !list) return undefined;
-  if (!api) return list;
-  if (!list || list.id !== api.id) return api;
-  return {
-    ...list,
-    ...api,
-    // Strings/arrays: keep list only when API left them empty.
-    category: api.category || list.category,
-    categoryCode: api.categoryCode || list.categoryCode,
-    bio: api.bio || list.bio,
-    tagline: api.tagline || list.tagline,
-    tags: api.tags.length ? api.tags : list.tags,
-    city: api.city || list.city,
-    country: api.country || list.country,
-    profilePicUrl: api.profilePicUrl || list.profilePicUrl,
-    logoUrl: api.logoUrl || list.logoUrl,
-    mobile: api.mobile || list.mobile,
-    packages: api.packages?.length ? api.packages : list.packages,
-    events: api.events?.length ? api.events : list.events,
-    // Numbers from profile-by-id: keep API zeros for clients (happyClientCount) / experience.
-    // reviewCount is often omitted on profile-by-id (mapped to 0) — keep list reviews then.
-    rating: api.rating > 0 ? api.rating : list.rating,
-    reviews: api.reviews > 0 ? api.reviews : list.reviews,
-    clients: api.clients,
-    experience: api.experience > 0 ? api.experience : list.experience,
-  };
-}
 
 function CoachProfilePage({
   coachCode,
@@ -454,8 +292,7 @@ function CoachProfilePage({
         ref={scrollRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
-        // Enquiry form sits at the bottom; keep room for keyboard + home indicator.
-        keyboardPadding={120}
+        keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
         directionalLockEnabled
         nestedScrollEnabled
       >
@@ -785,17 +622,18 @@ function CoachProfilePage({
             placeholder="Select a service..."
             required
           />
-
-          <AppButton
-            label="Send My Request, It's Free!"
-            onPress={submitEnquiry}
-            loading={submitting}
-            icon="paper-plane-outline"
-            iconPosition="left"
-            style={styles.submitBtn}
-          />
         </View>
       </KeyboardSafeScroll>
+
+      <StickyFooter>
+        <AppButton
+          label="Send My Request, It's Free!"
+          onPress={submitEnquiry}
+          loading={submitting}
+          icon="paper-plane-outline"
+          iconPosition="left"
+        />
+      </StickyFooter>
     </View>
   );
 }
@@ -831,7 +669,7 @@ export default function CoachPublicProfileScreen({
     if (listCoach?.id) map.set(listCoach.id, listCoach);
     // Fill any remaining codes from cached directory queries (same codes as the list screen).
     const cachedLists = queryClient.getQueriesData<{ coaches: Coach[] }>({
-      queryKey: ['coachPublicList'],
+      queryKey: queryKeys.coachPublicListRoot,
     });
     for (const [, data] of cachedLists) {
       for (const c of data?.coaches ?? []) {
@@ -1226,68 +1064,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: Spacing.md + 2,
   },
-  offerCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  offerImageWrap: {
-    height: 140,
-    backgroundColor: Colors.backgroundTan,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  offerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  offerImagePlaceholder: {
-    width: '62%',
-    height: '72%',
-  },
-  offerCardBodyWrap: {
-    padding: Spacing.md,
-  },
-  offerCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  offerCardTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-  },
-  offerCardPrice: {
-    fontSize: 14,
-    fontFamily: FontFamily.bold,
-    color: Colors.primary,
-  },
-  offerCardMeta: {
-    fontSize: 12,
-    fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
-    marginTop: 6,
-  },
-  offerCardBody: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    color: Colors.textDark,
-    lineHeight: 18,
-    marginTop: Spacing.xs,
-  },
-  offerCardCta: {
-    marginTop: 10,
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-    color: Colors.secondary,
-  },
   expertiseSection: {
     paddingBottom: Spacing.md,
   },
@@ -1369,7 +1145,4 @@ const styles = StyleSheet.create({
   field: { marginBottom: 14 },
   inputWrap: formFieldStyles.wrap,
   input: formFieldStyles.input,
-  submitBtn: {
-    marginTop: Spacing.xs,
-  },
 });

@@ -14,12 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
+  HitSlop,
   IconSize,
   PressOpacity,
   Radius,
   Shadow,
   Spacing,
   Typography,
+  TouchTarget,
   filterPillStyles,
   buttonStyles,
 } from '../../constants/theme';
@@ -228,6 +230,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             accessibilityRole="button"
             accessibilityLabel="Clear filters"
             activeOpacity={PressOpacity.default}
+            hitSlop={HitSlop.sm}
           >
             <Ionicons name="close-circle-outline" size={IconSize.sm} color={Colors.primary} />
             <Text style={styles.clearText}>Clear filters</Text>
@@ -475,7 +478,8 @@ const styles = StyleSheet.create({
     gap: 4,
     alignSelf: 'flex-start',
     marginTop: Spacing.xs,
-    paddingVertical: 2,
+    minHeight: TouchTarget.min,
+    paddingVertical: Spacing.xs,
   },
   clearText: {
     ...Typography.caption,

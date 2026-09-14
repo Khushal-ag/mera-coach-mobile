@@ -35,7 +35,7 @@ import {
 import { getErrorMessage } from '../api/client';
 import { PHOTO_STALE_MS } from '../api/queryClient';
 import { queryKeys } from '../api/queryKeys';
-import { getCurrentCoachId } from '../auth/session';
+import { getDocumentSavedById } from '../auth/session';
 import { pickImagesFromCameraOrLibrary } from '../utils/imagePicker';
 import { isDegenerateImageSize, resolveMediaUrl } from '../utils/mediaUrl';
 import EmptyState from './EmptyState';
@@ -135,7 +135,7 @@ export default function CoachGallery({
           refCode: coachCode,
           refType: COACH_GALLERY_REF_TYPE,
           docType: COACH_GALLERY_DOC_TYPE,
-          savedBy: Number(getCurrentCoachId()) || 0,
+          savedBy: getDocumentSavedById(),
         });
       }
       setFailedDocIds(new Set());

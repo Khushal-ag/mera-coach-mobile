@@ -21,12 +21,12 @@ import {
   Spacing,
   TouchTarget,
   Typography,
-  statusChipStyles,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import EmptyState from '../../components/EmptyState';
 import ReloadState from '../../components/ReloadState';
 import ClientAvatar from '../../components/ClientAvatar';
+import ClientStatusChip from '../../components/ClientStatusChip';
 import SearchField from '../../components/SearchField';
 import TabRootHeader from '../../components/TabRootHeader';
 import SectionTag from '../../components/SectionTag';
@@ -205,27 +205,7 @@ export default function ClientListScreen({
                           {lastCheckupLabel(item.lastCheckupDate)}
                         </Text>
                       </View>
-                      {item.status ? (
-                        <View
-                          style={[
-                            styles.badge,
-                            item.status === 'Active' && styles.badgeActive,
-                            item.status === 'Checkup Due' && styles.badgeWarning,
-                            item.status === 'New' && styles.badgeNew,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.badgeText,
-                              item.status === 'Active' && styles.badgeActiveText,
-                              item.status === 'Checkup Due' && styles.badgeWarningText,
-                              item.status === 'New' && styles.badgeNewText,
-                            ]}
-                          >
-                            {item.status}
-                          </Text>
-                        </View>
-                      ) : null}
+                      {item.status ? <ClientStatusChip status={item.status} /> : null}
                       <Ionicons
                         name="chevron-forward"
                         size={16}
@@ -278,16 +258,4 @@ const styles = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   name: { ...Typography.bodyStrong, fontFamily: FontFamily.bold, fontSize: 15 },
   meta: { ...Typography.caption, marginTop: 1 },
-  badge: {
-    ...statusChipStyles.base,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-  },
-  badgeActive: { backgroundColor: Colors.secondaryLight },
-  badgeWarning: { backgroundColor: Colors.accentLight },
-  badgeNew: { backgroundColor: Colors.primaryLight },
-  badgeText: { fontSize: 10, fontFamily: FontFamily.bold },
-  badgeActiveText: { color: Colors.secondary },
-  badgeWarningText: { color: Colors.accent },
-  badgeNewText: { color: Colors.primary },
 });

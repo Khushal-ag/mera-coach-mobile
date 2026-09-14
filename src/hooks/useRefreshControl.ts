@@ -17,19 +17,24 @@ export const refreshControlTheme = {
 // Do not bind RefreshControl to query.isRefetching — background refetches would
 // show a stuck spinner while content is already visible.
 export function useRefreshControl<TData, TError = unknown>(query: RefreshableQuery<TData, TError>) {
+  return useQueriesRefreshControl([query]);
+}
+
+/** Pull-to-refresh across several queries; alerts on the first failed refetch. */
+export function useQueriesRefreshControl(queries: RefreshableQuery<unknown, unknown>[]) {
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    query
-      .refetch()
-      .then(result => {
-        if (result.isError) {
-          Alert.alert('Refresh failed', getErrorMessage(result.error, 'Please try again.'));
+    Promise.all(queries.map(q => q.refetch()))
+      .then(results => {
+        const failed = results.find(r => r.isError);
+        if (failed?.isError) {
+          Alert.alert('Refresh failed', getErrorMessage(failed.error, 'Please try again.'));
         }
       })
       .finally(() => setRefreshing(false));
-  }, [query]);
+  }, [queries]);
 
   return { refreshing, onRefresh };
 }

@@ -19,6 +19,7 @@ import {
   Radius,
   Shadow,
   Spacing,
+  TouchTarget,
   Typography,
   buttonStyles,
 } from '../../constants/theme';
@@ -28,8 +29,10 @@ import { getCoachCategories, getCoachPublicList } from '../../api/coachApi';
 import { MASTER_STALE_MS } from '../../api/queryClient';
 import { queryKeys } from '../../api/queryKeys';
 import { useAuthState } from '../../auth/useAuthState';
+import { BrandImages } from '../../constants/images';
 import PersonAvatar from '../../components/PersonAvatar';
 import CategoryIcon from '../../components/CategoryIcon';
+import EmptyState from '../../components/EmptyState';
 import PublicBmiCard from '../../components/home/PublicBmiCard';
 import SectionHeading from '../../components/home/SectionHeading';
 import { HeaderBackButton } from '../../components/ScreenHeader';
@@ -159,11 +162,8 @@ export default function HomeExploreScreen({ navigation }: RootScreenProps<'HomeE
     });
   };
 
+  // Prefer marketing Home so Back and Dashboard stay distinct when arriving from Main.
   const goBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
     navigation.navigate('Home');
   };
 
@@ -304,7 +304,13 @@ export default function HomeExploreScreen({ navigation }: RootScreenProps<'HomeE
             ))}
           </ScrollView>
         ) : (
-          <Text style={styles.emptyCoaches}>Coaches coming soon</Text>
+          <EmptyState
+            illustration={BrandImages.emptyLeads}
+            icon="people-outline"
+            title="Coaches coming soon"
+            message="Featured coaches will appear here as more profiles go live."
+            style={styles.emptyCoachesBox}
+          />
         )}
       </ScrollView>
 
@@ -367,7 +373,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: Spacing.xs,
-    minHeight: 36,
+    minHeight: TouchTarget.min,
     justifyContent: 'center',
   },
   loginPillText: {
@@ -530,9 +536,9 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     flexShrink: 1,
   },
-  emptyCoaches: {
-    textAlign: 'center',
-    ...Typography.caption,
+  emptyCoachesBox: {
+    flex: 0,
+    paddingVertical: Spacing.lg,
     marginBottom: Spacing.xs,
   },
   coachErrorBox: {

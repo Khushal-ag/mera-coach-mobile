@@ -13,7 +13,7 @@ import { Colors } from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
-import { getCurrentCoachCode, getCurrentCoachId } from '../auth/session';
+import { getCurrentCoachCode, getDocumentSavedById } from '../auth/session';
 import { pickImageFromCameraOrLibrary } from '../utils/imagePicker';
 import { useClientPhotoUrl } from '../hooks/useClientPhotoUrl';
 
@@ -65,7 +65,7 @@ export default function ClientAvatar({
         refCode: clientCode,
         refType: REF_TYPE,
         docType: DOC_TYPE,
-        savedBy: Number(getCurrentCoachId()) || 0,
+        savedBy: getDocumentSavedById(),
       });
       invalidate();
     } catch (err) {

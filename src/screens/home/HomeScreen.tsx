@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.onDarkFrost,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.md,
-    minHeight: TouchTarget.min - 8,
+    minHeight: TouchTarget.min,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadow.sm,

@@ -38,7 +38,7 @@ bun run android
 
 Photos (gallery, logo, profile, progress, packages, events) upload and resolve against the same `EXPO_PUBLIC_API_BASE_URL` host (`/document/...` under that API’s wwwroot). For cloud images, point `API_BASE` at the deployed Azure API. A local API serves its own local wwwroot unless the API is configured for shared storage.
 
-See `.env.example` for variable names. For EAS production builds, set these as EAS secrets.
+See `.env.example` for variable names. For EAS production builds, set these as EAS secrets / project env (do **not** leave `EXPO_PUBLIC_API_BASE_URL` pointing at localhost).
 
 ### MVP persistence (API)
 
@@ -51,16 +51,26 @@ Feedback SMS opens `{EXPO_PUBLIC_WEB_BASE_URL}/feedback?coachCode=&clientCode=` 
 
 ## Scripts
 
-| Script                      | Description              |
-| --------------------------- | ------------------------ |
-| `bun start`                 | Expo dev server          |
-| `bun run ios` / `android`   | Native run               |
-| `bun run web`               | Expo web                 |
-| `bun run lint`              | ESLint                   |
-| `bun test`                  | Jest (`src/__tests__`)   |
-| `bun run fmt` / `fmt:check` | Prettier                 |
-| `bun run doctor`            | `expo-doctor`            |
-| `bun run prebuild`          | Generate native projects |
+| Script                      | Description                 |
+| --------------------------- | --------------------------- |
+| `bun start`                 | Expo dev server             |
+| `bun run ios` / `android`   | Native run                  |
+| `bun run web`               | Expo web                    |
+| `bun run lint`              | ESLint                      |
+| `bun run typecheck`         | TypeScript (`tsc --noEmit`) |
+| `bun test`                  | Jest (`src/__tests__`)      |
+| `bun run fmt` / `fmt:check` | Prettier                    |
+| `bun run doctor`            | `expo-doctor`               |
+| `bun run prebuild`          | Generate native projects    |
+
+## Publishing (EAS)
+
+1. `eas login` then `eas init` (writes `extra.eas.projectId` into `app.json`).
+2. Set EAS secrets for the production profile: `EXPO_PUBLIC_API_BASE_URL` (Azure API), optionally `EXPO_PUBLIC_WEB_BASE_URL` and `EXPO_PUBLIC_PRIVACY_POLICY_URL`.
+3. Internal / TestFlight-style: `eas build --profile preview` (Android APK) or `eas build --profile production --platform ios`.
+4. Store submit: `eas submit --profile production` after Apple / Play credentials and listings (privacy URL, screenshots, content rating) are ready.
+
+`ios.config.usesNonExemptEncryption` is `false` (HTTPS-only). Production `autoIncrement` bumps remote build numbers.
 
 ## Features
 

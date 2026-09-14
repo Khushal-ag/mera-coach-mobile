@@ -18,7 +18,7 @@ import {
   type CoachProfileFull,
 } from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
-import { queryKeys } from '../../api/queryKeys';
+import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
 import { serializeCoachPackages, validateCoachPackagesDraft } from '../../utils/coachPackages';
 import { isPendingLocalMediaUrl } from '../../utils/mediaUrl';
 import type { ProfileStackScreenProps } from '../../types/navigation';
@@ -87,10 +87,7 @@ function EditPackagesForm({ profile, onDone }: { profile: CoachProfileFull; onDo
           packages: serialized,
         }),
       );
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
-      queryClient.invalidateQueries({ queryKey: ['coachPublicList'] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileByCode(latest.coachCode) });
+      invalidateCoachProfileCaches(queryClient, latest.coachCode);
       Alert.alert('Packages saved', 'Your packages have been updated.', [
         { text: 'OK', onPress: onDone },
       ]);

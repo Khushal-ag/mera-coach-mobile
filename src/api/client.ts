@@ -29,20 +29,45 @@ function isAbortError(err: unknown): boolean {
   return /FetchRequestCanceled|aborted|canceled|cancelled/i.test(err.message);
 }
 
-function anySignal(signals: (AbortSignal | undefined | null)[]): AbortSignal {
-  const controller = new AbortController();
-  const onAbort = () => controller.abort();
+function anySignal(signals: (AbortSignal | undefined | null)[]): {
+  signal: AbortSignal;
+  cleanup: () => void;
+} {
+  const list = signals.filter((s): s is AbortSignal => Boolean(s));
+  if (list.length === 0) {
+    return { signal: new AbortController().signal, cleanup: () => undefined };
+  }
+  if (list.length === 1) {
+    return { signal: list[0], cleanup: () => undefined };
+  }
+  if (typeof AbortSignal.any === 'function') {
+    return { signal: AbortSignal.any(list), cleanup: () => undefined };
+  }
 
-  for (const signal of signals) {
-    if (!signal) continue;
+  const controller = new AbortController();
+  const onAbort = () => {
+    controller.abort();
+    for (const signal of list) {
+      signal.removeEventListener('abort', onAbort);
+    }
+  };
+
+  for (const signal of list) {
     if (signal.aborted) {
       controller.abort();
       break;
     }
-    signal.addEventListener('abort', onAbort, { once: true });
+    signal.addEventListener('abort', onAbort);
   }
 
-  return controller.signal;
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      for (const signal of list) {
+        signal.removeEventListener('abort', onAbort);
+      }
+    },
+  };
 }
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
@@ -71,7 +96,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   // fetch() has no built-in timeout — combine our timer with any caller signal (RQ).
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
-  const signal = anySignal([options.signal, timeoutController.signal]);
+  const { signal, cleanup: cleanupSignals } = anySignal([options.signal, timeoutController.signal]);
 
   let res: Response;
   try {
@@ -103,6 +128,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
   } finally {
     clearTimeout(timeoutId);
+    cleanupSignals();
   }
 
   let body: ApiResponseBody = null;
@@ -113,6 +139,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   }
 
   // Clear a stale/expired token so the next screen's auth check sends the user back to Login.
+  // clearSession also wipes React Query cache (same as logoutLocal).
   if (res.status === 401) {
     await clearSession();
   }

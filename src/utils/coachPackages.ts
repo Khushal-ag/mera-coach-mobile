@@ -1,4 +1,5 @@
 import type { CoachPackage } from '../types/models';
+import { coerceJsonList } from './coerceJsonList';
 
 export const MAX_COACH_PACKAGES = 5;
 
@@ -15,7 +16,7 @@ export function createEmptyPackage(): CoachPackage {
 
 /** Accept arrays or JSON strings from profile GET/save responses. */
 export function parseCoachPackages(raw: unknown): CoachPackage[] {
-  const list = coerceList(raw);
+  const list = coerceJsonList(raw);
   return list
     .map((item, index) => {
       if (!item || typeof item !== 'object') return null;
@@ -67,19 +68,4 @@ export function serializeCoachPackages(packages: CoachPackage[]): CoachPackage[]
     })
     .filter(p => p.name)
     .slice(0, MAX_COACH_PACKAGES);
-}
-
-function coerceList(raw: unknown): unknown[] {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    if (!trimmed) return [];
-    try {
-      const parsed = JSON.parse(trimmed) as unknown;
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
 }
