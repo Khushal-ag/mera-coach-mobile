@@ -70,6 +70,7 @@ export default function CoachGallery({
   const [deletingDocId, setDeletingDocId] = useState<number | null>(null);
   const [failedDocIds, setFailedDocIds] = useState<Set<number>>(() => new Set());
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
 
   const galleryKey = queryKeys.coachGallery(coachCode);
 
@@ -266,11 +267,20 @@ export default function CoachGallery({
           </View>
         )
       ) : (
-        <View style={styles.grid}>
+        <View
+          style={styles.grid}
+          onLayout={e => setGridWidth(e.nativeEvent.layout.width)}
+        >
           {visiblePhotos.map(({ item, uri, broken }) => {
             const busy = deletingDocId === item.docId;
+            const tileSize =
+              gridWidth > 0 ? (gridWidth - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS : undefined;
             return (
-              <View key={item.docId} style={styles.thumbWrap} collapsable={false}>
+              <View
+                key={item.docId}
+                style={[styles.thumbWrap, tileSize != null && { width: tileSize }]}
+                collapsable={false}
+              >
                 {broken ? (
                   <TouchableOpacity
                     style={[styles.thumb, styles.thumbBroken]}
@@ -360,7 +370,8 @@ export default function CoachGallery({
   );
 }
 
-const THUMB = 100;
+const GRID_COLS = 3;
+const GRID_GAP = Spacing.sm - 2;
 
 const styles = StyleSheet.create({
   section: { marginBottom: Spacing.md },
@@ -412,11 +423,11 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   emptyText: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textLight },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  thumbWrap: { width: THUMB, position: 'relative' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  thumbWrap: { position: 'relative' },
   thumb: {
-    width: THUMB,
-    height: THUMB,
+    width: '100%',
+    aspectRatio: 1,
     borderRadius: Radius.sm,
     backgroundColor: Colors.backgroundTan,
   },

@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COACH_GALLERY_REF_TYPE, COACH_PACKAGE_IMAGE_DOC_TYPE } from '../../config/appConfig';
 import {
   Colors,
   FontFamily,
   FormControl,
+  PressOpacity,
   Radius,
   Shadow,
   Spacing,
@@ -29,6 +38,7 @@ interface Props {
 
 export default function CoachPackagesEditor({ packages, onChange, coachCode }: Props) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const packagesRef = useRef(packages);
   useEffect(() => {
     packagesRef.current = packages;
@@ -44,12 +54,16 @@ export default function CoachPackagesEditor({ packages, onChange, coachCode }: P
   };
 
   const removeAt = (index: number) => {
+    const removed = packagesRef.current[index];
+    if (removed && editingId === removed.id) setEditingId(null);
     commit(packagesRef.current.filter((_, i) => i !== index));
   };
 
   const addPackage = () => {
     if (packagesRef.current.length >= MAX_COACH_PACKAGES) return;
-    commit([...packagesRef.current, createEmptyPackage()]);
+    const next = createEmptyPackage();
+    commit([...packagesRef.current, next]);
+    setEditingId(next.id);
   };
 
   const pickImage = async (index: number) => {
@@ -115,62 +129,125 @@ export default function CoachPackagesEditor({ packages, onChange, coachCode }: P
         </View>
       ) : null}
 
-      {packages.map((pkg, index) => (
-        <View key={pkg.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Package {index + 1}</Text>
-            <TouchableOpacity
-              onPress={() => removeAt(index)}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove package ${index + 1}`}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
-            </TouchableOpacity>
-          </View>
-
-          <OfferImageField
-            imageUrl={pkg.imageUrl}
-            uploading={uploadingId === pkg.id}
-            onPick={() => void pickImage(index)}
-            onRemove={() => updateAt(index, { imageUrl: '' })}
-            accessibilityLabel={`package ${index + 1} photo`}
-          />
-
-          <Field
-            label="Name"
-            required
-            value={pkg.name}
-            onChangeText={v => updateAt(index, { name: v })}
-            placeholder="e.g. 12-week transformation"
-          />
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Field
-                label="Price (optional)"
-                value={pkg.price}
-                onChangeText={v => updateAt(index, { price: v })}
-                placeholder="e.g. ₹4,999"
-              />
+      {packages.map((pkg, index) => {
+        const isEditing = editingId === pkg.id;
+        if (!isEditing) {
+          const meta = [pkg.price, pkg.duration].filter(Boolean).join(' · ');
+          return (
+            <View key={pkg.id} style={styles.card}>
+              <View style={styles.compactRow}>
+                {pkg.imageUrl ? (
+                  <Image source={{ uri: pkg.imageUrl }} style={styles.compactThumb} />
+                ) : (
+                  <View style={[styles.compactThumb, styles.compactThumbEmpty]}>
+                    <Ionicons name="cube-outline" size={18} color={Colors.textLight} />
+                  </View>
+                )}
+                <View style={styles.compactBody}>
+                  <Text style={styles.compactTitle} numberOfLines={1}>
+                    {pkg.name.trim() || `Package ${index + 1}`}
+                  </Text>
+                  {meta ? (
+                    <Text style={styles.compactMeta} numberOfLines={2}>
+                      {meta}
+                    </Text>
+                  ) : (
+                    <Text style={styles.compactMeta}>Tap edit to add details</Text>
+                  )}
+                </View>
+                <View style={styles.compactActions}>
+                  <TouchableOpacity
+                    onPress={() => setEditingId(pkg.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit package ${index + 1}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={PressOpacity.default}
+                  >
+                    <Ionicons name="create-outline" size={18} color={Colors.secondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => removeAt(index)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove package ${index + 1}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={PressOpacity.default}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-            <View style={styles.half}>
-              <Field
-                label="Duration / sessions"
-                value={pkg.duration}
-                onChangeText={v => updateAt(index, { duration: v })}
-                placeholder="e.g. 12 sessions"
-              />
+          );
+        }
+
+        return (
+          <View key={pkg.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Package {index + 1}</Text>
+              <View style={styles.compactActions}>
+                <TouchableOpacity
+                  onPress={() => setEditingId(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Done editing package"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={PressOpacity.default}
+                >
+                  <Text style={styles.doneText}>Done</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => removeAt(index)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove package ${index + 1}`}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            <OfferImageField
+              imageUrl={pkg.imageUrl}
+              uploading={uploadingId === pkg.id}
+              onPick={() => void pickImage(index)}
+              onRemove={() => updateAt(index, { imageUrl: '' })}
+              accessibilityLabel={`package ${index + 1} photo`}
+            />
+
+            <Field
+              label="Name"
+              required
+              value={pkg.name}
+              onChangeText={v => updateAt(index, { name: v })}
+              placeholder="e.g. 12-week transformation"
+            />
+            <View style={styles.row}>
+              <View style={styles.half}>
+                <Field
+                  label="Price (optional)"
+                  value={pkg.price}
+                  onChangeText={v => updateAt(index, { price: v })}
+                  placeholder="e.g. ₹4,999"
+                />
+              </View>
+              <View style={styles.half}>
+                <Field
+                  label="Duration / sessions"
+                  value={pkg.duration}
+                  onChangeText={v => updateAt(index, { duration: v })}
+                  placeholder="e.g. 12 sessions"
+                />
+              </View>
+            </View>
+            <Field
+              label="Short description"
+              value={pkg.description}
+              onChangeText={v => updateAt(index, { description: v })}
+              placeholder="What the client gets"
+              multiline
+            />
           </View>
-          <Field
-            label="Short description"
-            value={pkg.description}
-            onChangeText={v => updateAt(index, { description: v })}
-            placeholder="What the client gets"
-            multiline
-          />
-        </View>
-      ))}
+        );
+      })}
 
       {packages.length < MAX_COACH_PACKAGES ? (
         <TouchableOpacity style={styles.addBtn} onPress={addPackage}>
@@ -281,6 +358,46 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   cardTitle: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  compactThumb: {
+    width: 52,
+    height: 52,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.backgroundTan,
+  },
+  compactThumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  compactBody: { flex: 1, minWidth: 0 },
+  compactTitle: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+  },
+  compactMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  compactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  doneText: {
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    color: Colors.secondary,
+  },
   field: { marginBottom: Spacing.sm },
   input: {
     ...formFieldStyles.wrap,

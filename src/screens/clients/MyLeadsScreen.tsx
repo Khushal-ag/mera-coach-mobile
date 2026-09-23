@@ -13,7 +13,6 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -182,7 +181,6 @@ type LeadsScreenProps =
   | NativeStackScreenProps<ProfileStackParamList, 'Leads'>;
 
 export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const coachCode = getCurrentCoachCode();
   const [search, setSearch] = useState('');
@@ -311,7 +309,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
               windowSize={5}
               contentContainerStyle={[
                 filtered.length === 0 ? styles.emptyWrap : undefined,
-                { paddingBottom: Math.max(insets.bottom, Spacing.md) },
+                { paddingBottom: Spacing.md },
               ]}
               refreshControl={
                 <RefreshControl

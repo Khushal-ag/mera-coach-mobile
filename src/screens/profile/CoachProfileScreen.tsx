@@ -21,7 +21,6 @@ import {
 } from '../../constants/theme';
 import PersonAvatar from '../../components/PersonAvatar';
 import ReloadState from '../../components/ReloadState';
-import BrandLogo from '../../components/BrandLogo';
 import TabRootHeader from '../../components/TabRootHeader';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import { APP_DISPLAY_NAME } from '../../config/appConfig';
@@ -289,7 +288,6 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       </View>
 
       <View style={styles.brandLockup}>
-        <BrandLogo size={64} variant="full" />
         <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
       </View>
     </ScrollView>

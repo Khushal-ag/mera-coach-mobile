@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COACH_EVENT_IMAGE_DOC_TYPE, COACH_GALLERY_REF_TYPE } from '../../config/appConfig';
 import {
   Colors,
   FontFamily,
   FormControl,
+  PressOpacity,
   Radius,
   Shadow,
   Spacing,
@@ -29,6 +38,7 @@ interface Props {
 
 export default function CoachEventsEditor({ events, onChange, coachCode }: Props) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const eventsRef = useRef(events);
   useEffect(() => {
     eventsRef.current = events;
@@ -44,12 +54,16 @@ export default function CoachEventsEditor({ events, onChange, coachCode }: Props
   };
 
   const removeAt = (index: number) => {
+    const removed = eventsRef.current[index];
+    if (removed && editingId === removed.id) setEditingId(null);
     commit(eventsRef.current.filter((_, i) => i !== index));
   };
 
   const addEvent = () => {
     if (eventsRef.current.length >= MAX_COACH_EVENTS) return;
-    commit([...eventsRef.current, createEmptyEvent()]);
+    const next = createEmptyEvent();
+    commit([...eventsRef.current, next]);
+    setEditingId(next.id);
   };
 
   const pickImage = async (index: number) => {
@@ -115,69 +129,132 @@ export default function CoachEventsEditor({ events, onChange, coachCode }: Props
         </View>
       ) : null}
 
-      {events.map((event, index) => (
-        <View key={event.id} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Event {index + 1}</Text>
-            <TouchableOpacity
-              onPress={() => removeAt(index)}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove event ${index + 1}`}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
-            </TouchableOpacity>
-          </View>
-
-          <OfferImageField
-            imageUrl={event.imageUrl}
-            uploading={uploadingId === event.id}
-            onPick={() => void pickImage(index)}
-            onRemove={() => updateAt(index, { imageUrl: '' })}
-            accessibilityLabel={`event ${index + 1} photo`}
-          />
-
-          <Field
-            label="Title"
-            required
-            value={event.title}
-            onChangeText={v => updateAt(index, { title: v })}
-            placeholder="e.g. Sunday yoga outdoors"
-          />
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Field
-                label="Date"
-                value={event.date}
-                onChangeText={v => updateAt(index, { date: v })}
-                placeholder="YYYY-MM-DD or DD/MM/YYYY"
-                autoCapitalize="none"
-              />
+      {events.map((event, index) => {
+        const isEditing = editingId === event.id;
+        if (!isEditing) {
+          const meta = [event.date, event.time, event.location].filter(Boolean).join(' · ');
+          return (
+            <View key={event.id} style={styles.card}>
+              <View style={styles.compactRow}>
+                {event.imageUrl ? (
+                  <Image source={{ uri: event.imageUrl }} style={styles.compactThumb} />
+                ) : (
+                  <View style={[styles.compactThumb, styles.compactThumbEmpty]}>
+                    <Ionicons name="calendar-outline" size={18} color={Colors.textLight} />
+                  </View>
+                )}
+                <View style={styles.compactBody}>
+                  <Text style={styles.compactTitle} numberOfLines={1}>
+                    {event.title.trim() || `Event ${index + 1}`}
+                  </Text>
+                  {meta ? (
+                    <Text style={styles.compactMeta} numberOfLines={2}>
+                      {meta}
+                    </Text>
+                  ) : (
+                    <Text style={styles.compactMeta}>Tap edit to add details</Text>
+                  )}
+                </View>
+                <View style={styles.compactActions}>
+                  <TouchableOpacity
+                    onPress={() => setEditingId(event.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit event ${index + 1}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={PressOpacity.default}
+                  >
+                    <Ionicons name="create-outline" size={18} color={Colors.secondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => removeAt(index)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove event ${index + 1}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={PressOpacity.default}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-            <View style={styles.half}>
-              <Field
-                label="Time (optional)"
-                value={event.time}
-                onChangeText={v => updateAt(index, { time: v })}
-                placeholder="e.g. 7:00 AM"
-              />
+          );
+        }
+
+        return (
+          <View key={event.id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Event {index + 1}</Text>
+              <View style={styles.compactActions}>
+                <TouchableOpacity
+                  onPress={() => setEditingId(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Done editing event"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={PressOpacity.default}
+                >
+                  <Text style={styles.doneText}>Done</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => removeAt(index)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove event ${index + 1}`}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            <OfferImageField
+              imageUrl={event.imageUrl}
+              uploading={uploadingId === event.id}
+              onPick={() => void pickImage(index)}
+              onRemove={() => updateAt(index, { imageUrl: '' })}
+              accessibilityLabel={`event ${index + 1} photo`}
+            />
+
+            <Field
+              label="Title"
+              required
+              value={event.title}
+              onChangeText={v => updateAt(index, { title: v })}
+              placeholder="e.g. Sunday yoga outdoors"
+            />
+            <View style={styles.row}>
+              <View style={styles.half}>
+                <Field
+                  label="Date"
+                  value={event.date}
+                  onChangeText={v => updateAt(index, { date: v })}
+                  placeholder="YYYY-MM-DD or DD/MM/YYYY"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.half}>
+                <Field
+                  label="Time (optional)"
+                  value={event.time}
+                  onChangeText={v => updateAt(index, { time: v })}
+                  placeholder="e.g. 7:00 AM"
+                />
+              </View>
+            </View>
+            <Field
+              label="Location / city"
+              value={event.location}
+              onChangeText={v => updateAt(index, { location: v })}
+              placeholder="e.g. Indiranagar, Bangalore"
+            />
+            <Field
+              label="Link (optional)"
+              value={event.link}
+              onChangeText={v => updateAt(index, { link: v })}
+              placeholder="WhatsApp, Maps, or registration URL"
+              autoCapitalize="none"
+            />
           </View>
-          <Field
-            label="Location / city"
-            value={event.location}
-            onChangeText={v => updateAt(index, { location: v })}
-            placeholder="e.g. Indiranagar, Bangalore"
-          />
-          <Field
-            label="Link (optional)"
-            value={event.link}
-            onChangeText={v => updateAt(index, { link: v })}
-            placeholder="WhatsApp, Maps, or registration URL"
-            autoCapitalize="none"
-          />
-        </View>
-      ))}
+        );
+      })}
 
       {events.length < MAX_COACH_EVENTS ? (
         <TouchableOpacity style={styles.addBtn} onPress={addEvent}>
@@ -287,6 +364,46 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   cardTitle: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  compactThumb: {
+    width: 52,
+    height: 52,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.backgroundTan,
+  },
+  compactThumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  compactBody: { flex: 1, minWidth: 0 },
+  compactTitle: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    color: Colors.textDark,
+  },
+  compactMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  compactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  doneText: {
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    color: Colors.secondary,
+  },
   field: { marginBottom: Spacing.sm },
   input: {
     ...formFieldStyles.wrap,

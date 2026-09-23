@@ -9,7 +9,6 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../../constants/theme';
@@ -34,7 +33,6 @@ export default function ClientBmiReportScreen({
   navigation,
   route,
 }: ClientsStackScreenProps<'ClientBmiReport'>) {
-  const insets = useSafeAreaInsets();
   const client = route.params?.client;
   const returnTo = route.params?.returnTo;
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
@@ -144,7 +142,7 @@ export default function ClientBmiReportScreen({
 
       <ScrollView
         style={styles.body}
-        contentContainerStyle={[styles.bodyContent, { paddingBottom: Math.max(insets.bottom, 28) }]}
+        contentContainerStyle={[styles.bodyContent, { paddingBottom: Spacing.lg }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../constants/theme';
@@ -48,7 +47,6 @@ function describeDue(item: RecheckupDueClient): string {
 export default function ReCheckupListScreen({
   navigation,
 }: CheckupsStackScreenProps<'CheckupListHome'>) {
-  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const coachCode = getCurrentCoachCode();
 
@@ -176,7 +174,7 @@ export default function ReCheckupListScreen({
             windowSize={5}
             contentContainerStyle={[
               visible.length === 0 ? styles.emptyWrap : undefined,
-              { paddingBottom: Math.max(insets.bottom, 16) },
+              { paddingBottom: Spacing.md },
             ]}
             refreshControl={
               <RefreshControl

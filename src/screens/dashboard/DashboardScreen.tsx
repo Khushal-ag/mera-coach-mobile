@@ -295,7 +295,7 @@ export default function DashboardScreen({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.md }}
+      contentContainerStyle={{ paddingBottom: Spacing.lg }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />

@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -78,7 +77,6 @@ export default function ClientDetailScreen({
   navigation,
   route,
 }: ClientsStackScreenProps<'ClientDetail'>) {
-  const insets = useSafeAreaInsets();
   const client = route.params?.client || { name: 'Client' };
   const returnTo = route.params?.returnTo;
 
@@ -218,7 +216,7 @@ export default function ClientDetailScreen({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, Spacing.lg) }}
+      contentContainerStyle={{ paddingBottom: Spacing.lg }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl

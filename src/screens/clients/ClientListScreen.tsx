@@ -9,7 +9,6 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -51,7 +50,6 @@ function clientMeta(item: ClientSummary): string {
 export default function ClientListScreen({
   navigation,
 }: ClientsStackScreenProps<'ClientListHome'>) {
-  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
 
   const clientsQuery = useQuery({
@@ -154,7 +152,7 @@ export default function ClientListScreen({
               windowSize={5}
               contentContainerStyle={[
                 filtered.length === 0 ? styles.emptyWrap : undefined,
-                { paddingBottom: Math.max(insets.bottom, 16) },
+                { paddingBottom: Spacing.md },
               ]}
               refreshControl={
                 <RefreshControl
