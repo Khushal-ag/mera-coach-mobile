@@ -19,7 +19,7 @@ import {
   Spacing,
   headingFont,
 } from '../../../constants/theme';
-import ScreenHeader from '../../../components/ScreenHeader';
+import WaveScreenHeader from '../../../components/WaveScreenHeader';
 import ReloadState from '../../../components/ReloadState';
 import PdfDownloadShareButton from '../../../components/clients/PdfDownloadShareButton';
 import { getBmiReport } from '../../../api/clientApi';
@@ -140,10 +140,10 @@ export default function ClientBmiReportScreen({
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
+      <WaveScreenHeader
         title="BMI Report"
         onBack={() => navigateBack(navigation, returnTo)}
-        right={pdfButton}
+        rightExtra={pdfButton}
         showHome={false}
       />
 
@@ -175,7 +175,7 @@ export default function ClientBmiReportScreen({
           <>
             <View style={styles.patientCard}>
               <View style={styles.patientAvatar}>
-                <Ionicons name="person" size={22} color={Colors.white} />
+                <Ionicons name="person-outline" size={22} color={Colors.white} />
               </View>
               <View style={styles.patientCopy}>
                 <Text style={styles.patientName}>{report.client.clientName || client?.name}</Text>

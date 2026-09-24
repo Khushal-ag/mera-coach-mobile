@@ -7,26 +7,26 @@ import { resolveMediaUrl } from '../utils/mediaUrl';
 interface PersonAvatarProps {
   uri?: string | null;
   size?: number;
-  /**
-   * Corner radius. Defaults to a circle (`size / 2`).
-   * Ignored when `fillHeight` (card clips the photo).
-   */
+  width?: number;
+  height?: number;
+  /** Corner radius. Defaults to a circle (`size / 2`). */
   borderRadius?: number;
-  /**
-   * Stretch to the full height of the list card; `size` is used as width only.
-   */
-  fillHeight?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 export default function PersonAvatar({
   uri,
   size = 44,
+  width,
+  height,
   borderRadius,
-  fillHeight = false,
   style,
 }: PersonAvatarProps) {
-  const radius = fillHeight ? 0 : (borderRadius ?? size / 2);
+  const w = width ?? size;
+  const h = height ?? size;
+  const radius = borderRadius ?? Math.min(w, h) / 2;
+  const isRoundedSquare = borderRadius != null;
+  const panelBg = isRoundedSquare ? Colors.avatarPlaceholder : Colors.backgroundTan;
   const resolved = resolveMediaUrl(uri);
   const [failed, setFailed] = useState(false);
   const [trackedUri, setTrackedUri] = useState(uri);
@@ -42,25 +42,18 @@ export default function PersonAvatar({
     <View
       style={[
         styles.wrap,
-        fillHeight
-          ? {
-              width: size,
-              alignSelf: 'stretch',
-              borderRadius: 0,
-              backgroundColor: Colors.backgroundTan,
-            }
-          : {
-              width: size,
-              height: size,
-              borderRadius: radius,
-              backgroundColor: Colors.backgroundTan,
-            },
+        {
+          width: w,
+          height: h,
+          borderRadius: radius,
+          backgroundColor: panelBg,
+        },
         style,
       ]}
     >
       <Image
         source={showRemote ? { uri: resolved } : BrandImages.avatarDefault}
-        style={fillHeight ? StyleSheet.absoluteFill : { width: size, height: size }}
+        style={{ width: w, height: h }}
         resizeMode="cover"
         onError={() => setFailed(true)}
         accessibilityIgnoresInvertColors

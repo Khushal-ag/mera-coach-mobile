@@ -90,7 +90,6 @@ export interface RecheckupDueClient {
   age?: number;
   lastCheckupDate?: string;
   dueDate?: string;
-  /** Whole days past due; 0 means due today. */
   daysOverdue: number;
 }
 

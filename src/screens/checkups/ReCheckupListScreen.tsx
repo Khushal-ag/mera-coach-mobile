@@ -15,6 +15,7 @@ import {
   Colors,
   FontFamily,
   IconSize,
+  ListCard,
   ListPortrait,
   PressOpacity,
   Radius,
@@ -42,14 +43,18 @@ import { navigateToDashboard } from '../../utils/navigationBack';
 
 const PAGE_SIZE = 5;
 
-function describeOverdue(daysOverdue: number): string {
-  if (daysOverdue <= 0) return 'Due today';
+function describeStatus(daysOverdue: number): string {
+  if (daysOverdue < 0) {
+    if (daysOverdue >= -3) return 'Due soon';
+    return 'Upcoming';
+  }
+  if (daysOverdue === 0) return 'Due today';
   if (daysOverdue === 1) return '1 day overdue';
   return `${daysOverdue} days overdue`;
 }
 
 function describeLast(item: RecheckupDueClient): string {
-  if (item.lastCheckupDate) return `Last Check-up : ${item.lastCheckupDate}`;
+  if (item.lastCheckupDate) return `Last check-up ${item.lastCheckupDate}`;
   return 'No check-up recorded';
 }
 
@@ -113,15 +118,15 @@ export default function ReCheckupListScreen({
 
   const renderRow = useCallback(
     ({ item }: { item: RecheckupDueClient }) => {
-      const overdueLabel = item.dueDate ? describeOverdue(item.daysOverdue) : null;
-      const mobile = (item.mobileNo ?? '').trim();
+      const statusLabel = describeStatus(item.daysOverdue);
 
       return (
         <View style={styles.card}>
           <ClientAvatar
             clientCode={item.clientCode}
-            size={ListPortrait.width}
-            fillHeight
+            width={ListPortrait.width}
+            height={ListPortrait.height}
+            borderRadius={ListPortrait.radius}
             style={styles.avatar}
           />
 
@@ -129,22 +134,16 @@ export default function ReCheckupListScreen({
             <Text style={styles.name} numberOfLines={2}>
               {item.name}
             </Text>
-            {item.age != null ? (
-              <Text style={styles.subMeta}>Age: {item.age}</Text>
-            ) : null}
-            {mobile ? <Text style={styles.subMeta}>{mobile}</Text> : null}
             <Text style={styles.subMeta}>{describeLast(item)}</Text>
             {item.dueDate ? (
               <Text style={styles.dueText}>Due {item.dueDate}</Text>
             ) : (
-              <Text style={styles.dueText}>{describeOverdue(item.daysOverdue)}</Text>
+              <Text style={styles.dueText}>{statusLabel}</Text>
             )}
-            {overdueLabel ? (
-              <View style={styles.overduePill}>
-                <Ionicons name="time-outline" size={IconSize.sm} color={Colors.secondary} />
-                <Text style={styles.overdueText}>{overdueLabel}</Text>
-              </View>
-            ) : null}
+            <View style={styles.overduePill}>
+              <Ionicons name="time-outline" size={IconSize.sm} color={Colors.secondary} />
+              <Text style={styles.overdueText}>{statusLabel}</Text>
+            </View>
             <TouchableOpacity
               style={styles.recheckBtn}
               onPress={() => startCheckup(item)}
@@ -173,7 +172,7 @@ export default function ReCheckupListScreen({
       <View style={styles.body}>
         <SearchField
           style={styles.search}
-          placeholder="Search name, mobile, email"
+          placeholder="Search name. mobile, email"
           value={search}
           onChangeText={onSearchChange}
           accessibilityLabel="Search checkups"
@@ -204,7 +203,9 @@ export default function ReCheckupListScreen({
           <>
             {!dueQuery.isPending ? (
               <View style={styles.summaryChip}>
-                <Ionicons name="people-outline" size={IconSize.lg} color={Colors.secondary} />
+                <View style={styles.summaryIcon}>
+                  <Ionicons name="people" size={IconSize.sm} color={Colors.white} />
+                </View>
                 <Text style={styles.summaryText}>
                   {dueClients.length} Due for re-checkup
                 </Text>
@@ -275,9 +276,18 @@ const styles = StyleSheet.create({
     gap: Spacing.sm - 2,
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm - 2,
+    paddingLeft: Spacing.xs,
+    paddingRight: Spacing.md,
+    paddingVertical: Spacing.xs,
     marginBottom: Spacing.sm,
+  },
+  summaryIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryText: {
     ...Typography.label,
@@ -287,21 +297,22 @@ const styles = StyleSheet.create({
   errorWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    minHeight: ListCard.minHeight,
     backgroundColor: Colors.white,
-    borderRadius: Radius.card,
+    borderRadius: ListCard.radius,
     overflow: 'hidden',
+    borderWidth: ListCard.borderWidth,
+    borderColor: ListCard.borderColor,
+    padding: ListPortrait.contentPad,
     marginBottom: Spacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
   },
   avatar: {
-    marginRight: 0,
+    marginRight: Spacing.sm,
   },
   info: {
     flex: 1,
     minWidth: 0,
-    padding: ListPortrait.contentPad,
   },
   name: {
     fontSize: 18,

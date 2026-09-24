@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Colors, Spacing } from '../../constants/theme';
+import { Colors, ScreenPad, Spacing } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import KeyboardSafeScroll, {
@@ -43,7 +43,7 @@ export default function EditPackagesScreen({
       <TabRootHeader title="Packages" onBack={() => navigateToDashboard(navigation)} />
 
       {profileQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
+        <ActivityIndicator color={Colors.secondary} style={{ marginTop: 60 }} />
       ) : errorMessage ? (
         <ReloadState
           title="Could not load packages"
@@ -123,7 +123,7 @@ function EditPackagesForm({ profile, onDone }: { profile: CoachProfileFull; onDo
           label="Save packages"
           onPress={() => void handleSave()}
           loading={saving}
-          icon="checkmark"
+          icon="checkmark-outline"
         />
       </StickyFooter>
     </View>
@@ -134,5 +134,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   formRoot: { flex: 1 },
   body: { flex: 1 },
-  bodyContent: { padding: Spacing.lg, paddingBottom: Spacing.sm },
+  bodyContent: {
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
 });

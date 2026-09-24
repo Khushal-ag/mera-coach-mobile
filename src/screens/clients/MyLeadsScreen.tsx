@@ -20,6 +20,7 @@ import {
   FontFamily,
   FormControl,
   IconSize,
+  ListCard,
   ListPortrait,
   PressOpacity,
   Radius,
@@ -88,7 +89,12 @@ function LeadRow({
 
   return (
     <View style={styles.card}>
-      <PersonAvatar size={ListPortrait.width} fillHeight style={styles.avatar} />
+      <PersonAvatar
+        width={ListPortrait.width}
+        height={ListPortrait.height}
+        borderRadius={ListPortrait.radius}
+        style={styles.avatar}
+      />
       <View style={styles.content}>
         <View style={styles.info}>
           <View style={styles.nameRow}>
@@ -119,7 +125,7 @@ function LeadRow({
               accessibilityRole="link"
               accessibilityLabel={`Call ${lead.clientMobile}`}
             >
-              <Ionicons name="call" size={IconSize.sm} color={Colors.secondary} />
+              <Ionicons name="call-outline" size={IconSize.sm} color={Colors.secondary} />
               <Text style={styles.phoneText}>{lead.clientMobile}</Text>
             </TouchableOpacity>
           ) : null}
@@ -379,21 +385,22 @@ const styles = StyleSheet.create({
   errorWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    minHeight: ListCard.minHeight,
     backgroundColor: Colors.white,
-    borderRadius: Radius.card,
+    borderRadius: ListCard.radius,
     overflow: 'hidden',
     marginBottom: Spacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderWidth: ListCard.borderWidth,
+    borderColor: ListCard.borderColor,
+    padding: ListPortrait.contentPad,
   },
   avatar: {
-    marginRight: 0,
+    marginRight: Spacing.sm,
   },
   content: {
     flex: 1,
     minWidth: 0,
-    padding: ListPortrait.contentPad,
   },
   info: { minWidth: 0 },
   nameRow: {

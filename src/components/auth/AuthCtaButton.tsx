@@ -90,7 +90,7 @@ export default function AuthCtaButton({
               isOutlined && styles.arrowCircleBordered,
             ]}
           >
-            <Ionicons name="arrow-forward" size={IconSize.sm} color={arrowGlyph} />
+            <Ionicons name="arrow-forward-outline" size={IconSize.sm} color={arrowGlyph} />
           </View>
         </View>
       ) : null}

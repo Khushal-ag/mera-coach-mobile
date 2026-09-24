@@ -36,7 +36,7 @@ export default function AuthFormHeader({ onBack, backAccessibilityLabel }: AuthF
           accessibilityRole="button"
           accessibilityLabel={backAccessibilityLabel}
         >
-          <Ionicons name="chevron-back" size={IconSize.lg} color={Colors.secondary} />
+          <Ionicons name="chevron-back-outline" size={IconSize.lg} color={Colors.secondary} />
         </TouchableOpacity>
         <BrandLogo size={logoSize} style={styles.logo} />
       </View>

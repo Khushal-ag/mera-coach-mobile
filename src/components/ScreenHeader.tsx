@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   type StyleProp,
@@ -9,27 +7,17 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   HitSlop,
   IconSize,
   PressOpacity,
-  Spacing,
   TouchTarget,
-  headingFont,
 } from '../constants/theme';
 
 /**
- * Screen chrome patterns (see also TabRootHeader for tab roots):
- *
- * - **Tab root screens** (ClientList, Checkups, Profile): green header with back → Dashboard.
- *   Dashboard tab root uses its greeting header variant — no back.
- * - **Stack push screens** (ClientDetail, EditProfile, EditGallery, EditPackages, EditEvents, Leads, Notifications, Legal, etc.):
- *   ScreenHeader with onBack — back left, title center, home right (optional via showHome).
- * - **Auth / marketing hero** (Login, Register, CoachList, CoachPublicProfile): HeaderBackButton
- *   overlaid on imagery — back only, no duplicate title bar.
- * - **Wizard flows** (AddClient, ClientBmi, ClientDietPlan): ScreenHeader + step banner on cream body.
+ * Shared chrome buttons for light (tab roots) and dark (overlays) headers.
+ * Prefer WaveScreenHeader for pushed coach-app screens; TabRootHeader for tab roots.
  */
 
 interface HeaderBackButtonProps {
@@ -99,51 +87,7 @@ export function HeaderHomeButton({
   );
 }
 
-interface ScreenHeaderProps {
-  title: string;
-  onBack?: () => void;
-  /** Optional trailing control; spacer keeps title centered when onBack is set. */
-  right?: React.ReactNode;
-  /**
-   * Home control on the right. Default true for authenticated stack screens.
-   * Pass false or a custom `right` to override.
-   */
-  showHome?: boolean;
-}
-
-export default function ScreenHeader({ title, onBack, right, showHome = true }: ScreenHeaderProps) {
-  const insets = useSafeAreaInsets();
-  const trailing = right ?? (showHome ? <HeaderHomeButton /> : <View style={styles.spacer} />);
-
-  return (
-    <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-      {onBack ? <HeaderBackButton onPress={onBack} /> : <View style={styles.spacer} />}
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
-      {trailing}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: Colors.secondary,
-    paddingBottom: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: {
-    flex: 1,
-    color: Colors.white,
-    fontSize: 18,
-    fontFamily: headingFont.bold,
-    textAlign: 'center',
-    marginHorizontal: Spacing.xs,
-  },
-  spacer: { width: TouchTarget.header, height: TouchTarget.header },
   chromeBtn: {
     width: TouchTarget.header,
     height: TouchTarget.header,

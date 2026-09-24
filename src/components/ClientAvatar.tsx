@@ -23,15 +23,10 @@ const REF_TYPE = 'CLIENT';
 interface ClientAvatarProps {
   clientCode?: string;
   size?: number;
-  /**
-   * Corner radius. Defaults to a circle (`size / 2`).
-   * Ignored when `fillHeight` (card clips the photo).
-   */
+  width?: number;
+  height?: number;
+  /** Corner radius. Defaults to a circle (`size / 2`). */
   borderRadius?: number;
-  /**
-   * Stretch to the full height of the list card; `size` is used as width only.
-   */
-  fillHeight?: boolean;
   /** Show a camera badge; tap opens camera/gallery upload. */
   allowUpload?: boolean;
   /** Optional side effect when the upload badge is pressed (e.g. analytics). */
@@ -42,8 +37,9 @@ interface ClientAvatarProps {
 export default function ClientAvatar({
   clientCode,
   size = 46,
+  width,
+  height,
   borderRadius,
-  fillHeight = false,
   allowUpload = false,
   onUploadPress,
   style,
@@ -51,7 +47,12 @@ export default function ClientAvatar({
   const { photoUrl, isLoading, invalidate } = useClientPhotoUrl(clientCode);
   const [uploading, setUploading] = useState(false);
 
-  const radius = fillHeight ? 0 : (borderRadius ?? size / 2);
+  const w = width ?? size;
+  const h = height ?? size;
+  const radius = borderRadius ?? Math.min(w, h) / 2;
+  const isRoundedSquare = borderRadius != null;
+  const panelBg = isRoundedSquare ? Colors.avatarPlaceholder : Colors.secondary;
+  const spinnerColor = isRoundedSquare ? Colors.secondary : Colors.white;
 
   const handleUpload = async () => {
     onUploadPress?.();
@@ -90,25 +91,20 @@ export default function ClientAvatar({
   };
 
   return (
-    <View
-      style={[
-        styles.wrap,
-        fillHeight
-          ? { width: size, alignSelf: 'stretch', marginRight: 0 }
-          : { width: size, height: size },
-        style,
-      ]}
-    >
+    <View style={[styles.wrap, { width: w, height: h }, style]}>
       <View
         style={[
           styles.avatar,
-          fillHeight
-            ? { ...StyleSheet.absoluteFill, borderRadius: radius }
-            : { width: size, height: size, borderRadius: radius },
+          {
+            width: w,
+            height: h,
+            borderRadius: radius,
+            backgroundColor: panelBg,
+          },
         ]}
       >
         {isLoading || uploading ? (
-          <ActivityIndicator color={Colors.white} size="small" />
+          <ActivityIndicator color={spinnerColor} size="small" />
         ) : photoUrl ? (
           <Image source={{ uri: photoUrl }} style={styles.image} resizeMode="cover" />
         ) : (
@@ -117,16 +113,13 @@ export default function ClientAvatar({
       </View>
       {allowUpload && clientCode ? (
         <TouchableOpacity
-          style={[
-            styles.uploadBadge,
-            fillHeight ? { right: 6, bottom: 6 } : { right: -2, bottom: -2 },
-          ]}
+          style={styles.uploadBadge}
           onPress={handleUpload}
           disabled={uploading}
           accessibilityRole="button"
           accessibilityLabel="Upload client photo"
         >
-          <Ionicons name="camera" size={12} color={Colors.white} />
+          <Ionicons name="camera-outline" size={12} color={Colors.white} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -136,7 +129,6 @@ export default function ClientAvatar({
 const styles = StyleSheet.create({
   wrap: { position: 'relative', marginRight: 12 },
   avatar: {
-    backgroundColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -144,6 +136,8 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   uploadBadge: {
     position: 'absolute',
+    right: -2,
+    bottom: -2,
     width: 22,
     height: 22,
     borderRadius: 11,

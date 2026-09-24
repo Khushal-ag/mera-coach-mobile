@@ -18,7 +18,7 @@ import KeyboardSafeScroll, {
   STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
-import ScreenHeader from '../../components/ScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import { changePassword } from '../../api/coachApi';
 import { toUserMessage } from '../../api/client';
@@ -120,7 +120,7 @@ export default function ChangePasswordScreen({
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
+      <WaveScreenHeader title="Change Password" onBack={() => navigation.goBack()} />
 
       <KeyboardSafeScroll
         ref={scrollRef}

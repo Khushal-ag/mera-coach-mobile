@@ -15,6 +15,7 @@ import {
   Colors,
   FontFamily,
   IconSize,
+  ListCard,
   ListPortrait,
   PressOpacity,
   Radius,
@@ -214,8 +215,9 @@ export default function ClientListScreen({
                 <View style={styles.card}>
                   <ClientAvatar
                     clientCode={item.clientCode}
-                    size={ListPortrait.width}
-                    fillHeight
+                    width={ListPortrait.width}
+                    height={ListPortrait.height}
+                    borderRadius={ListPortrait.radius}
                     allowUpload
                     style={styles.avatar}
                   />
@@ -316,21 +318,22 @@ const styles = StyleSheet.create({
   errorWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    minHeight: ListCard.minHeight,
     backgroundColor: Colors.white,
-    borderRadius: Radius.card,
+    borderRadius: ListCard.radius,
     overflow: 'hidden',
     marginBottom: Spacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderWidth: ListCard.borderWidth,
+    borderColor: ListCard.borderColor,
+    padding: ListPortrait.contentPad,
   },
   avatar: {
-    marginRight: 0,
+    marginRight: Spacing.sm,
   },
   middle: {
     flex: 1,
     minWidth: 0,
-    padding: ListPortrait.contentPad,
   },
   textRow: {
     flexDirection: 'row',

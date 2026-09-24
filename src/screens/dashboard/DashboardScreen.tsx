@@ -339,11 +339,11 @@ export default function DashboardScreen({
         >
           <View style={styles.primaryCtaCurve} pointerEvents="none" />
           <View style={styles.primaryCtaIcon}>
-            <Ionicons name="person-add" size={24} color={Colors.white} />
+            <Ionicons name="person-add-outline" size={24} color={Colors.white} />
           </View>
           <View style={styles.primaryCtaCopy}>
             <Text style={styles.primaryCtaTitle}>Add Client</Text>
-            <Text style={styles.primaryCtaSub}>Start a new assesment</Text>
+            <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
           </View>
           <View style={styles.primaryCtaArrow}>
             <Ionicons name="arrow-forward-outline" size={20} color={Colors.white} />

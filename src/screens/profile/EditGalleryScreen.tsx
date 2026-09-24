@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Colors, Spacing } from '../../constants/theme';
-import ScreenHeader from '../../components/ScreenHeader';
+import { Colors, ScreenPad, Spacing } from '../../constants/theme';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import ReloadState from '../../components/ReloadState';
 import CoachGallery from '../../components/CoachGallery';
 import { getCoachProfileFull } from '../../api/coachApi';
@@ -25,10 +25,10 @@ export default function EditGalleryScreen({ navigation }: ProfileStackScreenProp
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Photo gallery" onBack={() => navigation.goBack()} />
+      <WaveScreenHeader title="Photo gallery" onBack={() => navigation.goBack()} />
 
       {profileQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
+        <ActivityIndicator color={Colors.secondary} style={{ marginTop: 60 }} />
       ) : errorMessage ? (
         <ReloadState
           title="Could not load gallery"
@@ -53,5 +53,9 @@ export default function EditGalleryScreen({ navigation }: ProfileStackScreenProp
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   body: { flex: 1 },
-  bodyContent: { padding: Spacing.lg, paddingBottom: Spacing.xl },
+  bodyContent: {
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
 });

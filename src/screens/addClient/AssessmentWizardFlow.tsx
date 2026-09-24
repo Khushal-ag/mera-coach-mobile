@@ -8,7 +8,7 @@ import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
-import ScreenHeader from '../../components/ScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import KeyboardSafeScroll, {
   STICKY_FOOTER_KEYBOARD_PADDING,
@@ -293,10 +293,10 @@ export default function AssessmentWizardFlow({
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
+      <WaveScreenHeader
         title={headerTitle}
         onBack={goBack}
-        right={headerRight}
+        rightExtra={headerRight}
         showHome={!headerRight}
       />
 

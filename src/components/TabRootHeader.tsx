@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
+  ScreenPad,
   Spacing,
   TouchTarget,
   headingFont,
@@ -21,7 +22,7 @@ interface TabRootHeaderProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Green header for bottom-tab root screens. Dashboard omits onBack; other tab roots pass onBack. */
+/** Light page header for Packages / Events / Profile tab roots — matches dashboard chrome. */
 export default function TabRootHeader({
   title,
   subtitle,
@@ -34,7 +35,7 @@ export default function TabRootHeader({
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }, style]}>
-      {onBack ? <HeaderBackButton onPress={onBack} /> : null}
+      {onBack ? <HeaderBackButton onPress={onBack} onDark={false} /> : null}
       <View style={[styles.textBlock, onBack && styles.textBlockWithBack]}>
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -47,7 +48,7 @@ export default function TabRootHeader({
       </View>
       <View style={styles.actions}>
         {right}
-        {showHome ? <HeaderHomeButton /> : null}
+        {showHome ? <HeaderHomeButton onDark={false} /> : null}
       </View>
     </View>
   );
@@ -55,9 +56,9 @@ export default function TabRootHeader({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.background,
     paddingBottom: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: ScreenPad.horizontal,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -66,13 +67,14 @@ const styles = StyleSheet.create({
   textBlock: { flex: 1, marginRight: Spacing.sm },
   textBlockWithBack: { marginLeft: Spacing.sm },
   title: {
-    color: Colors.white,
-    fontSize: 18,
+    color: Colors.textDark,
+    fontSize: 22,
     fontFamily: headingFont.extraBold,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    color: Colors.onDarkMuted,
-    fontSize: 12,
+    color: Colors.textLight,
+    fontSize: 13,
     fontFamily: FontFamily.medium,
     marginTop: 2,
   },

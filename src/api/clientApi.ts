@@ -70,7 +70,7 @@ function mapRecheckupListItem(raw: RawRecheckupListItem): RecheckupDueClient {
   const name = raw.clientName ?? '';
   const days =
     typeof raw.daysOverdue === 'number' && Number.isFinite(raw.daysOverdue)
-      ? Math.max(0, Math.floor(raw.daysOverdue))
+      ? Math.floor(raw.daysOverdue)
       : 0;
   return {
     clientCode: raw.clientCode,

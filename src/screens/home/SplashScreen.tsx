@@ -19,8 +19,9 @@ import {
 } from '../../constants/images';
 import { Colors, Spacing } from '../../constants/theme';
 
-const SPLASH_LOGO_WIDTH_FRAC = 0.58;
-const SPLASH_LOGO_HEAD_GAP = 8;
+const SPLASH_LOGO_WIDTH_FRAC = 0.62;
+const SPLASH_LOGO_TOP_PAD = Spacing.md;
+const SPLASH_LOGO_HEAD_GAP = 10;
 
 function coverBottomLayout(screenW: number, screenH: number, imageAspect: number) {
   const screenAspect = screenW / screenH;
@@ -47,7 +48,7 @@ export default function SplashScreen() {
     layout.top + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * layout.height;
   const maxLogoHeight = Math.max(
     100,
-    headY - (insets.top + Spacing.xxs) - SPLASH_LOGO_HEAD_GAP,
+    headY - (insets.top + SPLASH_LOGO_TOP_PAD) - SPLASH_LOGO_HEAD_GAP,
   );
   const logoSize = Math.min(targetLogoHeight, maxLogoHeight);
 
@@ -91,13 +92,12 @@ export default function SplashScreen() {
         resizeMode="cover"
         accessibilityIgnoresInvertColors
       />
-      <View style={styles.scrim} />
 
       <Animated.View
         style={[
           styles.brand,
           {
-            paddingTop: insets.top + Spacing.xxs,
+            paddingTop: insets.top + SPLASH_LOGO_TOP_PAD,
             opacity: contentOpacity,
             transform: [{ scale: contentScale }],
           },
@@ -106,8 +106,16 @@ export default function SplashScreen() {
         <BrandLogo size={logoSize} />
       </Animated.View>
 
-      <Animated.View style={[styles.loader, { opacity: loaderOpacity }]}>
-        <ActivityIndicator size="small" color={Colors.onDarkBright} />
+      <Animated.View
+        style={[
+          styles.loader,
+          {
+            bottom: Math.max(insets.bottom, Spacing.sm) + Spacing.xxxl,
+            opacity: loaderOpacity,
+          },
+        ]}
+      >
+        <ActivityIndicator size="small" color={Colors.white} />
       </Animated.View>
     </View>
   );
@@ -122,10 +130,6 @@ const styles = StyleSheet.create({
   hero: {
     position: 'absolute',
   },
-  scrim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(3, 66, 47, 0.28)',
-  },
   brand: {
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
@@ -133,7 +137,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     position: 'absolute',
-    bottom: Spacing.xxxl + Spacing.lg,
     alignSelf: 'center',
     zIndex: 1,
   },

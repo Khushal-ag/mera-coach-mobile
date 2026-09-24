@@ -83,7 +83,7 @@ export default function ListPager({
         accessibilityLabel="Previous page"
       >
         <Ionicons
-          name="chevron-back"
+          name="chevron-back-outline"
           size={IconSize.md}
           color={safePage <= 1 ? Colors.border : Colors.textDark}
         />
@@ -113,7 +113,7 @@ export default function ListPager({
         accessibilityLabel="Next page"
       >
         <Ionicons
-          name="chevron-forward"
+          name="chevron-forward-outline"
           size={IconSize.md}
           color={safePage >= totalPages ? Colors.border : Colors.textDark}
         />

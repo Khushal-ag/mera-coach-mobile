@@ -135,7 +135,7 @@ function MenuRow({
       <Text style={[styles.menuLabel, isLogout && { color: Colors.destructive }]}>
         {item.label}
       </Text>
-      {!isLogout ? <Ionicons name="chevron-forward" size={16} color={Colors.border} /> : null}
+      {!isLogout ? <Ionicons name="chevron-forward-outline" size={16} color={Colors.border} /> : null}
     </TouchableOpacity>
   );
 }
@@ -215,103 +215,106 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: ScreenPad.tabBarClearance }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
-      }
-    >
+    <View style={styles.container}>
       <TabRootHeader title="My Profile" onBack={() => navigateToDashboard(navigation)} />
 
-      {profileQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
-      ) : errorMessage ? (
-        <ReloadState
-          title="Could not load profile"
-          message={errorMessage}
-          onRetry={() => void profileQuery.refetch()}
-          loading={profileQuery.isFetching}
-        />
-      ) : (
-        <>
-          <View style={styles.profileCard}>
-            <PersonAvatar uri={photoUri} size={80} style={styles.avatar} />
-            <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
-            <Text style={styles.role}>{profile?.category || ''}</Text>
-            {profile?.city ? (
-              <Text style={styles.location}>
-                <Ionicons name="location-outline" size={12} color={Colors.textLight} />{' '}
-                {profile.city}
-              </Text>
-            ) : null}
-
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{clientCountDisplay}</Text>
-                <Text style={styles.statLabel}>Clients</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{experienceDisplay}</Text>
-                <Text style={styles.statLabel}>Experience</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{ratingDisplay}</Text>
-                <Text style={styles.statLabel}>Rating</Text>
-              </View>
-            </View>
-          </View>
-
-          {profileCompletion &&
-          (!profileCompletion.isPublicReady || profileCompletion.percent < 100) ? (
-            <View style={styles.completionSlot}>
-              <ProfileCompletionCard
-                completion={profileCompletion}
-                variant="detailed"
-                onPress={() => navigation.navigate('EditProfile')}
-              />
-            </View>
-          ) : null}
-        </>
-      )}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Public profile</Text>
-        <Text style={styles.sectionHint}>
-          Photos, packages, and events show on your public page for prospective clients.
-        </Text>
-        {publicProfileItems.map(item => (
-          <MenuRow key={item.label} item={item} onPress={() => void handleMenuPress(item)} />
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Settings</Text>
-        {settingsItems.map((item, i) => (
-          <MenuRow
-            key={item.label}
-            item={item}
-            isLast={i === settingsItems.length - 1}
-            onPress={() => void handleMenuPress(item)}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: ScreenPad.tabBarClearance }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
+        }
+      >
+        {profileQuery.isPending ? (
+          <ActivityIndicator color={Colors.secondary} style={{ marginTop: 40 }} />
+        ) : errorMessage ? (
+          <ReloadState
+            title="Could not load profile"
+            message={errorMessage}
+            onRetry={() => void profileQuery.refetch()}
+            loading={profileQuery.isFetching}
           />
-        ))}
-      </View>
+        ) : (
+          <>
+            <View style={styles.profileCard}>
+              <PersonAvatar uri={photoUri} size={80} style={styles.avatar} />
+              <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
+              <Text style={styles.role}>{profile?.category || ''}</Text>
+              {profile?.city ? (
+                <Text style={styles.location}>
+                  <Ionicons name="location-outline" size={12} color={Colors.textLight} />{' '}
+                  {profile.city}
+                </Text>
+              ) : null}
 
-      <View style={styles.brandLockup}>
-        <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
-      </View>
-    </ScrollView>
+              <View style={styles.statsRow}>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{clientCountDisplay}</Text>
+                  <Text style={styles.statLabel}>Clients</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{experienceDisplay}</Text>
+                  <Text style={styles.statLabel}>Experience</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{ratingDisplay}</Text>
+                  <Text style={styles.statLabel}>Rating</Text>
+                </View>
+              </View>
+            </View>
+
+            {profileCompletion &&
+            (!profileCompletion.isPublicReady || profileCompletion.percent < 100) ? (
+              <View style={styles.completionSlot}>
+                <ProfileCompletionCard
+                  completion={profileCompletion}
+                  variant="detailed"
+                  onPress={() => navigation.navigate('EditProfile')}
+                />
+              </View>
+            ) : null}
+          </>
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Public profile</Text>
+          <Text style={styles.sectionHint}>
+            Photos, packages, and events show on your public page for prospective clients.
+          </Text>
+          {publicProfileItems.map(item => (
+            <MenuRow key={item.label} item={item} onPress={() => void handleMenuPress(item)} />
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          {settingsItems.map((item, i) => (
+            <MenuRow
+              key={item.label}
+              item={item}
+              isLast={i === settingsItems.length - 1}
+              onPress={() => void handleMenuPress(item)}
+            />
+          ))}
+        </View>
+
+        <View style={styles.brandLockup}>
+          <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
   profileCard: {
     backgroundColor: Colors.white,
-    marginHorizontal: Spacing.md,
+    marginHorizontal: ScreenPad.horizontal,
     marginTop: Spacing.md,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   completionSlot: {
-    marginHorizontal: Spacing.md,
+    marginHorizontal: ScreenPad.horizontal,
     marginTop: Spacing.sm,
   },
   avatar: {
@@ -348,7 +351,7 @@ const styles = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
   statValue: { fontSize: 20, fontFamily: headingFont.extraBold, color: Colors.textDark },
   statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 2 },
-  section: { marginHorizontal: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.sm },
+  section: { marginHorizontal: ScreenPad.horizontal, marginTop: Spacing.md, marginBottom: Spacing.sm },
   sectionTitle: {
     ...Typography.section,
     marginBottom: 6,

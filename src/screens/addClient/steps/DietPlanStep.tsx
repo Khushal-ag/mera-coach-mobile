@@ -91,7 +91,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
 
       {error ? (
         <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle" size={IconSize.md} color={Colors.primary} />
+          <Ionicons name="alert-circle-outline" size={IconSize.md} color={Colors.primary} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -134,7 +134,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
               ) : null}
               {hasDailyCal ? (
                 <View style={styles.summaryTarget}>
-                  <Ionicons name="flame" size={IconSize.sm} color={Colors.accent} />
+                  <Ionicons name="flame-outline" size={IconSize.sm} color={Colors.accent} />
                   <Text style={styles.summaryTargetText}>{dailyCalTarget} kcal / day</Text>
                 </View>
               ) : null}

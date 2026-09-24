@@ -41,7 +41,7 @@ DIET_SCREENS.forEach(s => {
     phaseId: 'diet',
     title: s.title,
     subtitle: s.subtitle,
-    icon: 'restaurant',
+    icon: 'restaurant-outline',
     Component: DietPairStep as unknown as WizardScreen['Component'],
     componentProps: { slotIds: s.slotIds },
   };
@@ -53,7 +53,7 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     phaseId: 'personal',
     title: 'Personal & Body Stats',
     subtitle: "Client's basic details",
-    icon: 'person',
+    icon: 'person-outline',
     Component: BasicProfileStep,
   },
   lifestylePreferences: {
@@ -61,7 +61,7 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     phaseId: 'lifestyle',
     title: 'Lifestyle Preferences',
     subtitle: 'Activity, sleep & food',
-    icon: 'walk',
+    icon: 'walk-outline',
     Component: LifestylePreferencesStep,
   },
   healthGoals: {
@@ -69,7 +69,7 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     phaseId: 'lifestyle',
     title: 'Health & Goals',
     subtitle: 'Conditions, allergies & targets',
-    icon: 'medkit',
+    icon: 'medkit-outline',
     Component: HealthGoalsStep,
   },
   ...mealScreens,
@@ -86,7 +86,7 @@ export const SCREEN_REGISTRY: Record<string, WizardScreen> = {
     phaseId: 'dietPlan',
     title: 'AI Diet Plan',
     subtitle: 'Optional: generate a weekly meal plan',
-    icon: 'sparkles',
+    icon: 'sparkles-outline',
     Component: DietPlanStep,
   },
 };

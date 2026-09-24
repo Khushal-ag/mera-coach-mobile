@@ -11,7 +11,7 @@ import {
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
-import ScreenHeader from '../../components/ScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import MpinKeypad from '../../components/auth/MpinKeypad';
 import {
   clearMpin,
@@ -127,46 +127,49 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
   };
 
   return (
-    <KeyboardSafeScroll style={styles.container}>
-      <ScreenHeader
+    <View style={styles.container}>
+      <WaveScreenHeader
         title={hasExisting ? 'Change MPIN' : 'Set MPIN'}
         onBack={() => navigation.goBack()}
       />
 
-      <View style={styles.card}>
-        <FormErrorBanner message={error} />
-        <Text style={styles.stepTitle}>{title}</Text>
-        <Text style={styles.stepSub}>{subtitle}</Text>
+      <KeyboardSafeScroll style={styles.scroll}>
+        <View style={styles.card}>
+          <FormErrorBanner message={error} />
+          <Text style={styles.stepTitle}>{title}</Text>
+          <Text style={styles.stepSub}>{subtitle}</Text>
 
-        <MpinKeypad
-          value={pin}
-          onChange={v => {
-            setPin(v);
-            setError(null);
-          }}
-          onComplete={value => void onComplete(value)}
-          disabled={busy}
-        />
-
-        {hasExisting ? (
-          <AppButton
-            label="Remove MPIN"
-            variant="ghost"
-            onPress={onRemove}
+          <MpinKeypad
+            value={pin}
+            onChange={v => {
+              setPin(v);
+              setError(null);
+            }}
+            onComplete={value => void onComplete(value)}
             disabled={busy}
-            style={styles.removeBtn}
           />
-        ) : null}
-      </View>
-    </KeyboardSafeScroll>
+
+          {hasExisting ? (
+            <AppButton
+              label="Remove MPIN"
+              variant="ghost"
+              onPress={onRemove}
+              disabled={busy}
+              style={styles.removeBtn}
+            />
+          ) : null}
+        </View>
+      </KeyboardSafeScroll>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
   card: {
     backgroundColor: Colors.white,
-    margin: Spacing.lg,
+    margin: Spacing.md,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     ...Shadow.md,

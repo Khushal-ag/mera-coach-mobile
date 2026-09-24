@@ -17,6 +17,7 @@ export const Colors = {
   accentLight: '#fdf3e0',
   background: '#f5f7f5',
   backgroundTan: '#eef2ef',
+  avatarPlaceholder: '#E8D7C3',
   white: '#ffffff',
   textDark: '#1c1c1c',
   textLight: '#6b756f',
@@ -87,10 +88,20 @@ export const Colors = {
   cardIconPurple: '#8B6BC9',
 } as const;
 
-/** Full-height left photo column on Clients / Leads / Checkups list cards. */
+/** Inset rounded-rect photo on Clients / Leads / Checkups list cards (Figma ~103×114). */
 export const ListPortrait = {
-  width: 112,
-  contentPad: 13,
+  width: 103,
+  height: 114,
+  radius: 13,
+  contentPad: 16,
+} as const;
+
+/** Shared list-row card chrome (Figma ~332×156, radius 10, 2px #E3DEDE). */
+export const ListCard = {
+  minHeight: 156,
+  radius: 10,
+  borderWidth: 2,
+  borderColor: '#E3DEDE',
 } as const;
 
 /** Shared page chrome — dashboard / auth horizontal inset + tab clearance. */
@@ -103,8 +114,6 @@ export const Radius = {
   xs: 8,
   sm: 10,
   md: 16,
-  /** List cards (~18–22pt Figma). */
-  card: 20,
   lg: 24,
   pill: 50,
 } as const;

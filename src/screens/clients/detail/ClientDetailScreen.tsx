@@ -17,6 +17,7 @@ import {
   IconSize,
   PressOpacity,
   Radius,
+  ScreenPad,
   Shadow,
   Spacing,
   TouchTarget,
@@ -24,7 +25,7 @@ import {
   statusChipStyles,
   headingFont,
 } from '../../../constants/theme';
-import ScreenHeader from '../../../components/ScreenHeader';
+import WaveScreenHeader from '../../../components/WaveScreenHeader';
 import ClientAvatar from '../../../components/ClientAvatar';
 import ClientStatusChip from '../../../components/ClientStatusChip';
 import ProgressPhotos from '../../../components/ProgressPhotos';
@@ -215,154 +216,158 @@ export default function ClientDetailScreen({
   ];
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: Spacing.lg }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshControl.refreshing}
-          onRefresh={refreshControl.onRefresh}
-          {...refreshControlTheme}
-        />
-      }
-    >
-      <ScreenHeader title="Client Profile" onBack={() => navigateBack(navigation, returnTo)} />
+    <View style={styles.container}>
+      <WaveScreenHeader title="Client Profile" onBack={() => navigateBack(navigation, returnTo)} />
 
-      <View style={styles.profileCard}>
-        <ClientAvatar clientCode={client.clientCode} size={80} allowUpload style={styles.avatar} />
-        <Text style={styles.clientName}>{client.name}</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: Spacing.lg }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshControl.refreshing}
+            onRefresh={refreshControl.onRefresh}
+            {...refreshControlTheme}
+          />
+        }
+      >
+        <View style={styles.profileCard}>
+          <ClientAvatar clientCode={client.clientCode} size={80} allowUpload style={styles.avatar} />
+          <Text style={styles.clientName}>{client.name}</Text>
 
-        {(mobile || checkupLine) && (
-          <View style={styles.contactBlock}>
-            {mobile ? (
+          {(mobile || checkupLine) && (
+            <View style={styles.contactBlock}>
+              {mobile ? (
+                <Text style={styles.contactLine} numberOfLines={1}>
+                  {mobile}
+                </Text>
+              ) : null}
               <Text style={styles.contactLine} numberOfLines={1}>
-                {mobile}
+                {checkupLine}
               </Text>
+            </View>
+          )}
+
+          <View style={styles.chipRow}>
+            {goal ? (
+              <View style={styles.goalChip}>
+                <Ionicons name="trophy-outline" size={IconSize.xs} color={Colors.secondary} />
+                <Text style={styles.goalChipText} numberOfLines={1}>
+                  {goal}
+                </Text>
+              </View>
             ) : null}
-            <Text style={styles.contactLine} numberOfLines={1}>
-              {checkupLine}
-            </Text>
+            {bmi != null && bmiCategory ? (
+              <View style={[styles.bmiBadge, { backgroundColor: bmiCategory.bg }]}>
+                <Text style={[styles.bmiBadgeValue, { color: bmiCategory.color }]}>
+                  {bmi.toFixed(1)}
+                </Text>
+                <Text style={[styles.bmiBadgeLabel, { color: bmiCategory.color }]}>
+                  {bmiCategory.label}
+                </Text>
+              </View>
+            ) : null}
+            {client.status ? <ClientStatusChip status={client.status} /> : null}
           </View>
-        )}
-
-        <View style={styles.chipRow}>
-          {goal ? (
-            <View style={styles.goalChip}>
-              <Ionicons name="trophy" size={IconSize.xs} color={Colors.secondary} />
-              <Text style={styles.goalChipText} numberOfLines={1}>
-                {goal}
-              </Text>
-            </View>
-          ) : null}
-          {bmi != null && bmiCategory ? (
-            <View style={[styles.bmiBadge, { backgroundColor: bmiCategory.bg }]}>
-              <Text style={[styles.bmiBadgeValue, { color: bmiCategory.color }]}>
-                {bmi.toFixed(1)}
-              </Text>
-              <Text style={[styles.bmiBadgeLabel, { color: bmiCategory.color }]}>
-                {bmiCategory.label}
-              </Text>
-            </View>
-          ) : null}
-          {client.status ? <ClientStatusChip status={client.status} /> : null}
         </View>
-      </View>
 
-      {client.clientCode ? (
+        {client.clientCode ? (
+          <View style={styles.section}>
+            <ProgressPhotos clientCode={client.clientCode} />
+          </View>
+        ) : null}
+
         <View style={styles.section}>
-          <ProgressPhotos clientCode={client.clientCode} />
-        </View>
-      ) : null}
+          <Text style={styles.sectionTitle}>Client Information</Text>
+          {client.clientCode && detailQuery.isPending ? (
+            <ActivityIndicator color={Colors.secondary} style={styles.loader} />
+          ) : errorMessage ? (
+            <ReloadState
+              title="Could not load client details"
+              message={errorMessage}
+              onRetry={() => void detailQuery.refetch()}
+              loading={detailQuery.isFetching}
+              style={styles.reload}
+            />
+          ) : metrics.length === 0 && detailRows.length === 0 ? (
+            <EmptyState
+              icon="document-text-outline"
+              title="Details unavailable"
+              message="Client details could not be loaded for this profile."
+              style={styles.emptyBox}
+            />
+          ) : (
+            <View style={styles.infoCard}>
+              <View style={styles.metricsGrid}>
+                {metrics.map((m, i) => (
+                  <View
+                    key={m.label}
+                    style={[
+                      styles.metricCell,
+                      i % 2 === 0 && styles.metricCellLeft,
+                      i < 2 && styles.metricCellTop,
+                    ]}
+                  >
+                    <Text style={styles.metricValue}>{m.value}</Text>
+                    <Text style={styles.metricLabel}>{m.label}</Text>
+                  </View>
+                ))}
+              </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Client Information</Text>
-        {client.clientCode && detailQuery.isPending ? (
-          <ActivityIndicator color={Colors.primary} style={styles.loader} />
-        ) : errorMessage ? (
-          <ReloadState
-            title="Could not load client details"
-            message={errorMessage}
-            onRetry={() => void detailQuery.refetch()}
-            loading={detailQuery.isFetching}
-            style={styles.reload}
-          />
-        ) : metrics.length === 0 && detailRows.length === 0 ? (
-          <EmptyState
-            icon="document-text-outline"
-            title="Details unavailable"
-            message="Client details could not be loaded for this profile."
-            style={styles.emptyBox}
-          />
-        ) : (
-          <View style={styles.infoCard}>
-            <View style={styles.metricsGrid}>
-              {metrics.map((m, i) => (
+              {detailRows.map((row, i) => (
                 <View
-                  key={m.label}
-                  style={[
-                    styles.metricCell,
-                    i % 2 === 0 && styles.metricCellLeft,
-                    i < 2 && styles.metricCellTop,
-                  ]}
+                  key={row.label}
+                  style={[styles.detailRow, i === detailRows.length - 1 && styles.detailRowLast]}
                 >
-                  <Text style={styles.metricValue}>{m.value}</Text>
-                  <Text style={styles.metricLabel}>{m.label}</Text>
+                  <View style={styles.detailIcon}>
+                    <Ionicons name={row.icon} size={IconSize.sm} color={Colors.secondary} />
+                  </View>
+                  <Text style={styles.detailLabel}>{row.label}</Text>
+                  <Text style={styles.detailValue} numberOfLines={2}>
+                    {row.value}
+                  </Text>
                 </View>
               ))}
             </View>
+          )}
+        </View>
 
-            {detailRows.map((row, i) => (
-              <View
-                key={row.label}
-                style={[styles.detailRow, i === detailRows.length - 1 && styles.detailRowLast]}
-              >
-                <View style={styles.detailIcon}>
-                  <Ionicons name={row.icon} size={IconSize.sm} color={Colors.secondary} />
-                </View>
-                <Text style={styles.detailLabel}>{row.label}</Text>
-                <Text style={styles.detailValue} numberOfLines={2}>
-                  {row.value}
-                </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Actions</Text>
+          <View style={styles.actionGrid}>
+            {[0, 1].map(row => (
+              <View key={row} style={styles.actionRow}>
+                {actions.slice(row * 2, row * 2 + 2).map(action => (
+                  <TouchableOpacity
+                    key={action.label}
+                    style={[styles.actionBtn, { backgroundColor: action.bg }]}
+                    onPress={action.onPress}
+                    activeOpacity={PressOpacity.strong}
+                    accessibilityRole="button"
+                    accessibilityLabel={action.label}
+                  >
+                    <View style={[styles.actionIconWrap, { backgroundColor: Colors.white }]}>
+                      <Ionicons name={action.icon} size={IconSize.xl} color={action.color} />
+                    </View>
+                    <Text style={[styles.actionText, { color: action.color }]}>{action.label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             ))}
           </View>
-        )}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Actions</Text>
-        <View style={styles.actionGrid}>
-          {[0, 1].map(row => (
-            <View key={row} style={styles.actionRow}>
-              {actions.slice(row * 2, row * 2 + 2).map(action => (
-                <TouchableOpacity
-                  key={action.label}
-                  style={[styles.actionBtn, { backgroundColor: action.bg }]}
-                  onPress={action.onPress}
-                  activeOpacity={PressOpacity.strong}
-                  accessibilityRole="button"
-                  accessibilityLabel={action.label}
-                >
-                  <View style={[styles.actionIconWrap, { backgroundColor: Colors.white }]}>
-                    <Ionicons name={action.icon} size={IconSize.xl} color={action.color} />
-                  </View>
-                  <Text style={[styles.actionText, { color: action.color }]}>{action.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scroll: { flex: 1 },
   profileCard: {
     backgroundColor: Colors.white,
-    margin: Spacing.lg,
+    marginHorizontal: ScreenPad.horizontal,
+    marginTop: Spacing.md,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
@@ -409,7 +414,7 @@ const styles = StyleSheet.create({
   },
   bmiBadgeValue: { fontSize: 13, fontFamily: FontFamily.extraBold },
   bmiBadgeLabel: { ...Typography.micro, fontFamily: FontFamily.semibold },
-  section: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  section: { marginHorizontal: ScreenPad.horizontal, marginBottom: Spacing.md },
   sectionTitle: {
     ...Typography.section,
     marginBottom: Spacing.sm - 2,

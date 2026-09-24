@@ -44,7 +44,7 @@ export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCa
             accessibilityLabel="View all tips"
           >
             <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="arrow-forward" size={15} color={Colors.secondary} />
+            <Ionicons name="arrow-forward-outline" size={15} color={Colors.secondary} />
           </TouchableOpacity>
         ) : null}
       </View>

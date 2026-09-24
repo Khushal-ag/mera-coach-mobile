@@ -15,7 +15,7 @@ import {
 import { PRIVACY_POLICY_URL } from '../../config/appConfig';
 import { LEGAL_UPDATED, PRIVACY_POLICY_SECTIONS, TERMS_SECTIONS } from '../../data/legalContent';
 import { openAccountDeletionEmail, openPrivacyPolicyUrl } from '../../utils/support';
-import ScreenHeader from '../../components/ScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import type { ProfileStackScreenProps } from '../../types/navigation';
 
 type Tab = 'privacy' | 'terms';
@@ -26,7 +26,7 @@ export default function LegalScreen({ navigation }: ProfileStackScreenProps<'Leg
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Privacy & Terms" onBack={() => navigation.goBack()} />
+      <WaveScreenHeader title="Privacy & Terms" onBack={() => navigation.goBack()} />
 
       <View style={styles.tabBar}>
         <TouchableOpacity
