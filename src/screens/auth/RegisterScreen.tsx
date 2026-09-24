@@ -8,7 +8,6 @@ import {
   Alert,
   TouchableOpacity,
   Modal,
-  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -23,12 +22,13 @@ import {
   Shadow,
   Spacing,
   TouchTarget,
-  formFieldStyles,
   headingFont,
 } from '../../constants/theme';
+import { AuthLayout } from '../../constants/authLayout';
 import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';
 import AuthCtaButton from '../../components/auth/AuthCtaButton';
-import BrandLogo from '../../components/BrandLogo';
+import AuthFormHeader from '../../components/auth/AuthFormHeader';
+import { authFormStyles } from '../../components/auth/authFormStyles';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
@@ -40,13 +40,10 @@ import { clearSession } from '../../auth/session';
 import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateCoachRegister } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
-import { authLogoHeight } from '../../constants/images';
 import type { RootScreenProps } from '../../types/navigation';
 
 export default function RegisterScreen({ navigation }: RootScreenProps<'Register'>) {
   const insets = useSafeAreaInsets();
-  const { width: screenW } = useWindowDimensions();
-  const logoSize = Math.round(authLogoHeight(screenW) * 0.88);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [mobile, setMobile] = useState('');
@@ -110,29 +107,36 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   return (
     <>
       <AuthAtmosphereLayout>
-        <View style={[styles.header, { paddingTop: insets.top + Spacing.xxs }]}>
-          <BrandLogo variant="full" size={logoSize} style={styles.logo} />
-        </View>
+        <AuthFormHeader
+          onBack={() => navigation.navigate('Home')}
+          backAccessibilityLabel="Back to home"
+        />
 
-        <View style={styles.form}>
+        <View style={authFormStyles.form}>
           <FormErrorBanner message={formErrorBanner} />
 
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.sub}>Register as a coach in a few steps.</Text>
+          <Text style={authFormStyles.title}>Create Account</Text>
+          <Text style={authFormStyles.sub}>Register as a coach in a few steps.</Text>
 
           <View style={styles.field}>
             <FormFieldLabel required style={styles.fieldLabel}>
               Coach Name
             </FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.name && styles.inputWrapError]}>
+            <View
+              style={[
+                authFormStyles.inputWrap,
+                styles.inputNoMargin,
+                errorFields.name && authFormStyles.inputWrapError,
+              ]}
+            >
               <Ionicons
                 name="person-outline"
                 size={IconSize.md}
                 color={Colors.authCtaGradientStart}
-                style={styles.inputIcon}
+                style={authFormStyles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={authFormStyles.input}
                 placeholder="Your full name"
                 placeholderTextColor={Colors.textLight}
                 value={name}
@@ -149,7 +153,11 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
               Coach Category
             </FormFieldLabel>
             <TouchableOpacity
-              style={[styles.inputWrap, errorFields.category && styles.inputWrapError]}
+              style={[
+                authFormStyles.inputWrap,
+                styles.inputNoMargin,
+                errorFields.category && authFormStyles.inputWrapError,
+              ]}
               onPress={() => setCategoryOpen(true)}
               activeOpacity={PressOpacity.default}
               accessibilityRole="button"
@@ -159,11 +167,11 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
                 name="grid-outline"
                 size={IconSize.md}
                 color={Colors.authCtaGradientStart}
-                style={styles.inputIcon}
+                style={authFormStyles.inputIcon}
               />
               <Text
                 style={[
-                  styles.input,
+                  authFormStyles.input,
                   selectedCategory ? styles.valueText : styles.placeholderText,
                 ]}
                 numberOfLines={1}
@@ -179,15 +187,21 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <FormFieldLabel required style={styles.fieldLabel}>
               Email Address
             </FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+            <View
+              style={[
+                authFormStyles.inputWrap,
+                styles.inputNoMargin,
+                errorFields.email && authFormStyles.inputWrapError,
+              ]}
+            >
               <Ionicons
                 name="mail-outline"
                 size={IconSize.md}
                 color={Colors.authCtaGradientStart}
-                style={styles.inputIcon}
+                style={authFormStyles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={authFormStyles.input}
                 placeholder="your@example.com"
                 placeholderTextColor={Colors.textLight}
                 keyboardType="email-address"
@@ -207,15 +221,21 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <FormFieldLabel required style={styles.fieldLabel}>
               Mobile Number
             </FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.mobile && styles.inputWrapError]}>
+            <View
+              style={[
+                authFormStyles.inputWrap,
+                styles.inputNoMargin,
+                errorFields.mobile && authFormStyles.inputWrapError,
+              ]}
+            >
               <Ionicons
                 name="call-outline"
                 size={IconSize.md}
                 color={Colors.authCtaGradientStart}
-                style={styles.inputIcon}
+                style={authFormStyles.inputIcon}
               />
               <PhoneTextInput
-                style={styles.input}
+                style={authFormStyles.input}
                 placeholder="10-digit-mobile number"
                 placeholderTextColor={Colors.textLight}
                 value={mobile}
@@ -232,7 +252,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             label="Create Account"
             onPress={() => void handleRegister()}
             loading={submitting}
-            style={styles.createBtn}
+            style={authFormStyles.ctaBtn}
           />
 
           <View style={styles.loginRow}>
@@ -308,51 +328,15 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
 }
 
 const styles = StyleSheet.create({
-  header: {
-    alignItems: 'center',
-    paddingBottom: 0,
-    width: '100%',
-    paddingHorizontal: Spacing.lg,
-  },
-  logo: { marginBottom: 0 },
-  form: {
-    width: '88%',
-    maxWidth: 400,
-    paddingTop: Spacing.xxs,
-    backgroundColor: 'transparent',
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: headingFont.extraBold,
-    color: Colors.textDark,
-    marginBottom: 2,
-  },
-  sub: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-    lineHeight: 17,
-  },
-  field: { marginBottom: Spacing.xs },
-  fieldLast: { marginBottom: Spacing.xs },
+  field: { marginBottom: AuthLayout.fieldGap },
+  fieldLast: { marginBottom: AuthLayout.buttonGap },
   fieldLabel: {
     fontFamily: headingFont.semibold,
     fontSize: 13,
     color: Colors.textDark,
-    marginBottom: Spacing.xxs,
+    marginBottom: AuthLayout.labelGap,
   },
-  inputWrap: {
-    ...formFieldStyles.wrap,
-    backgroundColor: Colors.white,
-    height: 50,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  inputWrapError: formFieldStyles.wrapError,
-  inputIcon: formFieldStyles.inputIcon,
-  input: formFieldStyles.input,
+  inputNoMargin: { marginBottom: 0 },
   valueText: { color: Colors.textDark },
   placeholderText: { color: Colors.textLight },
   hint: {
@@ -360,9 +344,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
     marginTop: 2,
-  },
-  createBtn: {
-    height: 48,
   },
   loginRow: {
     flexDirection: 'row',

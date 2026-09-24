@@ -94,7 +94,7 @@ export default function MpinUnlockScreen() {
           { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg },
         ]}
       >
-        <BrandLogo variant="full" size={100} style={styles.logo} />
+        <BrandLogo size={100} style={styles.logo} />
 
         <View style={styles.card}>
           <Text style={styles.title}>Enter MPIN</Text>

@@ -11,26 +11,27 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
+  IconSize,
+  ListPortrait,
   PressOpacity,
   Radius,
-  Shadow,
+  ScreenPad,
   Spacing,
-  TouchTarget,
-  Typography,
   headingFont,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import EmptyState from '../../components/EmptyState';
+import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import ClientAvatar from '../../components/ClientAvatar';
-import ClientStatusChip from '../../components/ClientStatusChip';
 import SearchField from '../../components/SearchField';
 import SectionTag from '../../components/SectionTag';
-import { HeaderBackButton, HeaderHomeButton } from '../../components/ScreenHeader';
+import WaveScreenHeader, {
+  WaveHeaderActionButton,
+} from '../../components/WaveScreenHeader';
 import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
@@ -42,6 +43,8 @@ import type { ClientsStackScreenProps } from '../../types/navigation';
 import type { ClientSummary } from '../../types/models';
 import { navigateToDashboard } from '../../utils/navigationBack';
 
+const PAGE_SIZE = 5;
+
 function checkupLine(item: ClientSummary): string {
   const raw = lastCheckupLabel(item.lastCheckupDate);
   if (raw === 'No check-up recorded') return raw;
@@ -51,8 +54,8 @@ function checkupLine(item: ClientSummary): string {
 export default function ClientListScreen({
   navigation,
 }: ClientsStackScreenProps<'ClientListHome'>) {
-  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const clientsQuery = useQuery({
     queryKey: queryKeys.clientList(getCurrentCoachCode()),
@@ -71,12 +74,28 @@ export default function ClientListScreen({
     });
   }, [clients, search]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safePage]);
+
   const errorMessage = clientsQuery.isError
     ? getErrorMessage(clientsQuery.error, 'Could not load clients. Pull down to try again.')
     : null;
   const showLoadError = !!errorMessage && clients.length === 0;
   const totalCount = clients.length;
   const totalLabel = totalCount === 1 ? '1 Client' : `${totalCount} Clients`;
+
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const goAddClient = () => navigation.navigate('AddClient');
+  const goClientDetail = (item: ClientSummary) =>
+    navigation.navigate('ClientDetail', { client: item });
 
   const emptyState =
     clients.length === 0
@@ -93,28 +112,22 @@ export default function ClientListScreen({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <HeaderBackButton onPress={() => navigateToDashboard(navigation)} onDark={false} />
-        <View style={styles.headerTitleRow}>
-          <Ionicons name="people" size={22} color={Colors.secondary} />
-          <Text style={styles.headerTitle}>My Clients</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => navigation.navigate('AddClient')}
-            accessibilityRole="button"
+      <WaveScreenHeader
+        title="My Clients"
+        titleIcon="people-outline"
+        onBack={() => navigateToDashboard(navigation)}
+        onHome={() => navigateToDashboard(navigation)}
+        rightExtra={
+          <WaveHeaderActionButton
+            icon="add-outline"
+            onPress={goAddClient}
             accessibilityLabel="Add client"
-            activeOpacity={PressOpacity.default}
-          >
-            <Ionicons name="add" size={22} color={Colors.white} />
-          </TouchableOpacity>
-          <HeaderHomeButton onDark={false} />
-        </View>
-      </View>
+          />
+        }
+      />
 
       <View style={styles.body}>
-        <SectionTag icon="people-outline" label="Client roster" />
+        <SectionTag icon="person-outline" label="Client roster" />
 
         <View style={styles.totalCard} accessibilityRole="text" accessibilityLabel={totalLabel}>
           <View style={styles.totalIcon}>
@@ -130,12 +143,12 @@ export default function ClientListScreen({
           style={styles.search}
           placeholder="Search name or mobile..."
           value={search}
-          onChangeText={setSearch}
+          onChangeText={onSearchChange}
           accessibilityLabel="Search clients"
         />
 
         {clientsQuery.isPending && !clientsQuery.data ? (
-          <ActivityIndicator color={Colors.primary} style={{ marginTop: 30 }} />
+          <ActivityIndicator color={Colors.secondary} style={{ marginTop: 30 }} />
         ) : showLoadError ? (
           <ScrollView
             contentContainerStyle={styles.errorWrap}
@@ -157,7 +170,7 @@ export default function ClientListScreen({
           </ScrollView>
         ) : (
           <FlatList
-            data={filtered}
+            data={pageItems}
             keyExtractor={item => item.id ?? item.clientCode ?? item.name}
             showsVerticalScrollIndicator={false}
             initialNumToRender={8}
@@ -165,7 +178,7 @@ export default function ClientListScreen({
             windowSize={5}
             contentContainerStyle={[
               filtered.length === 0 ? styles.emptyWrap : undefined,
-              { paddingBottom: Spacing.md },
+              { paddingBottom: ScreenPad.tabBarClearance },
             ]}
             refreshControl={
               <RefreshControl
@@ -180,34 +193,47 @@ export default function ClientListScreen({
                 {...(clients.length === 0
                   ? {
                       actionLabel: 'Add client',
-                      onAction: () => navigation.navigate('AddClient'),
+                      onAction: goAddClient,
                     }
                   : {})}
               />
+            }
+            ListFooterComponent={
+              filtered.length > PAGE_SIZE ? (
+                <ListPager
+                  page={safePage}
+                  totalPages={totalPages}
+                  onChangePage={setPage}
+                  variant="square"
+                />
+              ) : null
             }
             renderItem={({ item }) => {
               const mobile = (item.mobileNo ?? '').trim();
               return (
                 <View style={styles.card}>
-                  <ClientAvatar clientCode={item.clientCode} size={82} allowUpload />
-                  <View style={styles.cardBody}>
-                    <TouchableOpacity
-                      style={styles.cardMain}
-                      onPress={() => navigation.navigate('ClientDetail', { client: item })}
-                      activeOpacity={PressOpacity.strong}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${item.name}`}
-                    >
-                      <View style={styles.info}>
+                  <ClientAvatar
+                    clientCode={item.clientCode}
+                    size={ListPortrait.width}
+                    fillHeight
+                    allowUpload
+                    style={styles.avatar}
+                  />
+                  <View style={styles.middle}>
+                    <View style={styles.textRow}>
+                      <TouchableOpacity
+                        style={styles.info}
+                        onPress={() => goClientDetail(item)}
+                        activeOpacity={PressOpacity.strong}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${item.name}`}
+                      >
                         <Text style={styles.name} numberOfLines={1}>
                           {item.name}
-                          {item.age ? (
-                            <Text style={styles.metaInline}>{`  Age: ${item.age}`}</Text>
-                          ) : null}
                         </Text>
-                        {item.goal ? (
+                        {item.age != null ? (
                           <Text style={styles.meta} numberOfLines={1}>
-                            {item.goal}
+                            Age: {item.age}
                           </Text>
                         ) : null}
                         {mobile ? (
@@ -218,18 +244,22 @@ export default function ClientListScreen({
                         <Text style={styles.meta} numberOfLines={1}>
                           {checkupLine(item)}
                         </Text>
-                      </View>
-                      {item.status ? <ClientStatusChip status={item.status} /> : null}
-                    </TouchableOpacity>
+                      </TouchableOpacity>
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={IconSize.lg}
+                        color={Colors.textDark}
+                        style={styles.chevron}
+                      />
+                    </View>
                     <TouchableOpacity
                       style={styles.selectBtn}
-                      onPress={() => navigation.navigate('ClientDetail', { client: item })}
+                      onPress={() => goClientDetail(item)}
                       activeOpacity={PressOpacity.default}
                       accessibilityRole="button"
                       accessibilityLabel={`Select ${item.name}`}
                     >
                       <Text style={styles.selectBtnText}>Select</Text>
-                      <Ionicons name="chevron-forward" size={14} color={Colors.white} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -244,58 +274,28 @@ export default function ClientListScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
-    backgroundColor: Colors.background,
-    gap: Spacing.xs,
-  },
-  headerTitleRow: {
+  body: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minWidth: 0,
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.sm,
   },
-  headerTitle: {
-    color: Colors.secondary,
-    fontSize: 18,
-    fontFamily: headingFont.extraBold,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  addBtn: {
-    width: TouchTarget.header,
-    height: TouchTarget.header,
-    borderRadius: TouchTarget.header / 2,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  body: { flex: 1, paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
   totalCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderColor: Colors.secondaryMuted,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm + 2,
     marginBottom: Spacing.sm,
-    ...Shadow.sm,
   },
   totalIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.secondaryLight,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -306,8 +306,8 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
   },
   totalValue: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
+    fontSize: 16,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginTop: 1,
   },
@@ -318,39 +318,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.sm + 2,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
     marginBottom: Spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    minHeight: 132,
-    gap: Spacing.sm,
-    ...Shadow.sm,
   },
-  cardBody: { flex: 1, minWidth: 0, justifyContent: 'space-between' },
-  cardMain: { flexDirection: 'row', alignItems: 'flex-start', minWidth: 0 },
-  info: { flex: 1, minWidth: 0 },
-  name: { ...Typography.bodyStrong, fontFamily: headingFont.bold, fontSize: 15 },
-  metaInline: {
-    ...Typography.caption,
-    fontFamily: FontFamily.medium,
-    color: Colors.textLight,
+  avatar: {
+    marginRight: 0,
   },
-  meta: { ...Typography.caption, marginTop: 2 },
-  selectBtn: {
-    alignSelf: 'flex-start',
+  middle: {
+    flex: 1,
+    minWidth: 0,
+    padding: ListPortrait.contentPad,
+  },
+  textRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.secondary,
-    borderRadius: Radius.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    marginTop: Spacing.xs,
+    minWidth: 0,
+  },
+  info: { flex: 1, minWidth: 0, paddingRight: Spacing.xs },
+  chevron: { marginLeft: Spacing.xxs },
+  name: {
+    fontSize: 18,
+    fontFamily: headingFont.bold,
+    color: Colors.textDark,
+    lineHeight: 24,
+  },
+  meta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    marginTop: 3,
+    lineHeight: 18,
+  },
+  selectBtn: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.pill,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    minHeight: 40,
   },
   selectBtnText: {
     color: Colors.white,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FontFamily.bold,
   },
 });

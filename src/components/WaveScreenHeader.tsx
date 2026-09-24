@@ -33,27 +33,35 @@ function ChromeCircleButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <Ionicons name={icon} size={IconSize.lg} color={Colors.secondary} />
+      <Ionicons name={icon} size={IconSize.lg} color={Colors.headerGradientBottom} />
     </TouchableOpacity>
   );
 }
 
 interface WaveScreenHeaderProps {
   title: string;
+  /** Optional outline icon shown left of the title (e.g. people on My Clients). */
+  titleIcon?: IoniconName;
   onBack?: () => void;
   onHome?: () => void;
   showHome?: boolean;
+  showBack?: boolean;
+  /** Extra chrome to the left of Home (e.g. add-client on My Clients). */
+  rightExtra?: React.ReactNode;
 }
 
 /**
  * Shared green header with soft wave bottom edge.
- * Used by Find Your Coach, My Leads, and Checkups.
+ * Used by Checkups, My Clients, Edit Profile, My Leads, and Find Your Coach.
  */
 export default function WaveScreenHeader({
   title,
+  titleIcon,
   onBack,
   onHome,
   showHome = true,
+  showBack = true,
+  rightExtra,
 }: WaveScreenHeaderProps) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -65,25 +73,66 @@ export default function WaveScreenHeader({
     <View style={styles.wrap}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.row}>
-          <ChromeCircleButton
-            icon="chevron-back"
-            onPress={handleBack}
-            accessibilityLabel="Go back"
-          />
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-          {showHome ? (
-            <ChromeCircleButton icon="home" onPress={handleHome} accessibilityLabel="Home" />
+          {showBack ? (
+            <ChromeCircleButton
+              icon="chevron-back-outline"
+              onPress={handleBack}
+              accessibilityLabel="Go back"
+            />
           ) : (
             <View style={styles.spacer} />
           )}
+          <View style={styles.rightCluster}>
+            {rightExtra}
+            {showHome ? (
+              <ChromeCircleButton
+                icon="home-outline"
+                onPress={handleHome}
+                accessibilityLabel="Home"
+              />
+            ) : rightExtra ? null : (
+              <View style={styles.spacer} />
+            )}
+          </View>
+        </View>
+        <View
+          style={[styles.titleOverlay, { top: insets.top + Spacing.sm }]}
+          pointerEvents="none"
+        >
+          <View style={styles.titleBlock}>
+            {titleIcon ? (
+              <Ionicons
+                name={titleIcon}
+                size={IconSize.lg}
+                color={Colors.white}
+                style={styles.titleIcon}
+              />
+            ) : null}
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
+          </View>
         </View>
       </View>
       <View style={styles.waveWrap} pointerEvents="none">
         <View style={styles.wave} />
       </View>
     </View>
+  );
+}
+
+/** White circle + green outline icon — for custom trailing actions (e.g. add). */
+export function WaveHeaderActionButton({
+  icon,
+  onPress,
+  accessibilityLabel,
+}: {
+  icon: IoniconName;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <ChromeCircleButton icon={icon} onPress={onPress} accessibilityLabel={accessibilityLabel} />
   );
 }
 
@@ -96,20 +145,45 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.headerGradientBottom,
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.lg + 4,
+    position: 'relative',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 1,
+    minHeight: TouchTarget.header,
+  },
+  titleOverlay: {
+    position: 'absolute',
+    left: Spacing.md + TouchTarget.header * 2 + Spacing.xs,
+    right: Spacing.md + TouchTarget.header * 2 + Spacing.xs,
+    height: TouchTarget.header,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: '100%',
+  },
+  titleIcon: {
+    marginRight: Spacing.xs,
   },
   title: {
-    flex: 1,
+    flexShrink: 1,
     textAlign: 'center',
     color: Colors.white,
     fontSize: 18,
     fontFamily: headingFont.bold,
-    marginHorizontal: Spacing.xs,
+  },
+  rightCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    minWidth: TouchTarget.header,
+    justifyContent: 'flex-end',
   },
   chromeCircle: {
     width: TouchTarget.header,

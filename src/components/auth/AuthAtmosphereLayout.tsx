@@ -1,4 +1,4 @@
-import React, { type ReactNode, useEffect, useState } from 'react';
+import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Keyboard,
@@ -21,7 +21,7 @@ type AuthAtmosphereLayoutProps = {
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
-export function authCoverMetrics(screenW: number, screenH: number) {
+function authCoverMetrics(screenW: number, screenH: number) {
   const coverHeight = Math.max(screenH, screenW / AUTH_BG_ASPECT);
   const coverWidth = coverHeight * AUTH_BG_ASPECT;
   const photoClearance = Math.round(coverHeight * AUTH_PHOTO_BAND);
@@ -40,9 +40,19 @@ export default function AuthAtmosphereLayout({
 }: AuthAtmosphereLayoutProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const { coverWidth, coverHeight, photoClearance, offsetX, offsetY } = authCoverMetrics(
-    screenW,
-    screenH,
+  const { coverWidth, coverHeight, photoClearance, offsetX, offsetY } = useMemo(
+    () => authCoverMetrics(screenW, screenH),
+    [screenW, screenH],
+  );
+  const atmosphereStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      width: coverWidth,
+      height: coverHeight,
+      left: offsetX,
+      top: offsetY,
+    }),
+    [coverWidth, coverHeight, offsetX, offsetY],
   );
 
   useEffect(() => {
@@ -58,16 +68,10 @@ export default function AuthAtmosphereLayout({
 
   return (
     <View style={styles.root}>
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.atmosphereLayer]}>
+      <View pointerEvents="none" style={styles.atmosphereLayer}>
         <Image
           source={BrandImages.loginAtmosphere}
-          style={{
-            position: 'absolute',
-            width: coverWidth,
-            height: coverHeight,
-            left: offsetX,
-            top: offsetY,
-          }}
+          style={atmosphereStyle}
           resizeMode="cover"
           accessibilityIgnoresInvertColors
         />
@@ -95,6 +99,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   atmosphereLayer: {
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
   },
   body: {

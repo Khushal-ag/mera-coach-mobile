@@ -16,28 +16,41 @@ export type DashboardStackParamList = {
   DashboardHome: undefined;
   Leads: undefined;
   Notifications: undefined;
-};
-
-export type ClientsStackParamList = {
   ClientListHome: undefined;
   ClientDetail: WithReturnTo<{ client?: ClientSummary }> | undefined;
   AddClient: { returnTo?: NavigationReturnTo } | undefined;
   ClientBmi: WithReturnTo<{ client?: ClientSummary }> | undefined;
   ClientBmiReport: WithReturnTo<{ client?: ClientSummary }> | undefined;
   ClientDietPlan: WithReturnTo<{ client?: ClientSummary }> | undefined;
+  CheckupListHome: undefined;
 };
 
-export type CheckupsStackParamList = {
-  CheckupListHome: undefined;
-  ClientBmi: WithReturnTo<{ client?: ClientSummary }> | undefined;
+/** @deprecated Screens live under Dashboard — kept for gradual call-site migration. */
+export type ClientsStackParamList = Pick<
+  DashboardStackParamList,
+  | 'ClientListHome'
+  | 'ClientDetail'
+  | 'AddClient'
+  | 'ClientBmi'
+  | 'ClientBmiReport'
+  | 'ClientDietPlan'
+>;
+
+/** @deprecated Screens live under Dashboard — kept for gradual call-site migration. */
+export type CheckupsStackParamList = Pick<DashboardStackParamList, 'CheckupListHome' | 'ClientBmi'>;
+
+export type PackagesStackParamList = {
+  PackagesHome: undefined;
+};
+
+export type EventsStackParamList = {
+  EventsHome: undefined;
 };
 
 export type ProfileStackParamList = {
   ProfileHome: undefined;
   EditProfile: undefined;
   EditGallery: undefined;
-  EditPackages: undefined;
-  EditEvents: undefined;
   ChangePassword: undefined;
   ChangeMpin: undefined;
   Legal: undefined;
@@ -46,8 +59,8 @@ export type ProfileStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: NavigatorScreenParams<DashboardStackParamList> | undefined;
-  Clients: NavigatorScreenParams<ClientsStackParamList> | undefined;
-  Checkups: NavigatorScreenParams<CheckupsStackParamList> | undefined;
+  Packages: NavigatorScreenParams<PackagesStackParamList> | undefined;
+  Events: NavigatorScreenParams<EventsStackParamList> | undefined;
   Profile: NavigatorScreenParams<ProfileStackParamList> | undefined;
 };
 
@@ -87,14 +100,22 @@ export type DashboardStackScreenProps<T extends keyof DashboardStackParamList> =
     MainTabScreenProps<'Dashboard'>
   >;
 
-export type ClientsStackScreenProps<T extends keyof ClientsStackParamList> = CompositeScreenProps<
-  NativeStackScreenProps<ClientsStackParamList, T>,
-  MainTabScreenProps<'Clients'>
+/** Client screens now live on the Dashboard stack. */
+export type ClientsStackScreenProps<T extends keyof ClientsStackParamList> =
+  DashboardStackScreenProps<T>;
+
+/** Checkup screens now live on the Dashboard stack. */
+export type CheckupsStackScreenProps<T extends keyof CheckupsStackParamList> =
+  DashboardStackScreenProps<T>;
+
+export type PackagesStackScreenProps<T extends keyof PackagesStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<PackagesStackParamList, T>,
+  MainTabScreenProps<'Packages'>
 >;
 
-export type CheckupsStackScreenProps<T extends keyof CheckupsStackParamList> = CompositeScreenProps<
-  NativeStackScreenProps<CheckupsStackParamList, T>,
-  MainTabScreenProps<'Checkups'>
+export type EventsStackScreenProps<T extends keyof EventsStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<EventsStackParamList, T>,
+  MainTabScreenProps<'Events'>
 >;
 
 export type ProfileStackScreenProps<T extends keyof ProfileStackParamList> = CompositeScreenProps<

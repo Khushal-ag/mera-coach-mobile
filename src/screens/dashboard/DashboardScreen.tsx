@@ -5,7 +5,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   Animated,
   AccessibilityInfo,
@@ -19,30 +18,24 @@ import {
   HitSlop,
   PressOpacity,
   Radius,
+  ScreenPad,
   Shadow,
   Spacing,
   TouchTarget,
   headingFont,
 } from '../../constants/theme';
-import { BrandImages } from '../../constants/images';
-import ClientAvatar from '../../components/ClientAvatar';
-import ClientStatusChip from '../../components/ClientStatusChip';
 import DashboardCarousel from '../../components/dashboard/DashboardCarousel';
-import EmptyState from '../../components/EmptyState';
-import ReloadState from '../../components/ReloadState';
-import SectionTag from '../../components/SectionTag';
-import { HeaderHomeButton } from '../../components/ScreenHeader';
+import PersonAvatar from '../../components/PersonAvatar';
 import { getClientList, getEnquiryLeads, getRecheckupList } from '../../api/clientApi';
 import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode, getCurrentCoachName } from '../../auth/session';
 import { getErrorMessage } from '../../api/client';
 import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
-import { lastCheckupLabel } from '../../utils/recheckup';
 import { getProfileCompletion } from '../../utils/profileCompletion';
+import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import type { DashboardStackScreenProps } from '../../types/navigation';
-import type { ClientSummary } from '../../types/models';
 import type { IoniconName } from '../../types/icons';
 import { RETURN_TO_DASHBOARD } from '../../utils/navigationBack';
 
@@ -57,28 +50,17 @@ interface MetricCard {
   label: string;
   value: string;
   tint: string;
+  iconBg: string;
 }
 
 interface QuickAction {
   label: string;
   sub: string;
   icon: IoniconName;
+  cardBg: string;
+  iconColor: string;
   onPress: () => void;
 }
-
-function clientRowMeta(item: ClientSummary): string | null {
-  const parts: string[] = [];
-  if (item.goal) parts.push(item.goal);
-  const checkup = lastCheckupLabel(item.lastCheckupDate);
-  if (checkup !== 'No check-up recorded') parts.push(checkup);
-  return parts.length ? parts.join(' · ') : null;
-}
-
-const GETTING_STARTED_TIPS = [
-  'Add a client and run their first BMI check',
-  'Track weekly check-ups from the Checkups tab',
-  'Follow up on new leads before they go cold',
-] as const;
 
 export default function DashboardScreen({
   navigation,
@@ -139,6 +121,7 @@ export default function DashboardScreen({
   });
   const clients = clientsQuery.data ?? null;
   const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
+  const coachPhotoUri = resolveCoachPhotoUrl(profileQuery.data ?? profileFullQuery.data ?? {});
   const greeting = greetingFor();
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
@@ -158,10 +141,6 @@ export default function DashboardScreen({
       ? getErrorMessage(clientsQuery.error, 'Could not load client count.')
       : null;
 
-  const recentClients = useMemo(() => (clients ?? []).slice(0, 3), [clients]);
-  const clientCount = clients?.length ?? 0;
-  const showGettingStarted = !clientsQuery.isPending && clientCount <= 1 && !clientsErrorMessage;
-
   const dueCount = useMemo(
     () => (recheckupQuery.data ? recheckupQuery.data.length : null),
     [recheckupQuery.data],
@@ -177,16 +156,19 @@ export default function DashboardScreen({
       label: 'Clients',
       value: clients ? String(clients.length) : '-',
       tint: Colors.secondary,
+      iconBg: Colors.metricClientsBg,
     },
     {
       label: 'Leads',
       value: activeLeadsCount != null ? String(activeLeadsCount) : '-',
-      tint: Colors.accent,
+      tint: Colors.brandCoach,
+      iconBg: Colors.metricLeadsBg,
     },
     {
       label: 'Due',
       value: dueCount != null ? String(dueCount) : '-',
-      tint: Colors.primary,
+      tint: Colors.metricDueIcon,
+      iconBg: Colors.metricDueBg,
     },
   ];
 
@@ -195,115 +177,42 @@ export default function DashboardScreen({
       label: 'My Clients',
       sub: 'View & manage your clients',
       icon: 'people-outline',
-      onPress: () => navigation.navigate('Clients', { screen: 'ClientListHome' }),
+      cardBg: Colors.cardTintGreen,
+      iconColor: Colors.cardIconGreen,
+      onPress: () => navigation.navigate('ClientListHome'),
     },
     {
       label: 'Leads',
       sub: 'Track & convert Leads',
       icon: 'funnel-outline',
+      cardBg: Colors.cardTintBlue,
+      iconColor: Colors.cardIconBlue,
       onPress: () => navigation.navigate('Leads'),
     },
     {
       label: 'Checkups',
       sub: 'View upcoming checkups',
       icon: 'clipboard-outline',
-      onPress: () => navigation.navigate('Checkups'),
+      cardBg: Colors.cardTintPurple,
+      iconColor: Colors.cardIconPurple,
+      onPress: () => navigation.navigate('CheckupListHome'),
     },
   ];
 
   function goAddClient() {
-    navigation.navigate('Clients', {
-      screen: 'AddClient',
-      params: { returnTo: RETURN_TO_DASHBOARD },
-    });
-  }
-
-  function renderRecentClients() {
-    if (clientsQuery.isPending) {
-      return (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator color={Colors.secondary} />
-          <Text style={styles.loadingText}>Loading clients</Text>
-        </View>
-      );
-    }
-
-    if (recentClients.length === 0) {
-      const failed = clientsErrorMessage != null;
-      if (failed) {
-        return (
-          <ReloadState
-            title="Could not load clients"
-            message="Check your connection and try again."
-            onRetry={onRefresh}
-            style={styles.emptyCard}
-          />
-        );
-      }
-      return (
-        <EmptyState
-          illustration={BrandImages.emptyClients}
-          title="Your client list starts here"
-          message="Add your first client to track plans, BMI, and check-ups."
-          actionLabel="Add Client"
-          onAction={goAddClient}
-          style={styles.emptyCard}
-        />
-      );
-    }
-
-    return (
-      <View style={styles.clientListCard}>
-        {recentClients.map((c, i) => {
-          const meta = clientRowMeta(c);
-          const isLast = i === recentClients.length - 1;
-          return (
-            <TouchableOpacity
-              key={c.clientCode || c.id || String(i)}
-              style={[styles.clientRow, !isLast && styles.clientRowBorder]}
-              onPress={() =>
-                navigation.navigate('Clients', {
-                  screen: 'ClientDetail',
-                  params: { client: c, returnTo: RETURN_TO_DASHBOARD },
-                })
-              }
-              activeOpacity={PressOpacity.default}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${c.name}`}
-            >
-              <ClientAvatar clientCode={c.clientCode} size={44} />
-              <View style={styles.clientInfo}>
-                <Text style={styles.clientName} numberOfLines={1}>
-                  {c.name}
-                </Text>
-                {meta ? (
-                  <Text style={styles.clientMeta} numberOfLines={1}>
-                    {meta}
-                  </Text>
-                ) : null}
-              </View>
-              {c.status ? (
-                <ClientStatusChip status={c.status} />
-              ) : (
-                <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    );
+    navigation.navigate('AddClient', { returnTo: RETURN_TO_DASHBOARD });
   }
 
   const metricIcons: Record<string, IoniconName> = {
     Clients: 'people-outline',
     Leads: 'funnel-outline',
-    Due: 'alarm-outline',
+    Due: 'calendar-outline',
   };
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: Spacing.lg }}
+      contentContainerStyle={{ paddingBottom: ScreenPad.tabBarClearance }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
@@ -315,20 +224,39 @@ export default function DashboardScreen({
         >
           <View style={styles.heroBrandRow}>
             <View style={styles.brandBlock} accessibilityRole="text" accessibilityLabel="MeraCoach">
-              <Text style={styles.brandTitle}>MeraCoach</Text>
-              <Text style={styles.guideLine}>Guide . Support . transform</Text>
+              <Text style={styles.brandTitle}>
+                <Text style={styles.brandMera}>Mera</Text>
+                <Text style={styles.brandCoach}>Coach</Text>
+              </Text>
+              <Text style={styles.guideLine}>
+                <Text style={styles.guideWord}>Guide</Text>
+                <Text style={styles.guideDot}> • </Text>
+                <Text style={styles.guideWord}>Support</Text>
+                <Text style={styles.guideDot}> • </Text>
+                <Text style={styles.guideWord}>transform</Text>
+              </Text>
             </View>
             <View style={styles.headerActions}>
-              <HeaderHomeButton onDark={false} />
               <TouchableOpacity
-                style={styles.notifBtn}
+                style={styles.chromeIconBtn}
+                onPress={() => navigation.navigate('Home')}
+                accessibilityRole="button"
+                accessibilityLabel="Home"
+                activeOpacity={PressOpacity.default}
+                hitSlop={HitSlop.sm}
+              >
+                <Ionicons name="home-outline" size={28} color={Colors.secondary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.chromeIconBtn}
                 onPress={() => navigation.navigate('Notifications')}
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
                 activeOpacity={PressOpacity.default}
                 hitSlop={HitSlop.sm}
               >
-                <Ionicons name="notifications-outline" size={20} color={Colors.secondary} />
+                <Ionicons name="notifications-outline" size={28} color={Colors.secondary} />
+                <View style={styles.notifDot} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.profileBtn}
@@ -338,7 +266,12 @@ export default function DashboardScreen({
                 activeOpacity={PressOpacity.default}
                 hitSlop={HitSlop.sm}
               >
-                <Ionicons name="person-outline" size={18} color={Colors.secondary} />
+                {coachPhotoUri ? (
+                  <PersonAvatar uri={coachPhotoUri} size={46} />
+                ) : (
+                  <View style={styles.profilePlaceholder} />
+                )}
+                <View style={styles.profileStatus} />
               </TouchableOpacity>
             </View>
           </View>
@@ -367,14 +300,14 @@ export default function DashboardScreen({
                 accessibilityRole="text"
                 accessibilityLabel={`${metric.label}: ${metric.value}`}
               >
-                <View style={[styles.metricIconWrap, { backgroundColor: `${metric.tint}18` }]}>
+                <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
                   <Ionicons
                     name={metricIcons[metric.label] ?? 'ellipse-outline'}
-                    size={16}
+                    size={26}
                     color={metric.tint}
                   />
                 </View>
-                <Text style={[styles.metricValue, { color: metric.tint }]} numberOfLines={1}>
+                <Text style={styles.metricValue} numberOfLines={1}>
                   {metric.value}
                 </Text>
                 <Text style={styles.metricLabel} numberOfLines={1}>
@@ -404,28 +337,31 @@ export default function DashboardScreen({
           accessibilityRole="button"
           accessibilityLabel="Add Client"
         >
+          <View style={styles.primaryCtaCurve} pointerEvents="none" />
           <View style={styles.primaryCtaIcon}>
-            <Ionicons name="person-add" size={18} color={Colors.secondary} />
+            <Ionicons name="person-add" size={24} color={Colors.white} />
           </View>
           <View style={styles.primaryCtaCopy}>
             <Text style={styles.primaryCtaTitle}>Add Client</Text>
             <Text style={styles.primaryCtaSub}>Start a new assesment</Text>
           </View>
-          <Ionicons name="arrow-forward" size={20} color={Colors.secondary} />
+          <View style={styles.primaryCtaArrow}>
+            <Ionicons name="arrow-forward-outline" size={20} color={Colors.white} />
+          </View>
         </TouchableOpacity>
 
         <View style={styles.secondaryRow}>
           {secondaryActions.map(action => (
             <TouchableOpacity
               key={action.label}
-              style={styles.secondaryChip}
+              style={[styles.secondaryChip, { backgroundColor: action.cardBg }]}
               onPress={action.onPress}
               activeOpacity={PressOpacity.strong}
               accessibilityRole="button"
               accessibilityLabel={action.label}
             >
-              <View style={styles.secondaryIcon}>
-                <Ionicons name={action.icon} size={18} color={Colors.secondary} />
+              <View style={[styles.secondaryIcon, { backgroundColor: action.iconColor }]}>
+                <Ionicons name={action.icon} size={26} color={Colors.white} />
               </View>
               <Text style={styles.secondaryLabel} numberOfLines={1}>
                 {action.label}
@@ -439,45 +375,7 @@ export default function DashboardScreen({
       </View>
 
       <View style={styles.carouselSection}>
-        <View style={styles.carouselHeader}>
-          <Text style={styles.sectionHeading}>Tips for your week</Text>
-        </View>
-        <DashboardCarousel />
-      </View>
-
-      <View style={styles.recentSection}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <SectionTag icon="people-outline" label="Recent Clients" />
-            <Text style={styles.sectionHeading}>Latest activity</Text>
-          </View>
-          {recentClients.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Clients', { screen: 'ClientListHome' })}
-              hitSlop={HitSlop.sm}
-              accessibilityRole="button"
-              accessibilityLabel="View all clients"
-            >
-              <Text style={styles.seeAll}>View All</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-        {renderRecentClients()}
-
-        {showGettingStarted ? (
-          <View style={styles.tipsCard}>
-            <View style={styles.tipsHeader}>
-              <Ionicons name="flash-outline" size={16} color={Colors.secondary} />
-              <Text style={styles.tipsTitle}>Getting started</Text>
-            </View>
-            {GETTING_STARTED_TIPS.map(tip => (
-              <View key={tip} style={styles.tipRow}>
-                <View style={styles.tipDot} />
-                <Text style={styles.tipText}>{tip}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <DashboardCarousel onStartNow={goAddClient} onViewAll={goAddClient} />
       </View>
     </ScrollView>
   );
@@ -488,7 +386,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: Colors.background,
     overflow: 'hidden',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: ScreenPad.horizontal,
     paddingBottom: Spacing.md,
   },
   heroTop: { zIndex: 1 },
@@ -503,60 +401,97 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   brandTitle: {
-    color: Colors.secondary,
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: headingFont.extraBold,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  brandMera: {
+    color: Colors.secondary,
+    fontFamily: headingFont.extraBold,
+  },
+  brandCoach: {
+    color: Colors.brandCoach,
+    fontFamily: headingFont.extraBold,
+  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   guideLine: {
-    color: Colors.textLight,
     fontSize: 12,
     fontFamily: FontFamily.medium,
     marginTop: 4,
   },
+  guideWord: {
+    color: Colors.greetingMuted,
+    fontFamily: FontFamily.medium,
+  },
+  guideDot: {
+    color: Colors.brandCoach,
+    fontFamily: FontFamily.medium,
+  },
   greetingLine: {
-    color: Colors.textLight,
-    fontSize: 14,
+    color: Colors.greetingMuted,
+    fontSize: 15,
     fontFamily: FontFamily.medium,
     letterSpacing: 0.2,
   },
   coachName: {
     color: Colors.textDark,
-    fontSize: 26,
+    fontSize: 28,
     fontFamily: headingFont.extraBold,
     marginTop: 4,
     letterSpacing: -0.4,
-    lineHeight: 32,
+    lineHeight: 34,
   },
   heroSub: {
     color: Colors.textLight,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FontFamily.regular,
     marginTop: 6,
-    lineHeight: 18,
+    lineHeight: 20,
   },
-  notifBtn: {
+  chromeIconBtn: {
     width: TouchTarget.header,
     height: TouchTarget.header,
     borderRadius: TouchTarget.header / 2,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 7,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.destructive,
   },
   profileBtn: {
-    width: TouchTarget.header,
-    height: TouchTarget.header,
-    borderRadius: TouchTarget.header / 2,
-    backgroundColor: Colors.secondaryLight,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  profilePlaceholder: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: Colors.disabledBg,
+  },
+  profileStatus: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.secondary,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
   },
   metricsOverlap: {
     marginTop: Spacing.xs,
-    marginHorizontal: Spacing.md,
+    marginHorizontal: ScreenPad.horizontal,
     zIndex: 2,
   },
   metricsStrip: {
@@ -564,10 +499,8 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    paddingVertical: Spacing.md + 2,
+    paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xs,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
     ...Shadow.md,
   },
   metricItem: {
@@ -575,31 +508,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
-    gap: 2,
+    gap: 4,
   },
   metricIconWrap: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   metricDivider: {
     width: StyleSheet.hairlineWidth,
     backgroundColor: Colors.border,
-    marginVertical: 2,
+    marginVertical: 16,
   },
   metricValue: {
-    fontSize: 22,
+    fontSize: 30,
     fontFamily: headingFont.extraBold,
-    lineHeight: 26,
-    letterSpacing: -0.3,
+    color: Colors.textDark,
+    lineHeight: 34,
+    letterSpacing: -0.4,
   },
   metricLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
     marginTop: 2,
   },
   statsError: {
@@ -610,7 +544,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   actionsSection: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
@@ -620,34 +554,43 @@ const styles = StyleSheet.create({
   primaryCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.md,
-    paddingVertical: 14,
+    gap: 14,
+    height: 74,
+    backgroundColor: Colors.addClientBannerLight,
+    borderRadius: 24,
     paddingHorizontal: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.secondary,
-    ...Shadow.sm,
+    overflow: 'hidden',
+  },
+  primaryCtaCurve: {
+    position: 'absolute',
+    right: -48,
+    top: -52,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: Colors.addClientBannerDark,
   },
   primaryCtaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.white,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.28)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
-  primaryCtaCopy: { flex: 1 },
+  primaryCtaCopy: { flex: 1, zIndex: 1 },
+  primaryCtaArrow: { zIndex: 1 },
   primaryCtaTitle: {
-    color: Colors.secondary,
-    fontSize: 16,
+    color: Colors.white,
+    fontSize: 18,
     fontFamily: headingFont.bold,
   },
   primaryCtaSub: {
-    color: Colors.textLight,
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    marginTop: 1,
+    color: Colors.white,
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
   },
   secondaryRow: {
     flexDirection: 'row',
@@ -657,143 +600,33 @@ const styles = StyleSheet.create({
   secondaryChip: {
     flex: 1,
     alignItems: 'flex-start',
-    gap: 6,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    borderWidth: 1,
+    gap: 8,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.sm,
+    minHeight: 148,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.xs,
-    minHeight: 115,
-    ...Shadow.sm,
   },
   secondaryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.secondaryLight,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-    color: Colors.secondary,
+    fontSize: 16,
+    fontFamily: headingFont.bold,
+    color: Colors.textDark,
   },
   secondarySub: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
-    lineHeight: 13,
+    lineHeight: 14,
   },
   carouselSection: {
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
-  },
-  carouselHeader: {
-    paddingHorizontal: Spacing.md,
-  },
-  recentSection: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  sectionHeading: {
-    fontSize: 17,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-    marginBottom: Spacing.xs,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.xs,
-  },
-  seeAll: {
-    color: Colors.primary,
-    fontSize: 13,
-    fontFamily: FontFamily.semibold,
-    marginTop: 8,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.md,
-    ...Shadow.sm,
-  },
-  loadingText: { fontSize: 13, fontFamily: FontFamily.medium, color: Colors.textLight },
-  emptyCard: {
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    ...Shadow.sm,
-  },
-  clientListCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  clientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  clientRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  clientInfo: { flex: 1, minWidth: 0 },
-  clientName: { fontSize: 15, fontFamily: headingFont.bold, color: Colors.textDark },
-  clientMeta: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    marginTop: 2,
-  },
-  tipsCard: {
-    backgroundColor: Colors.backgroundTan,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  tipsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: Spacing.xs,
-  },
-  tipsTitle: {
-    fontSize: 13,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-  },
-  tipRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingVertical: 3,
-  },
-  tipDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: Colors.secondary,
-    marginTop: 6,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    lineHeight: 17,
   },
 });

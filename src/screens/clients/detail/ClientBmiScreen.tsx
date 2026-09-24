@@ -7,13 +7,10 @@ import { useCheckupProfile } from '../../../hooks/useCheckupProfile';
 import { getErrorMessage } from '../../../api/client';
 import { queryKeys } from '../../../api/queryKeys';
 import { getCurrentCoachCode } from '../../../auth/session';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { CheckupsStackParamList, ClientsStackParamList } from '../../../types/navigation';
+import type { DashboardStackScreenProps } from '../../../types/navigation';
 import { navigateBack } from '../../../utils/navigationBack';
 
-type ClientBmiScreenProps =
-  | NativeStackScreenProps<ClientsStackParamList, 'ClientBmi'>
-  | NativeStackScreenProps<CheckupsStackParamList, 'ClientBmi'>;
+type ClientBmiScreenProps = DashboardStackScreenProps<'ClientBmi'>;
 
 /** Full checkup: all wizard phases with previous assessment data pre-filled. */
 export default function ClientBmiScreen({ navigation, route }: ClientBmiScreenProps) {

@@ -2,28 +2,19 @@ import React from 'react';
 import { Image, StyleSheet, type StyleProp, type ImageStyle } from 'react-native';
 import { BrandImages, LOGO_ASPECT } from '../constants/images';
 
-type BrandLogoVariant = 'full' | 'mark' | 'wordmark';
-
 interface BrandLogoProps {
-  /** Height in points; width follows the variant aspect ratio. */
+  /** Height in points; width follows the full-logo aspect ratio. */
   size?: number;
-  variant?: BrandLogoVariant;
   style?: StyleProp<ImageStyle>;
 }
 
-const SOURCES: Record<BrandLogoVariant, number> = {
-  full: BrandImages.logoFull,
-  mark: BrandImages.logoMark,
-  wordmark: BrandImages.logoWordmark,
-};
-
-export default function BrandLogo({ size = 60, variant = 'full', style }: BrandLogoProps) {
+export default function BrandLogo({ size = 60, style }: BrandLogoProps) {
   const height = size;
-  const width = size * LOGO_ASPECT[variant];
+  const width = size * LOGO_ASPECT.full;
 
   return (
     <Image
-      source={SOURCES[variant]}
+      source={BrandImages.logoFull}
       accessibilityLabel="Mera Coach"
       style={[styles.image, { width, height }, style]}
       resizeMode="contain"

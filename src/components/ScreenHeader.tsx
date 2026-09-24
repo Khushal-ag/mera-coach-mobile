@@ -56,9 +56,9 @@ export function HeaderBackButton({
       accessibilityLabel={accessibilityLabel}
     >
       <Ionicons
-        name="arrow-back"
+        name="chevron-back-outline"
         size={IconSize.lg}
-        color={onDark ? Colors.white : Colors.textDark}
+        color={onDark ? Colors.white : Colors.headerGradientBottom}
       />
     </TouchableOpacity>
   );
@@ -93,7 +93,7 @@ export function HeaderHomeButton({
       <Ionicons
         name="home-outline"
         size={IconSize.lg}
-        color={onDark ? Colors.white : Colors.textDark}
+        color={onDark ? Colors.white : Colors.headerGradientBottom}
       />
     </TouchableOpacity>
   );

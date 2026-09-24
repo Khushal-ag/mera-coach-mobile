@@ -292,7 +292,6 @@ function CoachProfilePage({
       <KeyboardSafeScroll
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
         keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
         directionalLockEnabled
         nestedScrollEnabled
@@ -966,7 +965,6 @@ const styles = StyleSheet.create({
     width: 14,
     borderRadius: 3,
   },
-  scrollContent: { flexGrow: 1 },
   photoBanner: {
     width: '100%',
     // Portrait-leaning frame so cover crops less of typical coach headshots.

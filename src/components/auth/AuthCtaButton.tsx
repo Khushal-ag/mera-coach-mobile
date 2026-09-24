@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthLayout } from '../../constants/authLayout';
 import {
   Colors,
   IconSize,
@@ -34,7 +35,6 @@ interface AuthCtaButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const AUTH_CTA_HEIGHT = 48;
 const SIDE_INSET = 10;
 
 /** Pill CTAs for auth: centered label; side icons absolutely positioned. */
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   inner: {
-    height: AUTH_CTA_HEIGHT,
+    height: AuthLayout.buttonHeight,
     borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

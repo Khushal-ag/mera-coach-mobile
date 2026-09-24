@@ -15,6 +15,7 @@ import {
   FontFamily,
   PressOpacity,
   Radius,
+  ScreenPad,
   Shadow,
   Spacing,
   Typography,
@@ -45,6 +46,8 @@ interface MenuItem {
   label: string;
   color: string;
   route?: keyof ProfileStackParamList;
+  /** Cross-tab destinations (Packages / Events tabs). */
+  tab?: 'Packages' | 'Events';
   action?: 'support' | 'deleteAccount' | 'logout';
 }
 
@@ -59,13 +62,13 @@ const publicProfileItems: MenuItem[] = [
     icon: 'pricetags-outline',
     label: 'Packages',
     color: Colors.accent,
-    route: 'EditPackages',
+    tab: 'Packages',
   },
   {
     icon: 'calendar-outline',
     label: 'Events',
     color: Colors.primary,
-    route: 'EditEvents',
+    tab: 'Events',
   },
 ];
 
@@ -187,6 +190,14 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '-';
 
   const handleMenuPress = async (item: MenuItem) => {
+    if (item.tab === 'Packages') {
+      navigation.navigate('Packages', { screen: 'PackagesHome' });
+      return;
+    }
+    if (item.tab === 'Events') {
+      navigation.navigate('Events', { screen: 'EventsHome' });
+      return;
+    }
     if (item.route) {
       navigation.navigate(item.route);
       return;
@@ -206,6 +217,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={{ paddingBottom: ScreenPad.tabBarClearance }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />

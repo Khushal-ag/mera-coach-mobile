@@ -37,7 +37,10 @@ function coverBottomLayout(screenW: number, screenH: number, imageAspect: number
 export default function SplashScreen() {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const layout = coverBottomLayout(screenW, screenH, HOME_HERO_ASPECT);
+  const layout = useMemo(
+    () => coverBottomLayout(screenW, screenH, HOME_HERO_ASPECT),
+    [screenW, screenH],
+  );
 
   const targetLogoHeight = (screenW * SPLASH_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
   const headY =
@@ -100,7 +103,7 @@ export default function SplashScreen() {
           },
         ]}
       >
-        <BrandLogo variant="full" size={logoSize} />
+        <BrandLogo size={logoSize} />
       </Animated.View>
 
       <Animated.View style={[styles.loader, { opacity: loaderOpacity }]}>

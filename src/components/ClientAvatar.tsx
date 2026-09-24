@@ -23,6 +23,15 @@ const REF_TYPE = 'CLIENT';
 interface ClientAvatarProps {
   clientCode?: string;
   size?: number;
+  /**
+   * Corner radius. Defaults to a circle (`size / 2`).
+   * Ignored when `fillHeight` (card clips the photo).
+   */
+  borderRadius?: number;
+  /**
+   * Stretch to the full height of the list card; `size` is used as width only.
+   */
+  fillHeight?: boolean;
   /** Show a camera badge; tap opens camera/gallery upload. */
   allowUpload?: boolean;
   /** Optional side effect when the upload badge is pressed (e.g. analytics). */
@@ -33,6 +42,8 @@ interface ClientAvatarProps {
 export default function ClientAvatar({
   clientCode,
   size = 46,
+  borderRadius,
+  fillHeight = false,
   allowUpload = false,
   onUploadPress,
   style,
@@ -40,7 +51,7 @@ export default function ClientAvatar({
   const { photoUrl, isLoading, invalidate } = useClientPhotoUrl(clientCode);
   const [uploading, setUploading] = useState(false);
 
-  const radius = size / 2;
+  const radius = fillHeight ? 0 : (borderRadius ?? size / 2);
 
   const handleUpload = async () => {
     onUploadPress?.();
@@ -79,19 +90,37 @@ export default function ClientAvatar({
   };
 
   return (
-    <View style={[styles.wrap, { width: size, height: size }, style]}>
-      <View style={[styles.avatar, { width: size, height: size, borderRadius: radius }]}>
+    <View
+      style={[
+        styles.wrap,
+        fillHeight
+          ? { width: size, alignSelf: 'stretch', marginRight: 0 }
+          : { width: size, height: size },
+        style,
+      ]}
+    >
+      <View
+        style={[
+          styles.avatar,
+          fillHeight
+            ? { ...StyleSheet.absoluteFill, borderRadius: radius }
+            : { width: size, height: size, borderRadius: radius },
+        ]}
+      >
         {isLoading || uploading ? (
           <ActivityIndicator color={Colors.white} size="small" />
         ) : photoUrl ? (
-          <Image source={{ uri: photoUrl }} style={styles.image} />
+          <Image source={{ uri: photoUrl }} style={styles.image} resizeMode="cover" />
         ) : (
-          <Image source={BrandImages.avatarDefault} style={styles.image} />
+          <Image source={BrandImages.avatarDefault} style={styles.image} resizeMode="cover" />
         )}
       </View>
       {allowUpload && clientCode ? (
         <TouchableOpacity
-          style={[styles.uploadBadge, { right: -2, bottom: -2 }]}
+          style={[
+            styles.uploadBadge,
+            fillHeight ? { right: 6, bottom: 6 } : { right: -2, bottom: -2 },
+          ]}
           onPress={handleUpload}
           disabled={uploading}
           accessibilityRole="button"

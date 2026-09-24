@@ -33,22 +33,23 @@ const linking: LinkingOptions<RootStackParamList> = {
               DashboardHome: 'dashboard',
               Leads: 'leads',
               Notifications: 'notifications',
-            },
-          },
-          Clients: {
-            screens: {
               ClientListHome: 'clients',
               ClientDetail: 'client-detail',
               AddClient: 'add-client',
               ClientBmi: 'client-bmi',
               ClientBmiReport: 'client-bmi-report',
               ClientDietPlan: 'client-diet-plan',
+              CheckupListHome: 'checkups',
             },
           },
-          Checkups: {
+          Packages: {
             screens: {
-              CheckupListHome: 'checkups',
-              ClientBmi: 'checkup-bmi',
+              PackagesHome: 'packages',
+            },
+          },
+          Events: {
+            screens: {
+              EventsHome: 'events',
             },
           },
           Profile: {
@@ -56,8 +57,6 @@ const linking: LinkingOptions<RootStackParamList> = {
               ProfileHome: 'profile',
               EditProfile: 'edit-profile',
               EditGallery: 'edit-gallery',
-              EditPackages: 'edit-packages',
-              EditEvents: 'edit-events',
               ChangePassword: 'change-password',
               ChangeMpin: 'change-mpin',
               Legal: 'legal',

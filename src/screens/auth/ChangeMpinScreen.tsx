@@ -127,7 +127,7 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
   };
 
   return (
-    <KeyboardSafeScroll style={styles.container} contentContainerStyle={styles.inner}>
+    <KeyboardSafeScroll style={styles.container}>
       <ScreenHeader
         title={hasExisting ? 'Change MPIN' : 'Set MPIN'}
         onBack={() => navigation.goBack()}
@@ -164,7 +164,6 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  inner: { flexGrow: 1 },
   card: {
     backgroundColor: Colors.white,
     margin: Spacing.lg,

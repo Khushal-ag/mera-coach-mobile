@@ -5,10 +5,8 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
@@ -18,14 +16,13 @@ import {
   Radius,
   Spacing,
   TouchTarget,
-  formFieldStyles,
-  headingFont,
 } from '../../constants/theme';
+import { AuthLayout } from '../../constants/authLayout';
 import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';
 import AuthCtaButton from '../../components/auth/AuthCtaButton';
-import BrandLogo from '../../components/BrandLogo';
+import AuthFormHeader from '../../components/auth/AuthFormHeader';
+import { authFormStyles } from '../../components/auth/authFormStyles';
 import FormErrorBanner from '../../components/FormErrorBanner';
-import { authLogoHeight } from '../../constants/images';
 import { login } from '../../api/authApi';
 import { getLastLoginId, markMpinUnlocked, rememberLoginId } from '../../auth/mpin';
 import { didSessionExpireOnRestore, saveSession } from '../../auth/session';
@@ -36,9 +33,6 @@ import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
-  const insets = useSafeAreaInsets();
-  const { width: screenW } = useWindowDimensions();
-  const logoSize = authLogoHeight(screenW);
   const [email, setEmail] = useState(() => getLastLoginId() ?? '');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -81,30 +75,31 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 
   return (
     <AuthAtmosphereLayout>
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.xxs }]}>
-        <BrandLogo variant="full" size={logoSize} style={styles.logo} />
-      </View>
+      <AuthFormHeader
+        onBack={() => navigation.navigate('Home')}
+        backAccessibilityLabel="Back to home"
+      />
 
-      <View style={styles.form}>
+      <View style={authFormStyles.form}>
         <FormErrorBanner message={formErrorBanner} />
         {sessionHint && !formErrorBanner ? (
           <Text style={styles.sessionHint}>{sessionHint}</Text>
         ) : null}
 
-        <Text style={styles.title}>Coach Login</Text>
-        <Text style={styles.sub}>
+        <Text style={authFormStyles.title}>Coach Login</Text>
+        <Text style={authFormStyles.sub}>
           Sign in to manage your clients, track progress and make an impact.
         </Text>
 
-        <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+        <View style={[authFormStyles.inputWrap, errorFields.email && authFormStyles.inputWrapError]}>
           <Ionicons
             name="mail-outline"
             size={IconSize.md}
             color={Colors.authCtaGradientStart}
-            style={styles.inputIcon}
+            style={authFormStyles.inputIcon}
           />
           <TextInput
-            style={styles.input}
+            style={authFormStyles.input}
             placeholder="Email or Mobile Number"
             placeholderTextColor={Colors.textLight}
             keyboardType="email-address"
@@ -119,15 +114,17 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
           />
         </View>
 
-        <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
+        <View
+          style={[authFormStyles.inputWrap, errorFields.password && authFormStyles.inputWrapError]}
+        >
           <Ionicons
             name="lock-closed-outline"
             size={IconSize.md}
             color={Colors.authCtaGradientStart}
-            style={styles.inputIcon}
+            style={authFormStyles.inputIcon}
           />
           <TextInput
-            style={[styles.input, { flex: 1 }]}
+            style={[authFormStyles.input, { flex: 1 }]}
             placeholder="Password"
             placeholderTextColor={Colors.textLight}
             secureTextEntry={!showPass}
@@ -140,7 +137,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
           />
           <TouchableOpacity
             onPress={() => setShowPass(!showPass)}
-            style={styles.eyeBtn}
+            style={authFormStyles.eyeBtn}
             hitSlop={HitSlop.sm}
             activeOpacity={PressOpacity.default}
             accessibilityRole="button"
@@ -184,13 +181,13 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
           label="Login"
           onPress={() => void handleLogin()}
           loading={submitting}
-          style={styles.ctaBtn}
+          style={authFormStyles.ctaBtn}
         />
 
-        <View style={styles.orRow}>
-          <View style={styles.orLine} />
-          <Text style={styles.orText}>OR</Text>
-          <View style={styles.orLine} />
+        <View style={authFormStyles.orRow}>
+          <View style={authFormStyles.orLine} />
+          <Text style={authFormStyles.orText}>OR</Text>
+          <View style={authFormStyles.orLine} />
         </View>
 
         <AuthCtaButton
@@ -198,7 +195,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
           label="Find A coach"
           leftIcon="person-outline"
           onPress={() => navigation.navigate('CoachList')}
-          style={styles.ctaBtn}
+          style={authFormStyles.ctaBtn}
         />
       </View>
     </AuthAtmosphereLayout>
@@ -206,32 +203,6 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    alignItems: 'center',
-    paddingBottom: 0,
-    width: '100%',
-    paddingHorizontal: Spacing.lg,
-  },
-  logo: { marginBottom: 0 },
-  form: {
-    width: '88%',
-    maxWidth: 400,
-    paddingTop: Spacing.xxs,
-    backgroundColor: 'transparent',
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: headingFont.extraBold,
-    color: Colors.textDark,
-    marginBottom: 2,
-  },
-  sub: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    marginBottom: Spacing.xs,
-    lineHeight: 17,
-  },
   sessionHint: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
@@ -239,22 +210,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.sm,
     padding: Spacing.xs,
-    marginBottom: Spacing.xs,
+    marginBottom: AuthLayout.fieldGap,
     lineHeight: 16,
   },
-  inputWrap: {
-    ...formFieldStyles.wrap,
-    backgroundColor: Colors.white,
-    marginBottom: Spacing.xs,
-    height: 50,
-    borderRadius: Radius.md,
-    borderColor: Colors.border,
-    borderWidth: 1,
-  },
-  inputWrapError: formFieldStyles.wrapError,
-  inputIcon: formFieldStyles.inputIcon,
-  input: formFieldStyles.input,
-  eyeBtn: formFieldStyles.eyeBtn,
   forgotWrap: {
     alignSelf: 'flex-end',
     justifyContent: 'center',
@@ -272,7 +230,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: TouchTarget.min,
-    marginBottom: Spacing.xs,
+    marginBottom: AuthLayout.buttonGap,
   },
   linkHit: {
     justifyContent: 'center',
@@ -287,24 +245,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.bold,
     color: Colors.authCtaGradientStart,
-  },
-  ctaBtn: {
-    height: 48,
-  },
-  orRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  orLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-  },
-  orText: {
-    fontSize: 12,
-    fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
   },
 });

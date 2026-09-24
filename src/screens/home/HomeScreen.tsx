@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -48,7 +48,10 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const signedIn = useAuthState() === 'signedIn';
-  const layout = coverTopBiasLayout(screenW, screenH, HOME_HERO_ASPECT);
+  const layout = useMemo(
+    () => coverTopBiasLayout(screenW, screenH, HOME_HERO_ASPECT),
+    [screenW, screenH],
+  );
 
   const targetLogoHeight = (screenW * HOME_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
   const headY =
@@ -64,7 +67,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       navigation.navigate('Main');
       return;
     }
-    navigation.navigate('Login');
+    navigation.navigate('Register');
   };
 
   return (
@@ -77,7 +80,7 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       />
 
       <View style={[styles.topBrand, { paddingTop: insets.top + Spacing.xxs }]}>
-        <BrandLogo variant="full" size={homeLogoSize} />
+        <BrandLogo size={homeLogoSize} />
       </View>
 
       <View

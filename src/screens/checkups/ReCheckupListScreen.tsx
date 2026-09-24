@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,10 @@ import {
   Colors,
   FontFamily,
   IconSize,
+  ListPortrait,
   PressOpacity,
   Radius,
-  Shadow,
+  ScreenPad,
   Spacing,
   Typography,
   headingFont,
@@ -48,7 +49,7 @@ function describeOverdue(daysOverdue: number): string {
 }
 
 function describeLast(item: RecheckupDueClient): string {
-  if (item.lastCheckupDate) return `Last check-up ${item.lastCheckupDate}`;
+  if (item.lastCheckupDate) return `Last Check-up : ${item.lastCheckupDate}`;
   return 'No check-up recorded';
 }
 
@@ -95,67 +96,84 @@ export default function ReCheckupListScreen({
     : null;
   const showLoadError = !!errorMessage && dueClients.length === 0;
 
-  const startCheckup = (item: RecheckupDueClient) => {
-    const client: ClientSummary = {
-      id: item.clientCode,
-      clientCode: item.clientCode,
-      name: item.name,
-      mobileNo: item.mobileNo,
-      age: item.age,
-      lastCheckupDate: item.lastCheckupDate,
-    };
-    navigation.navigate('ClientBmi', { client });
-  };
+  const startCheckup = useCallback(
+    (item: RecheckupDueClient) => {
+      const client: ClientSummary = {
+        id: item.clientCode,
+        clientCode: item.clientCode,
+        name: item.name,
+        mobileNo: item.mobileNo,
+        age: item.age,
+        lastCheckupDate: item.lastCheckupDate,
+      };
+      navigation.navigate('ClientBmi', { client });
+    },
+    [navigation],
+  );
 
-  const renderRow = ({ item }: { item: RecheckupDueClient }) => {
-    const overdueLabel = item.dueDate ? describeOverdue(item.daysOverdue) : null;
+  const renderRow = useCallback(
+    ({ item }: { item: RecheckupDueClient }) => {
+      const overdueLabel = item.dueDate ? describeOverdue(item.daysOverdue) : null;
+      const mobile = (item.mobileNo ?? '').trim();
 
-    return (
-      <View style={styles.card}>
-        <ClientAvatar clientCode={item.clientCode} size={64} style={styles.avatar} />
+      return (
+        <View style={styles.card}>
+          <ClientAvatar
+            clientCode={item.clientCode}
+            size={ListPortrait.width}
+            fillHeight
+            style={styles.avatar}
+          />
 
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={2}>
-            {item.name}
-          </Text>
-          <Text style={styles.subMeta}>{describeLast(item)}</Text>
-          {item.dueDate ? (
-            <Text style={styles.dueText}>Due {item.dueDate}</Text>
-          ) : (
-            <Text style={styles.dueText}>{describeOverdue(item.daysOverdue)}</Text>
-          )}
-          {overdueLabel ? (
-            <View style={styles.overduePill}>
-              <Ionicons name="time-outline" size={IconSize.sm} color={Colors.secondary} />
-              <Text style={styles.overdueText}>{overdueLabel}</Text>
-            </View>
-          ) : null}
-          <TouchableOpacity
-            style={styles.recheckBtn}
-            onPress={() => startCheckup(item)}
-            activeOpacity={PressOpacity.default}
-            accessibilityRole="button"
-            accessibilityLabel={`Re-checkup for ${item.name}`}
-          >
-            <Ionicons name="clipboard-outline" size={IconSize.sm} color={Colors.white} />
-            <Text style={styles.recheckText}>Re-Checkup</Text>
-          </TouchableOpacity>
+          <View style={styles.info}>
+            <Text style={styles.name} numberOfLines={2}>
+              {item.name}
+            </Text>
+            {item.age != null ? (
+              <Text style={styles.subMeta}>Age: {item.age}</Text>
+            ) : null}
+            {mobile ? <Text style={styles.subMeta}>{mobile}</Text> : null}
+            <Text style={styles.subMeta}>{describeLast(item)}</Text>
+            {item.dueDate ? (
+              <Text style={styles.dueText}>Due {item.dueDate}</Text>
+            ) : (
+              <Text style={styles.dueText}>{describeOverdue(item.daysOverdue)}</Text>
+            )}
+            {overdueLabel ? (
+              <View style={styles.overduePill}>
+                <Ionicons name="time-outline" size={IconSize.sm} color={Colors.secondary} />
+                <Text style={styles.overdueText}>{overdueLabel}</Text>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              style={styles.recheckBtn}
+              onPress={() => startCheckup(item)}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel={`Re-checkup for ${item.name}`}
+            >
+              <Ionicons name="clipboard-outline" size={IconSize.sm} color={Colors.white} />
+              <Text style={styles.recheckText}>Re-Checkup</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    );
-  };
+      );
+    },
+    [startCheckup],
+  );
 
   return (
     <View style={styles.container}>
       <WaveScreenHeader
         title="Checkups"
         onBack={() => navigateToDashboard(navigation)}
+        onHome={() => navigateToDashboard(navigation)}
       />
 
       <View style={styles.body}>
         <SearchField
           style={styles.search}
-          placeholder="Search name. mobile, email"
+          placeholder="Search name, mobile, email"
           value={search}
           onChangeText={onSearchChange}
           accessibilityLabel="Search checkups"
@@ -186,7 +204,7 @@ export default function ReCheckupListScreen({
           <>
             {!dueQuery.isPending ? (
               <View style={styles.summaryChip}>
-                <Ionicons name="people" size={IconSize.lg} color={Colors.secondary} />
+                <Ionicons name="people-outline" size={IconSize.lg} color={Colors.secondary} />
                 <Text style={styles.summaryText}>
                   {dueClients.length} Due for re-checkup
                 </Text>
@@ -201,7 +219,7 @@ export default function ReCheckupListScreen({
               windowSize={5}
               contentContainerStyle={[
                 visible.length === 0 ? styles.emptyWrap : undefined,
-                { paddingBottom: Spacing.md },
+                { paddingBottom: ScreenPad.tabBarClearance },
               ]}
               refreshControl={
                 <RefreshControl
@@ -243,7 +261,11 @@ export default function ReCheckupListScreen({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  body: { flex: 1, paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
+  body: {
+    flex: 1,
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.sm,
+  },
   search: { marginBottom: Spacing.sm },
   loader: { marginTop: Spacing.xl - 2 },
   summaryChip: {
@@ -265,31 +287,34 @@ const styles = StyleSheet.create({
   errorWrap: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
     backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
     marginBottom: Spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    ...Shadow.sm,
   },
   avatar: {
-    marginRight: Spacing.sm,
-    borderRadius: Radius.sm + 2,
+    marginRight: 0,
   },
-  info: { flex: 1, minWidth: 0 },
+  info: {
+    flex: 1,
+    minWidth: 0,
+    padding: ListPortrait.contentPad,
+  },
   name: {
-    fontSize: 15,
+    fontSize: 18,
     fontFamily: headingFont.bold,
     color: Colors.textDark,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   subMeta: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    marginTop: 4,
+    color: Colors.textDark,
+    marginTop: 3,
+    lineHeight: 18,
   },
   dueText: {
     fontSize: 13,
@@ -320,10 +345,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs + 2,
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.md + 2,
     paddingVertical: Spacing.xs,
     marginTop: Spacing.sm,
-    minHeight: 34,
+    minHeight: 36,
   },
   recheckText: {
     color: Colors.white,

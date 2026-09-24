@@ -1,177 +1,135 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  ImageBackground,
-  StyleSheet,
-  Dimensions,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-} from 'react-native';
+import React from 'react';
+import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
-  Radius,
+  HitSlop,
+  PressOpacity,
+  ScreenPad,
   Shadow,
   Spacing,
   headingFont,
 } from '../../constants/theme';
-import { BrandImages } from '../../constants/images';
+import { BrandImages, TIPS_COACH_ASPECT } from '../../constants/images';
 
-interface CarouselSlide {
-  image: (typeof BrandImages)[keyof typeof BrandImages];
-  headline: string;
-  subline: string;
+const CARD_WIDTH = Dimensions.get('window').width - ScreenPad.horizontal * 2;
+const CARD_HEIGHT = Math.round(CARD_WIDTH / TIPS_COACH_ASPECT);
+const CARD_RADIUS = 20;
+
+interface DashboardCarouselProps {
+  onStartNow?: () => void;
+  onViewAll?: () => void;
 }
 
-const SLIDE_WIDTH = Dimensions.get('window').width - Spacing.md * 2;
-const SLIDE_HEIGHT = 188;
-const SNAP = SLIDE_WIDTH + Spacing.sm;
-const AUTO_ADVANCE_MS = 5200;
-
-const SLIDES: CarouselSlide[] = [
-  {
-    image: BrandImages.dashboardSlide1,
-    headline: 'Keep clients on track',
-    subline: 'BMI, goals, and the next check-up.',
-  },
-  {
-    image: BrandImages.dashboardSlide2,
-    headline: 'Fuel their training',
-    subline: 'Meal plans that match every assessment.',
-  },
-  {
-    image: BrandImages.dashboardSlide3,
-    headline: 'Follow up on leads',
-    subline: 'Reach enquiries before they go cold.',
-  },
-];
-
-export default function DashboardCarousel() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const indexRef = useRef(0);
-  const userScrolling = useRef(false);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (userScrolling.current) return;
-      const next = (indexRef.current + 1) % SLIDES.length;
-      indexRef.current = next;
-      setActiveIndex(next);
-      scrollRef.current?.scrollTo({ x: next * SNAP, animated: true });
-    }, AUTO_ADVANCE_MS);
-    return () => clearInterval(id);
-  }, []);
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x;
-    const index = Math.round(x / SNAP);
-    if (index !== activeIndex && index >= 0 && index < SLIDES.length) {
-      indexRef.current = index;
-      setActiveIndex(index);
-    }
-  };
+export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCarouselProps) {
+  const openTip = onStartNow ?? onViewAll;
 
   return (
     <View style={styles.wrap}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled={false}
-        decelerationRate="fast"
-        snapToInterval={SNAP}
-        snapToAlignment="start"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        onScrollBeginDrag={() => {
-          userScrolling.current = true;
-        }}
-        onMomentumScrollEnd={() => {
-          userScrolling.current = false;
-        }}
-      >
-        {SLIDES.map(slide => (
-          <View key={slide.headline} style={styles.slide}>
-            <ImageBackground
-              source={slide.image}
-              style={styles.image}
-              imageStyle={styles.imageRadius}
-              resizeMode="cover"
-            >
-              <View style={styles.scrim}>
-                <Text style={styles.headline}>{slide.headline}</Text>
-                <Text style={styles.subline}>{slide.subline}</Text>
-              </View>
-            </ImageBackground>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.bulbWrap}>
+            <Ionicons name="bulb-outline" size={22} color={Colors.white} />
           </View>
-        ))}
-      </ScrollView>
-      <View style={styles.dots}>
-        {SLIDES.map((slide, i) => (
-          <View key={slide.headline} style={[styles.dot, i === activeIndex && styles.dotActive]} />
-        ))}
+          <Text style={styles.headerTitle}>Tips for your week</Text>
+        </View>
+        {onViewAll ? (
+          <TouchableOpacity
+            style={styles.viewAllBtn}
+            onPress={onViewAll}
+            hitSlop={HitSlop.sm}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel="View all tips"
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <Ionicons name="arrow-forward" size={15} color={Colors.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      <View style={styles.card}>
+        <Image source={BrandImages.tipsCoach} style={styles.hero} resizeMode="cover" />
+        {openTip ? (
+          <>
+            <TouchableOpacity
+              style={styles.startHit}
+              onPress={openTip}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel="Start now: Your Personal Coach Awaits"
+            />
+            <TouchableOpacity
+              style={styles.playHit}
+              onPress={openTip}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel="Open tip: Your Personal Coach Awaits"
+            />
+          </>
+        ) : null}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: Spacing.xs },
-  scrollContent: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
+  wrap: {
+    marginTop: Spacing.xs,
+    paddingHorizontal: ScreenPad.horizontal,
   },
-  slide: {
-    width: SLIDE_WIDTH,
-    height: SLIDE_HEIGHT,
-    borderRadius: Radius.lg,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 },
+  bulbWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: headingFont.bold,
+    color: Colors.textDark,
+  },
+  viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  viewAllText: {
+    color: Colors.secondary,
+    fontSize: 14,
+    fontFamily: FontFamily.semibold,
+  },
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: CARD_RADIUS,
     overflow: 'hidden',
+    backgroundColor: Colors.tipsPanel,
     ...Shadow.md,
   },
-  image: { flex: 1 },
-  imageRadius: { borderRadius: Radius.lg },
-  scrim: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    paddingTop: Spacing.xl,
-    backgroundColor: Colors.heroScrim,
+  hero: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
   },
-  headline: {
-    color: Colors.white,
-    fontSize: 20,
-    fontFamily: headingFont.bold,
-    lineHeight: 26,
+  startHit: {
+    position: 'absolute',
+    left: Spacing.md,
+    bottom: Spacing.md,
+    width: 128,
+    height: 44,
   },
-  subline: {
-    color: Colors.onDarkMuted,
-    fontSize: 13,
-    fontFamily: FontFamily.medium,
-    marginTop: 5,
-    lineHeight: 18,
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: Spacing.sm,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.border,
-  },
-  dotActive: {
-    width: 20,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.secondary,
+  playHit: {
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.md,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
 });

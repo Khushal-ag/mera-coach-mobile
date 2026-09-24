@@ -1,6 +1,4 @@
 import {
-  Montserrat_400Regular,
-  Montserrat_500Medium,
   Montserrat_600SemiBold,
   Montserrat_700Bold,
   Montserrat_800ExtraBold,
@@ -14,8 +12,6 @@ import {
 } from '@expo-google-fonts/poppins';
 
 export const fontMap = {
-  Montserrat_400Regular,
-  Montserrat_500Medium,
   Montserrat_600SemiBold,
   Montserrat_700Bold,
   Montserrat_800ExtraBold,

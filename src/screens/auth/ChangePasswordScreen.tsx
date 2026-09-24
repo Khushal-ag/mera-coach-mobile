@@ -125,7 +125,6 @@ export default function ChangePasswordScreen({
       <KeyboardSafeScroll
         ref={scrollRef}
         style={styles.body}
-        contentContainerStyle={styles.inner}
         keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
       >
         <View style={styles.card}>
@@ -178,7 +177,6 @@ export default function ChangePasswordScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   body: { flex: 1 },
-  inner: { flexGrow: 1 },
   card: {
     backgroundColor: Colors.white,
     margin: Spacing.lg,

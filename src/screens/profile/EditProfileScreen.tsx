@@ -15,14 +15,15 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  IconSize,
   PressOpacity,
   Radius,
   Shadow,
   Spacing,
   Typography,
   formFieldStyles,
+  headingFont,
 } from '../../constants/theme';
-import AppButton from '../../components/AppButton';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import DropdownField from '../../components/DropdownField';
 import FormErrorBanner from '../../components/FormErrorBanner';
@@ -31,11 +32,13 @@ import KeyboardSafeScroll, {
   STICKY_FOOTER_KEYBOARD_PADDING,
   useScrollLowerFieldsIntoView,
 } from '../../components/KeyboardSafeScroll';
-import ScreenHeader from '../../components/ScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import ReloadState from '../../components/ReloadState';
 import MultiSelectField from '../../components/MultiSelectField';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
+import type { IoniconName } from '../../types/icons';
+import { navigateToDashboard } from '../../utils/navigationBack';
 import {
   getCoachProfileFull,
   getCoachCategories,
@@ -86,10 +89,14 @@ export default function EditProfileScreen({ navigation }: ProfileStackScreenProp
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Edit Profile" onBack={() => navigation.goBack()} />
+      <WaveScreenHeader
+        title="Edit Profile"
+        onBack={() => navigation.goBack()}
+        onHome={() => navigateToDashboard(navigation)}
+      />
 
       {profileQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
+        <ActivityIndicator color={Colors.secondary} style={{ marginTop: 60 }} />
       ) : errorMessage ? (
         <ReloadState
           title="Could not load profile"
@@ -120,6 +127,7 @@ interface EditProfileFormProps {
 function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
   const scrollRef = useRef<ScrollView>(null);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
+  const [step, setStep] = useState<1 | 2>(1);
   const [coachName, setCoachName] = useState(profile.coachName);
   // Empty until categories load or user picks; display falls back to profile type label.
   const [categoryLabel, setCategoryLabel] = useState(
@@ -281,22 +289,25 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       setBanner('Please wait for the image upload to finish.');
       return;
     }
-    if (
-      applyValidation(
-        validateCoachProfileEdit({
-          coachName,
-          categoryCode,
-          mobile,
-          email,
-          pinCode,
-          experienceYears,
-          happyClientCount,
-          certificationCount,
-          coachDesc,
-          addLine,
-        }),
-      )
-    ) {
+    const validation = validateCoachProfileEdit({
+      coachName,
+      categoryCode,
+      mobile,
+      email,
+      pinCode,
+      experienceYears,
+      happyClientCount,
+      certificationCount,
+      coachDesc,
+      addLine,
+    });
+    if (applyValidation(validation)) {
+      if (!validation.ok) {
+        const step1Keys = ['coachName', 'category', 'mobile', 'email'];
+        if (step1Keys.some(k => validation.errors[k])) {
+          setStep(1);
+        }
+      }
       return;
     }
 
@@ -387,6 +398,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         contentContainerStyle={styles.bodyContent}
         keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
       >
+        <StepIndicator step={step} />
+
         <FormErrorBanner message={formErrorBanner || pinLookup.error} />
 
         {!liveCompletion.isPublicReady || liveCompletion.percent < 100 ? (
@@ -399,297 +412,425 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           </View>
         ) : null}
 
-        <FormSection title="Photos" hint="A clear photo helps clients recognize you.">
-          <View style={styles.imagesRow}>
-            <ImagePickerTile
-              label="Profile Photo"
-              uri={resolveMediaUrl(profilePicUrl)}
-              uploading={uploadingPhoto}
-              onPress={() => pickImage('photo')}
-            />
-            <ImagePickerTile
-              label="Logo"
-              uri={resolveMediaUrl(logoUrl)}
-              uploading={uploadingLogo}
-              onPress={() => pickImage('logo')}
-            />
-          </View>
-        </FormSection>
-
-        <FormSection title="Identity" hint="Name and category appear on your public card.">
-          <Field
-            label="Coach Name"
-            value={coachName}
-            onChangeText={v => {
-              setCoachName(v);
-              clearFieldError('coachName');
-            }}
-            required
-            hasError={!!errorFields.coachName}
-          />
-          <DropdownField
-            label="Category"
-            value={resolvedCategoryLabel}
-            options={categories.map(c => c.label)}
-            onChange={v => {
-              setCategoryLabel(v);
-              clearFieldError('category');
-            }}
-            placeholder="Select category"
-            required
-            hasError={!!errorFields.category}
-          />
-          <View style={styles.field}>
-            <FormFieldLabel required>Mobile</FormFieldLabel>
-            <View style={[styles.inputWrap, styles.inputReadOnly]}>
-              <PhoneTextInput
-                style={styles.input}
-                value={mobile}
-                onChangeText={() => {}}
-                editable={false}
-                placeholderTextColor={Colors.textLight}
-              />
-            </View>
-            <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
-          </View>
-          <View style={styles.field}>
-            <FormFieldLabel required>Email</FormFieldLabel>
-            <View
-              style={[
-                styles.inputWrap,
-                styles.inputReadOnly,
-                errorFields.email && styles.inputError,
-              ]}
+        {step === 1 ? (
+          <>
+            <FormSection
+              icon="person-outline"
+              title="Identify"
+              hint="Name and category appear on your public card"
             >
-              <TextInput
-                style={styles.input}
-                value={email}
-                editable={false}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor={Colors.textLight}
-              />
-            </View>
-            <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
-          </View>
-        </FormSection>
-
-        <FormSection title="Professional" hint="These fields power your Find a Coach listing.">
-          <Field label="Business Name" value={businessName} onChangeText={setBusinessName} />
-          <View style={styles.row}>
-            <View style={styles.half}>
               <Field
-                label="Experience (yrs)"
-                value={experienceYears}
+                label="Coach Name"
+                value={coachName}
                 onChangeText={v => {
-                  setExperienceYears(v);
-                  clearFieldError('experienceYears');
+                  setCoachName(v);
+                  clearFieldError('coachName');
                 }}
-                keyboardType="numeric"
                 required
-                hasError={!!errorFields.experienceYears}
+                hasError={!!errorFields.coachName}
               />
-            </View>
-            <View style={styles.half}>
-              <Field
-                label="Happy Clients"
-                value={happyClientCount}
-                onChangeText={v => {
-                  setHappyClientCount(v);
-                  clearFieldError('happyClientCount');
+              <DropdownField
+                label="Category"
+                value={resolvedCategoryLabel}
+                options={categories.map(c => c.label)}
+                onChange={v => {
+                  setCategoryLabel(v);
+                  clearFieldError('category');
                 }}
-                keyboardType="numeric"
+                placeholder="Select category"
                 required
-                hasError={!!errorFields.happyClientCount}
+                hasError={!!errorFields.category}
               />
-            </View>
-          </View>
-          <Text style={styles.fieldHint}>
-            Shown as Clients on your public card. Update it for the number others see — not your
-            live roster count.
-          </Text>
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Field
-                label="Certifications"
-                value={certificationCount}
-                onChangeText={v => {
-                  setCertificationCount(v);
-                  clearFieldError('certificationCount');
-                }}
-                keyboardType="numeric"
-                hasError={!!errorFields.certificationCount}
-              />
-            </View>
-            <View style={styles.half}>
-              <Field label="Tagline" value={tagline} onChangeText={setTagline} />
-            </View>
-          </View>
-
-          <MultiSelectField
-            label="Services"
-            value={resolvedServiceLabels}
-            options={serviceOptions.map(s => s.label)}
-            onChange={setServiceLabels}
-            placeholder={servicesQuery.isPending ? 'Loading services...' : 'Select services'}
-          />
-
-          <View style={styles.field}>
-            <FormFieldLabel required>About / Description</FormFieldLabel>
-            <TextInput
-              style={[styles.textarea, errorFields.coachDesc && styles.textareaError]}
-              multiline
-              numberOfLines={4}
-              value={coachDesc}
-              onChangeText={v => {
-                setCoachDesc(v);
-                clearFieldError('coachDesc');
-              }}
-              placeholder="Tell clients about your coaching style and experience"
-              placeholderTextColor={Colors.textLight}
-              onFocus={scrollLowerFieldsIntoView}
-            />
-            <Text style={styles.suggestLabel}>Suggested descriptions (tap to use)</Text>
-            <View style={styles.suggestChips}>
-              {descriptionSuggestions.map((text, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={styles.suggestChip}
-                  onPress={() => {
-                    setCoachDesc(text);
-                    clearFieldError('coachDesc');
-                  }}
-                  activeOpacity={PressOpacity.default}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Use suggestion: ${text.slice(0, 48)}`}
-                >
-                  <Text style={styles.suggestChipText} numberOfLines={3}>
-                    {text}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </FormSection>
-
-        <FormSection
-          title="Plan & report settings"
-          hint="Used for diet plans and BMI reports. Language is stored as a code (e.g. hi)."
-        >
-          <DropdownField
-            label="Local language"
-            value={localLanguage}
-            options={LOCAL_LANGUAGE_OPTIONS}
-            onChange={setLocalLanguage}
-            placeholder="Select language"
-          />
-          <Field
-            label="BMI report template"
-            value={bmiReportTemplate}
-            onChangeText={setBmiReportTemplate}
-            onFocus={scrollLowerFieldsIntoView}
-            autoCapitalize="none"
-          />
-          <Field
-            label="Diet plan template"
-            value={dietChartTemplate}
-            onChangeText={setDietChartTemplate}
-            onFocus={scrollLowerFieldsIntoView}
-            autoCapitalize="none"
-          />
-        </FormSection>
-
-        <FormSection title="Address" hint="Enter pincode to auto-fill city and state.">
-          <View style={styles.row}>
-            <View style={styles.half}>
               <View style={styles.field}>
-                <FormFieldLabel required>Pin Code</FormFieldLabel>
+                <FormFieldLabel required>Mobile</FormFieldLabel>
+                <View style={[styles.inputWrap, styles.inputReadOnly]}>
+                  <PhoneTextInput
+                    style={styles.input}
+                    value={mobile}
+                    onChangeText={() => {}}
+                    editable={false}
+                    placeholderTextColor={Colors.textLight}
+                  />
+                </View>
+                <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
+              </View>
+              <View style={styles.field}>
+                <FormFieldLabel required>Email</FormFieldLabel>
                 <View
                   style={[
                     styles.inputWrap,
-                    styles.pinInputWrap,
-                    (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
+                    styles.inputReadOnly,
+                    errorFields.email && styles.inputError,
                   ]}
                 >
                   <TextInput
-                    style={[styles.input, styles.pinInput]}
-                    value={pinCode}
-                    onChangeText={v => {
-                      setPinCode(sanitizePinInput(v));
-                      clearFieldError('pinCode');
-                    }}
-                    keyboardType="number-pad"
-                    maxLength={6}
+                    style={styles.input}
+                    value={email}
+                    editable={false}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                     placeholderTextColor={Colors.textLight}
-                    onFocus={scrollLowerFieldsIntoView}
                   />
-                  {pinLookup.lookingUp ? (
-                    <ActivityIndicator
-                      color={Colors.primary}
-                      size="small"
-                      style={styles.pinLoader}
-                    />
-                  ) : null}
+                </View>
+                <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
+              </View>
+            </FormSection>
+
+            <FormSection
+              icon="camera-outline"
+              title="Photo"
+              hint="A Clear photo helps clients recognize you."
+            >
+              <View style={styles.imagesDash}>
+                <ImagePickerTile
+                  label="Profile Photo"
+                  uri={resolveMediaUrl(profilePicUrl)}
+                  uploading={uploadingPhoto}
+                  onPress={() => pickImage('photo')}
+                />
+                <View style={styles.imagesDivider} />
+                <ImagePickerTile
+                  label="Logo"
+                  uri={resolveMediaUrl(logoUrl)}
+                  uploading={uploadingLogo}
+                  onPress={() => pickImage('logo')}
+                />
+              </View>
+            </FormSection>
+          </>
+        ) : (
+          <>
+            <FormSection
+              icon="briefcase-outline"
+              title="Professional"
+              hint="These fields power your find a coach listing"
+            >
+              <Field label="Business Name" value={businessName} onChangeText={setBusinessName} />
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Field
+                    label="Experience(yrs)"
+                    value={experienceYears}
+                    onChangeText={v => {
+                      setExperienceYears(v);
+                      clearFieldError('experienceYears');
+                    }}
+                    keyboardType="numeric"
+                    required
+                    hasError={!!errorFields.experienceYears}
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Field
+                    label="Happy Client(yrs)"
+                    value={happyClientCount}
+                    onChangeText={v => {
+                      setHappyClientCount(v);
+                      clearFieldError('happyClientCount');
+                    }}
+                    keyboardType="numeric"
+                    required
+                    hasError={!!errorFields.happyClientCount}
+                  />
                 </View>
               </View>
-            </View>
-            <View style={styles.half}>
+              <Text style={styles.fieldHint}>
+                Shown as Clients on your public card. Update it for the number others see — not your
+                live roster count.
+              </Text>
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Field
+                    label="Certifications"
+                    value={certificationCount}
+                    onChangeText={v => {
+                      setCertificationCount(v);
+                      clearFieldError('certificationCount');
+                    }}
+                    keyboardType="numeric"
+                    required
+                    hasError={!!errorFields.certificationCount}
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Field
+                    label="Tagline"
+                    value={tagline}
+                    onChangeText={setTagline}
+                    required
+                  />
+                </View>
+              </View>
+
+              <MultiSelectField
+                label="Services"
+                value={resolvedServiceLabels}
+                options={serviceOptions.map(s => s.label)}
+                onChange={setServiceLabels}
+                placeholder={servicesQuery.isPending ? 'Loading services...' : 'Select services'}
+                required
+              />
+            </FormSection>
+
+            <FormSection icon="clipboard-outline" title="About/ Description">
+              <View style={styles.field}>
+                <FormFieldLabel required>About/ Description</FormFieldLabel>
+                <TextInput
+                  style={[styles.textarea, errorFields.coachDesc && styles.textareaError]}
+                  multiline
+                  numberOfLines={4}
+                  value={coachDesc}
+                  onChangeText={v => {
+                    setCoachDesc(v);
+                    clearFieldError('coachDesc');
+                  }}
+                  placeholder="Tell clients about your coaching style and experience"
+                  placeholderTextColor={Colors.textLight}
+                  onFocus={scrollLowerFieldsIntoView}
+                />
+                <Text style={styles.suggestLabel}>Suggested Description (tap to use)</Text>
+                <View style={styles.suggestChips}>
+                  {descriptionSuggestions.map((text, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={styles.suggestChip}
+                      onPress={() => {
+                        setCoachDesc(text);
+                        clearFieldError('coachDesc');
+                      }}
+                      activeOpacity={PressOpacity.default}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use suggestion: ${text.slice(0, 48)}`}
+                    >
+                      <Text style={styles.suggestChipText} numberOfLines={4}>
+                        {text}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </FormSection>
+
+            <FormSection
+              icon="document-text-outline"
+              title="Plan & report settings"
+              hint="Used for diet plans and BMI reports. Language is stored as a code (e.g. hi)."
+            >
               <DropdownField
-                label="Country"
-                value={countryLabel}
-                options={countries.map(c => c.label)}
-                onChange={setCountryLabel}
-                placeholder="Select country"
+                label="Local language"
+                value={localLanguage}
+                options={LOCAL_LANGUAGE_OPTIONS}
+                onChange={setLocalLanguage}
+                placeholder="Select language"
               />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.half}>
               <Field
-                label="City"
-                value={cityCd}
-                onChangeText={setCityCd}
+                label="BMI report template"
+                value={bmiReportTemplate}
+                onChangeText={setBmiReportTemplate}
+                onFocus={scrollLowerFieldsIntoView}
+                autoCapitalize="none"
+              />
+              <Field
+                label="Diet plan template"
+                value={dietChartTemplate}
+                onChangeText={setDietChartTemplate}
+                onFocus={scrollLowerFieldsIntoView}
+                autoCapitalize="none"
+              />
+            </FormSection>
+
+            <FormSection
+              icon="location-outline"
+              title="Address"
+              hint="Enter pincode to auto-fill city and state."
+            >
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <View style={styles.field}>
+                    <FormFieldLabel required>Pin Code</FormFieldLabel>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        styles.pinInputWrap,
+                        (errorFields.pinCode || !!pinLookup.error) && styles.inputError,
+                      ]}
+                    >
+                      <TextInput
+                        style={[styles.input, styles.pinInput]}
+                        value={pinCode}
+                        onChangeText={v => {
+                          setPinCode(sanitizePinInput(v));
+                          clearFieldError('pinCode');
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        placeholderTextColor={Colors.textLight}
+                        onFocus={scrollLowerFieldsIntoView}
+                      />
+                      {pinLookup.lookingUp ? (
+                        <ActivityIndicator
+                          color={Colors.secondary}
+                          size="small"
+                          style={styles.pinLoader}
+                        />
+                      ) : null}
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.half}>
+                  <DropdownField
+                    label="Country"
+                    value={countryLabel}
+                    options={countries.map(c => c.label)}
+                    onChange={setCountryLabel}
+                    placeholder="Select country"
+                  />
+                </View>
+              </View>
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Field
+                    label="City"
+                    value={cityCd}
+                    onChangeText={setCityCd}
+                    onFocus={scrollLowerFieldsIntoView}
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Field
+                    label="State"
+                    value={stateCd}
+                    onChangeText={setStateCd}
+                    onFocus={scrollLowerFieldsIntoView}
+                  />
+                </View>
+              </View>
+              <Field
+                label="Locality"
+                value={locality}
+                onChangeText={setLocality}
                 onFocus={scrollLowerFieldsIntoView}
               />
-            </View>
-            <View style={styles.half}>
               <Field
-                label="State"
-                value={stateCd}
-                onChangeText={setStateCd}
+                label="Address Line"
+                value={addLine}
+                onChangeText={v => {
+                  setAddLine(v);
+                  clearFieldError('addLine');
+                }}
+                required
+                hasError={!!errorFields.addLine}
                 onFocus={scrollLowerFieldsIntoView}
               />
-            </View>
-          </View>
-          <Field
-            label="Locality"
-            value={locality}
-            onChangeText={setLocality}
-            onFocus={scrollLowerFieldsIntoView}
-          />
-          <Field
-            label="Address Line"
-            value={addLine}
-            onChangeText={v => {
-              setAddLine(v);
-              clearFieldError('addLine');
-            }}
-            required
-            hasError={!!errorFields.addLine}
-            onFocus={scrollLowerFieldsIntoView}
-          />
-        </FormSection>
+            </FormSection>
+          </>
+        )}
       </KeyboardSafeScroll>
 
       <StickyFooter>
-        <AppButton
-          label="Save Changes"
-          onPress={() => void handleSave()}
-          loading={saving}
-          disabled={uploadingLogo || uploadingPhoto}
-          icon="checkmark"
-        />
+        <View style={styles.stepFooter}>
+          <TouchableOpacity
+            style={styles.prevBtn}
+            onPress={() => {
+              if (step === 1) {
+                onDone();
+                return;
+              }
+              setStep(1);
+              scrollRef.current?.scrollTo({ y: 0, animated: false });
+            }}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel="Previous"
+          >
+            <Text style={styles.prevBtnText}>Previous</Text>
+            <View style={styles.prevIconCircle}>
+              <Ionicons
+                name="chevron-back-outline"
+                size={IconSize.sm}
+                color={Colors.white}
+              />
+            </View>
+          </TouchableOpacity>
+
+          {step === 1 ? (
+            <TouchableOpacity
+              style={styles.nextBtn}
+              onPress={() => {
+                setStep(2);
+                scrollRef.current?.scrollTo({ y: 0, animated: false });
+              }}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel="Next"
+            >
+              <Text style={styles.nextBtnText}>Next</Text>
+              <View style={styles.nextIconCircle}>
+                <Ionicons
+                  name="chevron-forward-outline"
+                  size={IconSize.sm}
+                  color={Colors.secondary}
+                />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.nextBtn,
+                (saving || uploadingLogo || uploadingPhoto) && styles.nextBtnDisabled,
+              ]}
+              onPress={() => void handleSave()}
+              disabled={saving || uploadingLogo || uploadingPhoto}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel="Save Changes"
+              accessibilityState={{ busy: saving }}
+            >
+              {saving ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <>
+                  <Text style={styles.nextBtnText}>Save Changes</Text>
+                  <Ionicons
+                    name="checkmark-outline"
+                    size={IconSize.md}
+                    color={Colors.white}
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </StickyFooter>
+    </View>
+  );
+}
+
+function StepIndicator({ step }: { step: 1 | 2 }) {
+  return (
+    <View style={styles.stepRow} accessibilityRole="summary">
+      <View style={styles.stepItem}>
+        <View style={[styles.stepCircle, styles.stepCircleActive]}>
+          <Text style={styles.stepCircleText}>1</Text>
+        </View>
+        <Text style={[styles.stepLabel, styles.stepLabelActive]} numberOfLines={2}>
+          Photo/ Identify
+        </Text>
+      </View>
+      <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
+      <View style={styles.stepItem}>
+        <View style={[styles.stepCircle, step === 2 && styles.stepCircleActive]}>
+          <Text style={[styles.stepCircleText, step !== 2 && styles.stepCircleTextInactive]}>
+            2
+          </Text>
+        </View>
+        <Text
+          style={[styles.stepLabel, step === 2 && styles.stepLabelActive]}
+          numberOfLines={2}
+        >
+          Professional & About/Description
+        </Text>
+      </View>
     </View>
   );
 }
@@ -697,16 +838,27 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
 function FormSection({
   title,
   hint,
+  icon,
   children,
 }: {
   title: string;
   hint?: string;
+  icon?: IoniconName;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.sectionCard}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+      <View style={styles.sectionHeader}>
+        {icon ? (
+          <View style={styles.sectionIconWrap}>
+            <Ionicons name={icon} size={IconSize.md} color={Colors.secondary} />
+          </View>
+        ) : null}
+        <View style={styles.sectionCopy}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+        </View>
+      </View>
       {children}
     </View>
   );
@@ -793,8 +945,62 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   formRoot: { flex: 1 },
   body: { flex: 1 },
-  bodyContent: { padding: Spacing.md, paddingBottom: Spacing.sm, gap: Spacing.sm },
+  bodyContent: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
   completionWrap: { marginBottom: Spacing.xs },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  stepItem: { flex: 1, alignItems: 'center', maxWidth: 140 },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  stepCircleActive: {
+    backgroundColor: Colors.secondary,
+  },
+  stepCircleText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+  },
+  stepCircleTextInactive: {
+    color: Colors.white,
+  },
+  stepLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  stepLabelActive: {
+    color: Colors.secondary,
+    fontFamily: FontFamily.semibold,
+  },
+  stepLine: {
+    flex: 0.6,
+    height: 2,
+    backgroundColor: Colors.border,
+    marginTop: 13,
+  },
+  stepLineActive: {
+    backgroundColor: Colors.secondary,
+  },
   sectionCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
@@ -803,27 +1009,53 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     ...Shadow.sm,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  sectionIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.secondaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionCopy: { flex: 1, minWidth: 0 },
   sectionTitle: {
-    ...Typography.section,
-    marginBottom: 4,
+    fontSize: 15,
+    fontFamily: headingFont.bold,
+    color: Colors.textDark,
+    lineHeight: 20,
   },
   sectionHint: {
     ...Typography.caption,
-    marginBottom: Spacing.md,
+    marginTop: 2,
   },
-  imagesRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: 4 },
-  imageTile: {
-    flex: 1,
-    height: 96,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.background,
+  imagesDash: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderStyle: 'dashed',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.background,
+    overflow: 'hidden',
+  },
+  imagesDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+  },
+  imageTile: {
+    flex: 1,
+    height: 110,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     overflow: 'hidden',
+    backgroundColor: Colors.disabledBg,
   },
   imagePreview: { width: '100%', height: '100%', position: 'absolute' },
   imageOverlay: {
@@ -834,12 +1066,10 @@ const styles = StyleSheet.create({
   },
   imageOverlayFill: { backgroundColor: 'transparent' },
   imageLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
-    backgroundColor: Colors.onDarkBright,
-    paddingHorizontal: 6,
-    borderRadius: 4,
+    color: Colors.secondary,
+    marginTop: 4,
   },
   field: { marginBottom: Spacing.md },
   inputWrap: {
@@ -864,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   suggestChips: { gap: Spacing.xs },
   suggestChip: {
-    backgroundColor: Colors.secondaryLight,
+    backgroundColor: Colors.background,
     borderRadius: Radius.sm,
     padding: 10,
     borderWidth: 1,
@@ -880,7 +1110,7 @@ const styles = StyleSheet.create({
   pinInput: { paddingRight: 36 },
   pinLoader: { position: 'absolute', right: 12 },
   textarea: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
     borderRadius: Radius.sm,
     borderWidth: 1.5,
     borderColor: Colors.border,
@@ -901,5 +1131,61 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginTop: -8,
     marginBottom: Spacing.md,
+  },
+  stepFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  prevBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    minHeight: 48,
+    borderRadius: Radius.pill,
+    borderWidth: 1.5,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+  },
+  prevBtnText: {
+    color: Colors.secondary,
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+  },
+  prevIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextBtn: {
+    flex: 1.15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    minHeight: 48,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: Spacing.md,
+  },
+  nextBtnDisabled: { opacity: 0.7 },
+  nextBtnText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontFamily: FontFamily.bold,
+  },
+  nextIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -9,8 +9,9 @@ export const Colors = {
   primary: '#d05c26',
   primaryDark: '#b34a1c',
   primaryLight: '#fdf0e8',
-  secondary: '#107868',
-  secondaryDark: '#0c5f54',
+  /** Brand teal — headers, active tabs, accent links (#178676). */
+  secondary: '#178676',
+  secondaryDark: '#11685c',
   secondaryLight: '#d6ede5',
   accent: '#e8a317',
   accentLight: '#fdf3e0',
@@ -20,6 +21,22 @@ export const Colors = {
   textDark: '#1c1c1c',
   textLight: '#6b756f',
   border: '#d5ddd8',
+  /** Add Client banner border (Figma). */
+  bannerBorder: '#F0F4F4',
+  /** Add Client banner — light yellow-green base (Views curve, no LinearGradient). */
+  addClientBannerLight: '#5CB650',
+  /** Add Client banner — deeper green overlapping the right curve. */
+  addClientBannerDark: '#2F8F62',
+  addClientBanner: '#329450',
+  /** Dashboard greeting — muted green (not black, not bright teal). */
+  greetingMuted: '#5A9A8C',
+  /** Tips promo left panel (deep forest). */
+  tipsPanel: '#0B4D3A',
+  /** Stats row icon wells (Figma). */
+  metricClientsBg: '#E4F3E8',
+  metricLeadsBg: '#F8EDE0',
+  metricDueBg: '#F8E4E6',
+  metricDueIcon: '#C23B3B',
   destructive: '#dc2626',
   destructiveOrange: '#ea580c',
   destructiveSoft: '#fef2f2',
@@ -35,39 +52,59 @@ export const Colors = {
   onDarkMuted: 'rgba(255,255,255,0.7)',
   onDarkCaption: 'rgba(255,255,255,0.75)',
   onDarkSoft: 'rgba(255,255,255,0.55)',
-  onDarkTextSoft: 'rgba(255,255,255,0.65)',
   onDarkBright: 'rgba(255,255,255,0.85)',
   onDarkNearWhite: 'rgba(255,255,255,0.92)',
-  onDarkFrost: 'rgba(255,255,255,0.95)',
   /** Soft white fill for MPIN keypad keys on mint. */
   onDarkWash: 'rgba(255,255,255,0.72)',
+  /** MPIN keypad panel (Figma). */
+  mpinPadBg: '#F6FBFC',
+  mpinPadBorder: '#F2F2F2',
+  /** MPIN key oval fill (Figma). */
+  mpinKeyBg: '#ECF7F7',
   lightboxScrim: 'rgba(0,0,0,0.92)',
   /** Mint tone for “mera” on dark green — matches client outline wordmark. */
   brandMeraOnDark: '#a8c4b4',
-  /** Soft glow behind “mera” on dark wordmarks. */
-  brandMeraGlow: 'rgba(168, 196, 180, 0.45)',
   /** Orange for “coach” wordmark on dark backgrounds. */
   brandCoach: '#f47f1e',
   /** Letterbox behind full-bleed home artwork. */
   homeCanvas: '#033d28',
   /** Deep green sampled from home-bg bottom scrim — native splash / photo letterbox. */
   splashCanvas: '#03422f',
-  /** Wave header green. */
-  headerGradientTop: '#0a4f46',
-  headerGradientBottom: '#128a78',
+  /** Wave / in-app header green — matches secondary brand teal. */
+  headerGradientBottom: '#178676',
   /** Auth primary CTA colors. */
   authCtaGradientStart: '#15886F',
-  authCtaGradientMid: '#13816A',
   authCtaGradientEnd: '#026455',
-  secondaryMuted: 'rgba(16,120,104,0.25)',
+  secondaryMuted: 'rgba(23,134,118,0.25)',
   scrim: 'rgba(0,0,0,0.4)',
-  heroScrim: 'rgba(16,120,104,0.72)',
+  heroScrim: 'rgba(23,134,118,0.55)',
+  /** Dashboard quick-nav card tints (Figma). */
+  cardTintGreen: '#E8F5E9',
+  cardTintBlue: '#E8F1FB',
+  cardTintPurple: '#F0EAF8',
+  cardIconGreen: '#2E9B57',
+  cardIconBlue: '#5B8DEF',
+  cardIconPurple: '#8B6BC9',
+} as const;
+
+/** Full-height left photo column on Clients / Leads / Checkups list cards. */
+export const ListPortrait = {
+  width: 112,
+  contentPad: 13,
+} as const;
+
+/** Shared page chrome — dashboard / auth horizontal inset + tab clearance. */
+export const ScreenPad = {
+  horizontal: 16,
+  tabBarClearance: 24,
 } as const;
 
 export const Radius = {
   xs: 8,
   sm: 10,
   md: 16,
+  /** List cards (~18–22pt Figma). */
+  card: 20,
   lg: 24,
   pill: 50,
 } as const;
@@ -116,8 +153,6 @@ export const PressOpacity = {
  * unless the family points at the specific weight file).
  */
 export const headingFont = {
-  regular: 'Montserrat_400Regular',
-  medium: 'Montserrat_500Medium',
   semibold: 'Montserrat_600SemiBold',
   bold: 'Montserrat_700Bold',
   extraBold: 'Montserrat_800ExtraBold',
@@ -398,36 +433,6 @@ export const buttonStyles = {
   },
   disabled: {
     opacity: 0.7,
-  },
-};
-
-/** Filter / category pills (coach list banner, chips). */
-export const filterPillStyles = {
-  base: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: ChipControl.gap,
-    borderRadius: ChipControl.radius,
-    paddingHorizontal: ChipControl.paddingHorizontal,
-    paddingVertical: ChipControl.paddingVertical,
-    minHeight: ChipControl.minHeight,
-  },
-  onDark: {
-    backgroundColor: Colors.onDarkSubtle,
-    borderWidth: 1,
-    borderColor: Colors.onDarkBorder,
-  },
-  onDarkActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  text: {
-    fontSize: 11,
-    fontFamily: FontFamily.semibold,
-    color: Colors.onDarkMuted,
-  },
-  textActive: {
-    color: Colors.white,
   },
 };
 

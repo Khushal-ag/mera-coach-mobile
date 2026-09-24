@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -378,33 +378,24 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
 
   const refreshControl = useQueriesRefreshControl([coachesQuery, topRatedQuery, citiesQuery]);
 
-  const openCoachProfile = (
-    coach: Coach,
-    clientCount: number,
-    coachCodes: string[],
-    coaches: Coach[],
-  ) => {
-    navigation.navigate('CoachPublicProfile', {
-      coach: { ...coach, clients: clientCount },
-      coachCode: coach.id,
-      coachCodes,
-      coaches: coaches.map(c => (c.id === coach.id ? { ...c, clients: clientCount } : c)),
-    });
-  };
-
-  const onViewProfile = (
-    coach: Coach,
-    clientCount: number,
-    coachCodes: string[],
-    coaches: Coach[],
-  ) => openCoachProfile(coach, clientCount, coachCodes, coaches);
+  const openCoachProfile = useCallback(
+    (coach: Coach, clientCount: number, coachCodes: string[], coaches: Coach[]) => {
+      navigation.navigate('CoachPublicProfile', {
+        coach: { ...coach, clients: clientCount },
+        coachCode: coach.id,
+        coachCodes,
+        coaches: coaches.map(c => (c.id === coach.id ? { ...c, clients: clientCount } : c)),
+      });
+    },
+    [navigation],
+  );
 
   const onGetStarted = () => {
     if (signedIn) {
       navigation.navigate('Main');
       return;
     }
-    navigation.navigate('Login');
+    navigation.navigate('Register');
   };
 
   const onViewAllTopRated = () => {
@@ -467,16 +458,20 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const resultCount = totalCount;
   const filterColWidth = (screenWidth - Spacing.md * 2 - Spacing.sm) / 2;
 
-  const coachCodes = filtered.map(c => c.id);
-  const coachesForNav = filtered.map(c => {
-    const clientCount = resolvePublicClientCount({
-      coachId: c.id,
-      marketingClients: c.clients,
-      viewerCoachCode: myCoachCode,
-      liveRosterLength: myClientsQuery.data?.length,
-    });
-    return { ...c, clients: clientCount };
-  });
+  const coachCodes = useMemo(() => filtered.map(c => c.id), [filtered]);
+  const coachesForNav = useMemo(
+    () =>
+      filtered.map(c => {
+        const clientCount = resolvePublicClientCount({
+          coachId: c.id,
+          marketingClients: c.clients,
+          viewerCoachCode: myCoachCode,
+          liveRosterLength: myClientsQuery.data?.length,
+        });
+        return { ...c, clients: clientCount };
+      }),
+    [filtered, myCoachCode, myClientsQuery.data?.length],
+  );
 
   return (
     <View style={styles.container}>
@@ -589,7 +584,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                   clientCount={clientCount}
                   coachCodes={coachCodes}
                   coaches={coachesForNav}
-                  onViewProfile={onViewProfile}
+                  onViewProfile={openCoachProfile}
                 />
               );
             })}

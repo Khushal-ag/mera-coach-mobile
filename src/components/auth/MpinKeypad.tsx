@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -8,11 +14,20 @@ import {
   PressOpacity,
   Radius,
   Spacing,
-  TouchTarget,
 } from '../../constants/theme';
 import { MPIN_LENGTH } from '../../utils/mpinCrypto';
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'] as const;
+const KEY_ROWS = [
+  ['1', '2', '3'],
+  ['4', '5', '6'],
+  ['7', '8', '9'],
+  ['', '0', '⌫'],
+] as const;
+
+const PAD_PADDING = 12;
+const KEY_GAP = 8;
+const KEY_ASPECT = 70 / 44;
+const PAD_RADIUS = 20;
 
 interface MpinKeypadProps {
   value: string;
@@ -74,30 +89,33 @@ export default function MpinKeypad({
       {error ? <Text style={styles.error}>{error}</Text> : <View style={styles.errorSpacer} />}
 
       <View style={styles.pad}>
-        {KEYS.map((key, index) => {
-          if (!key) {
-            return <View key={`empty-${index}`} style={styles.keySlot} />;
-          }
-          const isBackspace = key === '⌫';
-          return (
-            <View key={key} style={styles.keySlot}>
-              <TouchableOpacity
-                style={styles.key}
-                onPress={() => pressKey(key)}
-                disabled={disabled}
-                activeOpacity={PressOpacity.default}
-                accessibilityRole="button"
-                accessibilityLabel={isBackspace ? 'Delete' : key}
-              >
-                {isBackspace ? (
-                  <Ionicons name="close" size={IconSize.xl} color={Colors.secondary} />
-                ) : (
-                  <Text style={styles.keyLabel}>{key}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          );
-        })}
+        {KEY_ROWS.map((row, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.row}>
+            {row.map((key, colIndex) => {
+              if (!key) {
+                return <View key={`empty-${rowIndex}-${colIndex}`} style={styles.keySlot} />;
+              }
+              const isBackspace = key === '⌫';
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={styles.key}
+                  onPress={() => pressKey(key)}
+                  disabled={disabled}
+                  activeOpacity={PressOpacity.default}
+                  accessibilityRole="button"
+                  accessibilityLabel={isBackspace ? 'Delete' : key}
+                >
+                  {isBackspace ? (
+                    <Ionicons name="close" size={IconSize.xl} color={Colors.secondary} />
+                  ) : (
+                    <Text style={styles.keyLabel}>{key}</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -135,33 +153,29 @@ const styles = StyleSheet.create({
   },
   errorSpacer: { height: 20 + Spacing.md },
   pad: {
+    alignSelf: 'stretch',
+    backgroundColor: Colors.mpinPadBg,
+    borderRadius: PAD_RADIUS,
+    borderWidth: 1,
+    borderColor: Colors.mpinPadBorder,
+    padding: PAD_PADDING,
+    gap: KEY_GAP,
+  },
+  row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 300,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    gap: Spacing.sm,
+    gap: KEY_GAP,
   },
   keySlot: {
-    width: '30%',
-    maxWidth: 84,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
+    aspectRatio: KEY_ASPECT,
   },
   key: {
-    width: 52,
-    height: 52,
+    flex: 1,
+    aspectRatio: KEY_ASPECT,
     borderRadius: Radius.pill,
-    backgroundColor: Colors.onDarkWash,
+    backgroundColor: Colors.mpinKeyBg,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: TouchTarget.min,
   },
   keyLabel: {
     fontSize: 22,

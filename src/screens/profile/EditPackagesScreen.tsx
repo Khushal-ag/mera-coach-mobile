@@ -7,7 +7,6 @@ import FormErrorBanner from '../../components/FormErrorBanner';
 import KeyboardSafeScroll, {
   STICKY_FOOTER_KEYBOARD_PADDING,
 } from '../../components/KeyboardSafeScroll';
-import ScreenHeader from '../../components/ScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import ReloadState from '../../components/ReloadState';
 import CoachPackagesEditor from '../../components/profile/CoachPackagesEditor';
@@ -21,12 +20,14 @@ import { getErrorMessage } from '../../api/client';
 import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
 import { serializeCoachPackages, validateCoachPackagesDraft } from '../../utils/coachPackages';
 import { isPendingLocalMediaUrl } from '../../utils/mediaUrl';
-import type { ProfileStackScreenProps } from '../../types/navigation';
+import type { PackagesStackScreenProps } from '../../types/navigation';
 import type { CoachPackage } from '../../types/models';
+import TabRootHeader from '../../components/TabRootHeader';
+import { navigateToDashboard } from '../../utils/navigationBack';
 
 export default function EditPackagesScreen({
   navigation,
-}: ProfileStackScreenProps<'EditPackages'>) {
+}: PackagesStackScreenProps<'PackagesHome'>) {
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfileFull,
     queryFn: getCoachProfileFull,
@@ -39,7 +40,7 @@ export default function EditPackagesScreen({
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Packages" onBack={() => navigation.goBack()} />
+      <TabRootHeader title="Packages" onBack={() => navigateToDashboard(navigation)} />
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
@@ -52,7 +53,10 @@ export default function EditPackagesScreen({
           showPullHint={false}
         />
       ) : (
-        <EditPackagesForm profile={profileQuery.data!} onDone={() => navigation.goBack()} />
+        <EditPackagesForm
+          profile={profileQuery.data!}
+          onDone={() => navigateToDashboard(navigation)}
+        />
       )}
     </View>
   );

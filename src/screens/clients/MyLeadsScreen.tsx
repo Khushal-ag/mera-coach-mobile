@@ -20,9 +20,10 @@ import {
   FontFamily,
   FormControl,
   IconSize,
+  ListPortrait,
   PressOpacity,
   Radius,
-  Shadow,
+  ScreenPad,
   Spacing,
   Typography,
   headingFont,
@@ -42,6 +43,7 @@ import { getErrorMessage } from '../../api/client';
 import { stripNonDigits } from '../../utils/validation';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { DashboardStackParamList, ProfileStackParamList } from '../../types/navigation';
+import { navigateToDashboard } from '../../utils/navigationBack';
 
 const PAGE_SIZE = 5;
 
@@ -86,8 +88,8 @@ function LeadRow({
 
   return (
     <View style={styles.card}>
-      <View style={styles.cardTop}>
-        <PersonAvatar size={64} style={styles.avatar} />
+      <PersonAvatar size={ListPortrait.width} fillHeight style={styles.avatar} />
+      <View style={styles.content}>
         <View style={styles.info}>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>
@@ -122,31 +124,31 @@ function LeadRow({
             </TouchableOpacity>
           ) : null}
         </View>
-      </View>
 
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Marked as contacted</Text>
-        <Switch
-          value={lead.isContacted}
-          onValueChange={next => onToggleContacted(lead, next)}
-          trackColor={{ false: Colors.border, true: Colors.secondaryLight }}
-          thumbColor={lead.isContacted ? Colors.secondary : Colors.textLight}
-          accessibilityLabel={lead.isContacted ? 'Mark lead as new' : 'Mark lead as contacted'}
+        <View style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>Marked as contacted</Text>
+          <Switch
+            value={lead.isContacted}
+            onValueChange={next => onToggleContacted(lead, next)}
+            trackColor={{ false: Colors.border, true: Colors.secondaryLight }}
+            thumbColor={lead.isContacted ? Colors.secondary : Colors.textLight}
+            accessibilityLabel={lead.isContacted ? 'Mark lead as new' : 'Mark lead as contacted'}
+          />
+        </View>
+
+        <TextInput
+          style={styles.notesInput}
+          value={editingNotes ? notesDraft : lead.notes}
+          onChangeText={setNotesDraft}
+          onFocus={beginNotesEdit}
+          onEndEditing={commitNotes}
+          placeholder="Add note.."
+          placeholderTextColor={Colors.textLight}
+          editable={!savingNotes}
+          returnKeyType="done"
+          blurOnSubmit
         />
       </View>
-
-      <TextInput
-        style={styles.notesInput}
-        value={editingNotes ? notesDraft : lead.notes}
-        onChangeText={setNotesDraft}
-        onFocus={beginNotesEdit}
-        onEndEditing={commitNotes}
-        placeholder="Add note.."
-        placeholderTextColor={Colors.textLight}
-        editable={!savingNotes}
-        returnKeyType="done"
-        blurOnSubmit
-      />
     </View>
   );
 }
@@ -248,9 +250,20 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
           message: 'Try a different name, mobile, email, or service.',
         };
 
+  const renderItem = useCallback(
+    ({ item }: { item: EnquiryLead }) => (
+      <LeadRow lead={item} onToggleContacted={onToggleContacted} onSaveNotes={onSaveNotes} />
+    ),
+    [onToggleContacted, onSaveNotes],
+  );
+
   return (
     <View style={styles.container}>
-      <WaveScreenHeader title="My Leads" onBack={() => navigation.goBack()} />
+      <WaveScreenHeader
+        title="My Leads"
+        onBack={() => navigation.goBack()}
+        onHome={() => navigateToDashboard(navigation)}
+      />
 
       <View style={styles.body}>
         <SearchField
@@ -286,7 +299,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
           <>
             {leads.length > 0 ? (
               <View style={styles.summaryChip}>
-                <Ionicons name="people" size={IconSize.lg} color={Colors.secondary} />
+                <Ionicons name="people-outline" size={IconSize.lg} color={Colors.secondary} />
                 <View style={styles.summaryText}>
                   <Text style={styles.summaryTotal}>{leads.length} Total Clients</Text>
                   <Text style={styles.summaryNew}>{newCount} New</Text>
@@ -302,7 +315,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
               windowSize={5}
               contentContainerStyle={[
                 filtered.length === 0 ? styles.emptyWrap : undefined,
-                { paddingBottom: Spacing.md },
+                { paddingBottom: ScreenPad.tabBarClearance },
               ]}
               refreshControl={
                 <RefreshControl
@@ -322,13 +335,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
                   />
                 ) : null
               }
-              renderItem={({ item }) => (
-                <LeadRow
-                  lead={item}
-                  onToggleContacted={onToggleContacted}
-                  onSaveNotes={onSaveNotes}
-                />
-              )}
+              renderItem={renderItem}
             />
           </>
         )}
@@ -339,7 +346,11 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  body: { flex: 1, paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
+  body: {
+    flex: 1,
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.sm,
+  },
   search: { marginBottom: Spacing.sm },
   loader: { marginTop: Spacing.xl - 2 },
   summaryChip: {
@@ -367,20 +378,24 @@ const styles = StyleSheet.create({
   emptyWrap: { flexGrow: 1 },
   errorWrap: { flexGrow: 1 },
   card: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
     backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+    borderRadius: Radius.card,
+    overflow: 'hidden',
     marginBottom: Spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    ...Shadow.sm,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
   avatar: {
-    marginRight: Spacing.sm,
-    borderRadius: Radius.sm + 2,
+    marginRight: 0,
   },
-  info: { flex: 1, minWidth: 0 },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    padding: ListPortrait.contentPad,
+  },
+  info: { minWidth: 0 },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -388,9 +403,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   name: {
-    ...Typography.bodyStrong,
+    fontSize: 18,
     fontFamily: headingFont.bold,
-    fontSize: 15,
+    color: Colors.textDark,
+    lineHeight: 24,
     flexShrink: 1,
   },
   newPill: {
@@ -404,12 +420,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: FontFamily.bold,
   },
-  date: { ...Typography.micro, marginTop: 4 },
-  lookingFor: {
-    ...Typography.caption,
+  date: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
     color: Colors.textDark,
-    marginTop: Spacing.xxs,
-    lineHeight: 16,
+    marginTop: 3,
+    lineHeight: 18,
+  },
+  lookingFor: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    marginTop: 3,
+    lineHeight: 18,
   },
   phonePill: {
     alignSelf: 'flex-start',
@@ -424,7 +447,7 @@ const styles = StyleSheet.create({
     minHeight: 30,
   },
   phoneText: {
-    ...Typography.caption,
+    fontSize: 13,
     fontFamily: FontFamily.semibold,
     color: Colors.secondary,
   },

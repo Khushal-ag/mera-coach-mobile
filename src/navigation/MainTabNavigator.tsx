@@ -7,10 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, FontFamily, IconSize, Spacing, TouchTarget } from '../constants/theme';
 import type {
-  CheckupsStackParamList,
-  ClientsStackParamList,
   DashboardStackParamList,
+  EventsStackParamList,
   MainTabParamList,
+  PackagesStackParamList,
   ProfileStackParamList,
 } from '../types/navigation';
 import type { IoniconName } from '../types/icons';
@@ -36,15 +36,23 @@ import EditEventsScreen from '../screens/profile/EditEventsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
-const ClientsStack = createNativeStackNavigator<ClientsStackParamList>();
-const CheckupsStack = createNativeStackNavigator<CheckupsStackParamList>();
+const PackagesStack = createNativeStackNavigator<PackagesStackParamList>();
+const EventsStack = createNativeStackNavigator<EventsStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
-const TAB_ICONS: Record<keyof MainTabParamList, { active: IoniconName; inactive: IoniconName }> = {
-  Dashboard: { active: 'grid', inactive: 'grid-outline' },
-  Clients: { active: 'people', inactive: 'people-outline' },
-  Checkups: { active: 'clipboard', inactive: 'clipboard-outline' },
-  Profile: { active: 'person-circle', inactive: 'person-circle-outline' },
+/** Outline icons only — Figma tab chrome. */
+const TAB_ICONS: Record<keyof MainTabParamList, IoniconName> = {
+  Dashboard: 'grid-outline',
+  Packages: 'cube-outline',
+  Events: 'calendar-outline',
+  Profile: 'person-outline',
+};
+
+const TAB_LABELS: Record<keyof MainTabParamList, string> = {
+  Dashboard: 'Dashboard',
+  Packages: 'Packages',
+  Events: 'Events',
+  Profile: 'Profile',
 };
 
 const TAB_COUNT = Object.keys(TAB_ICONS).length;
@@ -56,29 +64,30 @@ function DashboardStackNavigator() {
       <DashboardStack.Screen name="DashboardHome" component={DashboardScreen} />
       <DashboardStack.Screen name="Leads" component={MyLeadsScreen} />
       <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
+      <DashboardStack.Screen name="ClientListHome" component={ClientListScreen} />
+      <DashboardStack.Screen name="ClientDetail" component={ClientDetailScreen} />
+      <DashboardStack.Screen name="AddClient" component={AddClientScreen} />
+      <DashboardStack.Screen name="ClientBmi" component={ClientBmiScreen} />
+      <DashboardStack.Screen name="ClientBmiReport" component={ClientBmiReportScreen} />
+      <DashboardStack.Screen name="ClientDietPlan" component={ClientDietPlanScreen} />
+      <DashboardStack.Screen name="CheckupListHome" component={ReCheckupListScreen} />
     </DashboardStack.Navigator>
   );
 }
 
-function ClientsStackNavigator() {
+function PackagesStackNavigator() {
   return (
-    <ClientsStack.Navigator screenOptions={{ headerShown: false }}>
-      <ClientsStack.Screen name="ClientListHome" component={ClientListScreen} />
-      <ClientsStack.Screen name="ClientDetail" component={ClientDetailScreen} />
-      <ClientsStack.Screen name="AddClient" component={AddClientScreen} />
-      <ClientsStack.Screen name="ClientBmi" component={ClientBmiScreen} />
-      <ClientsStack.Screen name="ClientBmiReport" component={ClientBmiReportScreen} />
-      <ClientsStack.Screen name="ClientDietPlan" component={ClientDietPlanScreen} />
-    </ClientsStack.Navigator>
+    <PackagesStack.Navigator screenOptions={{ headerShown: false }}>
+      <PackagesStack.Screen name="PackagesHome" component={EditPackagesScreen} />
+    </PackagesStack.Navigator>
   );
 }
 
-function CheckupsStackNavigator() {
+function EventsStackNavigator() {
   return (
-    <CheckupsStack.Navigator screenOptions={{ headerShown: false }}>
-      <CheckupsStack.Screen name="CheckupListHome" component={ReCheckupListScreen} />
-      <CheckupsStack.Screen name="ClientBmi" component={ClientBmiScreen} />
-    </CheckupsStack.Navigator>
+    <EventsStack.Navigator screenOptions={{ headerShown: false }}>
+      <EventsStack.Screen name="EventsHome" component={EditEventsScreen} />
+    </EventsStack.Navigator>
   );
 }
 
@@ -88,8 +97,6 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="ProfileHome" component={CoachProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <ProfileStack.Screen name="EditGallery" component={EditGalleryScreen} />
-      <ProfileStack.Screen name="EditPackages" component={EditPackagesScreen} />
-      <ProfileStack.Screen name="EditEvents" component={EditEventsScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <ProfileStack.Screen name="ChangeMpin" component={ChangeMpinScreen} />
       <ProfileStack.Screen name="Legal" component={LegalScreen} />
@@ -107,8 +114,8 @@ export default function MainTabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarAccessibilityLabel: route.name,
-        tabBarActiveTintColor: Colors.primary,
+        tabBarAccessibilityLabel: TAB_LABELS[route.name],
+        tabBarActiveTintColor: Colors.secondary,
         tabBarInactiveTintColor: Colors.textLight,
         tabBarStyle: {
           backgroundColor: Colors.white,
@@ -120,16 +127,9 @@ export default function MainTabNavigator() {
         },
         tabBarItemStyle: { width: tabWidth, paddingHorizontal: 0, minHeight: TouchTarget.min },
         tabBarIconStyle: { marginBottom: -2 },
-        tabBarIcon: ({ focused, color }) => {
-          const icons = TAB_ICONS[route.name];
-          return (
-            <Ionicons
-              name={focused ? icons.active : icons.inactive}
-              size={IconSize.xl}
-              color={color}
-            />
-          );
-        },
+        tabBarIcon: ({ color }) => (
+          <Ionicons name={TAB_ICONS[route.name]} size={IconSize.xl} color={color} />
+        ),
         tabBarLabel: ({ color }) => (
           <Text
             style={{ fontSize: 11, fontFamily: FontFamily.semibold, color, marginTop: 1 }}
@@ -138,24 +138,14 @@ export default function MainTabNavigator() {
             adjustsFontSizeToFit
             minimumFontScale={0.7}
           >
-            {route.name}
+            {TAB_LABELS[route.name]}
           </Text>
         ),
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardStackNavigator} />
-      <Tab.Screen
-        name="Clients"
-        component={ClientsStackNavigator}
-        listeners={({ navigation }) => ({
-          tabPress: e => {
-            // Nested stack restores ClientDetail after opening a profile; always land on list.
-            e.preventDefault();
-            navigation.navigate('Clients', { screen: 'ClientListHome' });
-          },
-        })}
-      />
-      <Tab.Screen name="Checkups" component={CheckupsStackNavigator} />
+      <Tab.Screen name="Packages" component={PackagesStackNavigator} />
+      <Tab.Screen name="Events" component={EventsStackNavigator} />
       <Tab.Screen name="Profile" component={ProfileStackNavigator} />
     </Tab.Navigator>
   );
