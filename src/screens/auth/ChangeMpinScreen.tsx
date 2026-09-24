@@ -1,6 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../constants/theme';
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
@@ -167,7 +174,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 18,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     textAlign: 'center',
     marginBottom: 4,

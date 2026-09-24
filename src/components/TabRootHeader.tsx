@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Spacing, TouchTarget } from '../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Spacing,
+  TouchTarget,
+  headingFont,
+} from '../constants/theme';
 import { HeaderBackButton, HeaderHomeButton } from './ScreenHeader';
 
 interface TabRootHeaderProps {
@@ -62,7 +68,7 @@ const styles = StyleSheet.create({
   title: {
     color: Colors.white,
     fontSize: 18,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
   },
   subtitle: {
     color: Colors.onDarkMuted,

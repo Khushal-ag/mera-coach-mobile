@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
-import { Colors, FontFamily, PressOpacity, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import { isDegenerateImageSize, resolveMediaUrl } from '../../utils/mediaUrl';
 import type { CoachEvent, CoachPackage } from '../../types/models';
@@ -162,7 +170,7 @@ const styles = StyleSheet.create({
   offerCardTitle: {
     flex: 1,
     fontSize: 15,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
   },
   offerCardPrice: {

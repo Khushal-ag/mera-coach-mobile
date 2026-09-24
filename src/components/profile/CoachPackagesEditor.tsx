@@ -20,6 +20,7 @@ import {
   Spacing,
   formFieldStyles,
   buttonStyles,
+  headingFont,
 } from '../../constants/theme';
 import { uploadDocument } from '../../api/documentApi';
 import { getErrorMessage } from '../../api/client';
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   introText: { flex: 1 },
   sectionTitle: {
     fontSize: 15,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginBottom: 4,
   },
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 14,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
   },
   emptyMessage: {
@@ -357,7 +358,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.sm,
   },
-  cardTitle: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  cardTitle: { fontSize: 13, fontFamily: headingFont.bold, color: Colors.secondary },
   compactRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
   compactBody: { flex: 1, minWidth: 0 },
   compactTitle: {
     fontSize: 14,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
   },
   compactMeta: {

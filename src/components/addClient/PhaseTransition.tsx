@@ -2,7 +2,15 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, IconSize, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  IconSize,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import AppButton from '../AppButton';
 import type { IoniconName } from '../../types/icons';
@@ -101,7 +109,7 @@ const styles = StyleSheet.create({
   toLabel: {
     color: Colors.white,
     fontSize: 26,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     marginTop: 6,
     textAlign: 'center',
   },
@@ -111,5 +119,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     ...Shadow.lg,
   },
-  continueText: { fontSize: 16 },
+  continueText: { fontSize: 16, fontFamily: FontFamily.bold },
 });

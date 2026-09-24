@@ -1,140 +1,110 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Animated,
+  Easing,
+  ActivityIndicator,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BrandLogo from '../../components/BrandLogo';
-import BrandWordmark from '../../components/BrandWordmark';
-import { Colors, FontFamily, Spacing } from '../../constants/theme';
+import {
+  BrandImages,
+  HOME_HERO_ASPECT,
+  HOME_HERO_HEIGHT,
+  HOME_RUNNER_HEAD_TOP,
+  LOGO_ASPECT,
+} from '../../constants/images';
+import { Colors, Spacing } from '../../constants/theme';
+
+const SPLASH_LOGO_WIDTH_FRAC = 0.58;
+const SPLASH_LOGO_HEAD_GAP = 8;
+
+function coverBottomLayout(screenW: number, screenH: number, imageAspect: number) {
+  const screenAspect = screenW / screenH;
+  if (screenAspect > imageAspect) {
+    const width = screenW;
+    const height = screenW / imageAspect;
+    return { width, height, left: 0, top: screenH - height };
+  }
+  const height = screenH;
+  const width = screenH * imageAspect;
+  return { width, height, left: (screenW - width) / 2, top: 0 };
+}
 
 export default function SplashScreen() {
-  const logoOpacity = useMemo(() => new Animated.Value(0), []);
-  const logoScale = useMemo(() => new Animated.Value(0.82), []);
-  const logoTranslateY = useMemo(() => new Animated.Value(24), []);
-  const line1Opacity = useMemo(() => new Animated.Value(0), []);
-  const line1TranslateY = useMemo(() => new Animated.Value(18), []);
-  const line2Opacity = useMemo(() => new Animated.Value(0), []);
-  const line2TranslateY = useMemo(() => new Animated.Value(18), []);
-  const pulse = useMemo(() => new Animated.Value(1), []);
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const layout = coverBottomLayout(screenW, screenH, HOME_HERO_ASPECT);
+
+  const targetLogoHeight = (screenW * SPLASH_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
+  const headY =
+    layout.top + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * layout.height;
+  const maxLogoHeight = Math.max(
+    100,
+    headY - (insets.top + Spacing.xxs) - SPLASH_LOGO_HEAD_GAP,
+  );
+  const logoSize = Math.min(targetLogoHeight, maxLogoHeight);
+
+  const contentOpacity = useMemo(() => new Animated.Value(0), []);
+  const contentScale = useMemo(() => new Animated.Value(0.94), []);
+  const loaderOpacity = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     const intro = Animated.sequence([
       Animated.parallel([
-        Animated.timing(logoOpacity, {
+        Animated.timing(contentOpacity, {
           toValue: 1,
-          duration: 700,
+          duration: 520,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(logoScale, {
+        Animated.spring(contentScale, {
           toValue: 1,
-          tension: 70,
-          friction: 9,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoTranslateY, {
-          toValue: 0,
-          duration: 700,
-          easing: Easing.out(Easing.cubic),
+          tension: 80,
+          friction: 10,
           useNativeDriver: true,
         }),
       ]),
-      Animated.parallel([
-        Animated.timing(line1Opacity, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(line1TranslateY, {
-          toValue: 0,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(line2Opacity, {
-          toValue: 1,
-          duration: 450,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(line2TranslateY, {
-          toValue: 0,
-          duration: 450,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(loaderOpacity, {
+        toValue: 1,
+        duration: 360,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]);
 
-    const breathe = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1.03,
-          duration: 1200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    intro.start(({ finished }) => {
-      if (finished) breathe.start();
-    });
-
-    return () => {
-      intro.stop();
-      breathe.stop();
-    };
-  }, [
-    line1Opacity,
-    line1TranslateY,
-    line2Opacity,
-    line2TranslateY,
-    logoOpacity,
-    logoScale,
-    logoTranslateY,
-    pulse,
-  ]);
+    intro.start();
+    return () => intro.stop();
+  }, [contentOpacity, contentScale, loaderOpacity]);
 
   return (
     <View style={styles.container}>
+      <Image
+        source={BrandImages.homeHero}
+        style={[styles.hero, layout]}
+        resizeMode="cover"
+        accessibilityIgnoresInvertColors
+      />
+      <View style={styles.scrim} />
+
       <Animated.View
         style={[
-          styles.logoCard,
+          styles.brand,
           {
-            opacity: logoOpacity,
-            transform: [
-              { scale: Animated.multiply(logoScale, pulse) },
-              { translateY: logoTranslateY },
-            ],
+            paddingTop: insets.top + Spacing.xxs,
+            opacity: contentOpacity,
+            transform: [{ scale: contentScale }],
           },
         ]}
       >
-        <BrandLogo variant="mark" size={96} />
+        <BrandLogo variant="full" size={logoSize} />
       </Animated.View>
 
-      <Animated.Text
-        style={[
-          styles.line1,
-          { opacity: line1Opacity, transform: [{ translateY: line1TranslateY }] },
-        ]}
-      >
-        Grow Your Coaching Business
-      </Animated.Text>
-
-      <Animated.View
-        style={{
-          opacity: line2Opacity,
-          transform: [{ translateY: line2TranslateY }],
-        }}
-      >
-        <BrandWordmark prefix="with " tone="onDark" size="md" />
+      <Animated.View style={[styles.loader, { opacity: loaderOpacity }]}>
+        <ActivityIndicator size="small" color={Colors.onDarkBright} />
       </Animated.View>
     </View>
   );
@@ -143,20 +113,25 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.splashCanvas,
+    overflow: 'hidden',
+  },
+  hero: {
+    position: 'absolute',
+  },
+  scrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(3, 66, 47, 0.28)',
+  },
+  brand: {
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
+    zIndex: 1,
   },
-  logoCard: {
-    marginBottom: Spacing.xl,
-  },
-  line1: {
-    fontFamily: FontFamily.extraBold,
-    fontSize: 22,
-    color: Colors.white,
-    textAlign: 'center',
-    lineHeight: 30,
-    marginBottom: Spacing.xs,
+  loader: {
+    position: 'absolute',
+    bottom: Spacing.xxxl + Spacing.lg,
+    alignSelf: 'center',
+    zIndex: 1,
   },
 });

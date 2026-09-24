@@ -22,10 +22,9 @@ import {
   Shadow,
   Spacing,
   TouchTarget,
+  headingFont,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
-import BrandWordmark from '../../components/BrandWordmark';
-import BrandLogo from '../../components/BrandLogo';
 import ClientAvatar from '../../components/ClientAvatar';
 import ClientStatusChip from '../../components/ClientStatusChip';
 import DashboardCarousel from '../../components/dashboard/DashboardCarousel';
@@ -33,7 +32,6 @@ import EmptyState from '../../components/EmptyState';
 import ReloadState from '../../components/ReloadState';
 import SectionTag from '../../components/SectionTag';
 import { HeaderHomeButton } from '../../components/ScreenHeader';
-import { APP_DISPLAY_NAME } from '../../config/appConfig';
 import { getClientList, getEnquiryLeads, getRecheckupList } from '../../api/clientApi';
 import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { queryKeys } from '../../api/queryKeys';
@@ -63,6 +61,7 @@ interface MetricCard {
 
 interface QuickAction {
   label: string;
+  sub: string;
   icon: IoniconName;
   onPress: () => void;
 }
@@ -194,16 +193,19 @@ export default function DashboardScreen({
   const secondaryActions: QuickAction[] = [
     {
       label: 'My Clients',
+      sub: 'View & manage your clients',
       icon: 'people-outline',
       onPress: () => navigation.navigate('Clients', { screen: 'ClientListHome' }),
     },
     {
       label: 'Leads',
+      sub: 'Track & convert Leads',
       icon: 'funnel-outline',
       onPress: () => navigation.navigate('Leads'),
     },
     {
       label: 'Checkups',
+      sub: 'View upcoming checkups',
       icon: 'clipboard-outline',
       onPress: () => navigation.navigate('Checkups'),
     },
@@ -292,6 +294,12 @@ export default function DashboardScreen({
     );
   }
 
+  const metricIcons: Record<string, IoniconName> = {
+    Clients: 'people-outline',
+    Leads: 'funnel-outline',
+    Due: 'alarm-outline',
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -306,16 +314,12 @@ export default function DashboardScreen({
           style={[styles.heroTop, { opacity: heroFade, transform: [{ translateY: heroSlide }] }]}
         >
           <View style={styles.heroBrandRow}>
-            <View
-              style={styles.brandMark}
-              accessibilityRole="text"
-              accessibilityLabel={APP_DISPLAY_NAME}
-            >
-              <BrandLogo variant="mark" size={30} />
-              <BrandWordmark tone="onDark" size="sm" align="left" style={styles.brandWordmark} />
+            <View style={styles.brandBlock} accessibilityRole="text" accessibilityLabel="MeraCoach">
+              <Text style={styles.brandTitle}>MeraCoach</Text>
+              <Text style={styles.guideLine}>Guide . Support . transform</Text>
             </View>
             <View style={styles.headerActions}>
-              <HeaderHomeButton />
+              <HeaderHomeButton onDark={false} />
               <TouchableOpacity
                 style={styles.notifBtn}
                 onPress={() => navigation.navigate('Notifications')}
@@ -324,7 +328,17 @@ export default function DashboardScreen({
                 activeOpacity={PressOpacity.default}
                 hitSlop={HitSlop.sm}
               >
-                <Ionicons name="notifications-outline" size={20} color={Colors.white} />
+                <Ionicons name="notifications-outline" size={20} color={Colors.secondary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.profileBtn}
+                onPress={() => navigation.navigate('Profile')}
+                accessibilityRole="button"
+                accessibilityLabel="Profile"
+                activeOpacity={PressOpacity.default}
+                hitSlop={HitSlop.sm}
+              >
+                <Ionicons name="person-outline" size={18} color={Colors.secondary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -333,7 +347,7 @@ export default function DashboardScreen({
           <Text style={styles.coachName} numberOfLines={1}>
             {coachName}
           </Text>
-          <Text style={styles.heroSub}>Clients, leads, and checkups.</Text>
+          <Text style={styles.heroSub}>Clients, leads, and checkup</Text>
         </Animated.View>
       </View>
 
@@ -353,6 +367,13 @@ export default function DashboardScreen({
                 accessibilityRole="text"
                 accessibilityLabel={`${metric.label}: ${metric.value}`}
               >
+                <View style={[styles.metricIconWrap, { backgroundColor: `${metric.tint}18` }]}>
+                  <Ionicons
+                    name={metricIcons[metric.label] ?? 'ellipse-outline'}
+                    size={16}
+                    color={metric.tint}
+                  />
+                </View>
                 <Text style={[styles.metricValue, { color: metric.tint }]} numberOfLines={1}>
                   {metric.value}
                 </Text>
@@ -384,13 +405,13 @@ export default function DashboardScreen({
           accessibilityLabel="Add Client"
         >
           <View style={styles.primaryCtaIcon}>
-            <Ionicons name="person-add" size={18} color={Colors.white} />
+            <Ionicons name="person-add" size={18} color={Colors.secondary} />
           </View>
           <View style={styles.primaryCtaCopy}>
             <Text style={styles.primaryCtaTitle}>Add Client</Text>
-            <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
+            <Text style={styles.primaryCtaSub}>Start a new assesment</Text>
           </View>
-          <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+          <Ionicons name="arrow-forward" size={20} color={Colors.secondary} />
         </TouchableOpacity>
 
         <View style={styles.secondaryRow}>
@@ -409,6 +430,9 @@ export default function DashboardScreen({
               <Text style={styles.secondaryLabel} numberOfLines={1}>
                 {action.label}
               </Text>
+              <Text style={styles.secondarySub} numberOfLines={2}>
+                {action.sub}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -416,7 +440,6 @@ export default function DashboardScreen({
 
       <View style={styles.carouselSection}>
         <View style={styles.carouselHeader}>
-          <SectionTag icon="barbell-outline" label="Coach Tips" />
           <Text style={styles.sectionHeading}>Tips for your week</Text>
         </View>
         <DashboardCarousel />
@@ -433,9 +456,9 @@ export default function DashboardScreen({
               onPress={() => navigation.navigate('Clients', { screen: 'ClientListHome' })}
               hitSlop={HitSlop.sm}
               accessibilityRole="button"
-              accessibilityLabel="See all clients"
+              accessibilityLabel="View all clients"
             >
-              <Text style={styles.seeAll}>See All</Text>
+              <Text style={styles.seeAll}>View All</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -463,44 +486,51 @@ export default function DashboardScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   hero: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.background,
     overflow: 'hidden',
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xl + Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   heroTop: { zIndex: 1 },
   heroBrandRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  brandMark: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  brandBlock: {
     flexShrink: 1,
-    gap: 8,
+    paddingRight: Spacing.sm,
   },
-  brandWordmark: {
-    marginTop: 2,
+  brandTitle: {
+    color: Colors.secondary,
+    fontSize: 22,
+    fontFamily: headingFont.extraBold,
+    letterSpacing: -0.3,
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  guideLine: {
+    color: Colors.textLight,
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    marginTop: 4,
+  },
   greetingLine: {
-    color: Colors.onDarkMuted,
+    color: Colors.textLight,
     fontSize: 14,
     fontFamily: FontFamily.medium,
     letterSpacing: 0.2,
   },
   coachName: {
-    color: Colors.white,
-    fontSize: 28,
-    fontFamily: FontFamily.extraBold,
+    color: Colors.textDark,
+    fontSize: 26,
+    fontFamily: headingFont.extraBold,
     marginTop: 4,
     letterSpacing: -0.4,
-    lineHeight: 34,
+    lineHeight: 32,
   },
   heroSub: {
-    color: Colors.onDarkSoft,
+    color: Colors.textLight,
     fontSize: 13,
     fontFamily: FontFamily.regular,
     marginTop: 6,
@@ -510,12 +540,22 @@ const styles = StyleSheet.create({
     width: TouchTarget.header,
     height: TouchTarget.header,
     borderRadius: TouchTarget.header / 2,
-    backgroundColor: Colors.onDarkOverlay,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileBtn: {
+    width: TouchTarget.header,
+    height: TouchTarget.header,
+    borderRadius: TouchTarget.header / 2,
+    backgroundColor: Colors.secondaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   metricsOverlap: {
-    marginTop: -24,
+    marginTop: Spacing.xs,
     marginHorizontal: Spacing.md,
     zIndex: 2,
   },
@@ -537,15 +577,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     gap: 2,
   },
+  metricIconWrap: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   metricDivider: {
     width: StyleSheet.hairlineWidth,
     backgroundColor: Colors.border,
     marginVertical: 2,
   },
   metricValue: {
-    fontSize: 26,
-    fontFamily: FontFamily.extraBold,
-    lineHeight: 30,
+    fontSize: 22,
+    fontFamily: headingFont.extraBold,
+    lineHeight: 26,
     letterSpacing: -0.3,
   },
   metricLabel: {
@@ -573,28 +621,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.md,
     paddingVertical: 14,
     paddingHorizontal: Spacing.md,
-    ...Shadow.md,
+    borderWidth: 1,
+    borderColor: Colors.secondary,
+    ...Shadow.sm,
   },
   primaryCtaIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.onDarkBorder,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryCtaCopy: { flex: 1 },
   primaryCtaTitle: {
-    color: Colors.white,
+    color: Colors.secondary,
     fontSize: 16,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
   },
   primaryCtaSub: {
-    color: Colors.onDarkMuted,
+    color: Colors.textLight,
     fontSize: 12,
     fontFamily: FontFamily.medium,
     marginTop: 1,
@@ -606,29 +656,35 @@ const styles = StyleSheet.create({
   },
   secondaryChip: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xs,
+    minHeight: 115,
     ...Shadow.sm,
   },
   secondaryIcon: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: 18,
     backgroundColor: Colors.secondaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.semibold,
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
     color: Colors.secondary,
-    textAlign: 'center',
+  },
+  secondarySub: {
+    fontSize: 10,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    lineHeight: 13,
   },
   carouselSection: {
     paddingTop: Spacing.sm,
@@ -643,7 +699,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     fontSize: 17,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginBottom: Spacing.xs,
   },
@@ -696,7 +752,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   clientInfo: { flex: 1, minWidth: 0 },
-  clientName: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
+  clientName: { fontSize: 15, fontFamily: headingFont.bold, color: Colors.textDark },
   clientMeta: {
     fontSize: 12,
     fontFamily: FontFamily.regular,
@@ -717,7 +773,7 @@ const styles = StyleSheet.create({
   },
   tipsTitle: {
     fontSize: 13,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
   },
   tipRow: {

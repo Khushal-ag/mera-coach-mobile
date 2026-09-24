@@ -2,31 +2,31 @@ import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 /**
  * Mera Coach design tokens.
- * Brand: forest green, terracotta, cream, gold · Outfit + Fraunces.
+ * Brand teal, terracotta CTA, cool mint surfaces · Montserrat + Poppins.
  * Prefer these over one-off hex / magic numbers in screens.
  */
 export const Colors = {
-  primary: '#c04b2b',
-  primaryDark: '#9e3b1f',
-  primaryLight: '#fceee9',
-  secondary: '#1b4332',
-  secondaryDark: '#2d6a4f',
-  secondaryLight: '#e8f5e9',
-  accent: '#c9882a',
+  primary: '#d05c26',
+  primaryDark: '#b34a1c',
+  primaryLight: '#fdf0e8',
+  secondary: '#107868',
+  secondaryDark: '#0c5f54',
+  secondaryLight: '#d6ede5',
+  accent: '#e8a317',
   accentLight: '#fdf3e0',
-  background: '#fdf8f2',
-  backgroundTan: '#f5ede0',
+  background: '#f5f7f5',
+  backgroundTan: '#eef2ef',
   white: '#ffffff',
-  textDark: '#2c1810',
-  textLight: '#8b6553',
-  border: '#e5d5c5',
+  textDark: '#1c1c1c',
+  textLight: '#6b756f',
+  border: '#d5ddd8',
   destructive: '#dc2626',
   destructiveOrange: '#ea580c',
   destructiveSoft: '#fef2f2',
   online: '#22c55e',
   whatsapp: '#25D366',
   whatsappSoft: '#dcfce7',
-  disabledBg: '#f3ebe3',
+  disabledBg: '#e8ece9',
   onDarkOverlay: 'rgba(255,255,255,0.15)',
   onDarkSubtle: 'rgba(255,255,255,0.12)',
   onDarkBorder: 'rgba(255,255,255,0.2)',
@@ -39,14 +39,29 @@ export const Colors = {
   onDarkBright: 'rgba(255,255,255,0.85)',
   onDarkNearWhite: 'rgba(255,255,255,0.92)',
   onDarkFrost: 'rgba(255,255,255,0.95)',
+  /** Soft white fill for MPIN keypad keys on mint. */
+  onDarkWash: 'rgba(255,255,255,0.72)',
   lightboxScrim: 'rgba(0,0,0,0.92)',
   /** Mint tone for “mera” on dark green — matches client outline wordmark. */
   brandMeraOnDark: '#a8c4b4',
-  /** Warm orange for “coach” on dark backgrounds. */
-  brandCoach: '#e8943a',
+  /** Soft glow behind “mera” on dark wordmarks. */
+  brandMeraGlow: 'rgba(168, 196, 180, 0.45)',
+  /** Orange for “coach” wordmark on dark backgrounds. */
+  brandCoach: '#f47f1e',
+  /** Letterbox behind full-bleed home artwork. */
+  homeCanvas: '#033d28',
+  /** Deep green sampled from home-bg bottom scrim — native splash / photo letterbox. */
+  splashCanvas: '#03422f',
+  /** Wave header green. */
+  headerGradientTop: '#0a4f46',
+  headerGradientBottom: '#128a78',
+  /** Auth primary CTA colors. */
+  authCtaGradientStart: '#15886F',
+  authCtaGradientMid: '#13816A',
+  authCtaGradientEnd: '#026455',
+  secondaryMuted: 'rgba(16,120,104,0.25)',
   scrim: 'rgba(0,0,0,0.4)',
-  heroScrim: 'rgba(27,67,50,0.72)',
-  authScrim: 'rgba(27,67,50,0.82)',
+  heroScrim: 'rgba(16,120,104,0.72)',
 } as const;
 
 export const Radius = {
@@ -96,62 +111,80 @@ export const PressOpacity = {
   soft: 0.92,
 } as const;
 
-/** Matches @expo-google-fonts keys loaded in App.tsx. */
+/**
+ * Per-weight family names from @expo-google-fonts (RN ignores fontWeight
+ * unless the family points at the specific weight file).
+ */
+export const headingFont = {
+  regular: 'Montserrat_400Regular',
+  medium: 'Montserrat_500Medium',
+  semibold: 'Montserrat_600SemiBold',
+  bold: 'Montserrat_700Bold',
+  extraBold: 'Montserrat_800ExtraBold',
+} as const;
+
+export const bodyFont = {
+  regular: 'Poppins_400Regular',
+  medium: 'Poppins_500Medium',
+  semibold: 'Poppins_600SemiBold',
+  bold: 'Poppins_700Bold',
+  extraBold: 'Poppins_800ExtraBold',
+} as const;
+
+/**
+ * Body-weight aliases for existing call sites.
+ * Prefer headingFont for titles; bodyFont / FontFamily for everything else.
+ */
 export const FontFamily = {
-  regular: 'Outfit_400Regular',
-  medium: 'Outfit_500Medium',
-  semibold: 'Outfit_600SemiBold',
-  bold: 'Outfit_700Bold',
-  extraBold: 'Outfit_800ExtraBold',
-  displayItalic: 'Fraunces_700Bold_Italic',
+  ...bodyFont,
 } as const;
 
 /** Typography roles — prefer these over ad-hoc fontSize + family pairs. */
 export const Typography = {
   title: {
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     fontSize: 22,
     lineHeight: 28,
     color: Colors.textDark,
   },
   headline: {
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     fontSize: 18,
     lineHeight: 24,
     color: Colors.textDark,
   },
   section: {
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     fontSize: 15,
     lineHeight: 20,
     color: Colors.textDark,
   },
   body: {
-    fontFamily: FontFamily.regular,
+    fontFamily: bodyFont.regular,
     fontSize: 14,
     lineHeight: 20,
     color: Colors.textDark,
   },
   bodyStrong: {
-    fontFamily: FontFamily.semibold,
+    fontFamily: bodyFont.semibold,
     fontSize: 14,
     lineHeight: 20,
     color: Colors.textDark,
   },
   label: {
-    fontFamily: FontFamily.semibold,
+    fontFamily: bodyFont.semibold,
     fontSize: 13,
     lineHeight: 18,
     color: Colors.textDark,
   },
   caption: {
-    fontFamily: FontFamily.medium,
+    fontFamily: bodyFont.medium,
     fontSize: 12,
     lineHeight: 16,
     color: Colors.textLight,
   },
   micro: {
-    fontFamily: FontFamily.medium,
+    fontFamily: bodyFont.medium,
     fontSize: 11,
     lineHeight: 14,
     color: Colors.textLight,
@@ -368,7 +401,7 @@ export const buttonStyles = {
   },
 };
 
-/** Filter / category pills (coach list banner, explore chips). */
+/** Filter / category pills (coach list banner, chips). */
 export const filterPillStyles = {
   base: {
     flexDirection: 'row' as const,

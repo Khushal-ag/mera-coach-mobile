@@ -11,7 +11,14 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../../constants/theme';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ReloadState from '../../../components/ReloadState';
 import PdfDownloadShareButton from '../../../components/clients/PdfDownloadShareButton';
@@ -423,7 +430,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     ...Shadow.sm,
   },
-  stateMessage: { fontSize: 13, color: Colors.textLight, textAlign: 'center', lineHeight: 18 },
+  stateMessage: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textLight, textAlign: 'center', lineHeight: 18 },
   patientCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -443,12 +450,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   patientCopy: { flex: 1 },
-  patientName: { fontSize: 17, fontFamily: FontFamily.extraBold, color: Colors.textDark },
-  patientMeta: { fontSize: 13, color: Colors.textLight, marginTop: 3 },
-  patientDate: { fontSize: 12, color: Colors.textLight, marginTop: 6 },
+  patientName: { fontSize: 17, fontFamily: headingFont.extraBold, color: Colors.textDark },
+  patientMeta: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 3 },
+  patientDate: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 6 },
   sectionTitle: {
     fontSize: 15,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginBottom: 10,
   },
@@ -483,16 +490,16 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 16,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     color: Colors.secondary,
     textAlign: 'center',
   },
   statValueBmi: {
     fontSize: 28,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     color: Colors.white,
   },
-  statLabel: { fontSize: 11, color: Colors.textLight, marginTop: 4, textAlign: 'center' },
+  statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 4, textAlign: 'center' },
   statLabelBmi: { color: Colors.onDarkCaption },
   statCategoryBadge: {
     alignSelf: 'center',
@@ -520,8 +527,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deltaCopy: { flex: 1 },
-  deltaValue: { fontSize: 18, fontFamily: FontFamily.extraBold, color: Colors.textDark },
-  deltaLabel: { fontSize: 12, color: Colors.textLight, marginTop: 2 },
+  deltaValue: { fontSize: 18, fontFamily: headingFont.extraBold, color: Colors.textDark },
+  deltaLabel: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 2 },
   historyList: { gap: Spacing.xs },
   historyCard: {
     backgroundColor: Colors.white,
@@ -602,10 +609,10 @@ const styles = StyleSheet.create({
   },
   noHistoryTitle: {
     fontSize: 13,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginTop: 4,
   },
-  noHistory: { fontSize: 12, color: Colors.textLight, textAlign: 'center', lineHeight: 17 },
+  noHistory: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, textAlign: 'center', lineHeight: 17 },
   pdfCta: { marginTop: Spacing.xs },
 });

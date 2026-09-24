@@ -11,12 +11,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
-  FontFamily,
   IconSize,
   Radius,
   Shadow,
   Spacing,
   Typography,
+  headingFont,
 } from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import type { IoniconName } from '../types/icons';
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   title: {
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     fontSize: 18,
     color: Colors.textDark,
     textAlign: 'center',

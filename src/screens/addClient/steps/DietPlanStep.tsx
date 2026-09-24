@@ -2,7 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, IconSize, Radius, Shadow, Spacing } from '../../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  IconSize,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../../constants/theme';
 import AppButton from '../../../components/AppButton';
 import { generateDietPlan, resolveMasterLabel } from '../../../api/masterApi';
 import { getCoachProfile } from '../../../api/coachApi';
@@ -246,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
-  emptyTitle: { fontSize: 16, fontFamily: FontFamily.extraBold, color: Colors.textDark },
+  emptyTitle: { fontSize: 16, fontFamily: headingFont.extraBold, color: Colors.textDark },
   emptyMessage: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
@@ -278,7 +286,7 @@ const styles = StyleSheet.create({
     color: Colors.onDarkMuted,
     textTransform: 'uppercase',
   },
-  summaryBmi: { fontSize: 28, fontFamily: FontFamily.extraBold, color: Colors.white, marginTop: 2 },
+  summaryBmi: { fontSize: 28, fontFamily: headingFont.extraBold, color: Colors.white, marginTop: 2 },
   summaryLabel: {
     fontSize: 12,
     fontFamily: FontFamily.regular,

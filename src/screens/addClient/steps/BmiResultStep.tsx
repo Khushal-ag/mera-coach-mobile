@@ -1,7 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, IconSize, Radius, Shadow, Spacing } from '../../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  IconSize,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../../constants/theme';
 import { getBmiCategory, computeBmiMetrics } from '../../../utils/bmi';
 import type { BodyMetrics } from '../../../utils/bmi';
 import type { ClientProfile } from '../../../types/models';
@@ -147,7 +155,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  bmiTileValue: { fontSize: 28, fontFamily: FontFamily.extraBold, color: Colors.white },
+  bmiTileValue: { fontSize: 28, fontFamily: headingFont.extraBold, color: Colors.white },
   bmiTileSub: {
     color: Colors.onDarkSoft,
     fontSize: 10,
@@ -171,7 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  tileValue: { fontSize: 20, fontFamily: FontFamily.extraBold, color: Colors.secondary },
+  tileValue: { fontSize: 20, fontFamily: headingFont.extraBold, color: Colors.secondary },
   tileLabel: {
     fontSize: 12,
     fontFamily: FontFamily.bold,

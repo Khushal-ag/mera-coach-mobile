@@ -95,7 +95,7 @@
           "image": "./assets/platform/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#1b4332"
+          "backgroundColor": "#03422f"
         }
       ],
       "expo-font",

@@ -32,6 +32,7 @@ import {
   TouchTarget,
   formFieldStyles,
   storyCardWidth,
+  headingFont,
 } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
 import PersonAvatar from '../../components/PersonAvatar';
@@ -1001,7 +1002,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   categoryBadgeText: { color: Colors.white, fontSize: 11, fontFamily: FontFamily.bold },
-  name: { color: Colors.white, fontSize: 24, fontFamily: FontFamily.extraBold, marginBottom: 6 },
+  name: { color: Colors.white, fontSize: 24, fontFamily: headingFont.extraBold, marginBottom: 6 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.sm },
   ratingVal: { color: Colors.white, fontSize: 13, fontFamily: FontFamily.bold },
   ratingCount: { color: Colors.onDarkSoft, fontSize: 12, fontFamily: FontFamily.regular },
@@ -1037,7 +1038,7 @@ const styles = StyleSheet.create({
   },
   statItem: { flex: 1, alignItems: 'center' },
   statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-  statValue: { fontSize: 16, fontFamily: FontFamily.extraBold, color: Colors.secondary },
+  statValue: { fontSize: 16, fontFamily: headingFont.extraBold, color: Colors.secondary },
   statLabel: {
     fontSize: 10,
     fontFamily: FontFamily.medium,
@@ -1053,7 +1054,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     color: Colors.textDark,
     marginBottom: 6,
   },
@@ -1131,7 +1132,7 @@ const styles = StyleSheet.create({
   reviewStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: Spacing.xs },
   reviewScore: {
     fontSize: 20,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     color: Colors.textDark,
     marginBottom: Spacing.xs,
   },

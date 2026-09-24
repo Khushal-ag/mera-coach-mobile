@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, type StyleProp, type TextStyle } from 'react-native';
-import { Colors, FontFamily } from '../constants/theme';
+import { Colors, FontFamily, headingFont } from '../constants/theme';
 
 type BrandWordmarkTone = 'onDark' | 'onLight';
 type BrandWordmarkSize = 'sm' | 'md' | 'lg';
@@ -62,22 +62,22 @@ export default function BrandWordmark({
 
 const styles = StyleSheet.create({
   root: {
-    fontFamily: FontFamily.semibold,
+    fontFamily: headingFont.semibold,
   },
   prefix: {
     fontFamily: FontFamily.semibold,
   },
   mera: {
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     letterSpacing: 0.3,
   },
   meraOnDark: {
-    textShadowColor: 'rgba(168, 196, 180, 0.45)',
+    textShadowColor: Colors.brandMeraGlow,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 3,
   },
   coach: {
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     letterSpacing: 0.3,
   },
 });

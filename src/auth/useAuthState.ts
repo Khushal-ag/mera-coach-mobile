@@ -47,7 +47,7 @@ function subscribe(listener: () => void): () => void {
 
 /**
  * Cold-start restore must run once per JS process.
- * Home / HomeExplore also call useAuthState for UI; re-running restoreMpinState
+ * Home also calls useAuthState for UI; re-running restoreMpinState
  * would clear unlockedThisSession and re-show the MPIN gate on every Home tap.
  */
 let restorePromise: Promise<void> | null = null;

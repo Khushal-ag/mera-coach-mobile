@@ -22,7 +22,6 @@ const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Home: '',
-      HomeExplore: 'explore',
       CoachList: 'coach-list',
       CoachPublicProfile: 'coach-profile',
       Login: 'login',

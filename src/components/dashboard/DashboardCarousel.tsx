@@ -9,7 +9,14 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  Radius,
+  Shadow,
+  Spacing,
+  headingFont,
+} from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 
 interface CarouselSlide {
@@ -138,7 +145,7 @@ const styles = StyleSheet.create({
   headline: {
     color: Colors.white,
     fontSize: 20,
-    fontFamily: FontFamily.displayItalic,
+    fontFamily: headingFont.bold,
     lineHeight: 26,
   },
   subline: {

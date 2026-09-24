@@ -1,9 +1,19 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, PressOpacity, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  HitSlop,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+  TouchTarget,
+  headingFont,
+} from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
-import BrandLockup from '../../components/BrandLockup';
+import BrandLogo from '../../components/BrandLogo';
 import MpinKeypad from '../../components/auth/MpinKeypad';
 import {
   clearMpin,
@@ -77,19 +87,18 @@ export default function MpinUnlockScreen() {
   };
 
   return (
-    <ImageBackground source={BrandImages.loginAtmosphere} style={styles.bg} resizeMode="cover">
-      <View style={styles.scrim} />
+    <ImageBackground source={BrandImages.mpinAtmosphere} style={styles.bg} resizeMode="cover">
       <View
         style={[
           styles.inner,
           { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg },
         ]}
       >
-        <BrandLockup size="lg" style={styles.logo} />
+        <BrandLogo variant="full" size={100} style={styles.logo} />
 
         <View style={styles.card}>
           <Text style={styles.title}>Enter MPIN</Text>
-          <Text style={styles.sub}>Unlock Mera Coach with your 4-digit code.</Text>
+          <Text style={styles.sub}>Unlock Mera Coach with your 4- digit-code</Text>
 
           <MpinKeypad
             value={pin}
@@ -107,6 +116,8 @@ export default function MpinUnlockScreen() {
             activeOpacity={PressOpacity.soft}
             accessibilityRole="button"
             accessibilityLabel="Forgot MPIN, use password instead"
+            hitSlop={HitSlop.sm}
+            style={styles.forgotHit}
           >
             <Text style={styles.forgot}>Forgot MPIN? Use password</Text>
           </TouchableOpacity>
@@ -117,18 +128,9 @@ export default function MpinUnlockScreen() {
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: Colors.secondary },
-  scrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.authScrim,
-  },
+  bg: { flex: 1, backgroundColor: Colors.background },
   inner: {
     flex: 1,
-    zIndex: 1,
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
   },
@@ -142,9 +144,9 @@ const styles = StyleSheet.create({
     ...Shadow.lg,
   },
   title: {
-    fontSize: 22,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
+    fontSize: 24,
+    fontFamily: headingFont.extraBold,
+    color: Colors.secondary,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -155,11 +157,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     textAlign: 'center',
   },
+  forgotHit: {
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+    marginTop: Spacing.sm,
+  },
   forgot: {
     textAlign: 'center',
-    marginTop: Spacing.sm,
     fontSize: 13,
-    fontFamily: FontFamily.semibold,
-    color: Colors.primary,
+    fontFamily: FontFamily.bold,
+    color: Colors.secondary,
   },
 });

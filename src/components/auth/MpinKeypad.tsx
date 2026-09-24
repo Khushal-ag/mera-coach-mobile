@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  IconSize,
   PressOpacity,
   Radius,
   Spacing,
@@ -74,21 +76,26 @@ export default function MpinKeypad({
       <View style={styles.pad}>
         {KEYS.map((key, index) => {
           if (!key) {
-            return <View key={`empty-${index}`} style={styles.key} />;
+            return <View key={`empty-${index}`} style={styles.keySlot} />;
           }
           const isBackspace = key === '⌫';
           return (
-            <TouchableOpacity
-              key={key}
-              style={styles.key}
-              onPress={() => pressKey(key)}
-              disabled={disabled}
-              activeOpacity={PressOpacity.default}
-              accessibilityRole="button"
-              accessibilityLabel={isBackspace ? 'Delete' : key}
-            >
-              <Text style={[styles.keyLabel, isBackspace && styles.keyBackspace]}>{key}</Text>
-            </TouchableOpacity>
+            <View key={key} style={styles.keySlot}>
+              <TouchableOpacity
+                style={styles.key}
+                onPress={() => pressKey(key)}
+                disabled={disabled}
+                activeOpacity={PressOpacity.default}
+                accessibilityRole="button"
+                accessibilityLabel={isBackspace ? 'Delete' : key}
+              >
+                {isBackspace ? (
+                  <Ionicons name="close" size={IconSize.xl} color={Colors.secondary} />
+                ) : (
+                  <Text style={styles.keyLabel}>{key}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           );
         })}
       </View>
@@ -104,11 +111,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   dot: {
-    width: 14,
-    height: 14,
+    width: 18,
+    height: 18,
     borderRadius: Radius.pill,
-    borderWidth: 2,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: Colors.secondary,
     backgroundColor: Colors.white,
   },
   dotFilled: {
@@ -131,22 +138,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    maxWidth: 280,
     alignSelf: 'center',
+    width: '100%',
+    maxWidth: 300,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    gap: Spacing.sm,
   },
-  key: {
-    width: '33.33%',
-    height: TouchTarget.min + 12,
+  keySlot: {
+    width: '30%',
+    maxWidth: 84,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyLabel: {
-    fontSize: 28,
-    fontFamily: FontFamily.semibold,
-    color: Colors.textDark,
+  key: {
+    width: 52,
+    height: 52,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.onDarkWash,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: TouchTarget.min,
   },
-  keyBackspace: {
+  keyLabel: {
     fontSize: 22,
-    color: Colors.textLight,
+    fontFamily: FontFamily.semibold,
+    color: Colors.secondary,
   },
 });

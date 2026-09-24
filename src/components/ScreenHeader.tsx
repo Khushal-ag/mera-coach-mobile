@@ -12,12 +12,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
-  FontFamily,
   HitSlop,
   IconSize,
   PressOpacity,
   Spacing,
   TouchTarget,
+  headingFont,
 } from '../constants/theme';
 
 /**
@@ -79,9 +79,7 @@ export function HeaderHomeButton({
   accessibilityLabel = 'Home',
 }: HeaderHomeButtonProps) {
   const navigation = useNavigation();
-  // Public discovery hub (Find a Coach). Prefer Explore over marketing Home so
-  // signed-in coaches can browse profiles without an extra hop.
-  const handlePress = onPress ?? (() => navigation.navigate('HomeExplore'));
+  const handlePress = onPress ?? (() => navigation.navigate('Home'));
 
   return (
     <TouchableOpacity
@@ -141,7 +139,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.white,
     fontSize: 18,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     textAlign: 'center',
     marginHorizontal: Spacing.xs,
   },

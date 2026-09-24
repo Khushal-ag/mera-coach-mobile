@@ -18,6 +18,7 @@ import {
   Radius,
   Spacing,
   formFieldStyles,
+  headingFont,
 } from '../../constants/theme';
 import FormFieldLabel from '../FormFieldLabel';
 import { ageFromDate, formatDob, parseDob } from '../../utils/validation';
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  modalTitle: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
+  modalTitle: { fontSize: 15, fontFamily: headingFont.bold, color: Colors.textDark },
   modalCancel: { fontSize: 16, fontFamily: FontFamily.semibold, color: Colors.textLight },
   modalDone: { fontSize: 16, fontFamily: FontFamily.bold, color: Colors.primary },
   wheelRow: {

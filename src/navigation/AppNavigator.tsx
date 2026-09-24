@@ -6,11 +6,11 @@ import type { RootStackParamList } from '../types/navigation';
 
 import SplashScreen from '../screens/home/SplashScreen';
 import HomeScreen from '../screens/home/HomeScreen';
-import HomeExploreScreen from '../screens/home/HomeExploreScreen';
 import CoachListScreen from '../screens/publicCoach/CoachListScreen';
 import CoachPublicProfileScreen from '../screens/publicCoach/CoachPublicProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import MpinSetupScreen from '../screens/auth/MpinSetupScreen';
 import MpinUnlockScreen from '../screens/auth/MpinUnlockScreen';
 import MainTabNavigator from './MainTabNavigator';
@@ -20,11 +20,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const publicScreens = (
   <>
     <Stack.Screen name="Home" component={HomeScreen} />
-    <Stack.Screen
-      name="HomeExplore"
-      component={HomeExploreScreen}
-      options={{ gestureEnabled: true, animation: 'slide_from_right' }}
-    />
     <Stack.Screen name="CoachList" component={CoachListScreen} />
     <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
   </>
@@ -71,6 +66,7 @@ export default function AppNavigator() {
           {publicScreens}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       )}
     </Stack.Navigator>

@@ -1,12 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  ImageBackground,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,19 +16,16 @@ import {
   IconSize,
   PressOpacity,
   Radius,
-  Shadow,
   Spacing,
+  TouchTarget,
   formFieldStyles,
+  headingFont,
 } from '../../constants/theme';
-import { BrandImages } from '../../constants/images';
-import AppButton from '../../components/AppButton';
-import BrandLockup from '../../components/BrandLockup';
+import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';
+import AuthCtaButton from '../../components/auth/AuthCtaButton';
+import BrandLogo from '../../components/BrandLogo';
 import FormErrorBanner from '../../components/FormErrorBanner';
-import FormFieldLabel from '../../components/FormFieldLabel';
-import KeyboardSafeScroll, {
-  useScrollLowerFieldsIntoView,
-} from '../../components/KeyboardSafeScroll';
-import { HeaderBackButton } from '../../components/ScreenHeader';
+import { authLogoHeight } from '../../constants/images';
 import { login } from '../../api/authApi';
 import { getLastLoginId, markMpinUnlocked, rememberLoginId } from '../../auth/mpin';
 import { didSessionExpireOnRestore, saveSession } from '../../auth/session';
@@ -41,8 +37,8 @@ import type { RootScreenProps } from '../../types/navigation';
 
 export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
+  const { width: screenW } = useWindowDimensions();
+  const logoSize = authLogoHeight(screenW);
   const [email, setEmail] = useState(() => getLastLoginId() ?? '');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -70,15 +66,11 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       const trimmed = email.trim();
       const session = await login({ userName: trimmed, password });
       await rememberLoginId(trimmed);
-      // Drop prior coach/client cache before activating the new session
-      // (saveSession does not clear RQ; logout/401 go through clearSession).
       clearAppQueryCache();
       await saveSession({
         ...session,
-        // Ensure MPIN owner checks have an email even if the API omits it.
         email: session.email?.trim() || trimmed,
       });
-      // Password already proved identity for this process — skip unlock gate until next cold start.
       markMpinUnlocked();
     } catch (err) {
       setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
@@ -88,179 +80,231 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   };
 
   return (
-    <ImageBackground source={BrandImages.loginAtmosphere} style={styles.bg} resizeMode="cover">
-      <View style={styles.scrim} />
-      <KeyboardSafeScroll
-        ref={scrollRef}
-        style={styles.container}
-        contentContainerStyle={styles.inner}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-          <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
-          <BrandLockup size="lg" style={styles.logo} />
-        </View>
+    <AuthAtmosphereLayout>
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.xxs }]}>
+        <BrandLogo variant="full" size={logoSize} style={styles.logo} />
+      </View>
 
-        <View style={styles.card}>
-          <FormErrorBanner message={formErrorBanner} />
-          {sessionHint && !formErrorBanner ? (
-            <Text style={styles.sessionHint}>{sessionHint}</Text>
-          ) : null}
+      <View style={styles.form}>
+        <FormErrorBanner message={formErrorBanner} />
+        {sessionHint && !formErrorBanner ? (
+          <Text style={styles.sessionHint}>{sessionHint}</Text>
+        ) : null}
 
-          <Text style={styles.cardTitle}>Coach Login</Text>
-          <Text style={styles.cardSub}>Sign in to manage clients, leads, and your listing</Text>
+        <Text style={styles.title}>Coach Login</Text>
+        <Text style={styles.sub}>
+          Sign in to manage your clients, track progress and make an impact.
+        </Text>
 
-          <View style={styles.field}>
-            <FormFieldLabel required>Email Address</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
-              <Ionicons
-                name="mail-outline"
-                size={IconSize.md}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="coach@meracoach.com"
-                placeholderTextColor={Colors.textLight}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={email}
-                onChangeText={v => {
-                  setEmail(sanitizeEmailInput(v));
-                  clearFieldError('email');
-                }}
-                accessibilityLabel="Email address"
-              />
-            </View>
-          </View>
-
-          <View style={styles.field}>
-            <FormFieldLabel required>Password</FormFieldLabel>
-            <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={IconSize.md}
-                color={Colors.textLight}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Enter your password"
-                placeholderTextColor={Colors.textLight}
-                secureTextEntry={!showPass}
-                value={password}
-                onChangeText={v => {
-                  setPassword(v);
-                  clearFieldError('password');
-                }}
-                onFocus={scrollLowerFieldsIntoView}
-                accessibilityLabel="Password"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPass(!showPass)}
-                style={styles.eyeBtn}
-                hitSlop={HitSlop.sm}
-                activeOpacity={PressOpacity.default}
-                accessibilityRole="button"
-                accessibilityLabel={showPass ? 'Hide password' : 'Show password'}
-              >
-                <Ionicons
-                  name={showPass ? 'eye-off-outline' : 'eye-outline'}
-                  size={IconSize.md}
-                  color={Colors.textLight}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <AppButton
-            label="Sign In"
-            onPress={() => void handleLogin()}
-            loading={submitting}
-            icon="arrow-forward"
+        <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+          <Ionicons
+            name="mail-outline"
+            size={IconSize.md}
+            color={Colors.authCtaGradientStart}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Email or Mobile Number"
+            placeholderTextColor={Colors.textLight}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={v => {
+              setEmail(sanitizeEmailInput(v));
+              clearFieldError('email');
+            }}
+            accessibilityLabel="Email or mobile number"
           />
         </View>
 
+        <View style={[styles.inputWrap, errorFields.password && styles.inputWrapError]}>
+          <Ionicons
+            name="lock-closed-outline"
+            size={IconSize.md}
+            color={Colors.authCtaGradientStart}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Password"
+            placeholderTextColor={Colors.textLight}
+            secureTextEntry={!showPass}
+            value={password}
+            onChangeText={v => {
+              setPassword(v);
+              clearFieldError('password');
+            }}
+            accessibilityLabel="Password"
+          />
+          <TouchableOpacity
+            onPress={() => setShowPass(!showPass)}
+            style={styles.eyeBtn}
+            hitSlop={HitSlop.sm}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel={showPass ? 'Hide password' : 'Show password'}
+          >
+            <Ionicons
+              name={showPass ? 'eye-off-outline' : 'eye-outline'}
+              size={IconSize.md}
+              color={Colors.textLight}
+            />
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
-          onPress={() => navigation.navigate('Register')}
+          onPress={() => navigation.navigate('ForgotPassword')}
           activeOpacity={PressOpacity.soft}
           accessibilityRole="button"
-          accessibilityLabel="Create an account"
+          accessibilityLabel="Forgot Password"
+          hitSlop={HitSlop.sm}
+          style={styles.forgotWrap}
         >
-          <Text style={styles.registerLink}>
-            New coach? <Text style={styles.registerLinkBold}>Create an account</Text>
-          </Text>
+          <Text style={styles.forgot}>Forgot Password?</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footer}>Mera Coach © 2026 · Health & wellness coaching</Text>
-      </KeyboardSafeScroll>
-    </ImageBackground>
+        <View style={styles.registerRow}>
+          <Text style={styles.registerPrompt}>New here? </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={PressOpacity.soft}
+            accessibilityRole="button"
+            accessibilityLabel="Create Account"
+            hitSlop={HitSlop.sm}
+            style={styles.linkHit}
+          >
+            <Text style={styles.registerLink}>Create Account</Text>
+          </TouchableOpacity>
+        </View>
+
+        <AuthCtaButton
+          variant="authPrimary"
+          label="Login"
+          onPress={() => void handleLogin()}
+          loading={submitting}
+          style={styles.ctaBtn}
+        />
+
+        <View style={styles.orRow}>
+          <View style={styles.orLine} />
+          <Text style={styles.orText}>OR</Text>
+          <View style={styles.orLine} />
+        </View>
+
+        <AuthCtaButton
+          variant="authSecondary"
+          label="Find A coach"
+          leftIcon="person-outline"
+          onPress={() => navigation.navigate('CoachList')}
+          style={styles.ctaBtn}
+        />
+      </View>
+    </AuthAtmosphereLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: Colors.secondary },
-  scrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.authScrim,
-  },
-  container: { flex: 1, backgroundColor: 'transparent', zIndex: 1 },
-  inner: { flexGrow: 1, alignItems: 'center' },
   header: {
     alignItems: 'center',
-    paddingBottom: Spacing.lg,
+    paddingBottom: 0,
     width: '100%',
     paddingHorizontal: Spacing.lg,
   },
-  headerBack: { alignSelf: 'flex-start', marginBottom: Spacing.sm },
-  logo: { marginBottom: Spacing.sm },
-  card: {
-    width: '90%',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    ...Shadow.lg,
+  logo: { marginBottom: 0 },
+  form: {
+    width: '88%',
+    maxWidth: 400,
+    paddingTop: Spacing.xxs,
+    backgroundColor: 'transparent',
   },
-  cardTitle: { fontSize: 22, fontFamily: FontFamily.bold, color: Colors.textDark, marginBottom: 4 },
-  cardSub: {
-    fontSize: 13,
+  title: {
+    fontSize: 28,
+    fontFamily: headingFont.extraBold,
+    color: Colors.textDark,
+    marginBottom: 2,
+  },
+  sub: {
+    fontSize: 12,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
-    marginBottom: Spacing.lg,
-    lineHeight: 18,
+    marginBottom: Spacing.xs,
+    lineHeight: 17,
   },
   sessionHint: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: FontFamily.medium,
     color: Colors.secondary,
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.sm,
-    padding: Spacing.sm,
-    marginBottom: Spacing.md,
-    lineHeight: 18,
+    padding: Spacing.xs,
+    marginBottom: Spacing.xs,
+    lineHeight: 16,
   },
-  field: { marginBottom: Spacing.md },
-  inputWrap: formFieldStyles.wrap,
+  inputWrap: {
+    ...formFieldStyles.wrap,
+    backgroundColor: Colors.white,
+    marginBottom: Spacing.xs,
+    height: 50,
+    borderRadius: Radius.md,
+    borderColor: Colors.border,
+    borderWidth: 1,
+  },
   inputWrapError: formFieldStyles.wrapError,
   inputIcon: formFieldStyles.inputIcon,
   input: formFieldStyles.input,
   eyeBtn: formFieldStyles.eyeBtn,
-  registerLink: {
-    color: Colors.onDarkMuted,
+  forgotWrap: {
+    alignSelf: 'flex-end',
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+    marginBottom: Spacing.xxs,
+    marginTop: -Spacing.xxs,
+  },
+  forgot: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: Colors.authCtaGradientStart,
+  },
+  registerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+    marginBottom: Spacing.xs,
+  },
+  linkHit: {
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+  },
+  registerPrompt: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
-    marginTop: Spacing.lg,
+    color: Colors.textLight,
   },
-  registerLinkBold: { color: Colors.white, fontFamily: FontFamily.bold },
-  footer: {
-    color: Colors.onDarkSoft,
+  registerLink: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: Colors.authCtaGradientStart,
+  },
+  ctaBtn: {
+    height: 48,
+  },
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  orLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+  },
+  orText: {
     fontSize: 12,
-    fontFamily: FontFamily.medium,
-    marginTop: Spacing.md,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textLight,
   },
 });

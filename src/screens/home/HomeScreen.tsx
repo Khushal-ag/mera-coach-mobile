@@ -1,151 +1,137 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Image,
+  Pressable,
   StyleSheet,
-  ImageBackground,
-  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BrandLogo from '../../components/BrandLogo';
+import {
+  BrandImages,
+  HOME_HERO_ASPECT,
+  HOME_HERO_HEIGHT,
+  HOME_RUNNER_HEAD_TOP,
+  LOGO_ASPECT,
+} from '../../constants/images';
 import {
   Colors,
   FontFamily,
+  IconSize,
   PressOpacity,
   Radius,
-  Shadow,
   Spacing,
-  TouchTarget,
+  headingFont,
 } from '../../constants/theme';
-import { BrandImages } from '../../constants/images';
-import BrandWordmark from '../../components/BrandWordmark';
-import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../../data/homeContent';
-import { getCoachCategories, getCoachPublicList } from '../../api/coachApi';
-import { MASTER_STALE_MS } from '../../api/queryClient';
-import { queryKeys } from '../../api/queryKeys';
 import { useAuthState } from '../../auth/useAuthState';
 import type { RootScreenProps } from '../../types/navigation';
 
-interface HomeStat {
-  value: string;
-  label: string;
+const HOME_LOGO_WIDTH_FRAC = 0.6;
+const HOME_LOGO_HEAD_GAP = 6;
+
+function coverTopBiasLayout(screenW: number, screenH: number, imageAspect: number) {
+  const screenAspect = screenW / screenH;
+  if (screenAspect > imageAspect) {
+    const width = screenW;
+    const height = screenW / imageAspect;
+    return { width, height, left: 0, top: (screenH - height) * 0.2 };
+  }
+  const height = screenH;
+  const width = screenH * imageAspect;
+  return { width, height, left: (screenW - width) / 2, top: 0 };
 }
 
 export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
   const signedIn = useAuthState() === 'signedIn';
-  const compact = screenHeight < 780;
+  const layout = coverTopBiasLayout(screenW, screenH, HOME_HERO_ASPECT);
 
-  const categoriesQuery = useQuery({
-    queryKey: queryKeys.coachCategories,
-    queryFn: getCoachCategories,
-    staleTime: MASTER_STALE_MS,
-  });
-  const coachesQuery = useQuery({
-    queryKey: queryKeys.coachPublicList(),
-    queryFn: ({ signal }) => getCoachPublicList({}, signal),
-  });
+  const targetLogoHeight = (screenW * HOME_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
+  const headY =
+    layout.top + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * layout.height;
+  const maxLogoHeight = Math.max(
+    120,
+    headY - (insets.top + Spacing.xxs) - HOME_LOGO_HEAD_GAP,
+  );
+  const homeLogoSize = Math.min(targetLogoHeight, maxLogoHeight);
 
-  const apiCategories = categoriesQuery.data;
-  const categories = apiCategories?.length ? apiCategories : FALLBACK_CATEGORIES;
-  const coachesLoading = coachesQuery.isPending;
-
-  const coachTotal = coachesQuery.data?.totalCount ?? coachesQuery.data?.coaches.length ?? 0;
-  const avgRating = useMemo(() => {
-    const rated = (coachesQuery.data?.coaches ?? []).filter(c => c.rating > 0);
-    return rated.length ? rated.reduce((sum, c) => sum + c.rating, 0) / rated.length : null;
-  }, [coachesQuery.data]);
-
-  const statsReady = !coachesLoading;
-  const canShowCoachStats = !!coachesQuery.data || !coachesQuery.isError;
-  const stats: HomeStat[] =
-    statsReady && canShowCoachStats
-      ? [
-          { value: String(coachTotal), label: 'Coaches' },
-          categories.length > 0 ? { value: String(categories.length), label: 'Categories' } : null,
-          avgRating != null ? { value: `${avgRating.toFixed(1)}/5`, label: 'Avg. Rating' } : null,
-        ].filter((s): s is HomeStat => s != null)
-      : [];
-  const showStats = statsReady && stats.length >= 2;
+  const onGetStarted = () => {
+    if (signedIn) {
+      navigation.navigate('Main');
+      return;
+    }
+    navigation.navigate('Login');
+  };
 
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={BrandImages.mainScreenHero}
-        style={[styles.hero, { paddingTop: insets.top }]}
+      <Image
+        source={BrandImages.homeHero}
+        style={[styles.hero, layout]}
         resizeMode="cover"
-      >
-        <View style={styles.topActions}>
-          {signedIn ? (
-            <TouchableOpacity
-              style={styles.topPill}
-              onPress={() => navigation.navigate('Main')}
-              accessibilityRole="button"
-              accessibilityLabel="Go to Dashboard"
-              activeOpacity={PressOpacity.soft}
-            >
-              <Text style={styles.topPillText}>Dashboard</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.topPill}
-              onPress={() => navigation.navigate('Login')}
-              accessibilityRole="button"
-              accessibilityLabel="Log In"
-              activeOpacity={PressOpacity.soft}
-            >
-              <Text style={styles.topPillText}>Log In</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ImageBackground>
+        accessibilityIgnoresInvertColors
+      />
 
-      <TouchableOpacity
-        style={[styles.ctaBanner, compact && styles.ctaBannerCompact]}
-        activeOpacity={PressOpacity.soft}
-        onPress={() => navigation.navigate('HomeExplore')}
-        accessibilityRole="button"
-        accessibilityLabel="Grow Your Coaching Business with mera coach"
-      >
-        <Text style={[styles.ctaLine, compact && styles.ctaLineCompact]}>
-          Grow Your Coaching Business
-        </Text>
-        <BrandWordmark
-          prefix="with "
-          tone="onDark"
-          size={compact ? 'md' : 'lg'}
-          style={styles.ctaBrandLine}
-        />
-      </TouchableOpacity>
+      <View style={[styles.topBrand, { paddingTop: insets.top + Spacing.xxs }]}>
+        <BrandLogo variant="full" size={homeLogoSize} />
+      </View>
 
-      {showStats ? (
-        <View style={[styles.statsStrip, { marginBottom: insets.bottom + Spacing.sm }]}>
-          {stats.map((s, i) => (
-            <React.Fragment key={s.label}>
-              {i > 0 && <View style={styles.statDivider} />}
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            </React.Fragment>
-          ))}
+      <View
+        style={[
+          styles.bottomBlock,
+          { paddingBottom: Math.max(insets.bottom, Spacing.sm) + Spacing.md },
+        ]}
+      >
+        <View style={styles.headline}>
+          <Text style={styles.lineWhite}>Grow Your</Text>
+          <Text style={styles.lineOrange}>Coaching</Text>
+          <Text style={styles.lineWhite}>Business with</Text>
+          <View style={styles.brandLine}>
+            <Text style={styles.mera}>mera</Text>
+            <View style={styles.coachWrap}>
+              <Text style={styles.coach}> coach</Text>
+              <View style={styles.coachUnderline} />
+            </View>
+          </View>
         </View>
-      ) : coachesLoading ? (
-        <View
-          style={[
-            styles.statsStrip,
-            styles.statsStripLoading,
-            { marginBottom: insets.bottom + Spacing.sm },
-          ]}
+
+        <Pressable
+          style={({ pressed }) => [styles.ctaPrimary, pressed && styles.ctaPressed]}
+          onPress={onGetStarted}
+          accessibilityRole="button"
+          accessibilityLabel={signedIn ? 'Go to Dashboard' : 'Get Started as a coach'}
         >
-          <ActivityIndicator color={Colors.secondary} />
-        </View>
-      ) : (
-        <View style={{ marginBottom: insets.bottom + Spacing.sm }} />
-      )}
+          <View style={styles.leadingIconCircle}>
+            <Ionicons name="person" size={IconSize.md} color={Colors.white} />
+          </View>
+          <View style={styles.ctaDivider} />
+          <View style={styles.ctaLabelStack}>
+            <Text style={styles.ctaPrimaryTitle}>Get Started</Text>
+            <Text style={styles.ctaPrimarySub}>as a coach</Text>
+          </View>
+          <View style={styles.arrowCircle}>
+            <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.brandCoach} />
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.ctaSecondary, pressed && styles.ctaPressed]}
+          onPress={() => navigation.navigate('CoachList')}
+          accessibilityRole="button"
+          accessibilityLabel="Find a Coach"
+        >
+          <Ionicons name="search" size={IconSize.lg} color={Colors.white} />
+          <View style={[styles.ctaDivider, styles.ctaDividerMuted]} />
+          <Text style={styles.ctaSecondaryLabel}>Find a Coach</Text>
+          <View style={styles.arrowCircle}>
+            <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.secondary} />
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -153,79 +139,135 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.homeCanvas,
+    overflow: 'hidden',
   },
   hero: {
+    position: 'absolute',
+  },
+  topBrand: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  bottomBlock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  headline: {
+    marginBottom: Spacing.sm,
+  },
+  lineWhite: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 34,
+    lineHeight: 38,
+    color: Colors.white,
+  },
+  lineOrange: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 34,
+    lineHeight: 38,
+    color: Colors.brandCoach,
+  },
+  brandLine: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  mera: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 34,
+    lineHeight: 38,
+    color: Colors.white,
+  },
+  coachWrap: {
+    alignItems: 'flex-start',
+  },
+  coach: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 34,
+    lineHeight: 38,
+    color: Colors.brandCoach,
+  },
+  coachUnderline: {
+    alignSelf: 'stretch',
+    height: 4,
+    borderRadius: 3,
+    backgroundColor: Colors.brandCoach,
+    marginTop: 1,
+    marginLeft: Spacing.xs,
+    transform: [{ rotate: '-2deg' }],
+  },
+  ctaPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 56,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.brandCoach,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  ctaSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 52,
+    borderRadius: Radius.pill,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+    backgroundColor: 'transparent',
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  ctaPressed: {
+    opacity: PressOpacity.default,
+  },
+  leadingIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.pill,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaDivider: {
+    width: StyleSheet.hairlineWidth * 2,
+    alignSelf: 'stretch',
+    marginVertical: Spacing.sm,
+    backgroundColor: Colors.onDarkBorderStrong,
+  },
+  ctaDividerMuted: {
+    backgroundColor: Colors.onDarkBorderMid,
+  },
+  ctaLabelStack: {
     flex: 1,
   },
-  topActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xs,
-  },
-  topPill: {
-    backgroundColor: Colors.onDarkFrost,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
-    minHeight: TouchTarget.min,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.sm,
-  },
-  topPillText: {
-    color: Colors.secondary,
-    fontSize: 13,
+  ctaPrimaryTitle: {
     fontFamily: FontFamily.bold,
-  },
-  ctaBanner: {
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: Spacing.lg,
-  },
-  ctaBannerCompact: {
-    paddingVertical: 14,
-  },
-  ctaLine: {
+    fontSize: 16,
     color: Colors.white,
-    fontFamily: FontFamily.extraBold,
-    fontSize: 26,
-    lineHeight: 32,
-    textAlign: 'center',
+    lineHeight: 20,
   },
-  ctaLineCompact: {
-    fontSize: 20,
-    lineHeight: 26,
+  ctaPrimarySub: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: Colors.onDarkNearWhite,
+    lineHeight: 16,
   },
-  ctaBrandLine: {
-    marginTop: 4,
+  ctaSecondaryLabel: {
+    flex: 1,
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
+    color: Colors.white,
   },
-  statsStrip: {
-    flexDirection: 'row',
+  arrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.pill,
     backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    marginTop: -16,
-    borderRadius: Radius.lg,
-    paddingVertical: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    ...Shadow.md,
-  },
-  statsStripLoading: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 64,
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statDivider: { width: 1, backgroundColor: Colors.border },
-  statValue: { fontSize: 17, fontFamily: FontFamily.extraBold, color: Colors.textDark },
-  statLabel: {
-    fontSize: 10,
-    fontFamily: FontFamily.medium,
-    color: Colors.textLight,
-    marginTop: 2,
-    textAlign: 'center',
   },
 });

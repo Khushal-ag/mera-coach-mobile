@@ -1,13 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   Alert,
-  ImageBackground,
+  TouchableOpacity,
+  Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -15,26 +16,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
+  HitSlop,
   IconSize,
   PressOpacity,
   Radius,
   Shadow,
   Spacing,
+  TouchTarget,
   formFieldStyles,
+  headingFont,
 } from '../../constants/theme';
-import { BrandImages } from '../../constants/images';
-import AppButton from '../../components/AppButton';
-import BrandLockup from '../../components/BrandLockup';
+import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';
+import AuthCtaButton from '../../components/auth/AuthCtaButton';
+import BrandLogo from '../../components/BrandLogo';
 import PhoneTextInput from '../../components/PhoneTextInput';
-import DropdownField from '../../components/DropdownField';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
-import KeyboardSafeScroll, {
-  STICKY_FOOTER_KEYBOARD_PADDING,
-  useScrollLowerFieldsIntoView,
-} from '../../components/KeyboardSafeScroll';
-import StickyFooter from '../../components/StickyFooter';
-import { HeaderBackButton } from '../../components/ScreenHeader';
 import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../../data/homeContent';
 import { getCoachCategories, registerCoach } from '../../api/coachApi';
 import { MASTER_STALE_MS } from '../../api/queryClient';
@@ -43,17 +40,20 @@ import { clearSession } from '../../auth/session';
 import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateCoachRegister } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
+import { authLogoHeight } from '../../constants/images';
 import type { RootScreenProps } from '../../types/navigation';
 
 export default function RegisterScreen({ navigation }: RootScreenProps<'Register'>) {
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
+  const { width: screenW } = useWindowDimensions();
+  const logoSize = Math.round(authLogoHeight(screenW) * 0.88);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  const [referralMobile, setReferralMobile] = useState('');
+  /** Optional API field; hidden from the Create Account UI. */
+  const [referralMobile] = useState('');
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const {
     errorFields,
@@ -71,15 +71,16 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   });
   const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
   const categoriesLoading = categoriesQuery.isPending;
-
-  const categoryLabels = categories.map(c => c.label);
+  const selectedCategory = categories.find(c => c.label === category || c.code === category);
 
   const handleRegister = async () => {
     if (applyValidation(validateCoachRegister({ name, category, mobile, email, referralMobile }))) {
       return;
     }
 
-    const coachTypeCode = categories.find(c => c.label === category)?.code;
+    const coachTypeCode = categories.find(
+      c => c.label === category || c.code === category,
+    )?.code;
     const referrer = referralMobile.trim();
     clearAllErrors();
     setSubmitting(true);
@@ -92,7 +93,6 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         ...(referrer ? { referrerMobile: referrer } : {}),
       });
 
-      // Never auto-login after register — credentials are emailed; user must sign in themselves.
       await clearSession();
 
       Alert.alert(
@@ -108,280 +108,332 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   };
 
   return (
-    <ImageBackground source={BrandImages.loginAtmosphere} style={styles.bg} resizeMode="cover">
-      <View style={styles.scrim} />
-      <View style={styles.shell}>
-        <KeyboardSafeScroll
-          ref={scrollRef}
-          style={styles.container}
-          contentContainerStyle={styles.inner}
-          keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
-        >
-          <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-            <HeaderBackButton onPress={() => navigation.goBack()} style={styles.headerBack} />
-            <BrandLockup size="lg" style={styles.logo} />
+    <>
+      <AuthAtmosphereLayout>
+        <View style={[styles.header, { paddingTop: insets.top + Spacing.xxs }]}>
+          <BrandLogo variant="full" size={logoSize} style={styles.logo} />
+        </View>
+
+        <View style={styles.form}>
+          <FormErrorBanner message={formErrorBanner} />
+
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.sub}>Register as a coach in a few steps.</Text>
+
+          <View style={styles.field}>
+            <FormFieldLabel required style={styles.fieldLabel}>
+              Coach Name
+            </FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.name && styles.inputWrapError]}>
+              <Ionicons
+                name="person-outline"
+                size={IconSize.md}
+                color={Colors.authCtaGradientStart}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Your full name"
+                placeholderTextColor={Colors.textLight}
+                value={name}
+                onChangeText={v => {
+                  setName(v);
+                  clearFieldError('name');
+                }}
+              />
+            </View>
           </View>
 
-          <View style={styles.card}>
-            <FormErrorBanner message={formErrorBanner} />
-
-            <Text style={styles.cardTitle}>Create Account</Text>
-
-            <View style={styles.infoBanner}>
-              <Ionicons name="mail-open-outline" size={18} color={Colors.secondary} />
-              <View style={styles.infoCopy}>
-                <Text style={styles.infoTitle}>We&apos;ll email your login password</Text>
-                <Text style={styles.infoText}>
-                  Use a real email you can open now. After sign-in, finish your public profile so
-                  clients can find you.
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.sectionLabel}>Your details</Text>
-            <View style={styles.field}>
-              <FormFieldLabel required>Coach Name</FormFieldLabel>
-              <View style={[styles.inputWrap, errorFields.name && styles.inputWrapError]}>
-                <Ionicons
-                  name="person-outline"
-                  size={IconSize.md}
-                  color={Colors.textLight}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your full name"
-                  placeholderTextColor={Colors.textLight}
-                  value={name}
-                  onChangeText={v => {
-                    setName(v);
-                    clearFieldError('name');
-                  }}
-                />
-              </View>
-            </View>
-
-            <DropdownField
-              label="Coach Category"
-              value={category}
-              options={categoryLabels}
-              onChange={v => {
-                setCategory(v);
-                clearFieldError('category');
-              }}
-              placeholder={categoriesLoading ? 'Loading categories...' : 'Select a category'}
-              required
-              hasError={!!errorFields.category}
-            />
-
-            <View style={styles.field}>
-              <FormFieldLabel required>Mobile Number</FormFieldLabel>
-              <View style={[styles.inputWrap, errorFields.mobile && styles.inputWrapError]}>
-                <Ionicons
-                  name="call-outline"
-                  size={IconSize.md}
-                  color={Colors.textLight}
-                  style={styles.inputIcon}
-                />
-                <PhoneTextInput
-                  style={styles.input}
-                  placeholder="10-digit mobile number"
-                  placeholderTextColor={Colors.textLight}
-                  value={mobile}
-                  onChangeText={v => {
-                    setMobile(v);
-                    clearFieldError('mobile');
-                  }}
-                  onFocus={scrollLowerFieldsIntoView}
-                />
-              </View>
-            </View>
-
-            <View style={styles.field}>
-              <FormFieldLabel required>Email Address</FormFieldLabel>
-              <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
-                <Ionicons
-                  name="mail-outline"
-                  size={IconSize.md}
-                  color={Colors.textLight}
-                  style={styles.inputIcon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="you@example.com"
-                  placeholderTextColor={Colors.textLight}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={v => {
-                    setEmail(sanitizeEmailInput(v));
-                    clearFieldError('email');
-                  }}
-                  onFocus={scrollLowerFieldsIntoView}
-                />
-              </View>
-              <Text style={styles.hint}>Password will be sent to this email</Text>
-            </View>
-
-            <View style={styles.field}>
-              <FormFieldLabel>Referred by (mobile)</FormFieldLabel>
-              <View style={[styles.inputWrap, errorFields.referralMobile && styles.inputWrapError]}>
-                <Ionicons
-                  name="people-outline"
-                  size={IconSize.md}
-                  color={Colors.textLight}
-                  style={styles.inputIcon}
-                />
-                <PhoneTextInput
-                  style={styles.input}
-                  placeholder="Optional 10-digit mobile"
-                  placeholderTextColor={Colors.textLight}
-                  value={referralMobile}
-                  onChangeText={v => {
-                    setReferralMobile(v);
-                    clearFieldError('referralMobile');
-                  }}
-                  onFocus={scrollLowerFieldsIntoView}
-                />
-              </View>
-              {errorFields.referralMobile ? (
-                <Text style={styles.fieldError}>{errorFields.referralMobile}</Text>
-              ) : (
-                <Text style={styles.hint}>
-                  If someone recommended Mera Coach, enter their mobile
-                </Text>
-              )}
-            </View>
-
-            <Text style={styles.footerHint}>
-              By creating an account you can manage clients, leads, and your public listing.
-            </Text>
+          <View style={styles.field}>
+            <FormFieldLabel required style={styles.fieldLabel}>
+              Coach Category
+            </FormFieldLabel>
+            <TouchableOpacity
+              style={[styles.inputWrap, errorFields.category && styles.inputWrapError]}
+              onPress={() => setCategoryOpen(true)}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel={`Coach Category: ${selectedCategory?.label || 'Select a category'}`}
+            >
+              <Ionicons
+                name="grid-outline"
+                size={IconSize.md}
+                color={Colors.authCtaGradientStart}
+                style={styles.inputIcon}
+              />
+              <Text
+                style={[
+                  styles.input,
+                  selectedCategory ? styles.valueText : styles.placeholderText,
+                ]}
+                numberOfLines={1}
+              >
+                {selectedCategory?.label ||
+                  (categoriesLoading ? 'Loading categories...' : 'Select a category')}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={Colors.textLight} />
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Login')}
-            activeOpacity={PressOpacity.soft}
-            accessibilityRole="button"
-            accessibilityLabel="Sign in"
-          >
-            <Text style={styles.footerLink}>
-              Already registered? <Text style={styles.footerLinkBold}>Sign in</Text>
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.field}>
+            <FormFieldLabel required style={styles.fieldLabel}>
+              Email Address
+            </FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.email && styles.inputWrapError]}>
+              <Ionicons
+                name="mail-outline"
+                size={IconSize.md}
+                color={Colors.authCtaGradientStart}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="your@example.com"
+                placeholderTextColor={Colors.textLight}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={v => {
+                  setEmail(sanitizeEmailInput(v));
+                  clearFieldError('email');
+                }}
+              />
+            </View>
+            <Text style={styles.hint}>Password will be sent to this email</Text>
+          </View>
 
-          <Text style={styles.footer}>Mera Coach © 2026 · Health & wellness coaching</Text>
-        </KeyboardSafeScroll>
+          <View style={styles.fieldLast}>
+            <FormFieldLabel required style={styles.fieldLabel}>
+              Mobile Number
+            </FormFieldLabel>
+            <View style={[styles.inputWrap, errorFields.mobile && styles.inputWrapError]}>
+              <Ionicons
+                name="call-outline"
+                size={IconSize.md}
+                color={Colors.authCtaGradientStart}
+                style={styles.inputIcon}
+              />
+              <PhoneTextInput
+                style={styles.input}
+                placeholder="10-digit-mobile number"
+                placeholderTextColor={Colors.textLight}
+                value={mobile}
+                onChangeText={v => {
+                  setMobile(v);
+                  clearFieldError('mobile');
+                }}
+              />
+            </View>
+          </View>
 
-        <StickyFooter>
-          <AppButton
+          <AuthCtaButton
+            variant="authPrimary"
             label="Create Account"
             onPress={() => void handleRegister()}
             loading={submitting}
-            icon="arrow-forward"
+            style={styles.createBtn}
           />
-        </StickyFooter>
-      </View>
-    </ImageBackground>
+
+          <View style={styles.loginRow}>
+            <Text style={styles.loginPrompt}>Already have an account? </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Login')}
+              activeOpacity={PressOpacity.soft}
+              accessibilityRole="button"
+              accessibilityLabel="Login"
+              hitSlop={HitSlop.sm}
+              style={styles.loginHit}
+            >
+              <Text style={styles.loginLink}>Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </AuthAtmosphereLayout>
+
+      <Modal
+        visible={categoryOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCategoryOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={() => setCategoryOpen(false)}
+        >
+          <View
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.handle} />
+            <Text style={styles.sheetTitle}>Coach Category</Text>
+            <ScrollView
+              style={styles.optionList}
+              contentContainerStyle={styles.optionListContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {categories.length === 0 ? (
+                <Text style={styles.emptyText}>No options available</Text>
+              ) : (
+                categories.map(opt => {
+                  const active = opt.code === category || opt.label === category;
+                  return (
+                    <TouchableOpacity
+                      key={opt.code}
+                      style={styles.option}
+                      onPress={() => {
+                        setCategory(opt.label);
+                        clearFieldError('category');
+                        setCategoryOpen(false);
+                      }}
+                    >
+                      <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                        {opt.label}
+                      </Text>
+                      {active ? (
+                        <Ionicons name="checkmark" size={18} color={Colors.secondary} />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: Colors.secondary },
-  shell: { flex: 1, zIndex: 1 },
-  scrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.authScrim,
-  },
-  container: { flex: 1, backgroundColor: 'transparent' },
-  inner: { flexGrow: 1, alignItems: 'center', paddingBottom: Spacing.lg },
   header: {
     alignItems: 'center',
-    paddingBottom: Spacing.lg,
+    paddingBottom: 0,
     width: '100%',
     paddingHorizontal: Spacing.lg,
   },
-  headerBack: { alignSelf: 'flex-start', marginBottom: Spacing.sm },
-  logo: { marginBottom: Spacing.sm },
-  card: {
-    width: '90%',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    ...Shadow.lg,
+  logo: { marginBottom: 0 },
+  form: {
+    width: '88%',
+    maxWidth: 400,
+    paddingTop: Spacing.xxs,
+    backgroundColor: 'transparent',
   },
-  cardTitle: {
-    fontSize: 22,
-    fontFamily: FontFamily.bold,
+  title: {
+    fontSize: 28,
+    fontFamily: headingFont.extraBold,
     color: Colors.textDark,
-    marginBottom: Spacing.md,
+    marginBottom: 2,
   },
-  sectionLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-    marginBottom: Spacing.sm,
-    letterSpacing: 0.2,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.sm,
-    padding: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  infoCopy: { flex: 1 },
-  infoTitle: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
-  infoText: {
+  sub: {
     fontSize: 12,
     fontFamily: FontFamily.regular,
-    color: Colors.secondary,
-    marginTop: 2,
+    color: Colors.textLight,
+    marginBottom: Spacing.xs,
     lineHeight: 17,
-    opacity: 0.85,
   },
-  field: { marginBottom: Spacing.md },
-  inputWrap: formFieldStyles.wrap,
+  field: { marginBottom: Spacing.xs },
+  fieldLast: { marginBottom: Spacing.xs },
+  fieldLabel: {
+    fontFamily: headingFont.semibold,
+    fontSize: 13,
+    color: Colors.textDark,
+    marginBottom: Spacing.xxs,
+  },
+  inputWrap: {
+    ...formFieldStyles.wrap,
+    backgroundColor: Colors.white,
+    height: 50,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   inputWrapError: formFieldStyles.wrapError,
   inputIcon: formFieldStyles.inputIcon,
   input: formFieldStyles.input,
+  valueText: { color: Colors.textDark },
+  placeholderText: { color: Colors.textLight },
   hint: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
-    marginTop: 6,
+    marginTop: 2,
   },
-  fieldError: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-    color: Colors.destructive,
-    marginTop: 6,
+  createBtn: {
+    height: 48,
   },
-  footerHint: {
-    marginTop: Spacing.xs,
-    fontSize: 11,
+  loginRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+    marginTop: Spacing.xxs,
+  },
+  loginHit: {
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+  },
+  loginPrompt: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+  },
+  loginLink: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: Colors.authCtaGradientStart,
+  },
+  backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    maxHeight: '70%',
+    ...Shadow.lg,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontFamily: headingFont.bold,
+    color: Colors.textDark,
+    marginBottom: Spacing.sm,
+  },
+  optionList: { maxHeight: 360 },
+  optionListContent: { paddingBottom: Spacing.xs },
+  emptyText: {
+    fontSize: 14,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
     textAlign: 'center',
-    lineHeight: 16,
+    paddingVertical: Spacing.lg,
   },
-  footerLink: {
-    color: Colors.onDarkMuted,
-    fontSize: 13,
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    minHeight: 48,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  optionText: {
+    flex: 1,
+    marginRight: Spacing.sm,
+    fontSize: 14,
     fontFamily: FontFamily.regular,
-    marginTop: Spacing.lg,
+    color: Colors.textDark,
+    textAlign: 'left',
   },
-  footerLinkBold: { color: Colors.white, fontFamily: FontFamily.bold },
-  footer: {
-    color: Colors.onDarkSoft,
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    marginTop: Spacing.md,
-  },
+  optionTextActive: { color: Colors.secondary, fontFamily: FontFamily.bold },
 });

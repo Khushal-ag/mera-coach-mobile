@@ -1,10 +1,19 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  HitSlop,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+  TouchTarget,
+  headingFont,
+} from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
-import AppButton from '../../components/AppButton';
-import BrandLockup from '../../components/BrandLockup';
+import BrandLogo from '../../components/BrandLogo';
 import MpinKeypad from '../../components/auth/MpinKeypad';
 import { deferMpinSetup, getLastLoginId, setMpin } from '../../auth/mpin';
 import { toUserMessage } from '../../api/client';
@@ -14,7 +23,7 @@ type Step = 'create' | 'confirm';
 
 /**
  * Shown after password login when no MPIN is stored yet.
- * "Set up later" defers until Profile → Set MPIN.
+ * Confirm step hides the forgot-password escape hatch.
  */
 export default function MpinSetupScreen() {
   const insets = useSafeAreaInsets();
@@ -65,25 +74,18 @@ export default function MpinSetupScreen() {
   );
 
   return (
-    <ImageBackground source={BrandImages.loginAtmosphere} style={styles.bg} resizeMode="cover">
-      <View style={styles.scrim} />
+    <ImageBackground source={BrandImages.mpinAtmosphere} style={styles.bg} resizeMode="cover">
       <View
         style={[
           styles.inner,
           { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg },
         ]}
       >
-        <BrandLockup size="lg" style={styles.logo} />
+        <BrandLogo variant="full" size={100} style={styles.logo} />
 
         <View style={styles.card}>
-          <Text style={styles.title}>
-            {step === 'create' ? 'Create your MPIN' : 'Confirm MPIN'}
-          </Text>
-          <Text style={styles.sub}>
-            {step === 'create'
-              ? 'Choose a 4-digit code for quick unlock next time you open the app.'
-              : 'Enter the same 4 digits again to confirm.'}
-          </Text>
+          <Text style={styles.title}>{step === 'create' ? 'Enter MPIN' : 'Confirm MPIN'}</Text>
+          <Text style={styles.sub}>Unlock Mera Coach with your 4- digit-code</Text>
 
           <MpinKeypad
             value={pin}
@@ -96,13 +98,19 @@ export default function MpinSetupScreen() {
             error={error}
           />
 
-          <AppButton
-            label="Set up later"
-            variant="ghost"
-            onPress={() => void deferMpinSetup()}
-            disabled={saving}
-            accessibilityLabel="Set up MPIN later from Profile"
-          />
+          {step === 'create' ? (
+            <TouchableOpacity
+              onPress={() => void deferMpinSetup()}
+              disabled={saving}
+              activeOpacity={PressOpacity.soft}
+              accessibilityRole="button"
+              accessibilityLabel="Forgot MPIN, use password instead"
+              hitSlop={HitSlop.sm}
+              style={styles.forgotHit}
+            >
+              <Text style={styles.forgot}>Forgot MPIN? Use password</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </ImageBackground>
@@ -110,18 +118,9 @@ export default function MpinSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: Colors.secondary },
-  scrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.authScrim,
-  },
+  bg: { flex: 1, backgroundColor: Colors.background },
   inner: {
     flex: 1,
-    zIndex: 1,
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
   },
@@ -135,9 +134,9 @@ const styles = StyleSheet.create({
     ...Shadow.lg,
   },
   title: {
-    fontSize: 22,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
+    fontSize: 24,
+    fontFamily: headingFont.extraBold,
+    color: Colors.secondary,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -148,5 +147,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  forgotHit: {
+    justifyContent: 'center',
+    minHeight: TouchTarget.min,
+    marginTop: Spacing.sm,
+  },
+  forgot: {
+    textAlign: 'center',
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    color: Colors.secondary,
   },
 });

@@ -10,6 +10,7 @@ import {
   Shadow,
   Spacing,
   formFieldStyles,
+  headingFont,
 } from '../constants/theme';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   },
   boxError: formFieldStyles.wrapError,
   value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark, flex: 1 },
-  valueCompact: { fontSize: 12, flex: 1 },
+  valueCompact: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textDark, flex: 1 },
   placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight, flex: 1 },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 16,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginBottom: Spacing.sm,
   },

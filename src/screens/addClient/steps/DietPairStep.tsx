@@ -23,6 +23,7 @@ import {
   Spacing,
   formFieldStyles,
   buttonStyles,
+  headingFont,
 } from '../../../constants/theme';
 import FoodItemChip from '../../../components/addClient/FoodItemChip';
 import { MEAL_SLOTS } from '../../../data/dietCatalog';
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 16,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginBottom: Spacing.sm,
   },

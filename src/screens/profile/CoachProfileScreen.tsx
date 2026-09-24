@@ -18,6 +18,7 @@ import {
   Shadow,
   Spacing,
   Typography,
+  headingFont,
 } from '../../constants/theme';
 import PersonAvatar from '../../components/PersonAvatar';
 import ReloadState from '../../components/ReloadState';
@@ -317,12 +318,12 @@ const styles = StyleSheet.create({
   },
   name: {
     ...Typography.headline,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     fontSize: 20,
     textAlign: 'center',
   },
   role: { fontSize: 13, color: Colors.primary, fontFamily: FontFamily.semibold, marginTop: 4 },
-  location: { fontSize: 12, color: Colors.textLight, marginTop: 6 },
+  location: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 6 },
   statsRow: {
     flexDirection: 'row',
     marginTop: Spacing.lg,
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   },
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-  statValue: { fontSize: 20, fontFamily: FontFamily.extraBold, color: Colors.textDark },
+  statValue: { fontSize: 20, fontFamily: headingFont.extraBold, color: Colors.textDark },
   statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 2 },
   section: { marginHorizontal: Spacing.md, marginTop: Spacing.md, marginBottom: Spacing.sm },
   sectionTitle: {

@@ -55,7 +55,6 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Home: undefined;
-  HomeExplore: undefined;
   CoachList: { categoryCode?: string } | undefined;
   CoachPublicProfile:
     | {
@@ -67,6 +66,7 @@ export type RootStackParamList = {
     | undefined;
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
   MpinSetup: undefined;
   MpinUnlock: undefined;
 };

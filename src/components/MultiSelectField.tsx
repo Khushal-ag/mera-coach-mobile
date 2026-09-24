@@ -11,6 +11,7 @@ import {
   formFieldStyles,
   ChipControl,
   buttonStyles,
+  headingFont,
 } from '../constants/theme';
 import { isNoneOfTheAboveValue } from '../data/lifestyleOptions';
 import FormFieldLabel from './FormFieldLabel';
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 16,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
     marginBottom: Spacing.sm,
   },

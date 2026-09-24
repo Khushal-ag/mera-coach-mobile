@@ -3,12 +3,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
-  FontFamily,
   IconSize,
   Radius,
   Shadow,
   Spacing,
   Typography,
+  headingFont,
 } from '../../constants/theme';
 import AppButton from '../AppButton';
 import type { ProfileCompletion } from '../../utils/profileCompletion';
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   title: {
     ...Typography.bodyStrong,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
   },
   subtitle: {
     ...Typography.caption,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   percent: {
     fontSize: 16,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     color: Colors.secondary,
   },
   track: {

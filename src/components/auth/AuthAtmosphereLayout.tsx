@@ -1,0 +1,111 @@
+import React, { type ReactNode, useEffect, useState } from 'react';
+import {
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import {
+  AUTH_BG_ASPECT,
+  AUTH_PHOTO_BAND,
+  BrandImages,
+} from '../../constants/images';
+
+type AuthAtmosphereLayoutProps = {
+  children: ReactNode;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+};
+
+export function authCoverMetrics(screenW: number, screenH: number) {
+  const coverHeight = Math.max(screenH, screenW / AUTH_BG_ASPECT);
+  const coverWidth = coverHeight * AUTH_BG_ASPECT;
+  const photoClearance = Math.round(coverHeight * AUTH_PHOTO_BAND);
+  return {
+    coverWidth,
+    coverHeight,
+    photoClearance,
+    offsetX: (screenW - coverWidth) / 2,
+    offsetY: screenH - coverHeight,
+  };
+}
+
+export default function AuthAtmosphereLayout({
+  children,
+  contentContainerStyle,
+}: AuthAtmosphereLayoutProps) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const { coverWidth, coverHeight, photoClearance, offsetX, offsetY } = authCoverMetrics(
+    screenW,
+    screenH,
+  );
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  return (
+    <View style={styles.root}>
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.atmosphereLayer]}>
+        <Image
+          source={BrandImages.loginAtmosphere}
+          style={{
+            position: 'absolute',
+            width: coverWidth,
+            height: coverHeight,
+            left: offsetX,
+            top: offsetY,
+          }}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+        />
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.body}
+        enabled={keyboardOpen}
+        behavior={keyboardOpen && Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View
+          style={[styles.content, { paddingBottom: photoClearance }, contentContainerStyle]}
+        >
+          {children}
+        </View>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  atmosphereLayer: {
+    zIndex: 0,
+  },
+  body: {
+    flex: 1,
+    zIndex: 1,
+  },
+  content: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    backgroundColor: 'transparent',
+  },
+});

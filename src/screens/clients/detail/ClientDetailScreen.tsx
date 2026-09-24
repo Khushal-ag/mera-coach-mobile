@@ -22,6 +22,7 @@ import {
   TouchTarget,
   Typography,
   statusChipStyles,
+  headingFont,
 } from '../../../constants/theme';
 import ScreenHeader from '../../../components/ScreenHeader';
 import ClientAvatar from '../../../components/ClientAvatar';
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
     ...Typography.title,
     fontSize: 20,
     lineHeight: 26,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     textAlign: 'center',
   },
   contactBlock: {
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 20,
     lineHeight: 26,
-    fontFamily: FontFamily.extraBold,
+    fontFamily: headingFont.extraBold,
     color: Colors.textDark,
   },
   metricLabel: {

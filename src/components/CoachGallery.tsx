@@ -25,6 +25,7 @@ import {
   Shadow,
   Spacing,
   buttonStyles,
+  headingFont,
 } from '../constants/theme';
 import {
   deleteDocument,
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
   publicHeader: { marginBottom: 12 },
   publicTitle: {
     fontSize: 18,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
   },
   headerRow: {
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  sectionTitle: { fontSize: 15, fontFamily: FontFamily.bold, color: Colors.textDark },
+  sectionTitle: { fontSize: 15, fontFamily: headingFont.bold, color: Colors.textDark },
   hint: {
     fontSize: 12,
     fontFamily: FontFamily.regular,

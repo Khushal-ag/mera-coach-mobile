@@ -177,7 +177,7 @@ export async function getCoachPublicList(
       minRating: params.minRating != null && params.minRating > 0 ? params.minRating : undefined,
       sortBy: params.sortBy && params.sortBy !== 'rating' ? params.sortBy : undefined,
       page: params.page ?? 1,
-      pageSize: params.pageSize ?? 50, // no pagination UI yet
+      pageSize: params.pageSize ?? 50,
     }),
     { signal },
   );

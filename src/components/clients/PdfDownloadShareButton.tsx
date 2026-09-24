@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
   },
   headerChipTextOnDark: { color: Colors.white },
   headerChipTextOnLight: { color: Colors.textDark },
-  headerChipLoadingText: { fontSize: 11 },
+  headerChipLoadingText: { fontSize: 11, fontFamily: FontFamily.semibold },
   disabled: buttonStyles.disabled,
 });

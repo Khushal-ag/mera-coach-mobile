@@ -1,5 +1,5 @@
 import type { TextStyle, ViewStyle } from 'react-native';
-import { Colors, FontFamily, Radius, Shadow, Spacing, buttonStyles } from './theme';
+import { Colors, FontFamily, Radius, Shadow, Spacing, buttonStyles, headingFont } from './theme';
 
 // Plain objects, not StyleSheet.create, so consumers can spread these into their own.
 export const wizardShellStyles = {
@@ -24,7 +24,7 @@ export const wizardShellStyles = {
   stepBannerTitle: {
     color: Colors.white,
     fontSize: 15,
-    fontFamily: FontFamily.bold,
+    fontFamily: headingFont.bold,
   },
   stepBannerSubtitle: {
     color: Colors.onDarkMuted,
