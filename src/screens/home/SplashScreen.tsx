@@ -44,8 +44,7 @@ export default function SplashScreen() {
   );
 
   const targetLogoHeight = (screenW * SPLASH_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
-  const headY =
-    layout.top + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * layout.height;
+  const headY = layout.top + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * layout.height;
   const maxLogoHeight = Math.max(
     100,
     headY - (insets.top + SPLASH_LOGO_TOP_PAD) - SPLASH_LOGO_HEAD_GAP,

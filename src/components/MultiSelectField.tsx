@@ -64,6 +64,7 @@ interface MultiSelectFieldProps {
    * clears this one (e.g. "None of the above"). Always rendered last in the list.
    */
   exclusiveNoneCode?: string;
+  tone?: 'default' | 'mint';
 }
 
 export default function MultiSelectField({
@@ -76,6 +77,7 @@ export default function MultiSelectField({
   hasError,
   labelStyle,
   exclusiveNoneCode,
+  tone = 'default',
 }: MultiSelectFieldProps) {
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
@@ -127,25 +129,44 @@ export default function MultiSelectField({
         {label}
       </FormFieldLabel>
       <TouchableOpacity
-        style={[styles.box, hasError && styles.boxError]}
+        style={[
+          styles.box,
+          tone === 'mint' && styles.boxMint,
+          hasError && styles.boxError,
+          hasError && tone === 'mint' && styles.boxMintError,
+        ]}
         onPress={() => setOpen(true)}
       >
         <Text
-          style={[selectedOptions.length ? styles.value : styles.placeholder, styles.triggerText]}
+          style={[
+            selectedOptions.length ? styles.value : styles.placeholder,
+            tone === 'mint' && selectedOptions.length ? styles.valueMint : null,
+            styles.triggerText,
+          ]}
           numberOfLines={1}
         >
           {selectedOptions.length ? `${selectedOptions.length} selected` : placeholder || 'Select'}
         </Text>
-        <Ionicons name="chevron-down" size={16} color={Colors.textLight} />
+        <Ionicons
+          name="chevron-down"
+          size={16}
+          color={tone === 'mint' ? Colors.accentInk : Colors.textLight}
+        />
       </TouchableOpacity>
 
       {selectedOptions.length > 0 && (
         <View style={styles.chipsWrap}>
           {selectedOptions.map(opt => (
-            <View key={opt.code} style={styles.chip}>
-              <Text style={styles.chipText}>{opt.label}</Text>
+            <View key={opt.code} style={[styles.chip, tone === 'mint' && styles.chipMint]}>
+              <Text style={[styles.chipText, tone === 'mint' && styles.chipTextMint]}>
+                {opt.label}
+              </Text>
               <TouchableOpacity onPress={() => remove(opt)}>
-                <Ionicons name="close" size={14} color={Colors.secondary} />
+                <Ionicons
+                  name="close"
+                  size={14}
+                  color={tone === 'mint' ? Colors.accentInk : Colors.secondary}
+                />
               </TouchableOpacity>
             </View>
           ))}
@@ -189,14 +210,23 @@ export default function MultiSelectField({
                     >
                       {opt.label}
                     </Text>
-                    <View style={[styles.checkbox, active && styles.checkboxActive]}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        active &&
+                          (tone === 'mint' ? styles.checkboxActiveMint : styles.checkboxActive),
+                      ]}
+                    >
                       {active && <Ionicons name="checkmark" size={13} color={Colors.white} />}
                     </View>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
-            <TouchableOpacity style={styles.doneBtn} onPress={() => setOpen(false)}>
+            <TouchableOpacity
+              style={[styles.doneBtn, tone === 'mint' && styles.doneBtnMint]}
+              onPress={() => setOpen(false)}
+            >
               <Text style={styles.doneText}>Done</Text>
             </TouchableOpacity>
           </View>
@@ -214,13 +244,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   boxError: formFieldStyles.wrapError,
-  triggerText: { flex: 1, marginRight: Spacing.xs, textAlign: 'left' },
+  boxMint: {
+    backgroundColor: '#E7F6EC',
+    borderWidth: 0,
+    borderRadius: 12,
+  },
+  boxMintError: {
+    borderWidth: 1.5,
+    borderColor: Colors.destructive,
+  },
+  valueMint: { color: Colors.accentInk },
+  triggerText: { flex: 1, minWidth: 0, marginRight: Spacing.xs, textAlign: 'left' },
   value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
   placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm - 2 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    maxWidth: '100%',
     gap: 6,
     backgroundColor: Colors.secondaryLight,
     borderRadius: ChipControl.radius,
@@ -228,7 +269,15 @@ const styles = StyleSheet.create({
     paddingVertical: ChipControl.paddingVertical,
     minHeight: ChipControl.minHeight,
   },
-  chipText: { fontSize: 12, fontFamily: FontFamily.semibold, color: Colors.secondary },
+  chipText: {
+    flexShrink: 1,
+    minWidth: 0,
+    fontSize: 12,
+    fontFamily: FontFamily.semibold,
+    color: Colors.secondary,
+  },
+  chipMint: { backgroundColor: '#E7F6EC' },
+  chipTextMint: { color: Colors.accentInk },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
@@ -272,6 +321,7 @@ const styles = StyleSheet.create({
   optionLast: { borderBottomWidth: 0 },
   optionText: {
     flex: 1,
+    minWidth: 0,
     marginRight: 12,
     fontSize: 14,
     fontFamily: FontFamily.regular,
@@ -290,10 +340,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
+  checkboxActiveMint: { backgroundColor: Colors.accentInk, borderColor: Colors.accentInk },
   doneBtn: {
     ...buttonStyles.primary,
     marginTop: Spacing.xs,
     minHeight: 48,
   },
+  doneBtnMint: { backgroundColor: Colors.accentInk },
   doneText: buttonStyles.primaryText,
 });

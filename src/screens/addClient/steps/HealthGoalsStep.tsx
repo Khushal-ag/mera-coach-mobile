@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
-import { Colors, FontFamily, Spacing, formFieldStyles } from '../../../constants/theme';
+import { Colors, FontFamily, Shadow, Spacing } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import FormFieldLabel from '../../../components/FormFieldLabel';
 import MultiSelectField from '../../../components/MultiSelectField';
@@ -8,6 +8,8 @@ import { resolveNoneOfTheAboveCode } from '../../../data/lifestyleOptions';
 import { useNormalizeHealthGoalParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
 import type { StepProps } from '../../../types/wizard';
+
+const FIELD_MINT = '#E7F6EC';
 
 export default function HealthGoalsStep({
   form,
@@ -25,7 +27,7 @@ export default function HealthGoalsStep({
   const allergyNoneCode = resolveNoneOfTheAboveCode(allergyOptions);
 
   return (
-    <View>
+    <View style={styles.card}>
       <MultiSelectField
         label="Medical Conditions"
         value={form.medicalConditions}
@@ -35,6 +37,7 @@ export default function HealthGoalsStep({
         required
         hasError={err('medicalConditions')}
         exclusiveNoneCode={medicalNoneCode}
+        tone="mint"
       />
       <MultiSelectField
         label="Food Allergies"
@@ -45,10 +48,8 @@ export default function HealthGoalsStep({
         required
         hasError={err('foodAllergies')}
         exclusiveNoneCode={allergyNoneCode}
+        tone="mint"
       />
-
-      <View style={styles.divider} />
-
       <DropdownField
         label="Primary Goal"
         value={form.primaryGoal}
@@ -57,6 +58,7 @@ export default function HealthGoalsStep({
         placeholder="Select"
         required
         hasError={err('primaryGoal')}
+        tone="mint"
       />
       <DropdownField
         label="Target Timeline"
@@ -65,6 +67,7 @@ export default function HealthGoalsStep({
         onChange={v => update('targetTimeline', v)}
         placeholder="Select"
         hasError={err('targetTimeline')}
+        tone="mint"
       />
 
       <View style={styles.field}>
@@ -85,22 +88,25 @@ export default function HealthGoalsStep({
 }
 
 const styles = StyleSheet.create({
-  field: { marginBottom: Spacing.md },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginBottom: Spacing.md,
-    marginTop: 4,
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
+    ...Shadow.sm,
   },
+  field: { marginBottom: Spacing.md },
   textarea: {
-    ...formFieldStyles.wrap,
-    ...formFieldStyles.wrapSurface,
-    height: 90,
+    minHeight: 96,
+    borderRadius: 12,
+    backgroundColor: FIELD_MINT,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    alignItems: 'flex-start',
     fontSize: 14,
+    lineHeight: 20,
     fontFamily: FontFamily.regular,
-    color: Colors.textDark,
+    color: Colors.accentInk,
     textAlignVertical: 'top',
   },
 });

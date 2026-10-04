@@ -5,7 +5,7 @@ import { rehydrateDietFromMeals, type RawClientMeal } from '../utils/mealRehydra
 import { hasDietPlanContent, normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
 import type { FoodMaster } from './masterApi';
 import { formatLocalDate, normalizeGender, toApiDob, toDisplayDob } from '../utils/validation';
-import type { BodyMetrics } from '../utils/bmi';
+import { readBodyMeasurement, type BodyMetrics } from '../utils/bmi';
 import type {
   ClientProfile,
   ClientSummary,
@@ -342,16 +342,24 @@ interface RawBmiMeasurement {
   /** Alias some responses use instead of `bmi`. */
   bMI?: number;
   bodyFatPct?: number;
+  bodyFat?: number;
+  bodyFatPercentage?: number;
   visceralFat?: number;
   skeletalMusclePct?: number;
+  skeletalMuscle?: number;
   bodyAge?: number;
   restingMetabolism?: number;
+  metrics?: unknown;
+  bodyMetrics?: unknown;
+  composition?: unknown;
+  bodyComposition?: unknown;
+  measurement?: unknown;
+  details?: unknown;
 }
 
 function normalizeBmiMeasurement(raw?: RawBmiMeasurement | null): RawBmiMeasurement | undefined {
-  if (!raw) return undefined;
-  const bmi = raw.bmi ?? raw.bMI;
-  return bmi === undefined ? raw : { ...raw, bmi };
+  if (!raw || typeof raw !== 'object') return undefined;
+  return { ...raw, ...readBodyMeasurement(raw) };
 }
 
 interface BmiReport {

@@ -53,6 +53,17 @@ export function validateCoachPackagesDraft(packages: CoachPackage[]): string | n
   return null;
 }
 
+/** Blank amount is allowed. A filled amount must contain a real number. */
+export function coachPackageAmountError(price: string): string | null {
+  const trimmed = price.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/,/g, '').replace(/[^\d.]/g, '');
+  if (!normalized || normalized === '.' || !Number.isFinite(Number(normalized))) {
+    return 'Enter a valid amount, or leave it blank.';
+  }
+  return null;
+}
+
 export function serializeCoachPackages(packages: CoachPackage[]): CoachPackage[] {
   return packages
     .map(p => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors } from '../../../constants/theme';
+import { Colors, Shadow, Spacing } from '../../../constants/theme';
 import DropdownField from '../../../components/DropdownField';
 import { useNormalizeLifestyleParamFormValues } from '../../../hooks/useNormalizeParamFormValues';
 import type { ClientProfile } from '../../../types/models';
@@ -22,7 +22,7 @@ export default function LifestylePreferencesStep({
   } = useNormalizeLifestyleParamFormValues(form, update);
 
   return (
-    <View>
+    <View style={styles.card}>
       <DropdownField
         label="Physical Activity"
         value={form.physicalActivity}
@@ -31,6 +31,7 @@ export default function LifestylePreferencesStep({
         placeholder="Select"
         required
         hasError={err('physicalActivity')}
+        tone="mint"
       />
       <DropdownField
         label="Work Type"
@@ -40,10 +41,8 @@ export default function LifestylePreferencesStep({
         placeholder="Select"
         required
         hasError={err('workType')}
+        tone="mint"
       />
-
-      <View style={styles.divider} />
-
       <DropdownField
         label="Sleep Duration"
         value={form.sleepDuration}
@@ -52,6 +51,7 @@ export default function LifestylePreferencesStep({
         placeholder="Select"
         required
         hasError={err('sleepDuration')}
+        tone="mint"
       />
       {form.gender === 'F' && (
         <DropdownField
@@ -60,11 +60,9 @@ export default function LifestylePreferencesStep({
           options={pregnancyOptions}
           onChange={v => update('pregnancyBf', v)}
           placeholder="Select"
+          tone="mint"
         />
       )}
-
-      <View style={styles.divider} />
-
       <DropdownField
         label="Food Preference"
         value={form.foodPreference}
@@ -73,6 +71,7 @@ export default function LifestylePreferencesStep({
         placeholder="Select"
         required
         hasError={err('foodPreference')}
+        tone="mint"
       />
       <DropdownField
         label="Regional Cuisine"
@@ -82,16 +81,19 @@ export default function LifestylePreferencesStep({
         placeholder="Select"
         required
         hasError={err('regionalCuisine')}
+        tone="mint"
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginBottom: 16,
-    marginTop: 4,
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
+    ...Shadow.sm,
   },
 });

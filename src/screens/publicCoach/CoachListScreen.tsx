@@ -112,7 +112,12 @@ const CoachResultCard = React.memo(function CoachResultCard({
   clientCount: number;
   coachCodes: string[];
   coaches: Coach[];
-  onViewProfile: (coach: Coach, clientCount: number, coachCodes: string[], coaches: Coach[]) => void;
+  onViewProfile: (
+    coach: Coach,
+    clientCount: number,
+    coachCodes: string[],
+    coaches: Coach[],
+  ) => void;
 }) {
   const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
   const cardBio = prepareCoachCardBio(coach.bio, coach.name, coach.tags);
@@ -356,7 +361,9 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     const list = topRatedQuery.data?.coaches ?? [];
     const withRatings = list.filter(c => shouldShowPublicRating(c.rating, c.reviews));
     const source = withRatings.length ? withRatings : list;
-    return [...source].sort((a, b) => b.rating - a.rating || b.reviews - a.reviews).slice(0, TOP_RATED_LIMIT);
+    return [...source]
+      .sort((a, b) => b.rating - a.rating || b.reviews - a.reviews)
+      .slice(0, TOP_RATED_LIMIT);
   }, [topRatedQuery.data]);
 
   const hasActiveFilters =
@@ -646,9 +653,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                 key={coach.id}
                 coach={coach}
                 photoUri={resolveCoachPhotoUrl(coach)}
-                onPress={() =>
-                  openCoachProfile(coach, clientCount, topRatedCodes, topRatedForNav)
-                }
+                onPress={() => openCoachProfile(coach, clientCount, topRatedCodes, topRatedForNav)}
               />
             );
           })}

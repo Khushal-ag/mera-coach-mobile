@@ -9,14 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Colors,
-  FontFamily,
-  IconSize,
-  Radius,
-  Spacing,
-  headingFont,
-} from '../constants/theme';
+import { Colors, FontFamily, IconSize, Radius, Spacing, headingFont } from '../constants/theme';
 import type { IoniconName } from '../types/icons';
 import AppButton from './AppButton';
 

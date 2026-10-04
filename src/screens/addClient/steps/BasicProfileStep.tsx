@@ -9,9 +9,9 @@ import {
   IconSize,
   PressOpacity,
   Radius,
+  Shadow,
   Spacing,
   TouchTarget,
-  formFieldStyles,
 } from '../../../constants/theme';
 import { wizardPillStyles } from '../../../constants/wizardStyles';
 import FormFieldLabel from '../../../components/FormFieldLabel';
@@ -93,7 +93,7 @@ function Field({
     <View style={styles.field}>
       <FormFieldLabel required={required}>{label}</FormFieldLabel>
       <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
-        <Ionicons name={icon} size={IconSize.md} color={Colors.textLight} style={styles.icon} />
+        <Ionicons name={icon} size={IconSize.md} color={Colors.accentInk} style={styles.icon} />
         {inputMode === 'phone' ? (
           <PhoneTextInput
             {...inputProps}
@@ -206,7 +206,7 @@ function HeightField({
 
       {unit === 'cm' ? (
         <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
-          <Ionicons name="resize-outline" size={17} color={Colors.textLight} style={styles.icon} />
+          <Ionicons name="resize-outline" size={17} color={Colors.accentInk} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="e.g. 165"
@@ -303,7 +303,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
             accessibilityRole="button"
             accessibilityLabel="Add client photos"
           >
-            <Ionicons name="camera-outline" size={14} color={Colors.primary} />
+            <Ionicons name="camera-outline" size={14} color="#F08A2C" />
             <Text style={styles.photoActionText}>{photos.length ? 'Add more' : 'Add photos'}</Text>
           </TouchableOpacity>
         ) : null}
@@ -319,7 +319,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
           accessibilityRole="button"
           accessibilityLabel="Add client photos"
         >
-          <Ionicons name="images-outline" size={28} color={Colors.textLight} />
+          <Ionicons name="images-outline" size={28} color={Colors.accentInk} />
           <Text style={styles.photoEmptyText}>Tap to select photos</Text>
         </TouchableOpacity>
       ) : (
@@ -348,7 +348,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
               accessibilityRole="button"
               accessibilityLabel="Add more photos"
             >
-              <Ionicons name="add" size={28} color={Colors.textLight} />
+              <Ionicons name="add" size={28} color={Colors.accentInk} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -379,7 +379,7 @@ export default function BasicProfileStep({
   const err = (field: string) => !!errorFields[field];
 
   return (
-    <View>
+    <View style={styles.card}>
       {clientCode ? (
         <ProgressPhotos clientCode={clientCode} />
       ) : (
@@ -463,8 +463,6 @@ export default function BasicProfileStep({
         </View>
       </View>
 
-      <View style={styles.divider} />
-
       <HeightField
         form={form}
         update={update}
@@ -488,7 +486,17 @@ export default function BasicProfileStep({
   );
 }
 
+const FIELD_MINT = '#E7F6EC';
+
 const styles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
+    ...Shadow.sm,
+  },
   field: { marginBottom: Spacing.md },
   photoField: { marginBottom: Spacing.lg - 4 },
   photoHeader: {
@@ -501,12 +509,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: 7,
   },
-  photoActionText: { fontSize: 12, fontFamily: FontFamily.bold, color: Colors.primary },
+  photoActionText: { fontSize: 13, fontFamily: FontFamily.semibold, color: '#F08A2C' },
   photoHint: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
@@ -517,10 +523,10 @@ const styles = StyleSheet.create({
   photoEmpty: {
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
+    backgroundColor: '#F6FCF8',
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: '#6FCBAA',
     borderStyle: 'dashed',
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.md,
@@ -565,15 +571,31 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   inputWrap: {
-    ...formFieldStyles.wrap,
-    ...formFieldStyles.wrapSurface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 0,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: FIELD_MINT,
+    paddingHorizontal: Spacing.sm,
   },
-  inputWrapError: formFieldStyles.wrapError,
-  icon: formFieldStyles.inputIcon,
-  input: formFieldStyles.input,
+  inputWrapError: {
+    borderWidth: 1.5,
+    borderColor: Colors.destructive,
+  },
+  icon: { marginRight: Spacing.xs },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.accentInk,
+    paddingVertical: 0,
+  },
   hint: { fontSize: 11, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 6 },
   row: { flexDirection: 'row', gap: Spacing.sm },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
   pickerRow: wizardPillStyles.row,
   pickerRowError: {
     borderWidth: 1.5,
@@ -585,12 +607,6 @@ const styles = StyleSheet.create({
   pillActive: wizardPillStyles.pillActive,
   pillText: wizardPillStyles.pillText,
   pillActiveText: wizardPillStyles.pillActiveText,
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginBottom: Spacing.md,
-    marginTop: 4,
-  },
   heightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -605,7 +621,7 @@ const styles = StyleSheet.create({
   unitSuffix: {
     fontSize: 13,
     fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
+    color: Colors.accentInk,
     marginLeft: 4,
   },
 });

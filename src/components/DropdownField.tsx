@@ -45,6 +45,7 @@ interface DropdownFieldProps {
   compact?: boolean;
   labelStyle?: StyleProp<TextStyle>;
   leftIcon?: IoniconName;
+  tone?: 'default' | 'mint';
 }
 
 export default function DropdownField({
@@ -58,6 +59,7 @@ export default function DropdownField({
   compact,
   labelStyle,
   leftIcon,
+  tone = 'default',
 }: DropdownFieldProps) {
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
@@ -73,7 +75,13 @@ export default function DropdownField({
         </FormFieldLabel>
       ) : null}
       <TouchableOpacity
-        style={[styles.box, compact && styles.boxCompact, hasError && styles.boxError]}
+        style={[
+          styles.box,
+          compact && styles.boxCompact,
+          tone === 'mint' && styles.boxMint,
+          hasError && styles.boxError,
+          hasError && tone === 'mint' && styles.boxMintError,
+        ]}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={label ? `${label}: ${display || placeholder || 'Select'}` : undefined}
@@ -87,7 +95,11 @@ export default function DropdownField({
           />
         ) : null}
         <Text
-          style={[display ? styles.value : styles.placeholder, compact && styles.valueCompact]}
+          style={[
+            display ? styles.value : styles.placeholder,
+            tone === 'mint' && display ? styles.valueMint : null,
+            compact && styles.valueCompact,
+          ]}
           numberOfLines={1}
         >
           {display || placeholder || 'Select'}
@@ -95,7 +107,7 @@ export default function DropdownField({
         <Ionicons
           name="chevron-down"
           size={compact ? 14 : 16}
-          color={leftIcon ? Colors.accentInk : Colors.textLight}
+          color={tone === 'mint' || leftIcon ? Colors.accentInk : Colors.textLight}
         />
       </TouchableOpacity>
 
@@ -159,9 +171,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   boxError: formFieldStyles.wrapError,
-  value: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark, flex: 1 },
-  valueCompact: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textDark, flex: 1 },
-  placeholder: { fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textLight, flex: 1 },
+  boxMint: {
+    backgroundColor: '#E7F6EC',
+    borderWidth: 0,
+    borderRadius: 12,
+  },
+  boxMintError: {
+    borderWidth: 1.5,
+    borderColor: Colors.destructive,
+  },
+  valueMint: { color: Colors.accentInk },
+  value: {
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    flex: 1,
+    minWidth: 0,
+  },
+  valueCompact: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    color: Colors.textDark,
+    flex: 1,
+    minWidth: 0,
+  },
+  placeholder: {
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    color: Colors.textLight,
+    flex: 1,
+    minWidth: 0,
+  },
   backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: Colors.white,
@@ -206,6 +246,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     flex: 1,
+    minWidth: 0,
     marginRight: Spacing.sm,
     fontSize: 14,
     fontFamily: FontFamily.regular,

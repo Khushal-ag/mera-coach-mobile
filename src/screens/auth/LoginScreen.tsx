@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -91,7 +85,9 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
           Sign in to manage your clients, track progress and make an impact.
         </Text>
 
-        <View style={[authFormStyles.inputWrap, errorFields.email && authFormStyles.inputWrapError]}>
+        <View
+          style={[authFormStyles.inputWrap, errorFields.email && authFormStyles.inputWrapError]}
+        >
           <Ionicons
             name="mail-outline"
             size={IconSize.md}

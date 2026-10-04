@@ -202,9 +202,21 @@ export const Typography = {
     color: Colors.textDark,
   },
   headline: {
-    fontFamily: headingFont.extraBold,
+    fontFamily: headingFont.bold,
     fontSize: 18,
     lineHeight: 24,
+    color: Colors.textDark,
+  },
+  metric: {
+    fontFamily: headingFont.bold,
+    fontSize: 30,
+    lineHeight: 36,
+    color: Colors.textDark,
+  },
+  tileValue: {
+    fontFamily: headingFont.bold,
+    fontSize: 16,
+    lineHeight: 20,
     color: Colors.textDark,
   },
   section: {

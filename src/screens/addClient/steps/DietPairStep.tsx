@@ -21,7 +21,6 @@ import {
   Radius,
   Shadow,
   Spacing,
-  formFieldStyles,
   buttonStyles,
   headingFont,
 } from '../../../constants/theme';
@@ -29,6 +28,7 @@ import FoodItemChip from '../../../components/addClient/FoodItemChip';
 import { MEAL_SLOTS } from '../../../data/dietCatalog';
 import { MEAL_SLOT_TO_API_LABEL } from '../../../data/mealSlotLabels';
 import { getFoodMaster, getFoodCalories, resolveMasterLabel } from '../../../api/masterApi';
+import { getErrorMessage } from '../../../api/client';
 import { getCoachProfile } from '../../../api/coachApi';
 import { MASTER_STALE_MS } from '../../../api/queryClient';
 import { queryKeys } from '../../../api/queryKeys';
@@ -103,15 +103,19 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
   };
 
   const askAi = async () => {
-    if (!pickerSlot || !aiQuery.trim()) return;
+    if (!pickerSlot || aiLoading) return;
+    if (!aiQuery.trim()) {
+      setAiError('Enter a food name to look up calories.');
+      return;
+    }
     setAiLoading(true);
     setAiError('');
     try {
       const cal = await getFoodCalories(aiQuery.trim(), 1);
       addItem(pickerSlot, { name: aiQuery.trim(), kcal: cal });
       closePicker();
-    } catch {
-      setAiError('Could not look up calories. Try again.');
+    } catch (err) {
+      setAiError(getErrorMessage(err, 'Could not look up calories. Try again.'));
     } finally {
       setAiLoading(false);
     }
@@ -133,7 +137,10 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
         return (
           <View key={slotId} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>{slot?.label}</Text>
+              <View style={styles.sectionTitleBlock}>
+                <Text style={styles.sectionLabel}>{slot?.label}</Text>
+                <View style={styles.underline} />
+              </View>
               <Text style={styles.sectionTotal}>~{total} kcal</Text>
             </View>
             <View style={styles.card}>
@@ -160,6 +167,24 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
         );
       })}
 
+      {foodMasterQuery.isError ? (
+        <View style={styles.foodError}>
+          <Text style={styles.aiError}>
+            {getErrorMessage(foodMasterQuery.error, 'Could not load foods. Please try again.')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => void foodMasterQuery.refetch()}
+            disabled={foodMasterQuery.isFetching}
+            accessibilityRole="button"
+            accessibilityLabel="Try again"
+          >
+            <Text style={styles.retryLink}>
+              {foodMasterQuery.isFetching ? 'Trying again…' : 'Try again'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <Text style={styles.note}>* Calories are approximate. Leave blank if unknown.</Text>
 
       <Modal visible={!!pickerSlot} transparent animationType="fade" onRequestClose={closePicker}>
@@ -182,6 +207,25 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
             >
               {foodMasterQuery.isPending ? (
                 <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
+              ) : foodMasterQuery.isError ? (
+                <View style={styles.foodError}>
+                  <Text style={styles.noFoods}>
+                    {getErrorMessage(
+                      foodMasterQuery.error,
+                      'Could not load foods. Please try again.',
+                    )}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => void foodMasterQuery.refetch()}
+                    disabled={foodMasterQuery.isFetching}
+                    accessibilityRole="button"
+                    accessibilityLabel="Try again"
+                  >
+                    <Text style={styles.retryLink}>
+                      {foodMasterQuery.isFetching ? 'Trying again…' : 'Try again'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 pickerItems.map(food => (
                   <TouchableOpacity
@@ -200,7 +244,9 @@ export default function DietPairStep({ form, update, slotIds }: DietPairStepProp
                   </TouchableOpacity>
                 ))
               )}
-              {!foodMasterQuery.isPending && pickerItems.length === 0 ? (
+              {!foodMasterQuery.isPending &&
+              !foodMasterQuery.isError &&
+              pickerItems.length === 0 ? (
                 <Text style={styles.noFoods}>No foods available for this filter.</Text>
               ) : null}
 
@@ -244,11 +290,24 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
   },
-  sectionLabel: { fontSize: 14, fontFamily: FontFamily.bold, color: Colors.textDark },
-  sectionTotal: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.secondary },
+  sectionTitleBlock: { flex: 1, marginRight: Spacing.sm },
+  sectionLabel: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontFamily: headingFont.bold,
+    color: Colors.textDark,
+  },
+  underline: {
+    width: 36,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#F08A2C',
+    marginTop: 4,
+  },
+  sectionTotal: { fontSize: 13, fontFamily: FontFamily.semibold, color: Colors.accentInk },
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
@@ -266,12 +325,12 @@ const styles = StyleSheet.create({
   moreBtn: {
     ...buttonStyles.compactGhost,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: '#F08A2C',
     borderStyle: 'dashed',
     marginBottom: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },
-  moreText: { ...buttonStyles.compactGhostText, fontSize: 12 },
+  moreText: { ...buttonStyles.compactGhostText, fontSize: 12, color: '#F08A2C' },
   note: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
@@ -327,19 +386,30 @@ const styles = StyleSheet.create({
   },
   aiInputRow: { flexDirection: 'row', gap: Spacing.xs },
   aiInput: {
-    ...formFieldStyles.wrap,
-    ...formFieldStyles.wrapSurface,
-    ...formFieldStyles.input,
     flex: 1,
-    height: FormControl.compactHeight + 8,
+    minWidth: 0,
+    minHeight: FormControl.compactHeight + 8,
+    borderRadius: 12,
+    backgroundColor: '#E7F6EC',
+    paddingHorizontal: Spacing.sm,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    color: Colors.accentInk,
   },
   aiBtn: {
     ...buttonStyles.compact,
-    backgroundColor: Colors.secondary,
+    backgroundColor: '#F08A2C',
     borderRadius: Radius.sm,
     minWidth: 64,
     paddingHorizontal: Spacing.md,
   },
   aiBtnText: buttonStyles.compactText,
   aiError: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.primary, marginTop: 6 },
+  foodError: { marginBottom: Spacing.sm },
+  retryLink: {
+    marginTop: 4,
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    color: Colors.accentInk,
+  },
 });

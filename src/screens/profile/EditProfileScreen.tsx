@@ -560,12 +560,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                   />
                 </View>
                 <View style={styles.half}>
-                  <Field
-                    label="Tagline"
-                    value={tagline}
-                    onChangeText={setTagline}
-                    required
-                  />
+                  <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
                 </View>
               </View>
 
@@ -761,11 +756,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               Previous
             </Text>
             <View style={styles.prevIconCircle}>
-              <Ionicons
-                name="chevron-back-outline"
-                size={IconSize.sm}
-                color={Colors.white}
-              />
+              <Ionicons name="chevron-back-outline" size={IconSize.sm} color={Colors.white} />
             </View>
           </TouchableOpacity>
 
@@ -832,33 +823,23 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
   return (
     <View style={styles.stepRow} accessibilityRole="summary">
       <View style={styles.stepItem}>
-        <View style={[styles.stepCircle, step === 1 ? styles.stepCircleActive : styles.stepCircleIdle]}>
-          <Text
-            style={[styles.stepCircleText, step !== 1 && styles.stepCircleTextIdle]}
-          >
-            1
-          </Text>
-        </View>
-        <Text
-          style={[styles.stepLabel, step === 1 && styles.stepLabelActive]}
-          numberOfLines={2}
+        <View
+          style={[styles.stepCircle, step === 1 ? styles.stepCircleActive : styles.stepCircleIdle]}
         >
+          <Text style={[styles.stepCircleText, step !== 1 && styles.stepCircleTextIdle]}>1</Text>
+        </View>
+        <Text style={[styles.stepLabel, step === 1 && styles.stepLabelActive]} numberOfLines={2}>
           Photo/ Identify
         </Text>
       </View>
       <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
       <View style={styles.stepItem}>
-        <View style={[styles.stepCircle, step === 2 ? styles.stepCircleActive : styles.stepCircleIdle]}>
-          <Text
-            style={[styles.stepCircleText, step !== 2 && styles.stepCircleTextIdle]}
-          >
-            2
-          </Text>
-        </View>
-        <Text
-          style={[styles.stepLabel, step === 2 && styles.stepLabelActive]}
-          numberOfLines={2}
+        <View
+          style={[styles.stepCircle, step === 2 ? styles.stepCircleActive : styles.stepCircleIdle]}
         >
+          <Text style={[styles.stepCircleText, step !== 2 && styles.stepCircleTextIdle]}>2</Text>
+        </View>
+        <Text style={[styles.stepLabel, step === 2 && styles.stepLabelActive]} numberOfLines={2}>
           Professional & About/Description
         </Text>
       </View>

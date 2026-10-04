@@ -1,4 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -33,24 +41,34 @@ import { resolveMediaUrl } from '../utils/mediaUrl';
 const DOC_TYPE = 'PROGRESS_PHOTO';
 const REF_TYPE = 'CLIENT';
 
+export interface ProgressPhotosHandle {
+  pickAndUpload: () => Promise<void>;
+}
+
 interface Props {
   clientCode: string;
+  variant?: 'section' | 'strip';
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 const ProgressPhotoThumb = React.memo(function ProgressPhotoThumb({
   item,
   onOpen,
   onDelete,
+  layout,
 }: {
   item: DocumentListItem;
   onOpen: (uri: string) => void;
   onDelete: (item: DocumentListItem) => void;
+  layout: 'grid' | 'strip';
 }) {
   const uri = resolveMediaUrl(item.filePath);
   const source = useMemo(() => (uri ? { uri } : null), [uri]);
 
+  const strip = layout === 'strip';
+
   return (
-    <View style={styles.thumbWrap}>
+    <View style={strip ? styles.stripThumbWrap : styles.thumbWrap}>
       <TouchableOpacity
         activeOpacity={PressOpacity.default}
         onPress={() => {
@@ -61,36 +79,40 @@ const ProgressPhotoThumb = React.memo(function ProgressPhotoThumb({
         accessibilityLabel="View progress photo"
       >
         {source ? (
-          <Image source={source} style={styles.thumb} />
+          <Image source={source} style={strip ? styles.stripThumb : styles.thumb} />
         ) : (
-          <View style={[styles.thumb, styles.thumbPlaceholder]}>
+          <View style={[strip ? styles.stripThumb : styles.thumb, styles.thumbPlaceholder]}>
             <Ionicons name="image-outline" size={24} color={Colors.textLight} />
           </View>
         )}
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.deleteBtn}
+        style={[styles.deleteBtn, strip && styles.deleteBtnStrip]}
         onPress={() => onDelete(item)}
         activeOpacity={PressOpacity.default}
         hitSlop={HitSlop.sm}
         accessibilityRole="button"
         accessibilityLabel="Delete photo"
       >
-        <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
+        <Ionicons
+          name="trash-outline"
+          size={14}
+          color={strip ? Colors.white : Colors.destructive}
+        />
       </TouchableOpacity>
     </View>
   );
 });
 
-export default function ProgressPhotos({ clientCode }: Props) {
+const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function ProgressPhotos(
+  { clientCode, variant = 'section', onUploadingChange },
+  ref,
+) {
   const coachCode = progressPhotosCoachCode();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
-  const lightboxSource = useMemo(
-    () => (lightboxUri ? { uri: lightboxUri } : null),
-    [lightboxUri],
-  );
+  const lightboxSource = useMemo(() => (lightboxUri ? { uri: lightboxUri } : null), [lightboxUri]);
 
   const photosQuery = useProgressPhotosQuery(clientCode);
   const photos = photosQuery.data ?? [];
@@ -101,13 +123,17 @@ export default function ProgressPhotos({ clientCode }: Props) {
     });
   }, [queryClient, coachCode, clientCode]);
 
-  const pickAndUpload = async () => {
+  const uploadingRef = useRef(false);
+
+  const pickAndUpload = useCallback(async () => {
+    if (uploadingRef.current) return;
     const assets = await pickImagesFromCameraOrLibrary({
       quality: 0.8,
       selectionLimit: 5,
     });
     if (!assets.length) return;
 
+    uploadingRef.current = true;
     setUploading(true);
     try {
       for (const asset of assets) {
@@ -128,9 +154,16 @@ export default function ProgressPhotos({ clientCode }: Props) {
         getErrorMessage(err, 'Could not upload photo. Please try again.'),
       );
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
     }
-  };
+  }, [clientCode, coachCode, invalidate]);
+
+  useImperativeHandle(ref, () => ({ pickAndUpload }), [pickAndUpload]);
+
+  useEffect(() => {
+    onUploadingChange?.(uploading);
+  }, [onUploadingChange, uploading]);
 
   const confirmDelete = useCallback(
     (item: DocumentListItem) => {
@@ -155,48 +188,98 @@ export default function ProgressPhotos({ clientCode }: Props) {
 
   const openLightbox = useCallback((uri: string) => setLightboxUri(uri), []);
 
-  return (
-    <View style={styles.section}>
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Progress Photos</Text>
-        <TouchableOpacity
-          style={[styles.uploadBtn, uploading && styles.uploadBtnDisabled]}
-          onPress={pickAndUpload}
-          disabled={uploading}
-          accessibilityRole="button"
-          accessibilityLabel="Upload progress photo"
-        >
-          {uploading ? (
-            <ActivityIndicator color={Colors.white} size="small" />
-          ) : (
-            <>
-              <Ionicons name="camera-outline" size={16} color={Colors.white} />
-              <Text style={styles.uploadBtnText}>Add</Text>
-            </>
-          )}
-        </TouchableOpacity>
+  const strip = variant === 'strip';
+  const loadError = photosQuery.isError
+    ? getErrorMessage(photosQuery.error, 'Could not load progress photos.')
+    : null;
+  const gallery = photosQuery.isPending ? (
+    <ActivityIndicator color={Colors.primary} style={styles.pendingSpinner} />
+  ) : loadError ? (
+    <View style={strip ? styles.stripError : styles.empty}>
+      <Text style={strip ? styles.stripEmpty : styles.emptyText}>{loadError}</Text>
+      <TouchableOpacity
+        onPress={() => void photosQuery.refetch()}
+        disabled={photosQuery.isFetching}
+        accessibilityRole="button"
+        accessibilityLabel="Try again"
+      >
+        <Text style={styles.retryText}>
+          {photosQuery.isFetching ? 'Trying again…' : 'Try again'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  ) : photos.length === 0 ? (
+    strip ? (
+      <Text style={styles.stripEmpty}>No progress photos yet.</Text>
+    ) : (
+      <View style={styles.empty}>
+        <Ionicons name="images-outline" size={28} color={Colors.textLight} />
+        <Text style={styles.emptyText}>No progress photos yet.</Text>
       </View>
-      <Text style={styles.hint}>Add dated progress photos to track how your client is doing.</Text>
+    )
+  ) : strip ? (
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.stripRow}
+    >
+      {photos.map(item => (
+        <ProgressPhotoThumb
+          key={item.docId}
+          item={item}
+          layout="strip"
+          onOpen={openLightbox}
+          onDelete={confirmDelete}
+        />
+      ))}
+    </ScrollView>
+  ) : (
+    <View style={styles.grid}>
+      {photos.map(item => (
+        <ProgressPhotoThumb
+          key={item.docId}
+          item={item}
+          layout="grid"
+          onOpen={openLightbox}
+          onDelete={confirmDelete}
+        />
+      ))}
+    </View>
+  );
 
-      {photosQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={styles.pendingSpinner} />
-      ) : photos.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="images-outline" size={28} color={Colors.textLight} />
-          <Text style={styles.emptyText}>No progress photos yet.</Text>
-        </View>
-      ) : (
-        <View style={styles.grid}>
-          {photos.map(item => (
-            <ProgressPhotoThumb
-              key={item.docId}
-              item={item}
-              onOpen={openLightbox}
-              onDelete={confirmDelete}
-            />
-          ))}
-        </View>
+  return (
+    <View style={strip ? styles.stripSection : styles.section}>
+      {strip ? null : (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={styles.sectionTitle}>Progress Photos</Text>
+            <TouchableOpacity
+              style={[styles.uploadBtn, uploading && styles.uploadBtnDisabled]}
+              onPress={() => {
+                void pickAndUpload();
+              }}
+              disabled={uploading}
+              accessibilityRole="button"
+              accessibilityLabel="Upload progress photo"
+            >
+              {uploading ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="camera-outline" size={16} color={Colors.white} />
+                  <Text style={styles.uploadBtnText}>Add</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.hint}>
+            Add dated progress photos to track how your client is doing.
+          </Text>
+        </>
       )}
+
+      {gallery}
 
       <Modal
         visible={!!lightboxUri}
@@ -227,7 +310,9 @@ export default function ProgressPhotos({ clientCode }: Props) {
       </Modal>
     </View>
   );
-}
+});
+
+export default ProgressPhotos;
 
 const THUMB = 100;
 
@@ -256,6 +341,12 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   emptyText: { ...Typography.label, color: Colors.textLight },
+  retryText: {
+    marginTop: Spacing.xs,
+    ...Typography.label,
+    color: Colors.accentInk,
+  },
+  stripError: { paddingVertical: Spacing.xs },
   pendingSpinner: { marginTop: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm - 2 },
   thumbWrap: { width: THUMB, position: 'relative' },
@@ -277,6 +368,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadow.sm,
+  },
+  stripSection: {},
+  stripEmpty: { ...Typography.caption, paddingVertical: Spacing.xs },
+  stripRow: { gap: Spacing.sm, paddingVertical: Spacing.xxs },
+  stripThumbWrap: { width: 118, position: 'relative' },
+  stripThumb: {
+    width: 118,
+    height: 86,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.textDark,
+  },
+  deleteBtnStrip: {
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
   },
   lightbox: { flex: 1, backgroundColor: Colors.lightboxScrim },
   lightboxBackdrop: { ...StyleSheet.absoluteFill },

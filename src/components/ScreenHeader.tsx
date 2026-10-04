@@ -1,23 +1,12 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  StyleSheet,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { TouchableOpacity, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import {
-  Colors,
-  HitSlop,
-  IconSize,
-  PressOpacity,
-  TouchTarget,
-} from '../constants/theme';
+import { Colors, HitSlop, IconSize, PressOpacity, TouchTarget } from '../constants/theme';
 
 /**
  * Shared chrome buttons for light (tab roots) and dark (overlays) headers.
- * Prefer WaveScreenHeader for pushed coach-app screens; TabRootHeader for tab roots.
+ * Prefer WaveScreenHeader for pushed coach-app screens.
  */
 
 interface HeaderBackButtonProps {

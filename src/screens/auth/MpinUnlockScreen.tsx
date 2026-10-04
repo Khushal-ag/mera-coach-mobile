@@ -144,8 +144,9 @@ const styles = StyleSheet.create({
     ...Shadow.lg,
   },
   title: {
-    fontSize: 24,
-    fontFamily: headingFont.extraBold,
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: headingFont.bold,
     color: Colors.secondary,
     marginBottom: 4,
     textAlign: 'center',

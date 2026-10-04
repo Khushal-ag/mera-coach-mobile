@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
   },
   heroBmi: {
     fontFamily: headingFont.bold,
-    fontSize: 36,
-    lineHeight: 42,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.exploreBannerAccent,
   },
   heroRule: {

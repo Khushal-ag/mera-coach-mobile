@@ -17,11 +17,11 @@ import {
   FontFamily,
   HitSlop,
   PressOpacity,
-  Radius,
   ScreenPad,
   Shadow,
   Spacing,
   TouchTarget,
+  Typography,
   headingFont,
 } from '../../constants/theme';
 import DashboardCarousel from '../../components/dashboard/DashboardCarousel';
@@ -155,13 +155,13 @@ export default function DashboardScreen({
     {
       label: 'Clients',
       value: clients ? String(clients.length) : '-',
-      tint: Colors.secondary,
+      tint: Colors.cardIconGreen,
       iconBg: Colors.metricClientsBg,
     },
     {
       label: 'Leads',
       value: activeLeadsCount != null ? String(activeLeadsCount) : '-',
-      tint: Colors.brandCoach,
+      tint: Colors.accent,
       iconBg: Colors.metricLeadsBg,
     },
     {
@@ -176,7 +176,7 @@ export default function DashboardScreen({
     {
       label: 'My Clients',
       sub: 'View & manage your clients',
-      icon: 'people-outline',
+      icon: 'people',
       cardBg: Colors.cardTintGreen,
       iconColor: Colors.cardIconGreen,
       onPress: () => navigation.navigate('ClientListHome'),
@@ -184,7 +184,7 @@ export default function DashboardScreen({
     {
       label: 'Leads',
       sub: 'Track & convert Leads',
-      icon: 'funnel-outline',
+      icon: 'funnel',
       cardBg: Colors.cardTintBlue,
       iconColor: Colors.cardIconBlue,
       onPress: () => navigation.navigate('Leads'),
@@ -192,7 +192,7 @@ export default function DashboardScreen({
     {
       label: 'Checkups',
       sub: 'View upcoming checkups',
-      icon: 'clipboard-outline',
+      icon: 'clipboard',
       cardBg: Colors.cardTintPurple,
       iconColor: Colors.cardIconPurple,
       onPress: () => navigation.navigate('CheckupListHome'),
@@ -204,8 +204,8 @@ export default function DashboardScreen({
   }
 
   const metricIcons: Record<string, IoniconName> = {
-    Clients: 'people-outline',
-    Leads: 'funnel-outline',
+    Clients: 'people',
+    Leads: 'funnel',
     Due: 'calendar-outline',
   };
 
@@ -302,8 +302,8 @@ export default function DashboardScreen({
               >
                 <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
                   <Ionicons
-                    name={metricIcons[metric.label] ?? 'ellipse-outline'}
-                    size={26}
+                    name={metricIcons[metric.label] ?? 'ellipse'}
+                    size={18}
                     color={metric.tint}
                   />
                 </View>
@@ -339,14 +339,14 @@ export default function DashboardScreen({
         >
           <View style={styles.primaryCtaCurve} pointerEvents="none" />
           <View style={styles.primaryCtaIcon}>
-            <Ionicons name="person-add-outline" size={24} color={Colors.white} />
+            <Ionicons name="person-add" size={26} color={Colors.white} />
           </View>
           <View style={styles.primaryCtaCopy}>
             <Text style={styles.primaryCtaTitle}>Add Client</Text>
             <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
           </View>
           <View style={styles.primaryCtaArrow} pointerEvents="none">
-            <Ionicons name="arrow-forward-outline" size={20} color={Colors.white} />
+            <Ionicons name="arrow-forward" size={22} color={Colors.white} />
           </View>
         </TouchableOpacity>
 
@@ -361,7 +361,7 @@ export default function DashboardScreen({
               accessibilityLabel={action.label}
             >
               <View style={[styles.secondaryIcon, { backgroundColor: action.iconColor }]}>
-                <Ionicons name={action.icon} size={26} color={Colors.white} />
+                <Ionicons name={action.icon} size={22} color={Colors.white} />
               </View>
               <Text style={styles.secondaryLabel} numberOfLines={1}>
                 {action.label}
@@ -401,8 +401,9 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   brandTitle: {
-    fontSize: 26,
-    fontFamily: headingFont.extraBold,
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: headingFont.bold,
     letterSpacing: -0.4,
   },
   brandMera: {
@@ -428,25 +429,26 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
   },
   greetingLine: {
-    color: Colors.greetingMuted,
-    fontSize: 15,
+    color: Colors.secondary,
+    fontSize: 16,
+    lineHeight: 22,
     fontFamily: FontFamily.medium,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   coachName: {
+    marginTop: 6,
     color: Colors.textDark,
-    fontSize: 28,
-    fontFamily: headingFont.extraBold,
-    marginTop: 4,
+    fontFamily: headingFont.bold,
+    fontSize: 26,
+    lineHeight: 32,
     letterSpacing: -0.4,
-    lineHeight: 34,
   },
   heroSub: {
     color: Colors.textLight,
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 21,
     fontFamily: FontFamily.regular,
-    marginTop: 6,
-    lineHeight: 20,
+    marginTop: 4,
   },
   chromeIconBtn: {
     width: TouchTarget.header,
@@ -498,8 +500,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.lg,
+    borderRadius: 28,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.xs,
     ...Shadow.md,
   },
@@ -509,34 +511,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
-    gap: 4,
+    gap: 2,
   },
   metricIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   metricDivider: {
     width: StyleSheet.hairlineWidth,
     backgroundColor: Colors.border,
-    marginVertical: 16,
+    marginVertical: 10,
   },
   metricValue: {
-    fontSize: 30,
-    fontFamily: headingFont.extraBold,
-    color: Colors.textDark,
-    lineHeight: 34,
-    letterSpacing: -0.4,
+    ...Typography.metric,
+    lineHeight: 32,
+    letterSpacing: -0.6,
     maxWidth: '100%',
   },
   metricLabel: {
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 18,
     fontFamily: FontFamily.regular,
     color: Colors.textDark,
-    marginTop: 2,
     maxWidth: '100%',
   },
   statsError: {
@@ -558,28 +558,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    height: 72,
-    backgroundColor: Colors.addClientBannerLight,
-    borderRadius: 22,
-    paddingLeft: Spacing.md,
+    height: 80,
+    backgroundColor: Colors.addClientBanner,
+    borderRadius: 28,
+    paddingLeft: 12,
     paddingRight: Spacing.lg,
     overflow: 'hidden',
   },
-  /** Large oval mostly off-canvas — only a soft vertical sweep shows. */
   primaryCtaCurve: {
     position: 'absolute',
-    right: -150,
-    top: -95,
+    right: -56,
+    top: -118,
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: Colors.addClientBannerDark,
+    backgroundColor: Colors.addClientBannerLight,
   },
   primaryCtaIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.28)',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.32)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -595,49 +594,53 @@ const styles = StyleSheet.create({
   primaryCtaTitle: {
     color: Colors.white,
     fontSize: 18,
+    lineHeight: 22,
     fontFamily: headingFont.bold,
   },
   primaryCtaSub: {
     color: Colors.white,
     fontSize: 13,
+    lineHeight: 18,
     fontFamily: FontFamily.regular,
     marginTop: 2,
   },
   secondaryRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
+    alignItems: 'stretch',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
   secondaryChip: {
     flex: 1,
     minWidth: 0,
     alignItems: 'flex-start',
     gap: 8,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.sm,
-    minHeight: 148,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
+    borderRadius: 22,
+    paddingTop: 16,
+    paddingBottom: 14,
+    paddingHorizontal: 12,
+    minHeight: 156,
   },
   secondaryIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 6,
   },
   secondaryLabel: {
     fontSize: 16,
+    lineHeight: 20,
     fontFamily: headingFont.bold,
     color: Colors.textDark,
     maxWidth: '100%',
   },
   secondarySub: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
-    lineHeight: 14,
+    lineHeight: 16,
     maxWidth: '100%',
   },
   carouselSection: {

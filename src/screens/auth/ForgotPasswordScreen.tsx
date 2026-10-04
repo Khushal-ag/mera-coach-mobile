@@ -46,7 +46,9 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
           No worries! Enter Your email or mobile number we&apos;ll send you a reset link.
         </Text>
 
-        <View style={[authFormStyles.inputWrap, errorFields.email && authFormStyles.inputWrapError]}>
+        <View
+          style={[authFormStyles.inputWrap, errorFields.email && authFormStyles.inputWrapError]}
+        >
           <Ionicons
             name="mail-outline"
             size={IconSize.md}

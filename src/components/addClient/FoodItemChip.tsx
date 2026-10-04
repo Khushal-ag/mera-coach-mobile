@@ -22,7 +22,9 @@ interface FoodItemChipProps {
 export default function FoodItemChip({ item, onQtyChange, onRemove }: FoodItemChipProps) {
   return (
     <View style={styles.chip}>
-      <Text style={styles.name}>{item.name}</Text>
+      <Text style={styles.name} numberOfLines={2}>
+        {item.name}
+      </Text>
       <TouchableOpacity
         style={styles.stepBtn}
         onPress={() => onQtyChange(Math.max(1, item.qty - 1))}
@@ -31,7 +33,7 @@ export default function FoodItemChip({ item, onQtyChange, onRemove }: FoodItemCh
         accessibilityRole="button"
         accessibilityLabel="Decrease quantity"
       >
-        <Ionicons name="remove" size={IconSize.xs} color={Colors.white} />
+        <Ionicons name="remove" size={IconSize.xs} color={Colors.accentInk} />
       </TouchableOpacity>
       <Text style={styles.qty}>{item.qty}</Text>
       <TouchableOpacity
@@ -42,7 +44,7 @@ export default function FoodItemChip({ item, onQtyChange, onRemove }: FoodItemCh
         accessibilityRole="button"
         accessibilityLabel="Increase quantity"
       >
-        <Ionicons name="add" size={IconSize.xs} color={Colors.white} />
+        <Ionicons name="add" size={IconSize.xs} color={Colors.accentInk} />
       </TouchableOpacity>
       <Text style={styles.kcal}>{item.kcal * item.qty} kcal</Text>
       <TouchableOpacity
@@ -52,7 +54,7 @@ export default function FoodItemChip({ item, onQtyChange, onRemove }: FoodItemCh
         accessibilityRole="button"
         accessibilityLabel="Remove food"
       >
-        <Ionicons name="close" size={IconSize.sm} color={Colors.textLight} />
+        <Ionicons name="close-outline" size={IconSize.sm} color={Colors.accentInk} />
       </TouchableOpacity>
     </View>
   );
@@ -62,11 +64,10 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    maxWidth: '100%',
     gap: 6,
-    backgroundColor: Colors.background,
+    backgroundColor: '#E7F6EC',
     borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
     paddingHorizontal: Spacing.sm - 2,
     paddingVertical: 6,
     minHeight: 32,
@@ -75,6 +76,8 @@ const styles = StyleSheet.create({
   },
   name: {
     ...Typography.caption,
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: FontFamily.semibold,
     color: Colors.textDark,
     marginRight: 2,
@@ -83,7 +86,9 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Colors.secondary,
+    borderWidth: 1.5,
+    borderColor: Colors.accentInk,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },

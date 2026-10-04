@@ -31,9 +31,7 @@ import ReloadState from '../../components/ReloadState';
 import ClientAvatar from '../../components/ClientAvatar';
 import SearchField from '../../components/SearchField';
 import SectionTag from '../../components/SectionTag';
-import WaveScreenHeader, {
-  WaveHeaderActionButton,
-} from '../../components/WaveScreenHeader';
+import WaveScreenHeader, { WaveHeaderActionButton } from '../../components/WaveScreenHeader';
 import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';

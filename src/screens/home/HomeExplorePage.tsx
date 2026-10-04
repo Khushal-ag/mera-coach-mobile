@@ -16,10 +16,7 @@ import BmiGaugeArt from '../../components/home/BmiGaugeArt';
 import CategoryIcon from '../../components/CategoryIcon';
 import EmptyState from '../../components/EmptyState';
 import ReloadState from '../../components/ReloadState';
-import {
-  EXPLORE_FEATURES,
-  type ExploreFeatureTarget,
-} from '../../data/homeExploreContent';
+import { EXPLORE_FEATURES, type ExploreFeatureTarget } from '../../data/homeExploreContent';
 import { getCoachCategories } from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
 import { MASTER_STALE_MS } from '../../api/queryClient';
@@ -207,11 +204,7 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
                 accessibilityRole="button"
                 accessibilityLabel={cat.label}
               >
-                <CategoryIcon
-                  category={cat}
-                  size={28}
-                  color={cat.color ?? Colors.secondary}
-                />
+                <CategoryIcon category={cat} size={28} color={cat.color ?? Colors.secondary} />
                 <Text style={styles.categoryLabel} numberOfLines={2}>
                   {cat.label}
                 </Text>
@@ -225,7 +218,10 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
           {featureRows.map((row, rowIndex) => (
             <View
               key={`row-${rowIndex}`}
-              style={[styles.featureRow, rowIndex < featureRows.length - 1 && styles.featureRowBorder]}
+              style={[
+                styles.featureRow,
+                rowIndex < featureRows.length - 1 && styles.featureRowBorder,
+              ]}
             >
               {row.map((item, colIndex) => {
                 const isLastCol = colIndex === row.length - 1;
@@ -338,8 +334,8 @@ const styles = StyleSheet.create({
   },
   bannerGoal: {
     fontFamily: headingFont.bold,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.white,
     marginTop: 2,
   },

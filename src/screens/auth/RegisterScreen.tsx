@@ -75,9 +75,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
       return;
     }
 
-    const coachTypeCode = categories.find(
-      c => c.label === category || c.code === category,
-    )?.code;
+    const coachTypeCode = categories.find(c => c.label === category || c.code === category)?.code;
     const referrer = referralMobile.trim();
     clearAllErrors();
     setSubmitting(true);

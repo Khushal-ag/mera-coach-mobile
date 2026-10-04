@@ -1,13 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Alert, View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { Colors, IconSize } from '../../constants/theme';
+import { ScreenPad, Spacing } from '../../constants/theme';
 import { wizardShellStyles } from '../../constants/wizardStyles';
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
-import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
+import GreenSubmitButton from '../../components/GreenSubmitButton';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import KeyboardSafeScroll, {
@@ -66,6 +65,7 @@ interface AssessmentWizardFlowProps {
   headerTitle: string;
   /** Optional trailing header control (e.g. Download PDF on diet-plan shortcut). */
   headerRight?: React.ReactNode;
+  onHome?: () => void;
   onExit: () => void;
   onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
 }
@@ -80,6 +80,7 @@ export default function AssessmentWizardFlow({
   skipEmptyDietCommit = false,
   headerTitle,
   headerRight,
+  onHome,
   onExit,
   onComplete,
 }: AssessmentWizardFlowProps) {
@@ -122,6 +123,7 @@ export default function AssessmentWizardFlow({
   const [ids, setIds] = useState<AssessmentIds>(initialIds);
   const [bmiSaved, setBmiSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [apiError, setApiError] = useState('');
   /** True after generate/regenerate; false when loaded from diet-plan-report or after save. */
   const [hasUnsavedDietPlan, setHasUnsavedDietPlan] = useState(false);
@@ -147,13 +149,18 @@ export default function AssessmentWizardFlow({
   // When opened mid-flow (e.g. diet plan shortcut), back from the start screen exits.
   const goBack = () => (index <= startIndex ? onExit() : setIndex(i => i - 1));
 
+  const showApiError = (message: string) => {
+    setApiError(message);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
   const completeAssessment = async (
     nextIds: AssessmentIds,
     metrics: ReturnType<typeof computeBmiMetrics>,
     bmiAlreadySavedNow: boolean,
   ) => {
     if (!metrics && flow === 'add') {
-      setApiError('Complete height, weight, date of birth or age, and gender before finishing.');
+      showApiError('Complete height, weight, date of birth or age, and gender before finishing.');
       return;
     }
     await finishAssessment(nextIds, metrics, bmiAlreadySavedNow || bmiSaved, 0);
@@ -165,6 +172,7 @@ export default function AssessmentWizardFlow({
       setIndex(i => i + 1);
       return;
     }
+    if (savingRef.current) return;
 
     const nextEntry = flatNav[index + 1];
     const leavingPhase = !nextEntry || nextEntry.type === 'interstitial';
@@ -178,6 +186,7 @@ export default function AssessmentWizardFlow({
     if (phaseId === 'personal') {
       if (applyValidation(validateClientPersonalProfile(form))) {
         setApiError('');
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
         return;
       }
     }
@@ -185,16 +194,19 @@ export default function AssessmentWizardFlow({
     if (phaseId === 'lifestyle') {
       if (applyValidation(validateClientLifestyleProfile(form))) {
         setApiError('');
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
         return;
       }
     }
 
     clearAllErrors();
     setApiError('');
+    savingRef.current = true;
     setSaving(true);
     try {
       if (phaseId === 'personal') {
-        const nextIds = await commitPersonal(form, ids);
+        const committed = await commitPersonal(form, ids);
+        const nextIds = committed.ids;
         setIds(nextIds);
         // Avoid re-uploading the same pending photos if the coach revisits this step.
         if ((form.photos ?? []).some(p => p.dataUrl)) {
@@ -207,6 +219,9 @@ export default function AssessmentWizardFlow({
             ...f,
             photos: (f.photos ?? []).map(p => (p.dataUrl ? { id: p.id, uri: p.uri } : p)),
           }));
+        }
+        if (committed.photoUploadError) {
+          Alert.alert('Photo not saved', committed.photoUploadError);
         }
       } else if (phaseId === 'lifestyle') {
         await commitLifestyle(form, ids);
@@ -234,11 +249,11 @@ export default function AssessmentWizardFlow({
       } else if (phaseId === 'dietPlan') {
         // Diet plan only appears in the dedicated diet-plan shortcut flow.
         if (!form.dietPlan) {
-          setApiError('Generate a plan before saving, or go back.');
+          showApiError('Generate a plan before saving, or go back.');
           return;
         }
         if (!hasUnsavedDietPlan) {
-          setApiError('Generate or regenerate a plan before saving.');
+          showApiError('Generate or regenerate a plan before saving.');
           return;
         }
         const dietPlan = await commitDietPlan(form.dietPlan, ids);
@@ -254,9 +269,10 @@ export default function AssessmentWizardFlow({
       }
       setIndex(i => i + 1);
     } catch (err) {
-      setApiError(getErrorMessage(err, 'Something went wrong. Please try again.'));
+      showApiError(getErrorMessage(err, 'Something went wrong. Please try again.'));
       setBanner(null);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -265,12 +281,15 @@ export default function AssessmentWizardFlow({
     const fromPhase = phases[entry.phaseIndex - 1]!;
     const toPhase = phases[entry.phaseIndex]!;
     return (
-      <PhaseTransition
-        fromLabel={fromPhase.label}
-        toLabel={toPhase.label}
-        toIcon={toPhase.icon}
-        onContinue={goNext}
-      />
+      <View style={styles.container}>
+        <WaveScreenHeader title={toPhase.label} onBack={goBack} onHome={onHome} />
+        <PhaseTransition
+          fromLabel={fromPhase.label}
+          toLabel={toPhase.label}
+          toIcon={toPhase.icon}
+          onContinue={goNext}
+        />
+      </View>
     );
   }
 
@@ -288,33 +307,34 @@ export default function AssessmentWizardFlow({
         : {};
 
   const bannerMessage = formErrorBanner || apiError || null;
+  const dietPlanPage = commitMode === 'dietPlan';
   // dietPlan shortcut: Save Plan only after generate/regenerate (not when viewing a saved report).
-  const showFinishBtn = commitMode !== 'dietPlan' || (!!form.dietPlan && hasUnsavedDietPlan);
+  const showFinishBtn = !dietPlanPage || (!!form.dietPlan && hasUnsavedDietPlan);
 
   return (
     <View style={styles.container}>
       <WaveScreenHeader
         title={headerTitle}
+        titleIcon={dietPlanPage ? 'people-outline' : undefined}
         onBack={goBack}
+        onHome={onHome}
         rightExtra={headerRight}
-        showHome={!headerRight}
+        showHome={dietPlanPage || !headerRight}
       />
 
       <KeyboardSafeScroll
         ref={scrollRef}
         style={styles.body}
-        contentContainerStyle={styles.bodyContent}
+        contentContainerStyle={dietPlanPage ? styles.dietBody : styles.bodyContent}
         keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
       >
-        <View style={styles.stepBanner}>
-          <Ionicons name={screen.icon} size={IconSize.lg} color={Colors.white} />
-          <View style={styles.stepBannerText}>
-            <Text style={styles.stepBannerTitle}>{screen.title}</Text>
-            {screen.subtitle ? (
-              <Text style={styles.stepBannerSubtitle}>{screen.subtitle}</Text>
-            ) : null}
+        {dietPlanPage ? null : (
+          <View style={styles.stepHead}>
+            <Text style={styles.stepTitle}>{screen.title}</Text>
+            <View style={styles.stepUnderline} />
+            {screen.subtitle ? <Text style={styles.stepSubtitle}>{screen.subtitle}</Text> : null}
           </View>
-        </View>
+        )}
 
         <FormErrorBanner message={bannerMessage} />
 
@@ -327,12 +347,11 @@ export default function AssessmentWizardFlow({
       </KeyboardSafeScroll>
 
       {showFinishBtn ? (
-        <StickyFooter>
-          <AppButton
+        <StickyFooter style={styles.footer}>
+          <GreenSubmitButton
             label={isLast ? finishLabel : 'Next'}
             onPress={() => void goNext()}
             loading={saving}
-            icon={isLast ? undefined : 'arrow-forward'}
           />
         </StickyFooter>
       ) : null}
@@ -342,4 +361,8 @@ export default function AssessmentWizardFlow({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
+  dietBody: {
+    paddingTop: Spacing.md,
+    paddingHorizontal: ScreenPad.horizontal,
+  },
 });

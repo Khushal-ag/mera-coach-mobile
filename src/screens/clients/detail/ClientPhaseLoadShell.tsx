@@ -11,6 +11,7 @@ interface ClientPhaseLoadShellProps {
   onRetry: () => void;
   children: React.ReactNode;
   emptyTitle?: string;
+  retryLabel?: string;
   retrying?: boolean;
 }
 
@@ -21,6 +22,7 @@ export default function ClientPhaseLoadShell({
   onRetry,
   children,
   emptyTitle = 'Could not load client',
+  retryLabel,
   retrying = false,
 }: ClientPhaseLoadShellProps) {
   if (isLoading) {
@@ -38,6 +40,7 @@ export default function ClientPhaseLoadShell({
           title={emptyTitle}
           message={errorMessage}
           onRetry={onRetry}
+          retryLabel={retryLabel}
           loading={retrying}
           showPullHint={false}
         />

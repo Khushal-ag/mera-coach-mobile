@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
@@ -10,25 +11,23 @@ import {
   Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Colors,
-  FontFamily,
   IconSize,
   PressOpacity,
   Radius,
   ScreenPad,
   Shadow,
   Spacing,
-  TouchTarget,
-  Typography,
-  statusChipStyles,
+  bodyFont,
+  buttonStyles,
   headingFont,
 } from '../../../constants/theme';
-import WaveScreenHeader from '../../../components/WaveScreenHeader';
+import { BrandImages } from '../../../constants/images';
+import WaveScreenHeader, { WaveHeaderActionButton } from '../../../components/WaveScreenHeader';
 import ClientAvatar from '../../../components/ClientAvatar';
-import ClientStatusChip from '../../../components/ClientStatusChip';
-import ProgressPhotos from '../../../components/ProgressPhotos';
+import ProgressPhotos, { type ProgressPhotosHandle } from '../../../components/ProgressPhotos';
 import EmptyState from '../../../components/EmptyState';
 import ReloadState from '../../../components/ReloadState';
 import { getClientDetail } from '../../../api/clientApi';
@@ -51,28 +50,129 @@ import {
   isValidSmsPhone,
   openFeedbackSms,
 } from '../../../utils/feedbackSms';
-import { lastCheckupLabel } from '../../../utils/recheckup';
+import { toDisplayDob } from '../../../utils/validation';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
 import type { IoniconName } from '../../../types/icons';
-import { navigateBack } from '../../../utils/navigationBack';
+import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
+
+const Tone = {
+  page: '#F5FEFD',
+  ink: '#102B24',
+  meta: '#707875',
+  chevron: '#8E9492',
+  line: '#E7EFEC',
+  add: '#E85A14',
+  pillBg: '#DFF4EE',
+  pillText: '#156854',
+  ageTile: '#E0F5EE',
+  ageWell: '#2BA47F',
+  heightTile: '#ECE8FE',
+  heightWell: '#7A6FE6',
+  weightTile: '#FEF1E0',
+  weightWell: '#F77030',
+  bmiTile: '#E0F5F8',
+  bmiWell: '#2DAEAE',
+  goalWell: '#E3F6EF',
+  goalIcon: '#0D6B56',
+  dietWell: '#ECE8FE',
+  dietIcon: '#6A5CC4',
+  activityWell: '#E0F6F8',
+  activityIcon: '#0C6D5A',
+  checkupTile: '#FFF4E0',
+  checkupWell: '#F9BD3F',
+  reportTile: '#FFEDE9',
+  reportWell: '#F4724E',
+  planTile: '#EDF7EE',
+  planWell: '#41B078',
+  feedbackTile: '#F3EFFD',
+  feedbackWell: '#9779D9',
+} as const;
+
+type ProfileMark =
+  | { family: 'ion'; name: IoniconName }
+  | { family: 'mci'; name: 'ruler' | 'scale-bathroom' | 'bullseye' | 'human-handsup' }
+  | { family: 'feedback' };
 
 interface MetricCell {
   label: string;
   value: string;
+  tile: string;
+  well: string;
+  icon: ProfileMark;
 }
 
 interface DetailRow {
   label: string;
-  icon: IoniconName;
+  well: string;
+  iconColor: string;
+  icon: ProfileMark;
   value: string;
 }
 
 interface ActionItem {
   label: string;
-  icon: IoniconName;
-  color: string;
-  bg: string;
+  tile: string;
+  well: string;
+  icon: ProfileMark;
   onPress: () => void;
+}
+
+function metricText(value: number | null | undefined, suffix: string): string {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return '-';
+  return `${value} ${suffix}`;
+}
+
+function MarkIcon({ mark, size, color }: { mark: ProfileMark; size: number; color: string }) {
+  if (mark.family === 'mci') {
+    return (
+      <MaterialCommunityIcons
+        name={mark.name}
+        size={size}
+        color={color}
+        style={mark.name === 'ruler' ? styles.rulerTilt : undefined}
+      />
+    );
+  }
+  if (mark.family === 'feedback') {
+    return (
+      <View style={[styles.feedbackGlyph, { width: size, height: size }]}>
+        <Ionicons name="chatbubble-outline" size={size} color={color} />
+        <Ionicons
+          name="thumbs-up"
+          size={Math.round(size * 0.46)}
+          color={color}
+          style={styles.feedbackThumb}
+        />
+      </View>
+    );
+  }
+  return <Ionicons name={mark.name} size={size} color={color} />;
+}
+
+function IconWell({
+  backgroundColor,
+  size,
+  children,
+}: {
+  backgroundColor: string;
+  size: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={[
+        styles.iconWell,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor,
+        },
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 export default function ClientDetailScreen({
@@ -81,6 +181,14 @@ export default function ClientDetailScreen({
 }: ClientsStackScreenProps<'ClientDetail'>) {
   const client = route.params?.client || { name: 'Client' };
   const returnTo = route.params?.returnTo;
+  const photosRef = useRef<ProgressPhotosHandle>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const onPhotoUploading = useCallback((uploading: boolean) => {
+    setPhotoUploading(uploading);
+  }, []);
+  const addProgressPhoto = useCallback(() => {
+    void photosRef.current?.pickAndUpload();
+  }, []);
 
   const detailQuery = useQuery({
     queryKey: queryKeys.clientDetail(client.clientCode, client.assessmentCode),
@@ -90,13 +198,11 @@ export default function ClientDetailScreen({
   });
   const refreshControl = useRefreshControl(detailQuery);
 
-  // Only shown with no cached detail — a background refetch failure leaves stale data as-is.
   const errorMessage =
     detailQuery.isError && !detailQuery.data
       ? getErrorMessage(detailQuery.error, 'Could not load client details. Pull down to try again.')
       : null;
 
-  // ClientDetail stores PARAMLIST itemCodes (LI00xx); resolve to itemNames for display.
   const goalOptions = useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS);
   const dietOptions = useParamMasterOptions(PARAM_CODES.foodPreference, FOOD_PREFERENCES);
   const activityOptions = useParamMasterOptions(
@@ -107,39 +213,74 @@ export default function ClientDetailScreen({
   const detail = detailQuery.data;
   const bmi = detail ? getBmi(detail.height ?? '', detail.weight ?? '') : null;
   const bmiCategory = getBmiCategory(bmi);
-  const goal = resolveMasterLabel(detail?.primaryGoal || client.goal || '', goalOptions);
+  const displayName = (detail?.clientName || client.name || '').trim() || 'Client';
   const mobile = (detail?.mobileNo ?? client.mobileNo ?? '').trim();
-  const checkupLine = lastCheckupLabel(client.lastCheckupDate);
+  const listedCheckup = (client.lastCheckupDate ?? '').trim();
+  const checkupDate =
+    toDisplayDob(listedCheckup) || listedCheckup || toDisplayDob(detail?.assessmentDate ?? '');
 
   const metrics = useMemo<MetricCell[]>(() => {
     if (!detail) return [];
-    return [
-      { label: 'Age', value: detail.age != null ? `${detail.age} yrs` : '-' },
-      { label: 'Height', value: detail.height != null ? `${detail.height} cm` : '-' },
-      { label: 'Weight', value: detail.weight != null ? `${detail.weight} kg` : '-' },
-      { label: 'BMI', value: bmi ? bmi.toFixed(1) : '-' },
+    const bmiValue = getBmi(detail.height ?? '', detail.weight ?? '');
+    const cells: MetricCell[] = [
+      {
+        label: 'Age',
+        value: metricText(detail.age, 'yrs'),
+        tile: Tone.ageTile,
+        well: Tone.ageWell,
+        icon: { family: 'ion', name: 'calendar-outline' },
+      },
+      {
+        label: 'Height',
+        value: metricText(detail.height, 'cm'),
+        tile: Tone.heightTile,
+        well: Tone.heightWell,
+        icon: { family: 'mci', name: 'ruler' },
+      },
+      {
+        label: 'Weight',
+        value: metricText(detail.weight, 'kg'),
+        tile: Tone.weightTile,
+        well: Tone.weightWell,
+        icon: { family: 'mci', name: 'scale-bathroom' },
+      },
+      {
+        label: 'BMI',
+        value: bmiValue != null ? bmiValue.toFixed(1) : '-',
+        tile: Tone.bmiTile,
+        well: Tone.bmiWell,
+        icon: { family: 'ion', name: 'speedometer-outline' },
+      },
     ];
-  }, [detail, bmi]);
+    return cells.filter(cell => cell.value !== '-');
+  }, [detail]);
 
   const detailRows = useMemo<DetailRow[]>(() => {
     if (!detail) return [];
-    return [
+    const rows: DetailRow[] = [
       {
         label: 'Goal',
-        icon: 'trophy-outline',
-        value: resolveMasterLabel(detail.primaryGoal, goalOptions) || '-',
+        well: Tone.goalWell,
+        iconColor: Tone.goalIcon,
+        icon: { family: 'mci', name: 'bullseye' },
+        value: resolveMasterLabel(detail.primaryGoal, goalOptions),
       },
       {
         label: 'Diet Type',
-        icon: 'restaurant-outline',
-        value: resolveMasterLabel(detail.foodPreference, dietOptions) || '-',
+        well: Tone.dietWell,
+        iconColor: Tone.dietIcon,
+        icon: { family: 'ion', name: 'restaurant-outline' },
+        value: resolveMasterLabel(detail.foodPreference, dietOptions),
       },
       {
         label: 'Activity',
-        icon: 'walk-outline',
-        value: resolveMasterLabel(detail.physicalActivity, activityOptions) || '-',
+        well: Tone.activityWell,
+        iconColor: Tone.activityIcon,
+        icon: { family: 'mci', name: 'human-handsup' },
+        value: resolveMasterLabel(detail.physicalActivity, activityOptions),
       },
     ];
+    return rows.map(row => ({ ...row, value: row.value || '-' }));
   }, [detail, goalOptions, dietOptions, activityOptions]);
 
   const askForFeedback = async () => {
@@ -168,7 +309,7 @@ export default function ClientDetailScreen({
       return;
     }
     const body = buildFeedbackSmsBody({
-      clientName: client.name,
+      clientName: displayName,
       coachName: getCurrentCoachName(),
       feedbackUrl,
     });
@@ -185,30 +326,30 @@ export default function ClientDetailScreen({
   const actions: ActionItem[] = [
     {
       label: 'Checkup',
-      icon: 'clipboard-outline',
-      color: Colors.accent,
-      bg: Colors.accentLight,
+      tile: Tone.checkupTile,
+      well: Tone.checkupWell,
+      icon: { family: 'ion', name: 'clipboard-outline' },
       onPress: () => navigation.navigate('ClientBmi', { client }),
     },
     {
       label: 'BMI Report',
-      icon: 'document-text-outline',
-      color: Colors.primary,
-      bg: Colors.primaryLight,
+      tile: Tone.reportTile,
+      well: Tone.reportWell,
+      icon: { family: 'ion', name: 'document-text-outline' },
       onPress: () => navigation.navigate('ClientBmiReport', { client }),
     },
     {
       label: 'Diet Plan',
-      icon: 'nutrition-outline',
-      color: Colors.secondary,
-      bg: Colors.secondaryLight,
+      tile: Tone.planTile,
+      well: Tone.planWell,
+      icon: { family: 'ion', name: 'reader-outline' },
       onPress: () => navigation.navigate('ClientDietPlan', { client }),
     },
     {
       label: 'Ask for feedback',
-      icon: 'chatbubble-ellipses-outline',
-      color: Colors.secondaryDark,
-      bg: Colors.secondaryLight,
+      tile: Tone.feedbackTile,
+      well: Tone.feedbackWell,
+      icon: { family: 'feedback' },
       onPress: () => {
         void askForFeedback();
       },
@@ -217,11 +358,25 @@ export default function ClientDetailScreen({
 
   return (
     <View style={styles.container}>
-      <WaveScreenHeader title="Client Profile" onBack={() => navigateBack(navigation, returnTo)} />
+      <WaveScreenHeader
+        title="Client Profile"
+        titleIcon="people-outline"
+        onBack={() => navigateBack(navigation, returnTo)}
+        onHome={() => navigateToDashboard(navigation)}
+        rightExtra={
+          client.clientCode ? (
+            <WaveHeaderActionButton
+              icon="add-outline"
+              onPress={addProgressPhoto}
+              accessibilityLabel="Add progress photo"
+            />
+          ) : undefined
+        }
+      />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: Spacing.lg }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -232,53 +387,45 @@ export default function ClientDetailScreen({
         }
       >
         <View style={styles.profileCard}>
-          <ClientAvatar clientCode={client.clientCode} size={80} allowUpload style={styles.avatar} />
-          <Text style={styles.clientName}>{client.name}</Text>
-
-          {(mobile || checkupLine) && (
-            <View style={styles.contactBlock}>
-              {mobile ? (
-                <Text style={styles.contactLine} numberOfLines={1}>
-                  {mobile}
-                </Text>
-              ) : null}
-              <Text style={styles.contactLine} numberOfLines={1}>
-                {checkupLine}
+          <ClientAvatar
+            clientCode={client.clientCode}
+            size={68}
+            allowUpload
+            style={styles.avatar}
+          />
+          <View style={styles.profileCopy}>
+            <Text style={styles.clientName} numberOfLines={2}>
+              {displayName}
+            </Text>
+            {checkupDate ? (
+              <Text style={styles.metaLine} numberOfLines={1}>
+                Last checkup-up {checkupDate}
               </Text>
-            </View>
-          )}
-
-          <View style={styles.chipRow}>
-            {goal ? (
-              <View style={styles.goalChip}>
-                <Ionicons name="trophy-outline" size={IconSize.xs} color={Colors.secondary} />
-                <Text style={styles.goalChipText} numberOfLines={1}>
-                  {goal}
-                </Text>
-              </View>
+            ) : null}
+            {mobile ? (
+              <Text style={styles.metaLine} numberOfLines={1}>
+                {mobile}
+              </Text>
             ) : null}
             {bmi != null && bmiCategory ? (
-              <View style={[styles.bmiBadge, { backgroundColor: bmiCategory.bg }]}>
-                <Text style={[styles.bmiBadgeValue, { color: bmiCategory.color }]}>
-                  {bmi.toFixed(1)}
-                </Text>
-                <Text style={[styles.bmiBadgeLabel, { color: bmiCategory.color }]}>
-                  {bmiCategory.label}
+              <View style={styles.bmiPill}>
+                <View style={styles.bmiDot} />
+                <Text style={styles.bmiPillText} numberOfLines={1}>
+                  {bmi.toFixed(1)} {bmiCategory.label.toUpperCase()}
                 </Text>
               </View>
             ) : null}
-            {client.status ? <ClientStatusChip status={client.status} /> : null}
           </View>
+          <Image
+            source={BrandImages.clientProfileBody}
+            style={styles.bodyArt}
+            resizeMode="contain"
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
         </View>
 
-        {client.clientCode ? (
-          <View style={styles.section}>
-            <ProgressPhotos clientCode={client.clientCode} />
-          </View>
-        ) : null}
-
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Client Information</Text>
           {client.clientCode && detailQuery.isPending ? (
             <ActivityIndicator color={Colors.secondary} style={styles.loader} />
           ) : errorMessage ? (
@@ -289,7 +436,7 @@ export default function ClientDetailScreen({
               loading={detailQuery.isFetching}
               style={styles.reload}
             />
-          ) : metrics.length === 0 && detailRows.length === 0 ? (
+          ) : !detail ? (
             <EmptyState
               icon="document-text-outline"
               title="Details unavailable"
@@ -298,34 +445,50 @@ export default function ClientDetailScreen({
             />
           ) : (
             <View style={styles.infoCard}>
-              <View style={styles.metricsGrid}>
-                {metrics.map((m, i) => (
-                  <View
-                    key={m.label}
-                    style={[
-                      styles.metricCell,
-                      i % 2 === 0 && styles.metricCellLeft,
-                      i < 2 && styles.metricCellTop,
-                    ]}
-                  >
-                    <Text style={styles.metricValue}>{m.value}</Text>
-                    <Text style={styles.metricLabel}>{m.label}</Text>
-                  </View>
-                ))}
-              </View>
+              {metrics.length > 0 ? (
+                <View style={styles.metricsGrid}>
+                  {metrics.map(cell => (
+                    <View
+                      key={cell.label}
+                      style={[styles.metricCell, { backgroundColor: cell.tile }]}
+                    >
+                      <IconWell backgroundColor={cell.well} size={40}>
+                        <MarkIcon mark={cell.icon} size={20} color={Colors.white} />
+                      </IconWell>
+                      <View style={styles.metricCopy}>
+                        <Text style={styles.metricValue} numberOfLines={1}>
+                          {cell.value}
+                        </Text>
+                        <Text style={styles.metricLabel}>{cell.label}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
-              {detailRows.map((row, i) => (
+              {detailRows.map((row, index) => (
                 <View
                   key={row.label}
-                  style={[styles.detailRow, i === detailRows.length - 1 && styles.detailRowLast]}
+                  style={[
+                    styles.detailRow,
+                    index === 0 && metrics.length > 0 && styles.detailRowAfterTiles,
+                    index > 0 && styles.detailRowBorder,
+                  ]}
                 >
-                  <View style={styles.detailIcon}>
-                    <Ionicons name={row.icon} size={IconSize.sm} color={Colors.secondary} />
-                  </View>
+                  <IconWell backgroundColor={row.well} size={36}>
+                    <MarkIcon mark={row.icon} size={18} color={row.iconColor} />
+                  </IconWell>
                   <Text style={styles.detailLabel}>{row.label}</Text>
                   <Text style={styles.detailValue} numberOfLines={2}>
                     {row.value}
                   </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={IconSize.md}
+                    color={Tone.chevron}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
                 </View>
               ))}
             </View>
@@ -333,186 +496,276 @@ export default function ClientDetailScreen({
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions</Text>
+          <View style={styles.sectionHead}>
+            <View>
+              <Text style={styles.sectionTitle}>Actions</Text>
+              <View style={styles.sectionUnderline} />
+            </View>
+            {client.clientCode ? (
+              <TouchableOpacity
+                style={[styles.addPill, photoUploading && styles.addPillDisabled]}
+                onPress={addProgressPhoto}
+                disabled={photoUploading}
+                activeOpacity={PressOpacity.strong}
+                accessibilityRole="button"
+                accessibilityLabel="Add progress photo"
+              >
+                {photoUploading ? (
+                  <ActivityIndicator color={Colors.white} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="camera-outline" size={IconSize.sm} color={Colors.white} />
+                    <Text style={styles.addPillText}>Add</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : null}
+          </View>
           <View style={styles.actionGrid}>
-            {[0, 1].map(row => (
-              <View key={row} style={styles.actionRow}>
-                {actions.slice(row * 2, row * 2 + 2).map(action => (
+            {[0, 1].map(rowIndex => (
+              <View key={rowIndex} style={styles.actionRow}>
+                {actions.slice(rowIndex * 2, rowIndex * 2 + 2).map(action => (
                   <TouchableOpacity
                     key={action.label}
-                    style={[styles.actionBtn, { backgroundColor: action.bg }]}
+                    style={[styles.actionBtn, { backgroundColor: action.tile }]}
                     onPress={action.onPress}
                     activeOpacity={PressOpacity.strong}
                     accessibilityRole="button"
                     accessibilityLabel={action.label}
                   >
-                    <View style={[styles.actionIconWrap, { backgroundColor: Colors.white }]}>
-                      <Ionicons name={action.icon} size={IconSize.xl} color={action.color} />
-                    </View>
-                    <Text style={[styles.actionText, { color: action.color }]}>{action.label}</Text>
+                    <IconWell backgroundColor={action.well} size={34}>
+                      <MarkIcon mark={action.icon} size={18} color={Colors.white} />
+                    </IconWell>
+                    <Text style={styles.actionText} numberOfLines={2}>
+                      {action.label}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={IconSize.sm} color={Tone.chevron} />
                   </TouchableOpacity>
                 ))}
               </View>
             ))}
           </View>
         </View>
+
+        {client.clientCode ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Progress Photo</Text>
+            <Text style={styles.sectionHint}>
+              Add dated Progress photos to track how your client is doing
+            </Text>
+            <ProgressPhotos
+              ref={photosRef}
+              clientCode={client.clientCode}
+              variant="strip"
+              onUploadingChange={onPhotoUploading}
+            />
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Tone.page },
   scroll: { flex: 1 },
+  scrollContent: { paddingTop: Spacing.md, paddingBottom: Spacing.xl },
   profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.white,
     marginHorizontal: ScreenPad.horizontal,
-    marginTop: Spacing.md,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingLeft: Spacing.sm,
+    paddingRight: Spacing.xxs,
+    gap: Spacing.xs,
+    overflow: 'hidden',
     ...Shadow.md,
   },
-  avatar: { marginRight: 0, marginBottom: Spacing.sm },
+  avatar: { marginRight: 0 },
+  profileCopy: { flex: 1, minWidth: 0, gap: 2 },
   clientName: {
-    ...Typography.title,
-    fontSize: 20,
-    lineHeight: 26,
     fontFamily: headingFont.extraBold,
-    textAlign: 'center',
+    fontSize: 18,
+    lineHeight: 24,
+    color: Tone.ink,
   },
-  contactBlock: {
-    marginTop: Spacing.xs,
-    alignItems: 'center',
-    gap: 2,
+  metaLine: {
+    fontFamily: bodyFont.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Tone.meta,
   },
-  contactLine: {
-    ...Typography.label,
-    color: Colors.textLight,
-    fontFamily: FontFamily.medium,
-    textAlign: 'center',
-  },
-  chipRow: {
+  bmiPill: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
-  },
-  goalChip: {
-    ...statusChipStyles.base,
-    backgroundColor: Colors.secondaryLight,
+    gap: 6,
+    marginTop: Spacing.xxs,
+    backgroundColor: Tone.pillBg,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
     maxWidth: '100%',
   },
-  goalChipText: {
-    ...statusChipStyles.text,
-    color: Colors.secondary,
+  bmiDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Tone.pillText,
   },
-  bmiBadge: {
-    ...statusChipStyles.base,
+  bmiPillText: {
+    flexShrink: 1,
+    fontFamily: bodyFont.bold,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Tone.pillText,
   },
-  bmiBadgeValue: { fontSize: 13, fontFamily: FontFamily.extraBold },
-  bmiBadgeLabel: { ...Typography.micro, fontFamily: FontFamily.semibold },
-  section: { marginHorizontal: ScreenPad.horizontal, marginBottom: Spacing.md },
-  sectionTitle: {
-    ...Typography.section,
-    marginBottom: Spacing.sm - 2,
+  bodyArt: {
+    width: 108,
+    height: 112,
+    flexShrink: 0,
   },
+  rulerTilt: {
+    transform: [{ rotate: '-38deg' }],
+  },
+  feedbackGlyph: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackThumb: {
+    position: 'absolute',
+    top: 2,
+  },
+  iconWell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  section: { marginHorizontal: ScreenPad.horizontal, marginTop: Spacing.md },
   loader: { marginTop: Spacing.sm },
   reload: { paddingVertical: Spacing.lg },
+  emptyBox: { flex: 0, paddingVertical: Spacing.lg },
   infoCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    overflow: 'hidden',
+    padding: Spacing.sm,
     ...Shadow.md,
   },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    justifyContent: 'space-between',
+    rowGap: Spacing.sm,
   },
   metricCell: {
-    width: '50%',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm + 2,
+    width: '48.5%',
+    minHeight: 76,
+    borderRadius: Radius.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.sm,
   },
-  metricCellLeft: {
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: Colors.border,
-  },
-  metricCellTop: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
+  metricCopy: { flex: 1, minWidth: 0 },
   metricValue: {
-    fontSize: 20,
-    lineHeight: 26,
     fontFamily: headingFont.extraBold,
-    color: Colors.textDark,
+    fontSize: 16,
+    lineHeight: 20,
+    color: Tone.ink,
   },
   metricLabel: {
-    ...Typography.micro,
-    fontFamily: FontFamily.semibold,
-    marginTop: Spacing.xxs,
+    fontFamily: bodyFont.medium,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Tone.meta,
+    marginTop: 1,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
     paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.sm + 2,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.xxs,
   },
-  detailRowLast: { borderBottomWidth: 0 },
-  detailIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: Radius.xs,
-    backgroundColor: Colors.secondaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.sm - 2,
+  detailRowAfterTiles: {
+    marginTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Tone.line,
+  },
+  detailRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Tone.line,
   },
   detailLabel: {
     flex: 1,
-    ...Typography.label,
-    color: Colors.textLight,
-    fontFamily: FontFamily.medium,
+    fontFamily: bodyFont.semibold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Tone.ink,
   },
   detailValue: {
-    ...Typography.label,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-    maxWidth: '55%',
+    fontFamily: bodyFont.medium,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Tone.ink,
     textAlign: 'right',
+    maxWidth: '42%',
   },
-  emptyBox: { flex: 0, paddingVertical: Spacing.lg },
-  actionGrid: { gap: Spacing.sm - 2 },
-  actionRow: { flexDirection: 'row', gap: Spacing.sm - 2 },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 20,
+    lineHeight: 26,
+    color: Tone.ink,
+  },
+  sectionUnderline: {
+    width: 32,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: Tone.add,
+    marginTop: 2,
+  },
+  sectionHint: {
+    fontFamily: bodyFont.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: Tone.meta,
+    marginTop: 2,
+    marginBottom: Spacing.sm,
+  },
+  addPill: {
+    ...buttonStyles.compact,
+    backgroundColor: Tone.add,
+  },
+  addPillDisabled: buttonStyles.disabled,
+  addPillText: buttonStyles.compactText,
+  actionGrid: { gap: Spacing.sm },
+  actionRow: { flexDirection: 'row', gap: Spacing.sm },
   actionBtn: {
     flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    minHeight: 64,
     borderRadius: Radius.md,
-    paddingVertical: Spacing.md + 2,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
-    gap: Spacing.sm - 2,
-    minHeight: 96,
-    justifyContent: 'center',
-  },
-  actionIconWrap: {
-    width: TouchTarget.icon,
-    height: TouchTarget.icon,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs + 2,
   },
   actionText: {
-    ...Typography.label,
-    fontFamily: FontFamily.bold,
-    textAlign: 'center',
+    flex: 1,
+    minWidth: 0,
+    fontFamily: bodyFont.semibold,
+    fontSize: 13,
+    lineHeight: 17,
+    color: Tone.ink,
   },
 });

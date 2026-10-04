@@ -1,3 +1,4 @@
+import { clearAppQueryCache } from '../api/queryClient';
 import type { Session } from '../types/models';
 import { lockMpinSession } from './mpin';
 import { secureStorage } from './secureStorage';
@@ -19,7 +20,7 @@ export function getCurrentCoachCode(): string | undefined {
   return currentCoachCode;
 }
 
-export function getCurrentCoachId(): string | undefined {
+function getCurrentCoachId(): string | undefined {
   return currentCoachId;
 }
 
@@ -102,19 +103,6 @@ export function markAuthRestoreFailed(): void {
   listeners.forEach(listener => listener());
 }
 
-/** Drop React Query cache without a static import on the session cold path. */
-async function clearQueryCacheLazy(): Promise<void> {
-  try {
-    // Lazy require — dynamic import() triggers IDE TS1323 under Expo `module: "preserve"`.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load
-    const { clearAppQueryCache } =
-      require('../api/queryClient') as typeof import('../api/queryClient');
-    clearAppQueryCache();
-  } catch {
-    /* ignore if RQ module unavailable (unit tests) */
-  }
-}
-
 export async function saveSession(session: Session): Promise<void> {
   expiredOnRestore = false;
   // Persist first so a failed write cannot leave UI signed-in with no durable session.
@@ -152,7 +140,7 @@ export async function clearSession(): Promise<void> {
   setCurrentIdentity(null);
   await secureStorage.deleteItem(KEY);
   // Wipe coach/client cache on every session drop (logout, 401, expired restore).
-  await clearQueryCacheLazy();
+  clearAppQueryCache();
 }
 
 // Manual base64url decode — `atob` isn't guaranteed to exist in React Native's JS engine.

@@ -30,8 +30,11 @@ import ChangePasswordScreen from '../screens/auth/ChangePasswordScreen';
 import ChangeMpinScreen from '../screens/auth/ChangeMpinScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import GalleryScreen from '../screens/profile/GalleryScreen';
 import EditGalleryScreen from '../screens/profile/EditGalleryScreen';
+import PackagesScreen from '../screens/profile/PackagesScreen';
 import EditPackagesScreen from '../screens/profile/EditPackagesScreen';
+import EventsScreen from '../screens/profile/EventsScreen';
 import EditEventsScreen from '../screens/profile/EditEventsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -78,7 +81,8 @@ function DashboardStackNavigator() {
 function PackagesStackNavigator() {
   return (
     <PackagesStack.Navigator screenOptions={{ headerShown: false }}>
-      <PackagesStack.Screen name="PackagesHome" component={EditPackagesScreen} />
+      <PackagesStack.Screen name="PackagesHome" component={PackagesScreen} />
+      <PackagesStack.Screen name="EditPackages" component={EditPackagesScreen} />
     </PackagesStack.Navigator>
   );
 }
@@ -86,7 +90,8 @@ function PackagesStackNavigator() {
 function EventsStackNavigator() {
   return (
     <EventsStack.Navigator screenOptions={{ headerShown: false }}>
-      <EventsStack.Screen name="EventsHome" component={EditEventsScreen} />
+      <EventsStack.Screen name="EventsHome" component={EventsScreen} />
+      <EventsStack.Screen name="AddEvent" component={EditEventsScreen} />
     </EventsStack.Navigator>
   );
 }
@@ -96,6 +101,7 @@ function ProfileStackNavigator() {
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileHome" component={CoachProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <ProfileStack.Screen name="GalleryHome" component={GalleryScreen} />
       <ProfileStack.Screen name="EditGallery" component={EditGalleryScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <ProfileStack.Screen name="ChangeMpin" component={ChangeMpinScreen} />

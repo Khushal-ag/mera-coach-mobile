@@ -2,39 +2,350 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
   Alert,
   Pressable,
+  TouchableOpacity,
+  useWindowDimensions,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
-  FontFamily,
+  IconSize,
+  PressOpacity,
   Radius,
+  ScreenPad,
   Shadow,
   Spacing,
+  Typography,
+  bodyFont,
   headingFont,
 } from '../../../constants/theme';
+import { BMI_GAUGE_ARC_ASPECT, BrandImages } from '../../../constants/images';
 import WaveScreenHeader from '../../../components/WaveScreenHeader';
+import ClientAvatar from '../../../components/ClientAvatar';
 import ReloadState from '../../../components/ReloadState';
-import PdfDownloadShareButton from '../../../components/clients/PdfDownloadShareButton';
 import { getBmiReport } from '../../../api/clientApi';
 import { getErrorMessage } from '../../../api/client';
 import { queryKeys } from '../../../api/queryKeys';
 import { useRefreshControl, refreshControlTheme } from '../../../hooks/useRefreshControl';
 import { getCurrentCoachCode } from '../../../auth/session';
-import { getBmiCategory, resolveDisplayBmi } from '../../../utils/bmi';
+import {
+  getBmiCategory,
+  historyMetricRows,
+  readBodyMeasurement,
+  resolveDisplayBmi,
+} from '../../../utils/bmi';
 import {
   bmiReportPdfQuery,
   downloadAndSharePdf,
   PDF_GENERATE_FAILED_MESSAGE,
 } from '../../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
-import { navigateBack } from '../../../utils/navigationBack';
+import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
+
+const Tone = {
+  page: '#F5FEFD',
+  ink: '#102B24',
+  meta: '#707875',
+  muted: '#64726F',
+  mint: '#ECF7F1',
+  rowMint: '#E7F6EF',
+  rowYellow: '#FFF3C9',
+  cream: '#F7F1E3',
+  gold: '#E09628',
+  goldDeep: '#D5891D',
+  mintLabel: '#1A4036',
+  mintValue: '#123C32',
+  pillYellow: '#F8E8A4',
+  pillYellowText: '#D88D34',
+  pillMint: '#E5F4EE',
+  pillMintText: '#156854',
+  pillOver: '#FDE7C8',
+  pillOverText: '#C47A16',
+  pillObese: '#F8DCD6',
+  pillObeseText: '#A84832',
+  historyGreen: '#1A4331',
+  historyGold: '#E8A33A',
+  historyOver: '#C4892A',
+  historyObese: '#A84832',
+  collapsedYellow: '#FFF3C9',
+  collapsedMint: '#E7F6EF',
+  underline: '#F26C2C',
+  chevron: '#1F3F32',
+} as const;
+
+const SUMMARY_GAP = 12;
+const YELLOW_HISTORY_METRICS = new Set(['BMI', 'Skeletal Muscle']);
+
+type HistoryRow = {
+  assessmentDate?: string;
+  height?: number | string;
+  weight?: number | string;
+  bmi?: number | string;
+  bMI?: number | string;
+  bodyFatPct?: number | string;
+  bodyFat?: number | string;
+  bodyFatPercentage?: number | string;
+  visceralFat?: number | string;
+  skeletalMusclePct?: number | string;
+  skeletalMuscle?: number | string;
+  bodyAge?: number | string;
+  restingMetabolism?: number | string;
+  metrics?: unknown;
+  bodyMetrics?: unknown;
+  composition?: unknown;
+  bodyComposition?: unknown;
+  measurement?: unknown;
+  details?: unknown;
+};
+
+type SummaryTile = { label: string; value: string; unit?: string };
+
+function positiveNumber(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function formatDecimal(value: number): string {
+  return value.toFixed(1);
+}
+
+function formatWhole(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function genderLabel(gender?: string): string | null {
+  const value = gender?.trim();
+  if (!value) return null;
+  const key = value.toLowerCase();
+  if (key === 'm' || key === 'male') return 'Male';
+  if (key === 'f' || key === 'female') return 'Female';
+  return value;
+}
+
+function profileMeta(age?: number, gender?: string, place?: string): string | null {
+  const parts: string[] = [];
+  if (typeof age === 'number' && Number.isFinite(age) && age > 0) parts.push(`${age} yrs`);
+  const genderText = genderLabel(gender);
+  if (genderText) parts.push(genderText);
+  const location = place?.trim();
+  if (location) parts.push(location);
+  return parts.length > 0 ? parts.join(' - ') : null;
+}
+
+function gaugePillTone(label: string): { backgroundColor: string; color: string } {
+  if (label === 'Normal') {
+    return { backgroundColor: Tone.pillYellow, color: Tone.pillYellowText };
+  }
+  if (label === 'Overweight') {
+    return { backgroundColor: Tone.pillOver, color: Tone.pillOverText };
+  }
+  if (label === 'Obese') {
+    return { backgroundColor: Tone.pillObese, color: Tone.pillObeseText };
+  }
+  return { backgroundColor: Tone.pillMint, color: Tone.pillMintText };
+}
+
+function historyPillColors(
+  label: string,
+  normalGold: boolean,
+): { backgroundColor: string; color: string } {
+  if (label === 'Normal' && normalGold) {
+    return { backgroundColor: Tone.historyGold, color: Colors.white };
+  }
+  if (label === 'Overweight') {
+    return { backgroundColor: Tone.historyOver, color: Colors.white };
+  }
+  if (label === 'Obese') {
+    return { backgroundColor: Tone.historyObese, color: Colors.white };
+  }
+  return { backgroundColor: Tone.historyGreen, color: Colors.white };
+}
+
+function collapsedSurface(
+  index: number,
+  categoryLabel?: string,
+): { backgroundColor: string; normalGold: boolean } {
+  if (categoryLabel === 'Underweight') {
+    return { backgroundColor: Tone.collapsedMint, normalGold: false };
+  }
+  const normalGold = index % 2 === 0 && categoryLabel === 'Normal';
+  return {
+    backgroundColor: normalGold ? Tone.collapsedYellow : Tone.collapsedMint,
+    normalGold,
+  };
+}
+
+function isSameAsCurrent(row: HistoryRow, current?: HistoryRow) {
+  if (!current) return false;
+  const left = readBodyMeasurement(row);
+  const right = readBodyMeasurement(current);
+  const sameDate = (left.assessmentDate || '') === (right.assessmentDate || '');
+  const sameBmi = resolveDisplayBmi(left) === resolveDisplayBmi(right);
+  const sameWeight = (left.weight ?? null) === (right.weight ?? null);
+  const sameHeight = (left.height ?? null) === (right.height ?? null);
+  return sameDate && sameBmi && sameWeight && sameHeight;
+}
+
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <View style={styles.sectionHead}>
+      <Text style={styles.sectionTitle}>{children}</Text>
+      <View style={styles.sectionUnderline} />
+    </View>
+  );
+}
+
+function BmiSummaryGauge({
+  width,
+  bmi,
+  categoryLabel,
+}: {
+  width: number;
+  bmi: number;
+  categoryLabel: string | null;
+}) {
+  const arcHeight = width / BMI_GAUGE_ARC_ASPECT;
+  const valueSize = Math.min(40, Math.max(26, Math.round(width * 0.16)));
+  const pillTone = categoryLabel ? gaugePillTone(categoryLabel) : null;
+
+  return (
+    <View
+      style={[styles.gauge, { width }]}
+      accessibilityRole="image"
+      accessibilityLabel={
+        categoryLabel ? `${formatDecimal(bmi)} BMI, ${categoryLabel}` : `${formatDecimal(bmi)} BMI`
+      }
+    >
+      <View style={[styles.arcBox, { width, height: arcHeight }]}>
+        <Image
+          source={BrandImages.bmiGaugeArc}
+          style={{ width, height: arcHeight }}
+          resizeMode="contain"
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+        <View
+          style={[styles.gaugeReadout, { bottom: Math.round(arcHeight * 0.02) }]}
+          pointerEvents="none"
+        >
+          <Text
+            style={[
+              styles.gaugeValue,
+              { fontSize: valueSize, lineHeight: Math.round(valueSize * 1.12) },
+            ]}
+            numberOfLines={1}
+          >
+            {formatDecimal(bmi)}
+          </Text>
+          <Text style={styles.gaugeCaption}>BMI</Text>
+        </View>
+      </View>
+      {categoryLabel && pillTone ? (
+        <View style={[styles.gaugePill, { backgroundColor: pillTone.backgroundColor }]}>
+          <Text style={[styles.gaugePillText, { color: pillTone.color }]}>{categoryLabel}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function HistoryCard({
+  row,
+  index,
+  expanded,
+  onToggle,
+}: {
+  row: HistoryRow;
+  index: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const reading = readBodyMeasurement(row);
+  const bmi = resolveDisplayBmi(reading);
+  const category = getBmiCategory(bmi);
+  const metrics = historyMetricRows(row);
+  const surface = collapsedSurface(index, category?.label);
+  const date = reading.assessmentDate?.trim();
+  const dateGold = !expanded && surface.normalGold;
+  const pill =
+    bmi != null && category
+      ? historyPillColors(category.label, !expanded && surface.normalGold)
+      : null;
+
+  return (
+    <View
+      style={[
+        expanded ? styles.historyCardOpen : styles.historyCardClosed,
+        { backgroundColor: expanded ? Colors.white : surface.backgroundColor },
+      ]}
+    >
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${date || 'Measurement'}${
+          bmi != null ? `, BMI ${formatDecimal(bmi)}` : ''
+        }${category ? `, ${category.label}` : ''}`}
+        style={({ pressed }) => [styles.historyHead, pressed && styles.historyHeadPressed]}
+      >
+        {date ? (
+          <Text style={[styles.historyDate, dateGold && styles.historyDateGold]}>{date}</Text>
+        ) : null}
+        {pill && bmi != null && category ? (
+          <View style={[styles.historyPill, { backgroundColor: pill.backgroundColor }]}>
+            <Text style={[styles.historyPillText, { color: pill.color }]} numberOfLines={1}>
+              {formatDecimal(bmi)} {category.label}
+            </Text>
+          </View>
+        ) : null}
+        <View style={styles.historySpacer} />
+        {expanded ? null : <Ionicons name="chevron-down" size={IconSize.md} color={Tone.chevron} />}
+      </Pressable>
+      {expanded && metrics.length > 0 ? (
+        <View style={styles.historyRows}>
+          {metrics.map(metric => {
+            const yellow = YELLOW_HISTORY_METRICS.has(metric.label);
+            return (
+              <View
+                key={metric.label}
+                style={[
+                  styles.historyMetric,
+                  yellow ? styles.historyMetricYellow : styles.historyMetricMint,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.historyMetricLabel,
+                    yellow ? styles.historyMetricLabelGold : styles.historyMetricLabelMint,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {metric.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.historyMetricValue,
+                    yellow ? styles.historyMetricValueGold : styles.historyMetricValueMint,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {metric.value}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 export default function ClientBmiReportScreen({
   navigation,
@@ -44,6 +355,8 @@ export default function ClientBmiReportScreen({
   const returnTo = route.params?.returnTo;
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
   const [preparingPdf, setPreparingPdf] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState(0);
+  const { width: screenWidth } = useWindowDimensions();
 
   const reportQuery = useQuery({
     queryKey: queryKeys.bmiReport(ids.clientCode, ids.assessmentCode),
@@ -53,8 +366,10 @@ export default function ClientBmiReportScreen({
   const refreshControl = useRefreshControl(reportQuery);
   const report = reportQuery.data;
 
-  const errorMessage =
-    reportQuery.isError && !report
+  const missingClient = !ids.clientCode;
+  const errorMessage = missingClient
+    ? 'Client information is missing. Go back and open this report from the client profile.'
+    : reportQuery.isError && !report
       ? getErrorMessage(reportQuery.error, 'Could not load BMI report.')
       : null;
 
@@ -64,25 +379,49 @@ export default function ClientBmiReportScreen({
   const needsToLose = showWeightDelta && weightDelta > 0;
   const history = report?.history ?? [];
   const current = report?.current;
-  const currentBmi = resolveDisplayBmi(current);
-  const bodyFatPct =
-    typeof current?.bodyFatPct === 'number' && current.bodyFatPct > 0 ? current.bodyFatPct : null;
-  const visceralFat =
-    typeof current?.visceralFat === 'number' && current.visceralFat > 0
-      ? current.visceralFat
-      : null;
-  const skeletalMusclePct =
-    typeof current?.skeletalMusclePct === 'number' && current.skeletalMusclePct > 0
-      ? current.skeletalMusclePct
-      : null;
-  const restingMetabolism =
-    typeof current?.restingMetabolism === 'number' && current.restingMetabolism > 0
-      ? current.restingMetabolism
-      : null;
-  const bodyAge =
-    typeof current?.bodyAge === 'number' && current.bodyAge > 0 ? current.bodyAge : null;
+  const currentReading = readBodyMeasurement(current);
+  const currentBmi = resolveDisplayBmi(currentReading);
+  const bodyFatPct = positiveNumber(currentReading.bodyFatPct);
+  const visceralFat = positiveNumber(currentReading.visceralFat);
+  const skeletalMusclePct = positiveNumber(currentReading.skeletalMusclePct);
+  const restingMetabolism = positiveNumber(currentReading.restingMetabolism);
+  const bodyAge = positiveNumber(currentReading.bodyAge);
+  const bmiCategory = getBmiCategory(currentBmi);
+  const historyRows = history.filter(row => !isSameAsCurrent(row, current));
+  const clientName = (report?.client?.clientName || client?.name || '').trim();
+  const metaLine = report
+    ? profileMeta(report.client?.age ?? client?.age, report.client?.gender, report.client?.location)
+    : null;
+  const assessed = (currentReading.assessmentDate || report?.reportDate || '').trim();
+  const columnWidth = screenWidth - ScreenPad.horizontal * 2;
+  const gaugeWidth = Math.min(
+    210,
+    Math.max(132, Math.round((columnWidth - SUMMARY_GAP) * (bodyFatPct != null ? 0.5 : 0.58))),
+  );
+
+  const summaryTiles: SummaryTile[] = [];
+  if (visceralFat != null) {
+    summaryTiles.push({ label: 'Visceral Fat', value: formatWhole(visceralFat) });
+  }
+  if (skeletalMusclePct != null) {
+    summaryTiles.push({
+      label: 'Skeletal Muscle%',
+      value: `${formatDecimal(skeletalMusclePct)}%`,
+    });
+  }
+  if (restingMetabolism != null) {
+    summaryTiles.push({
+      label: 'Resting Metabolism',
+      value: formatWhole(restingMetabolism),
+      unit: 'kcal',
+    });
+  }
+  if (bodyAge != null) {
+    summaryTiles.push({ label: 'Body Age', value: `${formatWhole(bodyAge)} yrs` });
+  }
 
   const sharePdf = async () => {
+    if (preparingPdf) return;
     const coachCode = getCurrentCoachCode();
     if (!coachCode || !ids.clientCode) {
       Alert.alert('Cannot download PDF', 'Client information is missing.');
@@ -106,50 +445,18 @@ export default function ClientBmiReportScreen({
     }
   };
 
-  const pdfButton = (
-    <PdfDownloadShareButton
-      variant="headerOnDark"
-      onPress={sharePdf}
-      loading={preparingPdf}
-      disabled={!report}
-    />
-  );
-
-  const primaryStats = report
-    ? [
-        {
-          value: currentBmi != null ? currentBmi.toFixed(1) : '-',
-          label: 'Current BMI',
-          emphasize: true as const,
-          category: getBmiCategory(currentBmi),
-        },
-        { value: bodyFatPct != null ? `${bodyFatPct.toFixed(1)}%` : '-', label: 'Body Fat %' },
-        { value: visceralFat != null ? String(visceralFat) : '-', label: 'Visceral Fat' },
-        {
-          value: skeletalMusclePct != null ? `${skeletalMusclePct.toFixed(1)}%` : '-',
-          label: 'Skeletal Muscle %',
-        },
-        {
-          value: restingMetabolism != null ? `${restingMetabolism} kcal` : '-',
-          label: 'Resting Metabolism',
-        },
-        { value: bodyAge != null ? `${bodyAge} yrs` : '-', label: 'Body Age' },
-      ]
-    : [];
-  const historyRows = history.filter(row => !isSameAsCurrent(row, current));
-
   return (
     <View style={styles.container}>
       <WaveScreenHeader
         title="BMI Report"
+        titleIcon="people-outline"
         onBack={() => navigateBack(navigation, returnTo)}
-        rightExtra={pdfButton}
-        showHome={false}
+        onHome={() => navigateToDashboard(navigation)}
       />
 
       <ScrollView
         style={styles.body}
-        contentContainerStyle={[styles.bodyContent, { paddingBottom: Spacing.lg }]}
+        contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -163,8 +470,14 @@ export default function ClientBmiReportScreen({
           <ReloadState
             title="Couldn't load report"
             message={errorMessage}
-            onRetry={() => void reportQuery.refetch()}
+            onRetry={
+              missingClient
+                ? () => navigateBack(navigation, returnTo)
+                : () => void reportQuery.refetch()
+            }
+            retryLabel={missingClient ? 'Go back' : undefined}
             loading={reportQuery.isFetching}
+            showPullHint={!missingClient}
           />
         ) : !report ? (
           <View style={styles.stateCard}>
@@ -173,80 +486,104 @@ export default function ClientBmiReportScreen({
           </View>
         ) : (
           <>
-            <View style={styles.patientCard}>
-              <View style={styles.patientAvatar}>
-                <Ionicons name="person-outline" size={22} color={Colors.white} />
+            <View style={styles.profileCard}>
+              <ClientAvatar clientCode={client?.clientCode} size={64} style={styles.avatar} />
+              <View style={styles.profileCopy}>
+                {clientName ? (
+                  <Text style={styles.clientName} numberOfLines={2}>
+                    {clientName}
+                  </Text>
+                ) : null}
+                {metaLine ? (
+                  <Text style={styles.metaLine} numberOfLines={2}>
+                    {metaLine}
+                  </Text>
+                ) : null}
+                {assessed ? (
+                  <View style={styles.assessedRow}>
+                    <Text style={styles.assessedText} numberOfLines={1}>
+                      ASSESSED {assessed}
+                    </Text>
+                    <View style={styles.assessedDot} />
+                  </View>
+                ) : null}
               </View>
-              <View style={styles.patientCopy}>
-                <Text style={styles.patientName}>{report.client.clientName || client?.name}</Text>
-                <Text style={styles.patientMeta}>
-                  {report.client.age ?? '-'} yrs ·{' '}
-                  {report.client.gender === 'M'
-                    ? 'Male'
-                    : report.client.gender === 'F'
-                      ? 'Female'
-                      : '-'}
-                  {report.client.location ? ` · ${report.client.location}` : ''}
-                </Text>
-                <Text style={styles.patientDate}>
-                  Assessed {current?.assessmentDate || report.reportDate || '-'}
-                </Text>
-              </View>
+              <Image
+                source={BrandImages.clientProfileBody}
+                style={styles.bodyArt}
+                resizeMode="contain"
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+              />
             </View>
 
-            <Text style={styles.sectionTitle}>Summary</Text>
-            <View style={styles.statsGrid}>
-              {primaryStats.map(stat => {
-                const emphasize = 'emphasize' in stat && stat.emphasize;
-                const category = 'category' in stat ? stat.category : null;
-                return (
-                  <View key={stat.label} style={[styles.statCard, emphasize && styles.statCardBmi]}>
-                    {emphasize ? <Text style={styles.statBmiCaption}>BMI</Text> : null}
-                    <Text
-                      style={[styles.statValue, emphasize && styles.statValueBmi]}
-                      numberOfLines={2}
-                    >
-                      {stat.value}
-                    </Text>
-                    {emphasize && category ? (
-                      <View style={[styles.statCategoryBadge, { backgroundColor: category.bg }]}>
-                        <Text style={[styles.statCategoryText, { color: category.color }]}>
-                          {category.label}
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={[styles.statLabel, emphasize && styles.statLabelBmi]}>
-                        {stat.label}
+            <View style={styles.section}>
+              <SectionTitle>Summary</SectionTitle>
+              {currentBmi != null || bodyFatPct != null ? (
+                <View style={styles.summaryTop}>
+                  {currentBmi != null ? (
+                    <BmiSummaryGauge
+                      width={gaugeWidth}
+                      bmi={currentBmi}
+                      categoryLabel={bmiCategory?.label ?? null}
+                    />
+                  ) : null}
+                  {bodyFatPct != null ? (
+                    <View style={[styles.fatCard, currentBmi == null && styles.fatCardSolo]}>
+                      <Text style={styles.fatValue} numberOfLines={1}>
+                        {formatDecimal(bodyFatPct)}%
                       </Text>
-                    )}
-                  </View>
-                );
-              })}
+                      <Text style={styles.fatLabel}>Body Fat %</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+              {summaryTiles.length > 0 ? (
+                <View style={styles.tileRow}>
+                  {summaryTiles.map(tile => (
+                    <View key={tile.label} style={styles.tile}>
+                      <Text style={styles.tileLabel} numberOfLines={3}>
+                        {tile.label}
+                      </Text>
+                      <Text style={styles.tileValue} numberOfLines={2}>
+                        {tile.unit ? `${tile.value} ${tile.unit}` : tile.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {currentBmi == null && bodyFatPct == null && summaryTiles.length === 0 ? (
+                <View style={styles.emptyHistory}>
+                  <Text style={styles.noHistoryTitle}>No measurements yet</Text>
+                  <Text style={styles.noHistory}>
+                    Complete a checkup to see BMI and body composition here.
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             {showWeightDelta ? (
-              <View style={styles.deltaCard}>
-                <View style={styles.deltaIconWrap}>
+              <View style={styles.banner}>
+                <View style={styles.bannerIcon}>
                   <Ionicons
                     name={needsToLose ? 'trending-down' : 'trending-up'}
-                    size={18}
-                    color={Colors.accent}
+                    size={IconSize.lg}
+                    color={Colors.white}
                   />
                 </View>
-                <View style={styles.deltaCopy}>
-                  <Text style={styles.deltaValue}>
-                    {needsToLose ? '−' : '+'}
-                    {Math.abs(weightDelta).toFixed(1)} kg
+                <View style={styles.bannerCopy}>
+                  <Text style={styles.bannerValue} numberOfLines={1}>
+                    {needsToLose ? '−' : '+'} {Math.abs(weightDelta).toFixed(1)} Kg
                   </Text>
-                  <Text style={styles.deltaLabel}>
-                    {needsToLose ? 'To lose toward target' : 'To gain toward target'}
+                  <Text style={styles.bannerHint}>
+                    {needsToLose ? 'To lose towards target' : 'To gain towards target'}
                   </Text>
                 </View>
               </View>
             ) : null}
 
-            <Text style={styles.sectionTitle}>Measurement History</Text>
-            <View style={styles.historyList}>
+            <View style={styles.section}>
+              <SectionTitle>Measurement History</SectionTitle>
               {historyRows.length === 0 ? (
                 <View style={styles.emptyHistory}>
                   <Ionicons name="time-outline" size={22} color={Colors.textLight} />
@@ -256,22 +593,49 @@ export default function ClientBmiReportScreen({
                   </Text>
                 </View>
               ) : (
-                historyRows.map((row, i) => (
-                  <HistoryCard
-                    key={`${row.assessmentDate || 'row'}-${i}`}
-                    row={row}
-                    defaultExpanded={i === 0}
-                  />
-                ))
+                <View style={styles.historyList}>
+                  {historyRows.map((row, index) => (
+                    <HistoryCard
+                      key={`${row.assessmentDate || 'row'}-${index}`}
+                      row={row}
+                      index={index}
+                      expanded={expandedIndex === index}
+                      onToggle={() =>
+                        setExpandedIndex(currentIndex => (currentIndex === index ? -1 : index))
+                      }
+                    />
+                  ))}
+                </View>
               )}
             </View>
 
-            <PdfDownloadShareButton
-              variant="primary"
+            <TouchableOpacity
+              style={[styles.pdfBtn, preparingPdf && styles.pdfBtnBusy]}
               onPress={sharePdf}
-              loading={preparingPdf}
-              style={styles.pdfCta}
-            />
+              disabled={preparingPdf}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel={
+                preparingPdf
+                  ? 'Preparing PDF for download and share'
+                  : 'Download and share PDF report'
+              }
+            >
+              {preparingPdf ? (
+                <>
+                  <ActivityIndicator color={Colors.white} />
+                  <Text style={styles.pdfLabel}>Preparing PDF…</Text>
+                </>
+              ) : (
+                <>
+                  <View style={styles.pdfBalance} />
+                  <Text style={styles.pdfLabel}>Download & share Pdf</Text>
+                  <View style={styles.pdfArrow}>
+                    <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.brandCoach} />
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
@@ -279,246 +643,339 @@ export default function ClientBmiReportScreen({
   );
 }
 
-function metricValue(value: number | undefined, suffix = ''): string {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? `${value}${suffix}`
-    : '-';
-}
-
-function metricValue1(value: number | undefined, suffix = ''): string {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? `${value.toFixed(1)}${suffix}`
-    : '-';
-}
-
-type HistoryRow = {
-  assessmentDate?: string;
-  height?: number;
-  weight?: number;
-  bmi?: number;
-  bodyFatPct?: number;
-  visceralFat?: number;
-  skeletalMusclePct?: number;
-  bodyAge?: number;
-  restingMetabolism?: number;
-};
-
-function isSameAsCurrent(row: HistoryRow, current?: HistoryRow) {
-  if (!current) return false;
-  const sameDate = (row.assessmentDate || '') === (current.assessmentDate || '');
-  const sameBmi = resolveDisplayBmi(row) === resolveDisplayBmi(current);
-  const sameWeight = (row.weight ?? null) === (current.weight ?? null);
-  const sameHeight = (row.height ?? null) === (current.height ?? null);
-  return sameDate && sameBmi && sameWeight && sameHeight;
-}
-
-function HistoryCard({
-  row,
-  defaultExpanded = false,
-}: {
-  row: HistoryRow;
-  defaultExpanded?: boolean;
-}) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const bmi = resolveDisplayBmi(row);
-  const category = getBmiCategory(bmi);
-  const bmiLabel = bmi != null ? bmi.toFixed(1) : '-';
-  const detailMetrics = [
-    { label: 'BMI', value: bmiLabel, emphasize: true },
-    { label: 'Body Fat', value: metricValue1(row.bodyFatPct, '%'), emphasize: false },
-    { label: 'Visceral Fat', value: metricValue(row.visceralFat), emphasize: false },
-    { label: 'Skeletal Muscle', value: metricValue1(row.skeletalMusclePct, '%'), emphasize: false },
-    {
-      label: 'Resting Metabolism',
-      value: metricValue(row.restingMetabolism, ' kcal'),
-      emphasize: false,
-    },
-    { label: 'Body Age', value: metricValue(row.bodyAge, ' yrs'), emphasize: false },
-  ];
-  const metricRows = [
-    detailMetrics.slice(0, 2),
-    detailMetrics.slice(2, 4),
-    detailMetrics.slice(4, 6),
-  ];
-
-  return (
-    <View style={styles.historyCard}>
-      <Pressable
-        onPress={() => setExpanded(open => !open)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        accessibilityLabel={`${row.assessmentDate || 'Measurement'}, BMI ${bmiLabel}${
-          category ? `, ${category.label}` : ''
-        }`}
-        style={({ pressed }) => [styles.historySummary, pressed && styles.historySummaryPressed]}
-      >
-        <View style={styles.historySummaryMain}>
-          <Text style={styles.historyDate}>{row.assessmentDate || '-'}</Text>
-          <View
-            style={[
-              styles.historyBmiChip,
-              { backgroundColor: category?.bg ?? Colors.secondaryLight },
-            ]}
-          >
-            <Text style={[styles.historyBmiValue, { color: category?.color ?? Colors.secondary }]}>
-              {bmiLabel}
-            </Text>
-            {category ? (
-              <Text style={[styles.historyBmiCategory, { color: category.color }]}>
-                {category.label}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={Colors.textLight}
-        />
-      </Pressable>
-
-      {expanded ? (
-        <View style={styles.historyMetricsGrid}>
-          {metricRows.map((pair, rowIndex) => (
-            <View key={rowIndex} style={styles.historyMetricsRow}>
-              {pair.map(metric => (
-                <View
-                  key={metric.label}
-                  style={[
-                    styles.historyMetricCell,
-                    metric.emphasize && styles.historyMetricCellBmi,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.historyMetricLabel,
-                      metric.emphasize && styles.historyMetricLabelBmi,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {metric.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.historyMetricValue,
-                      metric.emphasize && styles.historyMetricValueBmi,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {metric.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Tone.page },
   body: { flex: 1 },
-  bodyContent: { padding: 20 },
+  bodyContent: {
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    paddingHorizontal: ScreenPad.horizontal,
+  },
   stateCard: {
     alignItems: 'center',
     gap: 10,
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     padding: 28,
-    marginTop: 24,
+    marginTop: Spacing.lg,
     ...Shadow.sm,
   },
-  stateMessage: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textLight, textAlign: 'center', lineHeight: 18 },
-  patientCard: {
+  stateMessage: {
+    fontSize: 13,
+    fontFamily: bodyFont.regular,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    padding: 16,
-    marginBottom: 20,
+    paddingVertical: Spacing.sm,
+    paddingLeft: Spacing.sm,
+    paddingRight: Spacing.xxs,
+    gap: Spacing.xs,
+    overflow: 'hidden',
     ...Shadow.md,
   },
-  patientAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  patientCopy: { flex: 1 },
-  patientName: { fontSize: 17, fontFamily: headingFont.extraBold, color: Colors.textDark },
-  patientMeta: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 3 },
-  patientDate: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 6 },
-  sectionTitle: {
-    fontSize: 15,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-    marginBottom: 10,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 12,
-  },
-  statCard: {
-    width: '48%',
-    flexGrow: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    ...Shadow.sm,
-  },
-  statCardBmi: {
-    backgroundColor: Colors.secondary,
-    ...Shadow.md,
-    justifyContent: 'center',
-  },
-  statBmiCaption: {
-    color: Colors.onDarkCaption,
-    fontSize: 11,
-    fontFamily: FontFamily.semibold,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 16,
+  avatar: { marginRight: 0 },
+  profileCopy: { flex: 1, minWidth: 0, gap: 2 },
+  clientName: {
     fontFamily: headingFont.extraBold,
-    color: Colors.secondary,
+    fontSize: 18,
+    lineHeight: 24,
+    color: Tone.ink,
+  },
+  metaLine: {
+    fontFamily: bodyFont.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Tone.meta,
+  },
+  assessedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  assessedText: {
+    flexShrink: 1,
+    fontFamily: bodyFont.semibold,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.4,
+    color: Tone.meta,
+  },
+  assessedDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.secondary,
+  },
+  bodyArt: {
+    width: 104,
+    height: 112,
+    flexShrink: 0,
+  },
+  section: { marginTop: Spacing.lg },
+  sectionHead: { alignItems: 'flex-start', marginBottom: Spacing.sm },
+  sectionTitle: {
+    ...Typography.title,
+    color: Tone.ink,
+  },
+  sectionUnderline: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Tone.underline,
+    marginTop: 2,
+  },
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: SUMMARY_GAP,
+  },
+  gauge: { alignItems: 'center' },
+  arcBox: { position: 'relative' },
+  gaugeReadout: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  gaugeValue: {
+    fontFamily: headingFont.extraBold,
+    color: Tone.ink,
     textAlign: 'center',
   },
-  statValueBmi: {
-    fontSize: 28,
-    fontFamily: headingFont.extraBold,
-    color: Colors.white,
+  gaugeCaption: {
+    fontFamily: bodyFont.medium,
+    fontSize: 13,
+    lineHeight: 16,
+    color: Tone.muted,
+    marginTop: -1,
   },
-  statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 4, textAlign: 'center' },
-  statLabelBmi: { color: Colors.onDarkCaption },
-  statCategoryBadge: {
-    alignSelf: 'center',
+  gaugePill: {
+    marginTop: 6,
+    alignSelf: 'stretch',
+    height: 40,
     borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statCategoryText: { fontSize: 11, fontFamily: FontFamily.bold },
-  deltaCard: {
+  gaugePillText: {
+    fontFamily: bodyFont.semibold,
+    fontSize: 15,
+    lineHeight: 20,
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  fatCard: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: Tone.mint,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  fatCardSolo: { flex: 0, width: '48%' },
+  fatValue: {
+    ...Typography.metric,
+    color: Tone.ink,
+    textAlign: 'center',
+  },
+  fatLabel: {
+    marginTop: 4,
+    fontFamily: bodyFont.regular,
+    fontSize: 14,
+    lineHeight: 18,
+    color: '#6C7A77',
+    textAlign: 'center',
+  },
+  tileRow: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'stretch',
+    gap: 6,
+    marginTop: SUMMARY_GAP,
+  },
+  tile: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    minHeight: 84,
+    backgroundColor: Tone.mint,
+    borderRadius: 18,
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileLabel: {
+    width: '100%',
+    fontFamily: bodyFont.regular,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Tone.muted,
+    textAlign: 'center',
+  },
+  tileValue: {
+    ...Typography.tileValue,
+    width: '100%',
+    marginTop: 6,
+    color: Tone.ink,
+    textAlign: 'center',
+  },
+  banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.accentLight,
-    borderRadius: Radius.md,
-    padding: 14,
-    marginBottom: 20,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    backgroundColor: Tone.cream,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
-  deltaIconWrap: {
+  bannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.accentInk,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerCopy: { flex: 1, minWidth: 0 },
+  bannerValue: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 20,
+    lineHeight: 26,
+    color: Tone.ink,
+  },
+  bannerHint: {
+    marginTop: 2,
+    fontFamily: bodyFont.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Tone.meta,
+  },
+  historyList: { gap: SUMMARY_GAP },
+  historyCardOpen: {
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 12,
+    ...Shadow.sm,
+  },
+  historyCardClosed: {
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  historyHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    minHeight: 36,
+  },
+  historyHeadPressed: { opacity: 0.72 },
+  historyDate: {
+    flexShrink: 1,
+    fontFamily: headingFont.bold,
+    fontSize: 16,
+    lineHeight: 20,
+    color: Tone.ink,
+  },
+  historyDateGold: { color: Tone.gold },
+  historyPill: {
+    flexShrink: 1,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  historyPillText: {
+    fontFamily: bodyFont.semibold,
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  historySpacer: { flex: 1, minWidth: Spacing.xxs },
+  historyRows: { marginTop: 10, gap: 5 },
+  historyMetric: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: Spacing.sm,
+  },
+  historyMetricYellow: { backgroundColor: Tone.rowYellow },
+  historyMetricMint: { backgroundColor: Tone.rowMint },
+  historyMetricLabel: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: bodyFont.medium,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  historyMetricLabelGold: { color: Tone.goldDeep },
+  historyMetricLabelMint: { color: Tone.mintLabel },
+  historyMetricValue: {
+    flexShrink: 1,
+    fontFamily: headingFont.bold,
+    fontSize: 15,
+    lineHeight: 19,
+    textAlign: 'right',
+  },
+  historyMetricValueGold: { color: Tone.gold },
+  historyMetricValueMint: { color: Tone.mintValue },
+  emptyHistory: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    gap: 6,
+  },
+  noHistoryTitle: {
+    fontSize: 13,
+    fontFamily: headingFont.bold,
+    color: Tone.ink,
+    marginTop: 4,
+  },
+  noHistory: {
+    fontSize: 12,
+    fontFamily: bodyFont.regular,
+    color: Colors.textLight,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  pdfBtn: {
+    marginTop: Spacing.lg,
+    minHeight: 54,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.brandCoach,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+    gap: Spacing.xs,
+    ...Shadow.md,
+  },
+  pdfBtnBusy: { opacity: 0.85 },
+  pdfBalance: { width: 36 },
+  pdfLabel: {
+    flex: 1,
+    textAlign: 'center',
+    color: Colors.white,
+    fontFamily: bodyFont.bold,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  pdfArrow: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -526,93 +983,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deltaCopy: { flex: 1 },
-  deltaValue: { fontSize: 18, fontFamily: headingFont.extraBold, color: Colors.textDark },
-  deltaLabel: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 2 },
-  historyList: { gap: Spacing.xs },
-  historyCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 10,
-    ...Shadow.sm,
-  },
-  historySummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  historySummaryPressed: { opacity: 0.72 },
-  historySummaryMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flexWrap: 'wrap',
-  },
-  historyDate: {
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-  },
-  historyBmiChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  historyBmiValue: { fontSize: 13, fontFamily: FontFamily.extraBold },
-  historyBmiCategory: { fontSize: 11, fontFamily: FontFamily.semibold },
-  historyMetricsGrid: {
-    gap: Spacing.xs,
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-  },
-  historyMetricsRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  historyMetricCell: {
-    flex: 1,
-    minHeight: 40,
-    justifyContent: 'center',
-    backgroundColor: Colors.background,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 5,
-  },
-  historyMetricCellBmi: {
-    backgroundColor: Colors.secondaryLight,
-  },
-  historyMetricLabel: {
-    fontSize: 9,
-    fontFamily: FontFamily.medium,
-    color: Colors.textLight,
-    marginBottom: 1,
-  },
-  historyMetricLabelBmi: { color: Colors.secondaryDark },
-  historyMetricValue: {
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-  },
-  historyMetricValueBmi: { color: Colors.secondary },
-  emptyHistory: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    gap: 6,
-  },
-  noHistoryTitle: {
-    fontSize: 13,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-    marginTop: 4,
-  },
-  noHistory: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, textAlign: 'center', lineHeight: 17 },
-  pdfCta: { marginTop: Spacing.xs },
 });

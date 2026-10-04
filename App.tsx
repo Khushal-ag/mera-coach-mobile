@@ -46,17 +46,20 @@ const linking: LinkingOptions<RootStackParamList> = {
           Packages: {
             screens: {
               PackagesHome: 'packages',
+              EditPackages: 'edit-packages',
             },
           },
           Events: {
             screens: {
               EventsHome: 'events',
+              AddEvent: 'add-event',
             },
           },
           Profile: {
             screens: {
               ProfileHome: 'profile',
               EditProfile: 'edit-profile',
+              GalleryHome: 'gallery',
               EditGallery: 'edit-gallery',
               ChangePassword: 'change-password',
               ChangeMpin: 'change-mpin',

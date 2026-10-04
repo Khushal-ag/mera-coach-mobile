@@ -1,41 +1,47 @@
 import type { TextStyle, ViewStyle } from 'react-native';
-import { Colors, FontFamily, Radius, Shadow, Spacing, buttonStyles, headingFont } from './theme';
+import { Colors, FontFamily, Radius, ScreenPad, Spacing, headingFont } from './theme';
 
-// Plain objects, not StyleSheet.create, so consumers can spread these into their own.
+export const WIZARD_CANVAS = '#F3FAF7';
+export const WIZARD_FIELD_MINT = '#E7F6EC';
+export const WIZARD_UNDERLINE = '#F08A2C';
+
 export const wizardShellStyles = {
-  container: { flex: 1, backgroundColor: Colors.background },
-  body: { flex: 1 },
+  container: { flex: 1, backgroundColor: WIZARD_CANVAS },
+  body: { flex: 1, backgroundColor: WIZARD_CANVAS },
   bodyContent: {
-    padding: Spacing.lg,
-    // Bottom pad comes from KeyboardSafeScroll + StickyFooter; keep content tight.
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  stepBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.secondary,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+  stepHead: {
     marginBottom: Spacing.md,
-    ...Shadow.sm,
   },
-  stepBannerText: { flex: 1 },
-  stepBannerTitle: {
-    color: Colors.white,
-    fontSize: 15,
+  stepTitle: {
     fontFamily: headingFont.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: Colors.textDark,
   },
-  stepBannerSubtitle: {
-    color: Colors.onDarkMuted,
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    marginTop: 2,
+  stepUnderline: {
+    width: 36,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: WIZARD_UNDERLINE,
+    marginTop: 4,
   },
-  nextBtn: {
+  stepSubtitle: {
     marginTop: Spacing.xs,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.textLight,
   },
-  nextText: buttonStyles.primaryText,
+  footer: {
+    backgroundColor: WIZARD_CANVAS,
+    borderTopWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
 } satisfies Record<string, ViewStyle | TextStyle>;
 
 /** Shared choice pills for wizard gender / unit toggles. */
@@ -49,13 +55,13 @@ export const wizardPillStyles = {
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  pillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  pillActive: { backgroundColor: WIZARD_FIELD_MINT, borderColor: Colors.accentInk },
   pillText: {
     fontSize: 13,
     color: Colors.textLight,
     fontFamily: FontFamily.semibold,
   },
-  pillActiveText: { color: Colors.white },
+  pillActiveText: { color: Colors.accentInk },
   unitPill: {
     borderRadius: Radius.pill,
     paddingHorizontal: 10,
@@ -64,11 +70,11 @@ export const wizardPillStyles = {
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  unitPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  unitPillActive: { backgroundColor: WIZARD_FIELD_MINT, borderColor: Colors.accentInk },
   unitPillText: {
     fontSize: 12,
     color: Colors.textLight,
     fontFamily: FontFamily.semibold,
   },
-  unitPillTextActive: { color: Colors.white },
+  unitPillTextActive: { color: Colors.accentInk },
 } satisfies Record<string, ViewStyle | TextStyle>;

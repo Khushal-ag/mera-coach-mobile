@@ -214,9 +214,7 @@ export default function ReCheckupListScreen({
                 <View style={styles.summaryIcon}>
                   <Ionicons name="people" size={IconSize.sm} color={Colors.white} />
                 </View>
-                <Text style={styles.summaryText}>
-                  {dueClients.length} Due for re-checkup
-                </Text>
+                <Text style={styles.summaryText}>{dueClients.length} Due for re-checkup</Text>
               </View>
             ) : null}
             <FlatList

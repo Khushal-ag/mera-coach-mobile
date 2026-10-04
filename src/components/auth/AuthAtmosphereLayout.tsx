@@ -10,11 +10,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import {
-  AUTH_BG_ASPECT,
-  AUTH_PHOTO_BAND,
-  BrandImages,
-} from '../../constants/images';
+import { AUTH_BG_ASPECT, AUTH_PHOTO_BAND, BrandImages } from '../../constants/images';
 
 type AuthAtmosphereLayoutProps = {
   children: ReactNode;
@@ -82,9 +78,7 @@ export default function AuthAtmosphereLayout({
         enabled={keyboardOpen}
         behavior={keyboardOpen && Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View
-          style={[styles.content, { paddingBottom: photoClearance }, contentContainerStyle]}
-        >
+        <View style={[styles.content, { paddingBottom: photoClearance }, contentContainerStyle]}>
           {children}
         </View>
       </KeyboardAvoidingView>

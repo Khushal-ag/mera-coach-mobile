@@ -1,20 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  type ViewStyle,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Colors,
-  FontFamily,
-  IconSize,
-  PressOpacity,
-  Radius,
-  Spacing,
-} from '../../constants/theme';
+import { Colors, FontFamily, IconSize, PressOpacity, Radius, Spacing } from '../../constants/theme';
 import { MPIN_LENGTH } from '../../utils/mpinCrypto';
 
 const KEY_ROWS = [

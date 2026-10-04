@@ -7,6 +7,7 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,7 +45,6 @@ import { navigateToDashboard } from '../../utils/navigationBack';
 interface MenuItem {
   icon: IoniconName;
   label: string;
-  color: string;
   route?: keyof ProfileStackParamList;
   /** Cross-tab destinations (Packages / Events tabs). */
   tab?: 'Packages' | 'Events';
@@ -55,19 +55,16 @@ const publicProfileItems: MenuItem[] = [
   {
     icon: 'images-outline',
     label: 'Photo gallery',
-    color: Colors.secondary,
-    route: 'EditGallery',
+    route: 'GalleryHome',
   },
   {
     icon: 'pricetags-outline',
     label: 'Packages',
-    color: Colors.accent,
     tab: 'Packages',
   },
   {
     icon: 'calendar-outline',
     label: 'Events',
-    color: Colors.primary,
     tab: 'Events',
   },
 ];
@@ -77,38 +74,33 @@ const publicProfileItems: MenuItem[] = [
 // static-content screens (see LegalScreen). "Privacy & Security" as a separate settings hub
 // isn't listed since its only concrete sub-feature for this app is Change Password.
 const settingsItems: MenuItem[] = [
-  { icon: 'person-outline', label: 'Edit Profile', color: Colors.secondary, route: 'EditProfile' },
+  { icon: 'person-outline', label: 'Edit Profile', route: 'EditProfile' },
   {
     icon: 'key-outline',
     label: 'Change Password',
-    color: Colors.accent,
     route: 'ChangePassword',
   },
   {
     icon: 'keypad-outline',
     label: 'MPIN',
-    color: Colors.secondary,
     route: 'ChangeMpin',
   },
   {
     icon: 'help-circle-outline',
     label: 'Help & Support',
-    color: Colors.primary,
     action: 'support',
   },
   {
     icon: 'shield-checkmark-outline',
     label: 'Privacy & Terms',
-    color: Colors.secondary,
     route: 'Legal',
   },
   {
     icon: 'trash-outline',
     label: 'Delete Account',
-    color: Colors.destructiveOrange,
     action: 'deleteAccount',
   },
-  { icon: 'log-out-outline', label: 'Logout', color: Colors.destructive, action: 'logout' },
+  { icon: 'log-out-outline', label: 'Logout', action: 'logout' },
 ];
 
 function MenuRow({
@@ -121,21 +113,25 @@ function MenuRow({
   onPress: () => void;
 }) {
   const isLogout = item.action === 'logout';
+  const isDelete = item.action === 'deleteAccount';
+  const iconColor = isLogout
+    ? Colors.destructive
+    : isDelete
+      ? Colors.destructiveOrange
+      : Colors.accentInk;
   return (
     <TouchableOpacity
-      style={[styles.menuItem, isLast && styles.menuItemLast]}
+      style={[styles.menuItem, !isLast && styles.menuItemBorder]}
       accessibilityRole="button"
       accessibilityLabel={item.label}
       onPress={onPress}
       activeOpacity={PressOpacity.default}
     >
-      <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
-        <Ionicons name={item.icon} size={18} color={item.color} />
-      </View>
-      <Text style={[styles.menuLabel, isLogout && { color: Colors.destructive }]}>
-        {item.label}
-      </Text>
-      {!isLogout ? <Ionicons name="chevron-forward-outline" size={16} color={Colors.border} /> : null}
+      <Ionicons name={item.icon} size={20} color={iconColor} />
+      <Text style={[styles.menuLabel, isLogout && styles.menuLabelDanger]}>{item.label}</Text>
+      {!isLogout ? (
+        <Ionicons name="chevron-forward-outline" size={18} color={Colors.accentInk} />
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -210,7 +206,12 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       case 'logout':
         // AppNavigator's useAuthState reacts to the session store and swaps back to
         // the public screen tree on its own — no navigation call needed here.
-        await logoutLocal();
+        try {
+          await logoutLocal();
+        } catch (err) {
+          Alert.alert('Could not log out', getErrorMessage(err, 'Please try again.'));
+        }
+        return;
     }
   };
 
@@ -218,7 +219,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     <View style={styles.container}>
       <WaveScreenHeader
         title="Profile"
-        onBack={() => navigateToDashboard(navigation)}
+        showBack={false}
         onHome={() => navigateToDashboard(navigation)}
       />
 
@@ -247,7 +248,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
               <Text style={styles.role}>{profile?.category || ''}</Text>
               {profile?.city ? (
                 <Text style={styles.location}>
-                  <Ionicons name="location-outline" size={12} color={Colors.textLight} />{' '}
+                  <Ionicons name="location-outline" size={12} color={Colors.accentInk} />{' '}
                   {profile.city}
                 </Text>
               ) : null}
@@ -285,24 +286,35 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Public profile</Text>
+          <View style={styles.underline} />
           <Text style={styles.sectionHint}>
             Photos, packages, and events show on your public page for prospective clients.
           </Text>
-          {publicProfileItems.map(item => (
-            <MenuRow key={item.label} item={item} onPress={() => void handleMenuPress(item)} />
-          ))}
+          <View style={styles.menuCard}>
+            {publicProfileItems.map((item, i) => (
+              <MenuRow
+                key={item.label}
+                item={item}
+                isLast={i === publicProfileItems.length - 1}
+                onPress={() => void handleMenuPress(item)}
+              />
+            ))}
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          {settingsItems.map((item, i) => (
-            <MenuRow
-              key={item.label}
-              item={item}
-              isLast={i === settingsItems.length - 1}
-              onPress={() => void handleMenuPress(item)}
-            />
-          ))}
+          <View style={styles.underline} />
+          <View style={styles.menuCard}>
+            {settingsItems.map((item, i) => (
+              <MenuRow
+                key={item.label}
+                item={item}
+                isLast={i === settingsItems.length - 1}
+                onPress={() => void handleMenuPress(item)}
+              />
+            ))}
+          </View>
         </View>
 
         <View style={styles.brandLockup}>
@@ -313,9 +325,12 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
   );
 }
 
+const CANVAS = '#F3FAF7';
+const UNDERLINE = '#F08A2C';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { flex: 1 },
+  container: { flex: 1, backgroundColor: CANVAS },
+  scroll: { flex: 1, backgroundColor: CANVAS },
   profileCard: {
     backgroundColor: Colors.white,
     marginHorizontal: ScreenPad.horizontal,
@@ -355,37 +370,45 @@ const styles = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
   statValue: { fontSize: 20, fontFamily: headingFont.extraBold, color: Colors.textDark },
   statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 2 },
-  section: { marginHorizontal: ScreenPad.horizontal, marginTop: Spacing.md, marginBottom: Spacing.sm },
+  section: {
+    marginHorizontal: ScreenPad.horizontal,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
-    ...Typography.section,
-    marginBottom: 6,
+    ...Typography.title,
+  },
+  underline: {
+    width: 36,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: UNDERLINE,
+    marginTop: 4,
+    marginBottom: Spacing.sm,
   },
   sectionHint: {
-    ...Typography.caption,
-    marginBottom: 10,
+    ...Typography.body,
+    color: Colors.textLight,
+    marginBottom: Spacing.sm,
+  },
+  menuCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    paddingHorizontal: Spacing.md,
+    ...Shadow.sm,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.sm + 2,
-    marginBottom: Spacing.xs,
+    gap: Spacing.sm,
     minHeight: 56,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
   },
-  menuItemLast: { marginTop: 8 },
-  menuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  menuItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
   },
-  menuLabel: { flex: 1, fontSize: 14, fontFamily: FontFamily.semibold, color: Colors.textDark },
+  menuLabel: { flex: 1, ...Typography.bodyStrong },
+  menuLabelDanger: { color: Colors.destructive },
   brandLockup: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
   version: {
     textAlign: 'center',

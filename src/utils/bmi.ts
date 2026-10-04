@@ -37,6 +37,234 @@ export function resolveDisplayBmi(
   return getBmi(input.height ?? '', input.weight ?? '');
 }
 
+export interface BmiMeasurementReading {
+  assessmentDate?: string;
+  height?: number;
+  weight?: number;
+  bmi?: number;
+  bodyFatPct?: number;
+  visceralFat?: number;
+  skeletalMusclePct?: number;
+  restingMetabolism?: number;
+  bodyAge?: number;
+}
+
+const BODY_FAT_KEYS = ['bodyfatpct', 'bodyfatpercentage', 'bodyfatpercent', 'bodyfat'];
+const VISCERAL_KEYS = ['visceralfat', 'visceralfatlevel', 'visceralfatindex'];
+const MUSCLE_KEYS = [
+  'skeletalmusclepct',
+  'skeletalmusclepercentage',
+  'skeletalmusclepercent',
+  'skeletalmuscle',
+];
+const METABOLISM_KEYS = ['restingmetabolism', 'restingmetabolismkcal', 'bmr', 'rmr'];
+const BODY_AGE_KEYS = ['bodyage', 'bodyageyears', 'bodyageyrs'];
+const DATE_KEYS = ['assessmentdate', 'checkupdate', 'measuredon', 'date'];
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function normalizeKey(key: string): string {
+  return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+}
+
+function parseJsonContainer(value: string): unknown {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return undefined;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function positiveMetric(value: unknown, depth = 0): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+  if (typeof value === 'string') {
+    const match = value
+      .trim()
+      .replace(/,/g, '')
+      .match(/-?\d+(?:\.\d+)?/);
+    if (!match) return undefined;
+    const n = Number(match[0]);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+  if (depth >= 2 || !isPlainObject(value)) return undefined;
+  for (const key of ['value', 'val', 'amount', 'pct', 'percentage', 'percent', 'reading']) {
+    if (!(key in value)) continue;
+    const n = positiveMetric(value[key], depth + 1);
+    if (n != null) return n;
+  }
+  return undefined;
+}
+
+function labelToSlot(label: string): string | null {
+  const key = normalizeKey(label);
+  if (!key || key === 'age') return null;
+  if (key === 'bmi') return 'bmi';
+  if (key.includes('bodyfat') || key === 'fatpct' || key === 'fatpercentage') return 'bodyfat';
+  if (key.includes('visceral')) return 'visceralfat';
+  if (key.includes('skeletal') || key.includes('muscle')) return 'skeletalmuscle';
+  if (key.includes('metabol') || key === 'bmr' || key === 'rmr') return 'restingmetabolism';
+  if (key.includes('bodyage')) return 'bodyage';
+  return null;
+}
+
+function labeledMetrics(items: unknown[]): Record<string, unknown> | undefined {
+  const bag: Record<string, unknown> = {};
+  let found = false;
+  for (const item of items) {
+    if (!isPlainObject(item)) continue;
+    const label = item.name ?? item.label ?? item.key ?? item.metric ?? item.title;
+    if (typeof label !== 'string') continue;
+    const slot = labelToSlot(label);
+    if (!slot || bag[slot] != null) continue;
+    const metricValue =
+      item.value ?? item.val ?? item.amount ?? item.pct ?? item.percentage ?? item.reading;
+    if (metricValue == null) continue;
+    bag[slot] = metricValue;
+    found = true;
+  }
+  return found ? bag : undefined;
+}
+
+function measurementSources(root: Record<string, unknown>): Record<string, unknown>[] {
+  const sources: Record<string, unknown>[] = [];
+  const seen = new Set<unknown>();
+
+  const visit = (value: unknown, depth: number) => {
+    const parsed = typeof value === 'string' ? parseJsonContainer(value) : value;
+    if (Array.isArray(parsed)) {
+      const labeled = labeledMetrics(parsed);
+      if (labeled) sources.push(labeled);
+      if (depth >= 3) return;
+      for (const item of parsed) visit(item, depth + 1);
+      return;
+    }
+    if (!isPlainObject(parsed) || seen.has(parsed)) return;
+    seen.add(parsed);
+    sources.push(parsed);
+    if (depth >= 3) return;
+    for (const child of Object.values(parsed)) {
+      if (child && (typeof child === 'object' || typeof child === 'string')) {
+        visit(child, depth + 1);
+      }
+    }
+  };
+
+  visit(root, 0);
+  return sources;
+}
+
+function indexSource(source: Record<string, unknown>): Map<string, unknown> {
+  const map = new Map<string, unknown>();
+  for (const [key, value] of Object.entries(source)) {
+    const norm = normalizeKey(key);
+    if (!map.has(norm)) map.set(norm, value);
+  }
+  return map;
+}
+
+function pickMetric(indexed: Map<string, unknown>[], keys: string[]): number | undefined {
+  for (const index of indexed) {
+    for (const key of keys) {
+      const n = positiveMetric(index.get(key));
+      if (n != null) return n;
+    }
+  }
+  return undefined;
+}
+
+function pickDate(indexed: Map<string, unknown>[]): string | undefined {
+  for (const index of indexed) {
+    for (const key of DATE_KEYS) {
+      const value = index.get(key);
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+  }
+  return undefined;
+}
+
+export function readBodyMeasurement(raw: unknown): BmiMeasurementReading {
+  if (!isPlainObject(raw)) return {};
+  const indexed = measurementSources(raw).map(indexSource);
+  const reading: BmiMeasurementReading = {};
+  const assessmentDate = pickDate(indexed);
+  const height = pickMetric(indexed, ['height']);
+  const weight = pickMetric(indexed, ['weight']);
+  const bmi = pickMetric(indexed, ['bmi']);
+  const bodyFatPct = pickMetric(indexed, BODY_FAT_KEYS);
+  const visceralFat = pickMetric(indexed, VISCERAL_KEYS);
+  const skeletalMusclePct = pickMetric(indexed, MUSCLE_KEYS);
+  const restingMetabolism = pickMetric(indexed, METABOLISM_KEYS);
+  const bodyAge = pickMetric(indexed, BODY_AGE_KEYS);
+  if (assessmentDate) reading.assessmentDate = assessmentDate;
+  if (height != null) reading.height = height;
+  if (weight != null) reading.weight = weight;
+  if (bmi != null) reading.bmi = bmi;
+  if (bodyFatPct != null) reading.bodyFatPct = bodyFatPct;
+  if (visceralFat != null) reading.visceralFat = visceralFat;
+  if (skeletalMusclePct != null) reading.skeletalMusclePct = skeletalMusclePct;
+  if (restingMetabolism != null) reading.restingMetabolism = restingMetabolism;
+  if (bodyAge != null) reading.bodyAge = bodyAge;
+  return reading;
+}
+
+export interface HistoryMetricRow {
+  label: string;
+  value: string;
+}
+
+function formatHistoryDecimal(value: number): string {
+  return value.toFixed(1);
+}
+
+function formatHistoryWhole(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+const HISTORY_EMPTY = '-';
+
+function historyDecimal(value: number | undefined): string | null {
+  if (value == null || !(value > 0)) return null;
+  return formatHistoryDecimal(value);
+}
+
+function historyWhole(value: number | undefined): string | null {
+  if (value == null || !(value > 0)) return null;
+  return formatHistoryWhole(value);
+}
+
+export function historyMetricRows(raw: unknown): HistoryMetricRow[] {
+  const reading = readBodyMeasurement(raw);
+  const bmi = resolveDisplayBmi(reading);
+  const bodyFat = historyDecimal(reading.bodyFatPct);
+  const visceral = historyWhole(reading.visceralFat);
+  const muscle = historyDecimal(reading.skeletalMusclePct);
+  const metabolism = historyWhole(reading.restingMetabolism);
+  const bodyAge = historyWhole(reading.bodyAge);
+  return [
+    {
+      label: 'BMI',
+      value: bmi != null && bmi > 0 ? formatHistoryDecimal(bmi) : HISTORY_EMPTY,
+    },
+    { label: 'Body Fat', value: bodyFat != null ? `${bodyFat}%` : HISTORY_EMPTY },
+    { label: 'Visceral Fat', value: visceral ?? HISTORY_EMPTY },
+    { label: 'Skeletal Muscle', value: muscle != null ? `${muscle}%` : HISTORY_EMPTY },
+    {
+      label: 'Resting Metabolism',
+      value: metabolism != null ? `${metabolism} Kcal` : HISTORY_EMPTY,
+    },
+    { label: 'Body Age', value: bodyAge != null ? `${bodyAge} yrs` : HISTORY_EMPTY },
+  ];
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

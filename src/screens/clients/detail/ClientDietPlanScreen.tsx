@@ -16,7 +16,7 @@ import {
   PDF_GENERATE_FAILED_MESSAGE,
 } from '../../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
-import { navigateBack } from '../../../utils/navigationBack';
+import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
 
 /** Opens checkup wizard on diet plan; saves via save-diet-plan only (no full finish). */
 export default function ClientDietPlanScreen({
@@ -48,6 +48,7 @@ export default function ClientDietPlanScreen({
   const canSharePdf = !!planQuery.data && !!ids.clientCode;
 
   const shareDietPdf = async () => {
+    if (preparingPdf) return;
     const coachCode = getCurrentCoachCode();
     const clientCode = client?.clientCode ?? ids.clientCode;
     if (!coachCode || !clientCode) {
@@ -102,6 +103,7 @@ export default function ClientDietPlanScreen({
 
   const planSettled = !ids.assessmentCode || planQuery.isFetched || planQuery.isError;
   const loading = isLoading || (detailReady && !!ids.assessmentCode && !planSettled);
+  const missingClient = !client?.clientCode;
   const loadError = isError || planQuery.isError;
   const loadErrorObj = isError ? error : planQuery.error;
 
@@ -117,9 +119,14 @@ export default function ClientDietPlanScreen({
   return (
     <ClientPhaseLoadShell
       isLoading={loading}
-      isError={loadError || !initialForm}
-      errorMessage={getErrorMessage(loadErrorObj, 'Please go back and try again.')}
-      onRetry={retry}
+      isError={missingClient || loadError || !initialForm}
+      errorMessage={
+        missingClient
+          ? 'Client information is missing. Go back and open the diet plan from the client profile.'
+          : getErrorMessage(loadErrorObj, 'Please go back and try again.')
+      }
+      onRetry={missingClient ? () => navigateBack(navigation, returnTo) : retry}
+      retryLabel={missingClient ? 'Go back' : undefined}
       retrying={loading || planQuery.isFetching}
     >
       <AssessmentWizardFlow
@@ -133,6 +140,7 @@ export default function ClientDietPlanScreen({
         finishLabel="Save Plan"
         skipEmptyDietCommit
         headerRight={shareButton}
+        onHome={() => navigateToDashboard(navigation)}
         onExit={() => navigateBack(navigation, returnTo)}
         onComplete={onComplete}
       />

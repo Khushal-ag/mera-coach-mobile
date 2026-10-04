@@ -76,10 +76,7 @@ function MarketingPage({
         accessibilityLabel="Explore home"
       />
 
-      <View
-        pointerEvents="none"
-        style={[styles.topBrand, { paddingTop: insets.top + Spacing.sm }]}
-      >
+      <View pointerEvents="none" style={[styles.topBrand, { paddingTop: insets.top + Spacing.sm }]}>
         <BrandLogo size={homeLogoSize} />
       </View>
 
@@ -215,15 +212,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   lineWhite: {
-    fontFamily: headingFont.extraBold,
-    fontSize: 34,
-    lineHeight: 38,
+    fontFamily: headingFont.bold,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.white,
   },
   lineOrange: {
-    fontFamily: headingFont.extraBold,
-    fontSize: 34,
-    lineHeight: 38,
+    fontFamily: headingFont.bold,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.brandCoach,
   },
   brandLine: {
@@ -233,9 +230,9 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   mera: {
-    fontFamily: headingFont.extraBold,
-    fontSize: 34,
-    lineHeight: 38,
+    fontFamily: headingFont.bold,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.white,
   },
   coachWrap: {
@@ -243,9 +240,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   coach: {
-    fontFamily: headingFont.extraBold,
-    fontSize: 34,
-    lineHeight: 38,
+    fontFamily: headingFont.bold,
+    fontSize: 22,
+    lineHeight: 28,
     color: Colors.brandCoach,
   },
   coachUnderline: {

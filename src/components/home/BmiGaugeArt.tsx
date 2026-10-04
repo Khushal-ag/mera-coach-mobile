@@ -28,7 +28,17 @@ export default function BmiGaugeArt({ size = 96, style }: Props) {
         style={[styles.leaf, styles.leafRight]}
       />
       <View style={[styles.glow, { width: dial * 1.15, height: dial * 1.15 }]} />
-      <View style={[styles.dial, { width: dial, height: dial / 2, borderTopLeftRadius: dial / 2, borderTopRightRadius: dial / 2 }]}>
+      <View
+        style={[
+          styles.dial,
+          {
+            width: dial,
+            height: dial / 2,
+            borderTopLeftRadius: dial / 2,
+            borderTopRightRadius: dial / 2,
+          },
+        ]}
+      >
         <View style={[styles.seg, styles.segOrange, { width: dial }]} />
         <View style={[styles.seg, styles.segYellow, { width: dial * 0.7 }]} />
         <View style={[styles.seg, styles.segGreen, { width: dial * 0.42 }]} />

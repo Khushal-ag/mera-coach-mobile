@@ -7,19 +7,29 @@ import {
   FontFamily,
   IconSize,
   Radius,
+  ScreenPad,
   Shadow,
   Spacing,
+  Typography,
   headingFont,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
-import AppButton from '../AppButton';
+import GreenSubmitButton from '../GreenSubmitButton';
 import type { IoniconName } from '../../types/icons';
+
+const CANVAS = '#F3FAF7';
+const UNDERLINE = '#F08A2C';
 
 interface PhaseTransitionProps {
   fromLabel?: string;
   toLabel: string;
   toIcon: IoniconName;
   onContinue: () => void;
+}
+
+function outlineIcon(icon: IoniconName): IoniconName {
+  if (icon.endsWith('-outline') || icon.endsWith('-sharp')) return icon;
+  return `${icon}-outline` as IoniconName;
 }
 
 export default function PhaseTransition({
@@ -31,40 +41,24 @@ export default function PhaseTransition({
   const insets = useSafeAreaInsets();
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top + Spacing.lg,
-          paddingBottom: Math.max(insets.bottom, Spacing.xl) + Spacing.lg,
-        },
-      ]}
-    >
-      <View style={styles.center}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={styles.card}>
         {fromLabel ? (
           <View style={styles.doneRow}>
-            <Ionicons name="checkmark-circle" size={IconSize.lg} color={Colors.onDarkMuted} />
+            <Ionicons name="checkmark-circle-outline" size={IconSize.lg} color={Colors.accentInk} />
             <Text style={styles.doneText}>{fromLabel} saved</Text>
           </View>
         ) : null}
 
         <Image source={BrandImages.phasePath} style={styles.phaseArt} resizeMode="cover" />
 
-        <View style={styles.iconCircle}>
-          <Ionicons name={toIcon} size={36} color={Colors.white} />
-        </View>
+        <Ionicons name={outlineIcon(toIcon)} size={32} color={Colors.accentInk} />
         <Text style={styles.upNext}>Up next</Text>
         <Text style={styles.toLabel}>{toLabel}</Text>
+        <View style={styles.underline} />
       </View>
 
-      <AppButton
-        label="Continue"
-        onPress={onContinue}
-        variant="ghost"
-        icon="arrow-forward"
-        style={styles.continueBtn}
-        textStyle={styles.continueText}
-      />
+      <GreenSubmitButton label="Continue" onPress={onContinue} />
     </View>
   );
 }
@@ -72,52 +66,53 @@ export default function PhaseTransition({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
+    backgroundColor: CANVAS,
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
   },
-  center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.lg },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    ...Shadow.sm,
+  },
+  doneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
   doneText: {
-    color: Colors.onDarkMuted,
-    fontSize: 13,
-    fontFamily: FontFamily.semibold,
+    ...Typography.bodyStrong,
+    color: Colors.accentInk,
   },
   phaseArt: {
     width: 220,
     height: 132,
     borderRadius: Radius.md,
-    marginBottom: Spacing.lg,
-  },
-  iconCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: Colors.onDarkOverlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg - 4,
+    marginBottom: Spacing.md,
   },
   upNext: {
-    color: Colors.onDarkSoft,
+    marginTop: Spacing.sm,
+    color: Colors.textLight,
     fontSize: 13,
     letterSpacing: 2,
     textTransform: 'uppercase',
     fontFamily: FontFamily.bold,
   },
   toLabel: {
-    color: Colors.white,
-    fontSize: 26,
-    fontFamily: headingFont.extraBold,
+    ...Typography.title,
+    fontFamily: headingFont.bold,
     marginTop: 6,
     textAlign: 'center',
   },
-  continueBtn: {
-    backgroundColor: Colors.white,
-    minHeight: 52,
-    paddingHorizontal: Spacing.xl,
-    ...Shadow.lg,
+  underline: {
+    width: 36,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: UNDERLINE,
+    marginTop: 6,
   },
-  continueText: { fontSize: 16, fontFamily: FontFamily.bold },
 });

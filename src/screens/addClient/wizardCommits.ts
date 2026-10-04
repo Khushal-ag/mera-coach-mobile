@@ -8,16 +8,22 @@ import {
 } from '../../api/clientApi';
 import { uploadDocument } from '../../api/documentApi';
 import { getCurrentCoachCode, getDocumentSavedById } from '../../auth/session';
-import { ApiError } from '../../api/client';
+import { ApiError, getErrorMessage } from '../../api/client';
 import type { BodyMetrics } from '../../utils/bmi';
 import type { AssessmentIds } from '../../api/clientApi';
 import type { ClientProfile } from '../../types/models';
+
+export type PersonalCommitResult = {
+  ids: AssessmentIds;
+  /** Set when optional progress photos failed. The client save itself succeeded. */
+  photoUploadError: string | null;
+};
 
 /** Save personal details, then upload any pending client photos once clientCode exists. */
 export async function commitPersonal(
   profile: ClientProfile,
   ids: AssessmentIds,
-): Promise<AssessmentIds> {
+): Promise<PersonalCommitResult> {
   const nextIds = await saveClientDetail(profile, ids);
   if (!nextIds.clientCode || !nextIds.assessmentCode) {
     throw new ApiError(
@@ -26,11 +32,12 @@ export async function commitPersonal(
     );
   }
 
+  let photoUploadError: string | null = null;
   const pending = (profile.photos ?? []).filter(p => p.dataUrl?.trim());
   if (pending.length && nextIds.clientCode) {
     const coachCode = getCurrentCoachCode() ?? '';
     const savedBy = getDocumentSavedById();
-    // Photos are optional — upload failures must not block the wizard.
+    // Photos are optional — a failed upload must not roll back the client, but it must be told.
     for (const photo of pending) {
       try {
         const dataUrl = photo.dataUrl!.trim();
@@ -42,12 +49,15 @@ export async function commitPersonal(
           docType: 'PROGRESS_PHOTO',
           savedBy,
         });
-      } catch {
-        /* optional upload — continue wizard */
+      } catch (err) {
+        photoUploadError = getErrorMessage(
+          err,
+          'A progress photo could not be uploaded. You can add it from the client profile.',
+        );
       }
     }
   }
-  return nextIds;
+  return { ids: nextIds, photoUploadError };
 }
 
 export const commitLifestyle = saveLifestyle;

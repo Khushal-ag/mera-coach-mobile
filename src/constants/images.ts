@@ -15,6 +15,8 @@ export const BrandImages = {
   tipsCoach: require('../../assets/illustrations/tips-coach.png'),
   /** In-app wave header bitmap (green field + wavy bottom edge). */
   waveHeader: require('../../assets/illustrations/wave-header.png'),
+  clientProfileBody: require('../../assets/illustrations/client-profile-body.png'),
+  bmiGaugeArc: require('../../assets/illustrations/bmi-gauge-arc.png'),
   /** Hero photo bottom smile: opaque accentInk #11523C below a circular arc, transparent above. */
   heroSmileMask: require('../../assets/illustrations/hero-smile-mask.png'),
   /** Finished WhatsApp CTA bitmap for public coach profile. */
@@ -22,6 +24,9 @@ export const BrandImages = {
   /** Closest existing photo for the explore “Coaching for Every Goal” banner art. */
   exploreBannerPhoto: require('../../assets/illustrations/dashboard-slide-1.jpg'),
 } as const;
+
+/** Width / height of BrandImages.bmiGaugeArc (968×488). */
+export const BMI_GAUGE_ARC_ASPECT = 968 / 488;
 
 /** Width / height of BrandImages.heroSmileMask (1125×226). */
 export const HERO_SMILE_MASK_ASPECT = 1125 / 226;

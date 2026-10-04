@@ -19,10 +19,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  COACH_GALLERY_DOC_TYPE,
-  COACH_GALLERY_REF_TYPE,
-} from '../../config/appConfig';
+import { COACH_GALLERY_DOC_TYPE, COACH_GALLERY_REF_TYPE } from '../../config/appConfig';
 import {
   Colors,
   FontFamily,
@@ -215,10 +212,7 @@ const ProfileHero = React.memo(function ProfileHero({
   onNextPhoto,
   onMarkPhotoFailed,
 }: ProfileHeroProps) {
-  const photoSource = useMemo(
-    () => (activePhoto ? { uri: activePhoto } : null),
-    [activePhoto],
-  );
+  const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
   const smileStyle = useMemo(
     () => ({ width: contentWidth, height: smileHeight }),
     [contentWidth, smileHeight],
@@ -290,11 +284,7 @@ const ProfileHero = React.memo(function ProfileHero({
 
         <View style={[styles.infoPanel, { marginTop: -smileHeight }]}>
           <View style={[styles.toneBand, { height: smileHeight }]} pointerEvents="none">
-            <Image
-              source={BrandImages.heroSmileMask}
-              style={smileStyle}
-              resizeMode="stretch"
-            />
+            <Image source={BrandImages.heroSmileMask} style={smileStyle} resizeMode="stretch" />
           </View>
           <View
             style={[
@@ -386,191 +376,193 @@ const EnquiryBookingForm = React.memo(
     scrollLowerFieldsIntoView,
     onSectionLayout,
   }: EnquiryBookingFormProps) {
-  const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
-  const [submitting, setSubmitting] = useState(false);
-  const [appliedPrefillToken, setAppliedPrefillToken] = useState<number | null>(null);
-  if (servicePrefill && servicePrefill.token !== appliedPrefillToken) {
-    setAppliedPrefillToken(servicePrefill.token);
-    setForm(f => (f.service === servicePrefill.value ? f : { ...f, service: servicePrefill.value }));
-  }
-
-  const update = <K extends keyof EnquiryForm>(key: K, val: EnquiryForm[K]) =>
-    setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
-
-  const submitEnquiry = async () => {
-    const validationError =
-      validateRequired(form.name, 'Name') ||
-      validateMobile(form.mobile) ||
-      validateOptionalEmail(form.email) ||
-      (!form.service.trim() ? 'Please select what you are looking for.' : null);
-    if (validationError) return Alert.alert('Validation Error', validationError);
-
-    setSubmitting(true);
-    try {
-      await submitCoachEnquiry({
-        coachCode: coachId,
-        clientName: form.name.trim(),
-        clientMobile: form.mobile.trim(),
-        clientEmail: form.email.trim() || undefined,
-        lookingFor: form.service.trim(),
-      });
-      Alert.alert(
-        'Enquiry Sent!',
-        `Your enquiry has been sent to ${coachName}. They usually reply within 24 hours.`,
+    const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
+    const [submitting, setSubmitting] = useState(false);
+    const [appliedPrefillToken, setAppliedPrefillToken] = useState<number | null>(null);
+    if (servicePrefill && servicePrefill.token !== appliedPrefillToken) {
+      setAppliedPrefillToken(servicePrefill.token);
+      setForm(f =>
+        f.service === servicePrefill.value ? f : { ...f, service: servicePrefill.value },
       );
-      setForm(BLANK_FORM);
-    } catch (err) {
-      Alert.alert('Something went wrong', getErrorMessage(err, 'Please try again.'));
-    } finally {
-      setSubmitting(false);
     }
-  };
 
-  return (
-    <View
-      style={styles.bookingSection}
-      onLayout={e => {
-        onSectionLayout(e.nativeEvent.layout.y);
-      }}
-    >
-      <View style={styles.bookingIntro}>
-        <View style={styles.bookingIntroCopy}>
-          <View style={styles.bookingLabelRow}>
-            <Ionicons name="calendar-outline" size={IconSize.sm} color={Colors.accentInk} />
-            <Text style={styles.bookingLabel}>Booking</Text>
-          </View>
-          <Text style={styles.bookingTitle}>Book Your Free Consultation</Text>
-          <Text style={styles.bookingSubtitle}>
-            Send a free enquiry to {coachName}. They usually reply within 24 hours
-          </Text>
-        </View>
-        <View style={styles.bookingBubble}>
-          <Ionicons name="chatbubble" size={44} color={Colors.secondary} />
-          <View style={styles.bookingBubbleLines} pointerEvents="none">
-            <View style={styles.bookingBubbleLine} />
-            <View style={styles.bookingBubbleLine} />
-            <View style={styles.bookingBubbleLine} />
-          </View>
-        </View>
-      </View>
+    const update = <K extends keyof EnquiryForm>(key: K, val: EnquiryForm[K]) =>
+      setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
 
-      <View style={styles.formCard}>
-        <View style={styles.field}>
-          <FormFieldLabel required>Your Name</FormFieldLabel>
-          <View style={styles.inputWrap}>
-            <Ionicons
-              name="person-outline"
-              size={IconSize.md}
-              color={Colors.accentInk}
-              style={formFieldStyles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Full name"
-              placeholderTextColor={Colors.textLight}
-              value={form.name}
-              onChangeText={v => update('name', v)}
-              onFocus={scrollLowerFieldsIntoView}
-            />
+    const submitEnquiry = async () => {
+      const validationError =
+        validateRequired(form.name, 'Name') ||
+        validateMobile(form.mobile) ||
+        validateOptionalEmail(form.email) ||
+        (!form.service.trim() ? 'Please select what you are looking for.' : null);
+      if (validationError) return Alert.alert('Validation Error', validationError);
+
+      setSubmitting(true);
+      try {
+        await submitCoachEnquiry({
+          coachCode: coachId,
+          clientName: form.name.trim(),
+          clientMobile: form.mobile.trim(),
+          clientEmail: form.email.trim() || undefined,
+          lookingFor: form.service.trim(),
+        });
+        Alert.alert(
+          'Enquiry Sent!',
+          `Your enquiry has been sent to ${coachName}. They usually reply within 24 hours.`,
+        );
+        setForm(BLANK_FORM);
+      } catch (err) {
+        Alert.alert('Something went wrong', getErrorMessage(err, 'Please try again.'));
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    return (
+      <View
+        style={styles.bookingSection}
+        onLayout={e => {
+          onSectionLayout(e.nativeEvent.layout.y);
+        }}
+      >
+        <View style={styles.bookingIntro}>
+          <View style={styles.bookingIntroCopy}>
+            <View style={styles.bookingLabelRow}>
+              <Ionicons name="calendar-outline" size={IconSize.sm} color={Colors.accentInk} />
+              <Text style={styles.bookingLabel}>Booking</Text>
+            </View>
+            <Text style={styles.bookingTitle}>Book Your Free Consultation</Text>
+            <Text style={styles.bookingSubtitle}>
+              Send a free enquiry to {coachName}. They usually reply within 24 hours
+            </Text>
+          </View>
+          <View style={styles.bookingBubble}>
+            <Ionicons name="chatbubble" size={44} color={Colors.secondary} />
+            <View style={styles.bookingBubbleLines} pointerEvents="none">
+              <View style={styles.bookingBubbleLine} />
+              <View style={styles.bookingBubbleLine} />
+              <View style={styles.bookingBubbleLine} />
+            </View>
           </View>
         </View>
-        <View style={styles.field}>
-          <FormFieldLabel required>Mobile Number</FormFieldLabel>
-          <View style={styles.inputWrap}>
-            <Ionicons
-              name="call-outline"
-              size={IconSize.md}
-              color={Colors.accentInk}
-              style={formFieldStyles.inputIcon}
-            />
-            <PhoneTextInput
-              style={styles.input}
-              placeholder="+91 Mobile number"
-              placeholderTextColor={Colors.textLight}
-              value={form.mobile}
-              onChangeText={v => update('mobile', v)}
-              onFocus={scrollLowerFieldsIntoView}
-            />
-          </View>
-        </View>
-        <View style={styles.field}>
-          <FormFieldLabel>Email Address</FormFieldLabel>
-          <View style={styles.inputWrap}>
-            <Ionicons
-              name="mail-outline"
-              size={IconSize.md}
-              color={Colors.accentInk}
-              style={formFieldStyles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={form.email}
-              onChangeText={v => update('email', sanitizeEmailInput(v))}
-              onFocus={scrollLowerFieldsIntoView}
-            />
-          </View>
-        </View>
-        {hasServiceChoices ? (
-          <DropdownField
-            label="Enquiring For"
-            value={form.service}
-            options={serviceOptions}
-            onChange={v => update('service', v)}
-            placeholder="Select a service..."
-            required
-            leftIcon="briefcase-outline"
-          />
-        ) : (
-          <View style={styles.fieldLast}>
-            <FormFieldLabel required>Enquiring For</FormFieldLabel>
+
+        <View style={styles.formCard}>
+          <View style={styles.field}>
+            <FormFieldLabel required>Your Name</FormFieldLabel>
             <View style={styles.inputWrap}>
               <Ionicons
-                name="briefcase-outline"
+                name="person-outline"
                 size={IconSize.md}
                 color={Colors.accentInk}
                 style={formFieldStyles.inputIcon}
               />
               <TextInput
                 style={styles.input}
-                placeholder="What are you looking for?"
+                placeholder="Full name"
                 placeholderTextColor={Colors.textLight}
-                value={form.service}
-                onChangeText={v => update('service', v)}
+                value={form.name}
+                onChangeText={v => update('name', v)}
                 onFocus={scrollLowerFieldsIntoView}
               />
             </View>
           </View>
-        )}
+          <View style={styles.field}>
+            <FormFieldLabel required>Mobile Number</FormFieldLabel>
+            <View style={styles.inputWrap}>
+              <Ionicons
+                name="call-outline"
+                size={IconSize.md}
+                color={Colors.accentInk}
+                style={formFieldStyles.inputIcon}
+              />
+              <PhoneTextInput
+                style={styles.input}
+                placeholder="+91 Mobile number"
+                placeholderTextColor={Colors.textLight}
+                value={form.mobile}
+                onChangeText={v => update('mobile', v)}
+                onFocus={scrollLowerFieldsIntoView}
+              />
+            </View>
+          </View>
+          <View style={styles.field}>
+            <FormFieldLabel>Email Address</FormFieldLabel>
+            <View style={styles.inputWrap}>
+              <Ionicons
+                name="mail-outline"
+                size={IconSize.md}
+                color={Colors.accentInk}
+                style={formFieldStyles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="you@example.com"
+                placeholderTextColor={Colors.textLight}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={form.email}
+                onChangeText={v => update('email', sanitizeEmailInput(v))}
+                onFocus={scrollLowerFieldsIntoView}
+              />
+            </View>
+          </View>
+          {hasServiceChoices ? (
+            <DropdownField
+              label="Enquiring For"
+              value={form.service}
+              options={serviceOptions}
+              onChange={v => update('service', v)}
+              placeholder="Select a service..."
+              required
+              leftIcon="briefcase-outline"
+            />
+          ) : (
+            <View style={styles.fieldLast}>
+              <FormFieldLabel required>Enquiring For</FormFieldLabel>
+              <View style={styles.inputWrap}>
+                <Ionicons
+                  name="briefcase-outline"
+                  size={IconSize.md}
+                  color={Colors.accentInk}
+                  style={formFieldStyles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="What are you looking for?"
+                  placeholderTextColor={Colors.textLight}
+                  value={form.service}
+                  onChangeText={v => update('service', v)}
+                  onFocus={scrollLowerFieldsIntoView}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.formCta}
+          onPress={() => void submitEnquiry()}
+          disabled={submitting}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel="Send My Request, It's Free!"
+        >
+          {submitting ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <>
+              <View style={styles.formCtaCopy}>
+                <Text style={styles.formCtaText}>Send My Request,</Text>
+                <Text style={styles.formCtaText}>It&apos;s Free!</Text>
+              </View>
+              <View style={styles.formCtaIcon}>
+                <Ionicons name="arrow-forward" size={IconSize.md} color={Colors.white} />
+              </View>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.formCta}
-        onPress={() => void submitEnquiry()}
-        disabled={submitting}
-        activeOpacity={PressOpacity.default}
-        accessibilityRole="button"
-        accessibilityLabel="Send My Request, It's Free!"
-      >
-        {submitting ? (
-          <ActivityIndicator color={Colors.white} />
-        ) : (
-          <>
-            <View style={styles.formCtaCopy}>
-              <Text style={styles.formCtaText}>Send My Request,</Text>
-              <Text style={styles.formCtaText}>It&apos;s Free!</Text>
-            </View>
-            <View style={styles.formCtaIcon}>
-              <Ionicons name="arrow-forward" size={IconSize.md} color={Colors.white} />
-            </View>
-          </>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
+    );
   },
   (prev, next) =>
     prev.coachId === next.coachId &&
@@ -674,8 +666,7 @@ function CoachProfilePage({
     }
   }
 
-  const safePhotoIndex =
-    heroPhotos.length === 0 ? 0 : Math.min(photoIndex, heroPhotos.length - 1);
+  const safePhotoIndex = heroPhotos.length === 0 ? 0 : Math.min(photoIndex, heroPhotos.length - 1);
   const whatsAppUrl = coach ? whatsAppUrlFromMobile(coach.mobile) : null;
   const activePhoto = heroPhotos[safePhotoIndex] ?? null;
   const multiPhoto = heroPhotos.length > 1;
@@ -836,11 +827,7 @@ function CoachProfilePage({
                   style={styles.expertiseChip}
                   importantForAccessibility="no-hide-descendants"
                 >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={IconSize.sm}
-                    color={Colors.accentInk}
-                  />
+                  <Ionicons name="checkmark-circle" size={IconSize.sm} color={Colors.accentInk} />
                   <Text style={styles.expertiseTitle} numberOfLines={2}>
                     {formatExpertiseLabel(tag)}
                   </Text>
@@ -859,11 +846,7 @@ function CoachProfilePage({
             </Text>
             <View style={styles.storiesList}>
               {packages.map(pkg => (
-                <SuccessStoryCard
-                  key={pkg.id}
-                  pkg={pkg}
-                  onSelect={selectPackageService}
-                />
+                <SuccessStoryCard key={pkg.id} pkg={pkg} onSelect={selectPackageService} />
               ))}
             </View>
           </View>
@@ -876,9 +859,7 @@ function CoachProfilePage({
               <View style={styles.reviewHeader}>
                 <View style={styles.reviewHeaderCopy}>
                   <Text style={styles.reviewTitle}>Client ratings</Text>
-                  <Text style={styles.reviewSubtitle}>
-                    Right where the guidance of Mera Coach.
-                  </Text>
+                  <Text style={styles.reviewSubtitle}>Right where the guidance of Mera Coach.</Text>
                 </View>
                 <View style={styles.reviewShield}>
                   <Ionicons name="shield-checkmark" size={IconSize.lg} color={Colors.accentInk} />
@@ -1213,8 +1194,9 @@ const styles = StyleSheet.create({
   },
   name: {
     color: Colors.white,
-    fontSize: 28,
-    fontFamily: headingFont.extraBold,
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: headingFont.bold,
     marginBottom: 6,
   },
   categoryPill: {
@@ -1442,7 +1424,8 @@ const styles = StyleSheet.create({
   reviewScoreCopy: { flexShrink: 1, minWidth: 0 },
   reviewScore: {
     fontSize: 28,
-    fontFamily: headingFont.extraBold,
+    lineHeight: 34,
+    fontFamily: headingFont.bold,
     color: Colors.textDark,
   },
   reviewScoreOutOf: {

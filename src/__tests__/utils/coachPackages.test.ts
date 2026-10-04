@@ -2,6 +2,7 @@ import {
   createEmptyPackage,
   parseCoachPackages,
   serializeCoachPackages,
+  coachPackageAmountError,
   validateCoachPackagesDraft,
   MAX_COACH_PACKAGES,
 } from '../../utils/coachPackages';
@@ -46,6 +47,12 @@ describe('coachPackages', () => {
     }));
     expect(serializeCoachPackages(many)).toHaveLength(MAX_COACH_PACKAGES);
     expect(serializeCoachPackages([{ ...createEmptyPackage(), name: '  ' }])).toEqual([]);
+  });
+
+  it('allows a blank amount and rejects text that is not a number', () => {
+    expect(coachPackageAmountError('')).toBeNull();
+    expect(coachPackageAmountError('Rs 1500')).toBeNull();
+    expect(coachPackageAmountError('free')).toMatch(/valid amount/);
   });
 
   it('flags incomplete package drafts', () => {
