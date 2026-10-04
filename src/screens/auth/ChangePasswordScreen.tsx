@@ -98,13 +98,16 @@ export default function ChangePasswordScreen({
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!currentPassword) return setError('Current password is required.');
     if (newPassword.length < 6) return setError('New password must be at least 6 characters.');
     if (newPassword !== confirmPassword) return setError('New passwords do not match.');
 
     setError('');
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       await changePassword({ currentPassword, newPassword });
@@ -114,6 +117,7 @@ export default function ChangePasswordScreen({
     } catch (err) {
       setError(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const [referralMobile] = useState('');
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const {
     errorFields,
     formErrorBanner,
@@ -71,6 +72,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const selectedCategory = categories.find(c => c.label === category || c.code === category);
 
   const handleRegister = async () => {
+    if (submittingRef.current) return;
     if (applyValidation(validateCoachRegister({ name, category, mobile, email, referralMobile }))) {
       return;
     }
@@ -78,6 +80,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
     const coachTypeCode = categories.find(c => c.label === category || c.code === category)?.code;
     const referrer = referralMobile.trim();
     clearAllErrors();
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       await registerCoach({
@@ -98,6 +101,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
     } catch (err) {
       setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

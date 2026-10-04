@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,7 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
   const [mobile, setMobile] = useState('');
   const [banner, setBanner] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [success, setSuccess] = useState(false);
 
   const goHome = () => {
@@ -47,6 +48,7 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
   };
 
   const onSubmit = async () => {
+    if (submittingRef.current) return;
     const validationError = validateRequired(name, 'Name') || validateMobile(mobile);
     if (validationError) {
       setBanner(validationError);
@@ -54,6 +56,7 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     setBanner(null);
     try {
@@ -69,6 +72,7 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
       setBanner(getErrorMessage(err, 'Could not submit your details. Please try again.'));
       setSuccess(false);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

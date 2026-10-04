@@ -17,12 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
+  HitSlop,
   IconSize,
   PressOpacity,
   Radius,
   ScreenPad,
   Shadow,
   Spacing,
+  Typography,
   headingFont,
 } from '../../constants/theme';
 import FormErrorBanner from '../../components/FormErrorBanner';
@@ -126,7 +128,7 @@ function fileNameFromUri(uri: string): string {
 function UploadMark() {
   return (
     <View style={styles.uploadMark} accessibilityElementsHidden>
-      <Ionicons name="arrow-up" size={20} color={Colors.accentInk} />
+      <Ionicons name="arrow-up" size={IconSize.lg} color={Colors.accentInk} />
       <View style={styles.uploadTray} />
     </View>
   );
@@ -202,6 +204,7 @@ function AddGalleryEventForm({
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const locationRef = useRef<TextInput>(null);
+  const savingRef = useRef(false);
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CoachEvent>(() =>
     existing ? { ...existing, imageUrl: existing.imageUrl ?? '' } : createEmptyEvent(),
@@ -296,7 +299,7 @@ function AddGalleryEventForm({
   };
 
   const handleSave = async () => {
-    if (saving) return;
+    if (savingRef.current || saving) return;
     if (!draft.title.trim()) {
       showBanner('Add a title before publishing.');
       return;
@@ -336,6 +339,7 @@ function AddGalleryEventForm({
     }
 
     setBanner(null);
+    savingRef.current = true;
     setSaving(true);
     try {
       const serialized = serializeCoachEvents(next);
@@ -350,6 +354,7 @@ function AddGalleryEventForm({
         { text: 'OK', onPress: onDone },
       ]);
     } catch (err) {
+      savingRef.current = false;
       setSaving(false);
       showBanner(getErrorMessage(err, 'Could not save this event. Please try again.'));
     }
@@ -529,9 +534,9 @@ function AddGalleryEventForm({
             onPress={() => locationRef.current?.focus()}
             accessibilityRole="button"
             accessibilityLabel="Edit location"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={HitSlop.sm}
           >
-            <Ionicons name="create-outline" size={18} color={Colors.textDark} />
+            <Ionicons name="create-outline" size={IconSize.md} color={Colors.textDark} />
           </TouchableOpacity>
         </View>
         <View style={styles.field}>
@@ -678,7 +683,7 @@ function ClientOption({
       <Text style={[styles.optionText, selected && styles.optionTextSelected]} numberOfLines={1}>
         {client.name}
       </Text>
-      {selected ? <Ionicons name="checkmark" size={18} color={Colors.accentInk} /> : null}
+      {selected ? <Ionicons name="checkmark" size={IconSize.md} color={Colors.accentInk} /> : null}
     </TouchableOpacity>
   );
 }
@@ -701,16 +706,10 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   cardTitle: {
-    fontFamily: headingFont.bold,
-    fontSize: 18,
-    lineHeight: 24,
-    color: Colors.textDark,
+    ...Typography.headline,
   },
   fieldLabel: {
-    fontFamily: headingFont.bold,
-    fontSize: 18,
-    lineHeight: 24,
-    color: Colors.textDark,
+    ...Typography.headline,
     marginBottom: Spacing.sm,
   },
   underline: {
@@ -718,7 +717,7 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: UNDERLINE_ORANGE,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
     marginBottom: Spacing.sm,
   },
   chipRow: {
@@ -733,9 +732,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     minHeight: 78,
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
   },
   chipIdle: {
@@ -764,7 +763,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: UPLOAD_DASH,
-    borderRadius: 16,
+    borderRadius: Radius.md,
     backgroundColor: UPLOAD_FILL,
     minHeight: 156,
     alignItems: 'center',
@@ -789,7 +788,7 @@ const styles = StyleSheet.create({
   uploadEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   uploadTitle: {
     marginTop: Spacing.xs,

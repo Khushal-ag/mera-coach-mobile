@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Animated,
   AccessibilityInfo,
+  ActivityIndicator,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +17,9 @@ import {
   Colors,
   FontFamily,
   HitSlop,
+  IconSize,
   PressOpacity,
+  Radius,
   ScreenPad,
   Shadow,
   Spacing,
@@ -49,6 +52,7 @@ function greetingFor(date = new Date()): string {
 interface MetricCard {
   label: string;
   value: string;
+  pending: boolean;
   tint: string;
   iconBg: string;
 }
@@ -136,10 +140,18 @@ export default function DashboardScreen({
     profileFullQuery,
   ]);
 
-  const clientsErrorMessage =
+  const statsErrors = [
     clientsQuery.isError && !clients
       ? getErrorMessage(clientsQuery.error, 'Could not load client count.')
-      : null;
+      : null,
+    leadsQuery.isError && leadsQuery.data == null
+      ? getErrorMessage(leadsQuery.error, 'Could not load leads.')
+      : null,
+    recheckupQuery.isError && recheckupQuery.data == null
+      ? getErrorMessage(recheckupQuery.error, 'Could not load checkups due.')
+      : null,
+  ].filter((message): message is string => !!message);
+  const statsError = [...new Set(statsErrors)].join('\n');
 
   const dueCount = useMemo(
     () => (recheckupQuery.data ? recheckupQuery.data.length : null),
@@ -155,18 +167,21 @@ export default function DashboardScreen({
     {
       label: 'Clients',
       value: clients ? String(clients.length) : '-',
+      pending: clientsQuery.isPending && !clients,
       tint: Colors.cardIconGreen,
       iconBg: Colors.metricClientsBg,
     },
     {
       label: 'Leads',
       value: activeLeadsCount != null ? String(activeLeadsCount) : '-',
+      pending: leadsQuery.isPending && leadsQuery.data == null,
       tint: Colors.accent,
       iconBg: Colors.metricLeadsBg,
     },
     {
       label: 'Due',
       value: dueCount != null ? String(dueCount) : '-',
+      pending: recheckupQuery.isPending && recheckupQuery.data == null,
       tint: Colors.metricDueIcon,
       iconBg: Colors.metricDueBg,
     },
@@ -245,7 +260,7 @@ export default function DashboardScreen({
                 activeOpacity={PressOpacity.default}
                 hitSlop={HitSlop.sm}
               >
-                <Ionicons name="home-outline" size={28} color={Colors.secondary} />
+                <Ionicons name="home-outline" size={IconSize.xxl} color={Colors.secondary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.chromeIconBtn}
@@ -255,7 +270,11 @@ export default function DashboardScreen({
                 activeOpacity={PressOpacity.default}
                 hitSlop={HitSlop.sm}
               >
-                <Ionicons name="notifications-outline" size={28} color={Colors.secondary} />
+                <Ionicons
+                  name="notifications-outline"
+                  size={IconSize.xxl}
+                  color={Colors.secondary}
+                />
                 <View style={styles.notifDot} />
               </TouchableOpacity>
               <TouchableOpacity
@@ -290,7 +309,7 @@ export default function DashboardScreen({
           { opacity: metricsFade, transform: [{ translateY: metricsSlide }] },
         ]}
       >
-        {clientsErrorMessage ? <Text style={styles.statsError}>{clientsErrorMessage}</Text> : null}
+        {statsError ? <Text style={styles.statsError}>{statsError}</Text> : null}
         <View style={styles.metricsStrip}>
           {metrics.map((metric, i) => (
             <React.Fragment key={metric.label}>
@@ -298,18 +317,22 @@ export default function DashboardScreen({
               <View
                 style={styles.metricItem}
                 accessibilityRole="text"
-                accessibilityLabel={`${metric.label}: ${metric.value}`}
+                accessibilityLabel={`${metric.label}: ${metric.pending ? 'Loading' : metric.value}`}
               >
                 <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
                   <Ionicons
                     name={metricIcons[metric.label] ?? 'ellipse'}
-                    size={18}
+                    size={IconSize.md}
                     color={metric.tint}
                   />
                 </View>
-                <Text style={styles.metricValue} numberOfLines={1}>
-                  {metric.value}
-                </Text>
+                {metric.pending ? (
+                  <ActivityIndicator color={Colors.secondary} size="small" />
+                ) : (
+                  <Text style={styles.metricValue} numberOfLines={1}>
+                    {metric.value}
+                  </Text>
+                )}
                 <Text style={styles.metricLabel} numberOfLines={1}>
                   {metric.label}
                 </Text>
@@ -346,7 +369,7 @@ export default function DashboardScreen({
             <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
           </View>
           <View style={styles.primaryCtaArrow} pointerEvents="none">
-            <Ionicons name="arrow-forward" size={22} color={Colors.white} />
+            <Ionicons name="arrow-forward" size={IconSize.xl} color={Colors.white} />
           </View>
         </TouchableOpacity>
 
@@ -361,7 +384,7 @@ export default function DashboardScreen({
               accessibilityLabel={action.label}
             >
               <View style={[styles.secondaryIcon, { backgroundColor: action.iconColor }]}>
-                <Ionicons name={action.icon} size={22} color={Colors.white} />
+                <Ionicons name={action.icon} size={IconSize.xl} color={Colors.white} />
               </View>
               <Text style={styles.secondaryLabel} numberOfLines={1}>
                 {action.label}
@@ -401,9 +424,7 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.sm,
   },
   brandTitle: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontFamily: headingFont.bold,
+    ...Typography.title,
     letterSpacing: -0.4,
   },
   brandMera: {
@@ -414,11 +435,10 @@ const styles = StyleSheet.create({
     color: Colors.brandCoach,
     fontFamily: headingFont.extraBold,
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, flexShrink: 0 },
   guideLine: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    marginTop: 4,
+    ...Typography.caption,
+    marginTop: Spacing.xxs,
   },
   guideWord: {
     color: Colors.greetingMuted,
@@ -510,7 +530,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
     gap: 2,
   },
   metricIconWrap: {
@@ -519,7 +539,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   metricDivider: {
     width: StyleSheet.hairlineWidth,
@@ -540,8 +560,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   statsError: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
+    ...Typography.caption,
     color: Colors.accent,
     marginBottom: Spacing.xs,
     textAlign: 'center',
@@ -577,7 +596,7 @@ const styles = StyleSheet.create({
   primaryCtaIcon: {
     width: 52,
     height: 52,
-    borderRadius: 16,
+    borderRadius: Radius.md,
     backgroundColor: 'rgba(255,255,255,0.32)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -614,11 +633,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     alignItems: 'flex-start',
-    gap: 8,
+    gap: Spacing.xs,
     borderRadius: 22,
-    paddingTop: 16,
+    paddingTop: Spacing.md,
     paddingBottom: 14,
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
     minHeight: 156,
   },
   secondaryIcon: {
@@ -630,17 +649,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   secondaryLabel: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
+    ...Typography.tileValue,
     maxWidth: '100%',
   },
   secondarySub: {
-    fontSize: 12,
+    ...Typography.caption,
     fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    lineHeight: 16,
     maxWidth: '100%',
   },
   carouselSection: {

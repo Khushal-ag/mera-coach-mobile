@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  IconSize,
   PressOpacity,
   Radius,
   ScreenPad,
@@ -127,10 +128,10 @@ function MenuRow({
       onPress={onPress}
       activeOpacity={PressOpacity.default}
     >
-      <Ionicons name={item.icon} size={20} color={iconColor} />
+      <Ionicons name={item.icon} size={IconSize.lg} color={iconColor} />
       <Text style={[styles.menuLabel, isLogout && styles.menuLabelDanger]}>{item.label}</Text>
       {!isLogout ? (
-        <Ionicons name="chevron-forward-outline" size={18} color={Colors.accentInk} />
+        <Ionicons name="chevron-forward-outline" size={IconSize.md} color={Colors.accentInk} />
       ) : null}
     </TouchableOpacity>
   );
@@ -171,15 +172,28 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
 
   const photoUri = resolveCoachPhotoUrl(profile ?? {});
 
-  // Prefer live ClientList length; fall back to happyClientCount only when the list isn't loaded.
+  const clientsFailed = clientsQuery.isError && clientsQuery.data == null;
+  // Prefer live ClientList length. Fall back to happyClientCount only while the roster
+  // has not loaded. A failed roster request stays blank instead of that marketing count.
   const clientCountDisplay =
     clientsQuery.data != null
       ? String(clientsQuery.data.length)
-      : profile?.clients != null
-        ? String(profile.clients)
-        : clientsQuery.isPending || profileQuery.isPending
-          ? '-'
-          : '0';
+      : clientsFailed
+        ? '-'
+        : profile?.clients != null
+          ? String(profile.clients)
+          : clientsQuery.isPending || profileQuery.isPending
+            ? '-'
+            : '0';
+  const clientsPendingBlank =
+    clientsQuery.isPending && clientsQuery.data == null && profile?.clients == null;
+  const clientsError = clientsFailed
+    ? getErrorMessage(clientsQuery.error, 'Could not load client count.')
+    : null;
+  const completionError =
+    profileFullQuery.isError && !profileFullQuery.data
+      ? getErrorMessage(profileFullQuery.error, 'Could not load profile completion.')
+      : null;
 
   const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
   const ratingDisplay =
@@ -248,14 +262,18 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
               <Text style={styles.role}>{profile?.category || ''}</Text>
               {profile?.city ? (
                 <Text style={styles.location}>
-                  <Ionicons name="location-outline" size={12} color={Colors.accentInk} />{' '}
+                  <Ionicons name="location-outline" size={IconSize.xs} color={Colors.accentInk} />{' '}
                   {profile.city}
                 </Text>
               ) : null}
 
               <View style={styles.statsRow}>
                 <View style={styles.stat}>
-                  <Text style={styles.statValue}>{clientCountDisplay}</Text>
+                  {clientsPendingBlank ? (
+                    <ActivityIndicator color={Colors.secondary} size="small" />
+                  ) : (
+                    <Text style={styles.statValue}>{clientCountDisplay}</Text>
+                  )}
                   <Text style={styles.statLabel}>Clients</Text>
                 </View>
                 <View style={styles.statDivider} />
@@ -269,7 +287,12 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
                   <Text style={styles.statLabel}>Rating</Text>
                 </View>
               </View>
+              {clientsError ? <Text style={styles.rosterError}>{clientsError}</Text> : null}
             </View>
+
+            {completionError ? (
+              <Text style={[styles.rosterError, styles.completionError]}>{completionError}</Text>
+            ) : null}
 
             {profileCompletion &&
             (!profileCompletion.isPublicReady || profileCompletion.percent < 100) ? (
@@ -356,8 +379,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: 'center',
   },
-  role: { fontSize: 13, color: Colors.primary, fontFamily: FontFamily.semibold, marginTop: 4 },
-  location: { fontSize: 12, fontFamily: FontFamily.regular, color: Colors.textLight, marginTop: 6 },
+  role: {
+    ...Typography.label,
+    color: Colors.primary,
+    marginTop: Spacing.xxs,
+  },
+  location: {
+    ...Typography.caption,
+    fontFamily: FontFamily.regular,
+    marginTop: 6,
+  },
   statsRow: {
     flexDirection: 'row',
     marginTop: Spacing.lg,
@@ -369,7 +400,7 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
   statValue: { fontSize: 20, fontFamily: headingFont.extraBold, color: Colors.textDark },
-  statLabel: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight, marginTop: 2 },
+  statLabel: { ...Typography.micro, marginTop: 2 },
   section: {
     marginHorizontal: ScreenPad.horizontal,
     marginTop: Spacing.md,
@@ -383,7 +414,7 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: UNDERLINE,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
     marginBottom: Spacing.sm,
   },
   sectionHint: {
@@ -409,11 +440,18 @@ const styles = StyleSheet.create({
   },
   menuLabel: { flex: 1, ...Typography.bodyStrong },
   menuLabelDanger: { color: Colors.destructive },
+  rosterError: {
+    ...Typography.caption,
+    color: Colors.accent,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+  },
+  completionError: {
+    marginHorizontal: ScreenPad.horizontal,
+  },
   brandLockup: { alignItems: 'center', paddingVertical: Spacing.lg, gap: Spacing.sm },
   version: {
+    ...Typography.caption,
     textAlign: 'center',
-    color: Colors.textLight,
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
   },
 });

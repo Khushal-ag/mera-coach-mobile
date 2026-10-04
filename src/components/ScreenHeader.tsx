@@ -1,7 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { Colors, HitSlop, IconSize, PressOpacity, TouchTarget } from '../constants/theme';
 
 /**
@@ -34,41 +33,6 @@ export function HeaderBackButton({
     >
       <Ionicons
         name="chevron-back-outline"
-        size={IconSize.lg}
-        color={onDark ? Colors.white : Colors.accentInk}
-      />
-    </TouchableOpacity>
-  );
-}
-
-interface HeaderHomeButtonProps {
-  onPress?: () => void;
-  /** White translucent control for dark (green) headers. Default true. */
-  onDark?: boolean;
-  style?: StyleProp<ViewStyle>;
-  accessibilityLabel?: string;
-}
-
-export function HeaderHomeButton({
-  onPress,
-  onDark = true,
-  style,
-  accessibilityLabel = 'Home',
-}: HeaderHomeButtonProps) {
-  const navigation = useNavigation();
-  const handlePress = onPress ?? (() => navigation.navigate('Home', { page: 0 }));
-
-  return (
-    <TouchableOpacity
-      style={[styles.chromeBtn, onDark ? styles.chromeOnDark : styles.chromeOnLight, style]}
-      onPress={handlePress}
-      hitSlop={HitSlop.sm}
-      activeOpacity={PressOpacity.default}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-    >
-      <Ionicons
-        name="home-outline"
         size={IconSize.lg}
         color={onDark ? Colors.white : Colors.accentInk}
       />

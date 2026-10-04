@@ -257,12 +257,6 @@ export const Typography = {
   },
 } as const satisfies Record<string, TextStyle>;
 
-const STORY_CARD_WIDTH = 280;
-
-export function storyCardWidth(screenWidth: number): number {
-  return Math.min(STORY_CARD_WIDTH, Math.max(232, screenWidth - Spacing.lg * 2));
-}
-
 /** Warm-tinted shadows that feel on-brand (not pure black fog). */
 export const Shadow: Record<'sm' | 'md' | 'lg', ViewStyle> = {
   sm: {

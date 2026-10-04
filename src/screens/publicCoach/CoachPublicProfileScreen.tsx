@@ -378,6 +378,7 @@ const EnquiryBookingForm = React.memo(
   }: EnquiryBookingFormProps) {
     const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
     const [submitting, setSubmitting] = useState(false);
+    const submittingRef = useRef(false);
     const [appliedPrefillToken, setAppliedPrefillToken] = useState<number | null>(null);
     if (servicePrefill && servicePrefill.token !== appliedPrefillToken) {
       setAppliedPrefillToken(servicePrefill.token);
@@ -390,6 +391,7 @@ const EnquiryBookingForm = React.memo(
       setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
 
     const submitEnquiry = async () => {
+      if (submittingRef.current) return;
       const validationError =
         validateRequired(form.name, 'Name') ||
         validateMobile(form.mobile) ||
@@ -397,6 +399,7 @@ const EnquiryBookingForm = React.memo(
         (!form.service.trim() ? 'Please select what you are looking for.' : null);
       if (validationError) return Alert.alert('Validation Error', validationError);
 
+      submittingRef.current = true;
       setSubmitting(true);
       try {
         await submitCoachEnquiry({
@@ -414,6 +417,7 @@ const EnquiryBookingForm = React.memo(
       } catch (err) {
         Alert.alert('Something went wrong', getErrorMessage(err, 'Please try again.'));
       } finally {
+        submittingRef.current = false;
         setSubmitting(false);
       }
     };

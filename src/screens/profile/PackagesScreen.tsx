@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  IconSize,
   ListCard,
   ListPortrait,
   PressOpacity,
@@ -158,7 +159,7 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
         >
           {packages.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Ionicons name="cube-outline" size={28} color={Colors.accentInk} />
+              <Ionicons name="cube-outline" size={IconSize.xxl} color={Colors.accentInk} />
               <Text style={styles.emptyTitle}>No packages yet</Text>
               <Text style={styles.emptyMessage}>
                 Add a coaching package with a name and price for your public profile.
@@ -192,7 +193,11 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
                         {price || 'Tap to edit details'}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward-outline" size={18} color={Colors.accentInk} />
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={IconSize.md}
+                      color={Colors.accentInk}
+                    />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.removeBtn}
@@ -205,7 +210,11 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
                     {removing ? (
                       <ActivityIndicator size="small" color={Colors.destructive} />
                     ) : (
-                      <Ionicons name="trash-outline" size={18} color={Colors.destructive} />
+                      <Ionicons
+                        name="trash-outline"
+                        size={IconSize.md}
+                        color={Colors.destructive}
+                      />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -281,10 +290,8 @@ const styles = StyleSheet.create({
   },
   cardMeta: {
     marginTop: 3,
-    fontSize: 13,
+    ...Typography.label,
     fontFamily: FontFamily.regular,
-    color: Colors.textDark,
-    lineHeight: 18,
   },
   removeBtn: {
     width: TouchTarget.icon,

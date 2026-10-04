@@ -128,6 +128,7 @@ interface EditProfileFormProps {
 
 function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
   const scrollRef = useRef<ScrollView>(null);
+  const savingRef = useRef(false);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [step, setStep] = useState<1 | 2>(1);
   const [coachName, setCoachName] = useState(profile.coachName);
@@ -282,6 +283,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   };
 
   const handleSave = async () => {
+    if (savingRef.current) return;
     if (
       uploadingLogo ||
       uploadingPhoto ||
@@ -314,6 +316,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     }
 
     clearAllErrors();
+    savingRef.current = true;
     setSaving(true);
     try {
       const country = countries.find(c => c.label === countryLabel);
@@ -370,6 +373,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     } catch (err) {
       setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

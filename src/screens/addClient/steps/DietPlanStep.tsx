@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -126,6 +126,7 @@ function MealCard({ meal }: { meal: GeneratedDietPlanMeal }) {
 
 export default function DietPlanStep({ form, update }: StepProps<ClientProfile>) {
   const [generating, setGenerating] = useState(false);
+  const generatingRef = useRef(false);
   const [error, setError] = useState('');
   const cuisineOptions = useParamMasterOptions(PARAM_CODES.regionalCuisine, REGIONAL_CUISINES);
   const coachProfileQuery = useQuery({
@@ -134,7 +135,8 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
   });
 
   const generate = async () => {
-    if (generating) return;
+    if (generatingRef.current || generating) return;
+    generatingRef.current = true;
     setGenerating(true);
     setError('');
     try {
@@ -148,6 +150,7 @@ export default function DietPlanStep({ form, update }: StepProps<ClientProfile>)
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to generate a plan. Please try again.'));
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
   };
@@ -295,7 +298,7 @@ const styles = StyleSheet.create({
   noteBody: {
     ...Typography.body,
     color: Colors.accentInk,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -347,9 +350,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 24,
+    borderRadius: Radius.lg,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: Spacing.sm,
     gap: 6,
     ...Shadow.sm,
   },
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 11,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   optionHead: {
     flexDirection: 'row',

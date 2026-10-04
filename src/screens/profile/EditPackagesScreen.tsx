@@ -149,6 +149,7 @@ function EditPackagesForm({
   onDone: () => void;
 }) {
   const scrollRef = useRef<ScrollView>(null);
+  const savingRef = useRef(false);
   const [packages, setPackages] = useState<CoachPackage[]>(() => packageDraft(profile, packageId));
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
@@ -164,7 +165,7 @@ function EditPackagesForm({
   };
 
   const handleSave = async () => {
-    if (saving) return;
+    if (savingRef.current || saving) return;
     const next = mergePackageDraft(saved, packages, packageId);
     const packagesError = validateCoachPackagesDraft(packages);
     if (packagesError) {
@@ -193,6 +194,7 @@ function EditPackagesForm({
     }
 
     setBanner(null);
+    savingRef.current = true;
     setSaving(true);
     try {
       const serialized = serializeCoachPackages(next);
@@ -209,6 +211,7 @@ function EditPackagesForm({
     } catch (err) {
       showBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -287,7 +290,7 @@ const styles = StyleSheet.create({
   },
   createArrow: {
     position: 'absolute',
-    right: 8,
+    right: Spacing.xs,
     width: 36,
     height: 36,
     borderRadius: 18,

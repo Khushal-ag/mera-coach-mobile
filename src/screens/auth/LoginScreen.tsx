@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -31,6 +31,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [sessionHint] = useState(() =>
     didSessionExpireOnRestore()
       ? 'Your session expired. Sign in once, then use your MPIN next time.'
@@ -46,9 +47,11 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   } = useFormFieldErrors();
 
   const handleLogin = async () => {
+    if (submittingRef.current) return;
     if (applyValidation(validateLogin({ email, password }))) return;
 
     clearAllErrors();
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const trimmed = email.trim();
@@ -63,6 +66,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
     } catch (err) {
       setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

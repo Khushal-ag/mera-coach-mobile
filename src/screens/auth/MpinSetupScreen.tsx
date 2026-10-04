@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -32,9 +32,11 @@ export default function MpinSetupScreen() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const onComplete = useCallback(
     async (value: string) => {
+      if (savingRef.current) return;
       if (!isValidMpinFormat(value)) {
         setError('Enter a 4-digit MPIN.');
         setPin('');
@@ -57,6 +59,7 @@ export default function MpinSetupScreen() {
         return;
       }
 
+      savingRef.current = true;
       setSaving(true);
       setError(null);
       try {
@@ -67,6 +70,7 @@ export default function MpinSetupScreen() {
         setStep('create');
         setDraft('');
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     },

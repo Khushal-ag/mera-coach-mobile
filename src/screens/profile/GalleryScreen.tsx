@@ -15,6 +15,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
+  HitSlop,
+  IconSize,
   PressOpacity,
   Radius,
   ScreenPad,
@@ -337,7 +339,7 @@ function GalleryThumb({
             <ActivityIndicator color={Colors.accentInk} size="small" />
           ) : (
             <>
-              <Ionicons name="image-outline" size={22} color={Colors.accentInk} />
+              <Ionicons name="image-outline" size={IconSize.xl} color={Colors.accentInk} />
               <Text style={styles.thumbBrokenText}>Unavailable</Text>
             </>
           )}
@@ -364,7 +366,7 @@ function GalleryThumb({
         style={styles.deleteBtn}
         onPress={() => onDelete(item, broken)}
         disabled={deleteDisabled}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        hitSlop={HitSlop.sm}
         accessibilityRole="button"
         accessibilityLabel={broken ? 'Remove unavailable photo' : 'Delete photo'}
       >
@@ -412,7 +414,7 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: '#F08A2C',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
     marginBottom: Spacing.sm,
   },
   photoCard: {
@@ -448,8 +450,8 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: Spacing.xxs,
+    right: Spacing.xxs,
     zIndex: 2,
     elevation: 3,
     backgroundColor: Colors.white,

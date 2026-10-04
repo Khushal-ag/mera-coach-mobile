@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  HitSlop,
   IconSize,
   PressOpacity,
   Radius,
   ScreenPad,
   Shadow,
   Spacing,
+  Typography,
   headingFont,
 } from '../../constants/theme';
 import FormErrorBanner from '../../components/FormErrorBanner';
@@ -66,7 +68,7 @@ function fileNameFromUri(uri: string): string {
 function UploadMark() {
   return (
     <View style={styles.uploadMark} accessibilityElementsHidden>
-      <Ionicons name="arrow-up" size={20} color={Colors.accentInk} />
+      <Ionicons name="arrow-up" size={IconSize.lg} color={Colors.accentInk} />
       <View style={styles.uploadTray} />
     </View>
   );
@@ -114,6 +116,7 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<PendingPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const uploadingRef = useRef(false);
   const [banner, setBanner] = useState<string | null>(null);
 
   const galleryKey = queryKeys.coachGallery(coachCode);
@@ -172,7 +175,7 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
   };
 
   const handlePublish = async () => {
-    if (uploading) return;
+    if (uploadingRef.current || uploading) return;
     if (!coachCode) {
       setBanner('Your profile is still loading. Try again in a moment.');
       return;
@@ -191,6 +194,7 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
     }
 
     setBanner(null);
+    uploadingRef.current = true;
     setUploading(true);
     const uploaded = new Set<string>();
     try {
@@ -213,6 +217,7 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
       if (uploaded.size > 0) invalidate();
       setBanner(getErrorMessage(err, 'Could not publish photos. Please try again.'));
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
     }
   };
@@ -262,9 +267,9 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
                     disabled={uploading}
                     accessibilityRole="button"
                     accessibilityLabel={`Remove ${photo.name}`}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    hitSlop={HitSlop.sm}
                   >
-                    <Ionicons name="close" size={18} color={Colors.textLight} />
+                    <Ionicons name="close" size={IconSize.md} color={Colors.textLight} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -331,24 +336,21 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   cardTitle: {
-    fontFamily: headingFont.bold,
-    fontSize: 18,
-    lineHeight: 24,
-    color: Colors.textDark,
+    ...Typography.headline,
   },
   underline: {
     width: 36,
     height: 3,
     borderRadius: 2,
     backgroundColor: UNDERLINE_ORANGE,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
     marginBottom: Spacing.sm,
   },
   uploadBox: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: UPLOAD_DASH,
-    borderRadius: 16,
+    borderRadius: Radius.md,
     backgroundColor: UPLOAD_FILL,
     minHeight: 156,
     alignItems: 'center',
@@ -358,7 +360,7 @@ const styles = StyleSheet.create({
   uploadEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   uploadMark: {
     alignItems: 'center',
@@ -383,9 +385,8 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
   },
   uploadHint: {
+    ...Typography.label,
     fontFamily: FontFamily.regular,
-    fontSize: 13,
-    lineHeight: 18,
     color: Colors.textLight,
     textAlign: 'center',
   },
@@ -401,14 +402,13 @@ const styles = StyleSheet.create({
   pendingThumb: {
     width: 48,
     height: 48,
-    borderRadius: 10,
+    borderRadius: Radius.sm,
     backgroundColor: Colors.background,
   },
   pendingName: {
     flex: 1,
+    ...Typography.label,
     fontFamily: FontFamily.medium,
-    fontSize: 13,
-    lineHeight: 18,
     color: Colors.accentInk,
   },
   publish: {
