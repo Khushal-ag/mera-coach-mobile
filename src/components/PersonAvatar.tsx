@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Colors } from '../constants/theme';
 import { BrandImages } from '../constants/images';
@@ -37,23 +37,21 @@ export default function PersonAvatar({
   }
 
   const showRemote = Boolean(resolved) && !failed;
+  const imageSource = useMemo(
+    () => (showRemote && resolved ? { uri: resolved } : BrandImages.avatarDefault),
+    [showRemote, resolved],
+  );
+  const imageStyle = useMemo(() => ({ width: w, height: h }), [w, h]);
+  const wrapSizeStyle = useMemo(
+    () => ({ width: w, height: h, borderRadius: radius, backgroundColor: panelBg }),
+    [w, h, radius, panelBg],
+  );
 
   return (
-    <View
-      style={[
-        styles.wrap,
-        {
-          width: w,
-          height: h,
-          borderRadius: radius,
-          backgroundColor: panelBg,
-        },
-        style,
-      ]}
-    >
+    <View style={[styles.wrap, wrapSizeStyle, style]}>
       <Image
-        source={showRemote ? { uri: resolved } : BrandImages.avatarDefault}
-        style={{ width: w, height: h }}
+        source={imageSource}
+        style={imageStyle}
         resizeMode="cover"
         onError={() => setFailed(true)}
         accessibilityIgnoresInvertColors

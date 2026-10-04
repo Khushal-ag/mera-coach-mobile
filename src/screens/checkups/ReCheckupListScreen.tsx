@@ -134,15 +134,23 @@ export default function ReCheckupListScreen({
             <Text style={styles.name} numberOfLines={2}>
               {item.name}
             </Text>
-            <Text style={styles.subMeta}>{describeLast(item)}</Text>
+            <Text style={styles.subMeta} numberOfLines={1}>
+              {describeLast(item)}
+            </Text>
             {item.dueDate ? (
-              <Text style={styles.dueText}>Due {item.dueDate}</Text>
+              <Text style={styles.dueText} numberOfLines={1}>
+                Due {item.dueDate}
+              </Text>
             ) : (
-              <Text style={styles.dueText}>{statusLabel}</Text>
+              <Text style={styles.dueText} numberOfLines={1}>
+                {statusLabel}
+              </Text>
             )}
             <View style={styles.overduePill}>
               <Ionicons name="time-outline" size={IconSize.sm} color={Colors.secondary} />
-              <Text style={styles.overdueText}>{statusLabel}</Text>
+              <Text style={styles.overdueText} numberOfLines={1}>
+                {statusLabel}
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.recheckBtn}
@@ -343,11 +351,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 5,
     marginTop: Spacing.xs,
+    maxWidth: '100%',
   },
   overdueText: {
     fontSize: 12,
     fontFamily: FontFamily.semibold,
     color: Colors.secondary,
+    flexShrink: 1,
   },
   recheckBtn: {
     alignSelf: 'flex-start',
@@ -360,10 +370,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     marginTop: Spacing.sm,
     minHeight: 36,
+    maxWidth: '100%',
   },
   recheckText: {
     color: Colors.white,
     fontSize: 13,
     fontFamily: FontFamily.bold,
+    flexShrink: 1,
   },
 });

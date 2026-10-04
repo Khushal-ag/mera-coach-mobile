@@ -2,9 +2,9 @@ import { AuthLayout } from './authLayout';
 
 export const BrandImages = {
   logoFull: require('../../assets/brand/logo-full.png'),
-  homeHero: require('../../assets/illustrations/figma/home-bg.png'),
-  loginAtmosphere: require('../../assets/illustrations/figma/auth-bg.png'),
-  mpinAtmosphere: require('../../assets/illustrations/figma/mpin-bg.jpg'),
+  homeHero: require('../../assets/illustrations/home-bg.png'),
+  loginAtmosphere: require('../../assets/illustrations/auth-bg.png'),
+  mpinAtmosphere: require('../../assets/illustrations/mpin-bg.jpg'),
   emptyClients: require('../../assets/illustrations/empty-clients.png'),
   emptyLeads: require('../../assets/illustrations/empty-leads.png'),
   emptyCheckups: require('../../assets/illustrations/empty-checkups.png'),
@@ -12,8 +12,38 @@ export const BrandImages = {
   emptyError: require('../../assets/illustrations/empty-error.png'),
   avatarDefault: require('../../assets/illustrations/avatar-default.png'),
   phasePath: require('../../assets/illustrations/phase-path.png'),
-  tipsCoach: require('../../assets/illustrations/figma/tips-coach.png'),
+  tipsCoach: require('../../assets/illustrations/tips-coach.png'),
+  /** In-app wave header bitmap (green field + wavy bottom edge). */
+  waveHeader: require('../../assets/illustrations/wave-header.png'),
+  /** Hero photo bottom smile: opaque accentInk #11523C below a circular arc, transparent above. */
+  heroSmileMask: require('../../assets/illustrations/hero-smile-mask.png'),
+  /** Finished WhatsApp CTA bitmap for public coach profile. */
+  whatsappCoachButton: require('../../assets/illustrations/whatsapp-coach-button.png'),
+  /** Closest existing photo for the explore “Coaching for Every Goal” banner art. */
+  exploreBannerPhoto: require('../../assets/illustrations/dashboard-slide-1.jpg'),
 } as const;
+
+/** Width / height of BrandImages.heroSmileMask (1125×226). */
+export const HERO_SMILE_MASK_ASPECT = 1125 / 226;
+
+/** Width / height of BrandImages.whatsappCoachButton (1033×303). */
+export const WHATSAPP_COACH_BUTTON_ASPECT = 1033 / 303;
+
+/** Pixel size of BrandImages.waveHeader (859×387), including transparent padding. */
+export const WAVE_HEADER_BITMAP = { width: 859, height: 387 } as const;
+
+/**
+ * Opaque window inside the wave bitmap, in pixels.
+ * The file has transparent padding and a rounded cap; this window is solid
+ * green across the full width and includes the bottom of the wave.
+ * Height includes 78 extra rows copied from the last full-width green row
+ * (y=228) so the wave sits below the header chrome. At a 390pt screen that
+ * band is 36pt; the wave curve itself is unchanged.
+ */
+export const WAVE_HEADER_FRAME = { x: 3, y: 46, width: 851, height: 308 } as const;
+
+/** Width / height of the on-screen wave (WAVE_HEADER_FRAME). */
+export const WAVE_HEADER_ASPECT = WAVE_HEADER_FRAME.width / WAVE_HEADER_FRAME.height;
 
 /** Width / height of BrandImages.tipsCoach (779×479). */
 export const TIPS_COACH_ASPECT = 779 / 479;

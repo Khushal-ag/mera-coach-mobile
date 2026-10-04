@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
   errorSpacer: { height: 20 + Spacing.md },
   pad: {
     alignSelf: 'stretch',
+    maxWidth: '100%',
     backgroundColor: Colors.mpinPadBg,
     borderRadius: PAD_RADIUS,
     borderWidth: 1,
@@ -164,13 +165,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: KEY_GAP,
+    maxWidth: '100%',
   },
   keySlot: {
     flex: 1,
+    minWidth: 0,
     aspectRatio: KEY_ASPECT,
   },
   key: {
     flex: 1,
+    minWidth: 0,
     aspectRatio: KEY_ASPECT,
     borderRadius: Radius.pill,
     backgroundColor: Colors.mpinKeyBg,

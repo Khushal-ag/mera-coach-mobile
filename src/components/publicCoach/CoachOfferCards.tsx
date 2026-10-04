@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
 import {
   Colors,
@@ -15,13 +15,14 @@ import type { CoachEvent, CoachPackage } from '../../types/models';
 
 export function PackageCard({ pkg, onSelect }: { pkg: CoachPackage; onSelect: () => void }) {
   const imageUri = resolveMediaUrl(pkg.imageUrl);
+  const imageSource = useMemo(() => (imageUri ? { uri: imageUri } : null), [imageUri]);
   const [imageFailed, setImageFailed] = useState(false);
   const [trackedImage, setTrackedImage] = useState(pkg.imageUrl);
   if (pkg.imageUrl !== trackedImage) {
     setTrackedImage(pkg.imageUrl);
     setImageFailed(false);
   }
-  const showImage = Boolean(imageUri) && !imageFailed;
+  const showImage = Boolean(imageSource) && !imageFailed;
 
   return (
     <TouchableOpacity
@@ -32,9 +33,9 @@ export function PackageCard({ pkg, onSelect }: { pkg: CoachPackage; onSelect: ()
       accessibilityLabel={`Enquire about ${pkg.name}`}
     >
       <View style={styles.offerImageWrap}>
-        {showImage ? (
+        {showImage && imageSource ? (
           <Image
-            source={{ uri: imageUri }}
+            source={imageSource}
             style={styles.offerImage}
             resizeMode="cover"
             onError={() => setImageFailed(true)}
@@ -77,13 +78,14 @@ export function PackageCard({ pkg, onSelect }: { pkg: CoachPackage; onSelect: ()
 export function EventCard({ event }: { event: CoachEvent }) {
   const meta = [event.date, event.time, event.location].filter(Boolean).join(' · ');
   const imageUri = resolveMediaUrl(event.imageUrl);
+  const imageSource = useMemo(() => (imageUri ? { uri: imageUri } : null), [imageUri]);
   const [imageFailed, setImageFailed] = useState(false);
   const [trackedImage, setTrackedImage] = useState(event.imageUrl);
   if (event.imageUrl !== trackedImage) {
     setTrackedImage(event.imageUrl);
     setImageFailed(false);
   }
-  const showImage = Boolean(imageUri) && !imageFailed;
+  const showImage = Boolean(imageSource) && !imageFailed;
 
   const openLink = () => {
     const url = event.link.trim();
@@ -95,9 +97,9 @@ export function EventCard({ event }: { event: CoachEvent }) {
   return (
     <View style={styles.offerCard}>
       <View style={styles.offerImageWrap}>
-        {showImage ? (
+        {showImage && imageSource ? (
           <Image
-            source={{ uri: imageUri }}
+            source={imageSource}
             style={styles.offerImage}
             resizeMode="cover"
             onError={() => setImageFailed(true)}

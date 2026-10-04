@@ -22,6 +22,7 @@ const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Home: '',
+      PublicBmi: 'bmi',
       CoachList: 'coach-list',
       CoachPublicProfile: 'coach-profile',
       Login: 'login',

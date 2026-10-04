@@ -4,11 +4,13 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
   Modal,
   useWindowDimensions,
+  type ListRenderItem,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,7 +99,7 @@ function FilterControl({
   );
 }
 
-function CoachResultCard({
+const CoachResultCard = React.memo(function CoachResultCard({
   coach,
   photoUri,
   clientCount,
@@ -185,10 +187,17 @@ function CoachResultCard({
       ) : null}
     </View>
   );
-}
+});
 
-function TopRatedCompactCard({ coach, onPress }: { coach: Coach; onPress: () => void }) {
-  const photoUri = resolveCoachPhotoUrl(coach);
+const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
+  coach,
+  photoUri,
+  onPress,
+}: {
+  coach: Coach;
+  photoUri?: string;
+  onPress: () => void;
+}) {
   const showRating = shouldShowPublicRating(coach.rating, coach.reviews);
 
   return (
@@ -234,13 +243,13 @@ function TopRatedCompactCard({ coach, onPress }: { coach: Coach; onPress: () => 
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 export default function CoachListScreen({ navigation, route }: RootScreenProps<'CoachList'>) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const signedIn = useAuthState() === 'signedIn';
-  const scrollRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<Coach>>(null);
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(route.params?.categoryCode || '');
@@ -401,7 +410,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const onViewAllTopRated = () => {
     clearFilters();
     setSort('Top Rated');
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   const closePicker = () => setPicker(null);
@@ -457,6 +466,17 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
 
   const resultCount = totalCount;
   const filterColWidth = (screenWidth - Spacing.md * 2 - Spacing.sm) / 2;
+  const filterCellStyle = useMemo(() => ({ width: filterColWidth }), [filterColWidth]);
+  const listContentStyle = useMemo(
+    () => [
+      styles.bodyContent,
+      { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.lg },
+      filtered.length === 0 && !coachesQuery.isPending && !showLoadError
+        ? styles.listEmptyGrow
+        : null,
+    ],
+    [insets.bottom, filtered.length, coachesQuery.isPending, showLoadError],
+  );
 
   const coachCodes = useMemo(() => filtered.map(c => c.id), [filtered]);
   const coachesForNav = useMemo(
@@ -473,23 +493,236 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     [filtered, myCoachCode, myClientsQuery.data?.length],
   );
 
+  const topRatedCodes = useMemo(() => topRatedCoaches.map(c => c.id), [topRatedCoaches]);
+  const topRatedForNav = useMemo(
+    () =>
+      topRatedCoaches.map(c => {
+        const clientCount = resolvePublicClientCount({
+          coachId: c.id,
+          marketingClients: c.clients,
+          viewerCoachCode: myCoachCode,
+          liveRosterLength: myClientsQuery.data?.length,
+        });
+        return { ...c, clients: clientCount };
+      }),
+    [topRatedCoaches, myCoachCode, myClientsQuery.data?.length],
+  );
+
+  const rosterLength = myClientsQuery.data?.length;
+
+  const renderCoachItem = useCallback<ListRenderItem<Coach>>(
+    ({ item: coach }) => {
+      const photoUri = resolveCoachPhotoUrl(coach);
+      const clientCount = resolvePublicClientCount({
+        coachId: coach.id,
+        marketingClients: coach.clients,
+        viewerCoachCode: myCoachCode,
+        liveRosterLength: rosterLength,
+      });
+      return (
+        <CoachResultCard
+          coach={coach}
+          photoUri={photoUri}
+          clientCount={clientCount}
+          coachCodes={coachCodes}
+          coaches={coachesForNav}
+          onViewProfile={openCoachProfile}
+        />
+      );
+    },
+    [myCoachCode, rosterLength, coachCodes, coachesForNav, openCoachProfile],
+  );
+
+  const keyExtractor = useCallback((item: Coach) => item.id, []);
+
+  const listHeader = (
+    <>
+      <View style={styles.filterGrid}>
+        <View style={filterCellStyle}>
+          <FilterControl
+            icon="location"
+            label="Serving City"
+            value={resolvedCity}
+            onPress={() => setPicker('city')}
+          />
+        </View>
+        <View style={filterCellStyle}>
+          <FilterControl
+            icon="person"
+            label="Coach Category"
+            value={ratingFilter}
+            onPress={() => setPicker('rating')}
+          />
+        </View>
+        <View style={filterCellStyle}>
+          <FilterControl
+            icon="star"
+            label="Sort by"
+            value={sort}
+            onPress={() => setPicker('sort')}
+          />
+        </View>
+        <View style={filterCellStyle}>
+          <TouchableOpacity
+            style={styles.combineBtn}
+            onPress={() => setCombineOpen(true)}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel="Combine Filters"
+          >
+            <Ionicons name="options-outline" size={IconSize.md} color={Colors.secondary} />
+            <Text style={styles.combineBtnText}>Combine Filters</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {hasActiveFilters ? (
+        <TouchableOpacity
+          onPress={clearFilters}
+          style={styles.clearBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Clear filters"
+          activeOpacity={PressOpacity.default}
+          hitSlop={HitSlop.sm}
+        >
+          <Ionicons name="close-circle-outline" size={IconSize.sm} color={Colors.primary} />
+          <Text style={styles.clearText}>Clear filters</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {coachesQuery.isPending && !coachesQuery.data ? (
+        <ActivityIndicator color={Colors.secondary} style={styles.loader} />
+      ) : showLoadError ? (
+        <ReloadState
+          title="Could not load coaches"
+          message={errorMessage!}
+          onRetry={() => void coachesQuery.refetch()}
+          loading={coachesQuery.isFetching}
+        />
+      ) : (
+        <Text style={styles.resultText}>
+          Showing <Text style={styles.resultBold}>{resultCount}</Text>{' '}
+          {pluralizeCoaches(resultCount)}
+        </Text>
+      )}
+    </>
+  );
+
+  const listFooter = (
+    <>
+      {!coachesQuery.isPending && !showLoadError && showPager ? (
+        <ListPager page={safePage} totalPages={totalPages} onChangePage={setPage} />
+      ) : null}
+
+      <View style={styles.topRatedHeader}>
+        <View style={styles.topRatedTitleRow}>
+          <Ionicons name="star" size={IconSize.md} color={Colors.accent} />
+          <Text style={styles.topRatedTitle}>Top Rated Coaches</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.viewAllPill}
+          onPress={onViewAllTopRated}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel="View all top rated coaches"
+          hitSlop={HitSlop.sm}
+        >
+          <Text style={styles.viewAllText}>View All {'>'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {topRatedQuery.isPending && !topRatedQuery.data ? (
+        <ActivityIndicator color={Colors.secondary} style={styles.loader} />
+      ) : topRatedCoaches.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.topRatedRow}
+        >
+          {topRatedCoaches.map((coach, index) => {
+            const clientCount = topRatedForNav[index]?.clients ?? coach.clients;
+            return (
+              <TopRatedCompactCard
+                key={coach.id}
+                coach={coach}
+                photoUri={resolveCoachPhotoUrl(coach)}
+                onPress={() =>
+                  openCoachProfile(coach, clientCount, topRatedCodes, topRatedForNav)
+                }
+              />
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <EmptyState
+          icon="people-outline"
+          title="Coaches coming soon"
+          message="Top rated coaches will appear here as more profiles go live."
+          style={styles.topRatedEmpty}
+        />
+      )}
+
+      <View style={styles.ctaBanner}>
+        <View style={styles.ctaIcon}>
+          <Ionicons name="person-outline" size={IconSize.lg} color={Colors.white} />
+        </View>
+        <View style={styles.ctaCopy}>
+          <Text style={styles.ctaTitle}>Become a Coach</Text>
+          <Text style={styles.ctaSubtitle}>
+            List your profile and get enquiries from people searching for a coach
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.ctaBtn}
+          onPress={onGetStarted}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel={signedIn ? 'Go to Dashboard' : 'Get Started Free'}
+        >
+          <Text style={styles.ctaBtnText}>Get Started Free {'>'}</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  const listEmpty =
+    coachesQuery.isPending && !coachesQuery.data ? null : showLoadError ? null : (
+      <EmptyState
+        icon="search-outline"
+        title="No coaches found"
+        message={
+          hasActiveFilters
+            ? 'No coaches match these filters. Clear them or try another city or keyword.'
+            : 'No coaches match your search. Try another category or keyword.'
+        }
+        actionLabel={hasActiveFilters ? 'Clear filters' : undefined}
+        onAction={hasActiveFilters ? clearFilters : undefined}
+      />
+    );
+
   return (
     <View style={styles.container}>
       <WaveScreenHeader
         title="Find Your Coach"
         onBack={() => navigation.goBack()}
-        onHome={() => navigation.navigate('Home')}
+        onHome={() => navigation.navigate('Home', { page: 0 })}
       />
 
-      <ScrollView
-        ref={scrollRef}
+      <FlatList
+        ref={listRef}
         style={styles.body}
-        contentContainerStyle={[
-          styles.bodyContent,
-          { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.lg },
-        ]}
+        data={coachesQuery.isPending && !coachesQuery.data ? [] : showLoadError ? [] : filtered}
+        keyExtractor={keyExtractor}
+        renderItem={renderCoachItem}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={listContentStyle}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        initialNumToRender={6}
+        maxToRenderPerBatch={4}
+        windowSize={5}
         refreshControl={
           <RefreshControl
             refreshing={refreshControl.refreshing}
@@ -497,193 +730,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
             {...refreshControlTheme}
           />
         }
-      >
-        <View style={styles.filterGrid}>
-          <View style={[styles.filterCell, { width: filterColWidth }]}>
-            <FilterControl
-              icon="location"
-              label="Serving City"
-              value={resolvedCity}
-              onPress={() => setPicker('city')}
-            />
-          </View>
-          <View style={[styles.filterCell, { width: filterColWidth }]}>
-            <FilterControl
-              icon="person"
-              label="Coach Category"
-              value={ratingFilter}
-              onPress={() => setPicker('rating')}
-            />
-          </View>
-          <View style={[styles.filterCell, { width: filterColWidth }]}>
-            <FilterControl
-              icon="star"
-              label="Sort by"
-              value={sort}
-              onPress={() => setPicker('sort')}
-            />
-          </View>
-          <View style={[styles.filterCell, { width: filterColWidth }]}>
-            <TouchableOpacity
-              style={styles.combineBtn}
-              onPress={() => setCombineOpen(true)}
-              activeOpacity={PressOpacity.default}
-              accessibilityRole="button"
-              accessibilityLabel="Combine Filters"
-            >
-              <Ionicons name="options-outline" size={IconSize.md} color={Colors.secondary} />
-              <Text style={styles.combineBtnText}>Combine Filters</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {hasActiveFilters ? (
-          <TouchableOpacity
-            onPress={clearFilters}
-            style={styles.clearBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Clear filters"
-            activeOpacity={PressOpacity.default}
-            hitSlop={HitSlop.sm}
-          >
-            <Ionicons name="close-circle-outline" size={IconSize.sm} color={Colors.primary} />
-            <Text style={styles.clearText}>Clear filters</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {coachesQuery.isPending && !coachesQuery.data ? (
-          <ActivityIndicator color={Colors.secondary} style={styles.loader} />
-        ) : showLoadError ? (
-          <ReloadState
-            title="Could not load coaches"
-            message={errorMessage!}
-            onRetry={() => void coachesQuery.refetch()}
-            loading={coachesQuery.isFetching}
-          />
-        ) : (
-          <>
-            <Text style={styles.resultText}>
-              Showing <Text style={styles.resultBold}>{resultCount}</Text>{' '}
-              {pluralizeCoaches(resultCount)}
-            </Text>
-
-            {filtered.map(coach => {
-              const photoUri = resolveCoachPhotoUrl(coach);
-              const clientCount = resolvePublicClientCount({
-                coachId: coach.id,
-                marketingClients: coach.clients,
-                viewerCoachCode: myCoachCode,
-                liveRosterLength: myClientsQuery.data?.length,
-              });
-
-              return (
-                <CoachResultCard
-                  key={coach.id}
-                  coach={coach}
-                  photoUri={photoUri}
-                  clientCount={clientCount}
-                  coachCodes={coachCodes}
-                  coaches={coachesForNav}
-                  onViewProfile={openCoachProfile}
-                />
-              );
-            })}
-
-            {filtered.length === 0 ? (
-              <EmptyState
-                icon="search-outline"
-                title="No coaches found"
-                message={
-                  hasActiveFilters
-                    ? 'No coaches match these filters. Clear them or try another city or keyword.'
-                    : 'No coaches match your search. Try another category or keyword.'
-                }
-                actionLabel={hasActiveFilters ? 'Clear filters' : undefined}
-                onAction={hasActiveFilters ? clearFilters : undefined}
-              />
-            ) : null}
-
-            {showPager ? (
-              <ListPager page={safePage} totalPages={totalPages} onChangePage={setPage} />
-            ) : null}
-          </>
-        )}
-
-        <View style={styles.topRatedHeader}>
-          <View style={styles.topRatedTitleRow}>
-            <Ionicons name="star" size={IconSize.md} color={Colors.accent} />
-            <Text style={styles.topRatedTitle}>Top Rated Coaches</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.viewAllPill}
-            onPress={onViewAllTopRated}
-            activeOpacity={PressOpacity.default}
-            accessibilityRole="button"
-            accessibilityLabel="View all top rated coaches"
-            hitSlop={HitSlop.sm}
-          >
-            <Text style={styles.viewAllText}>View All {'>'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {topRatedQuery.isPending && !topRatedQuery.data ? (
-          <ActivityIndicator color={Colors.secondary} style={styles.loader} />
-        ) : topRatedCoaches.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.topRatedRow}
-          >
-            {topRatedCoaches.map(coach => {
-              const clientCount = resolvePublicClientCount({
-                coachId: coach.id,
-                marketingClients: coach.clients,
-                viewerCoachCode: myCoachCode,
-                liveRosterLength: myClientsQuery.data?.length,
-              });
-              const codes = topRatedCoaches.map(c => c.id);
-              const coaches = topRatedCoaches.map(c =>
-                c.id === coach.id ? { ...c, clients: clientCount } : c,
-              );
-              return (
-                <TopRatedCompactCard
-                  key={coach.id}
-                  coach={coach}
-                  onPress={() => openCoachProfile(coach, clientCount, codes, coaches)}
-                />
-              );
-            })}
-          </ScrollView>
-        ) : (
-          <EmptyState
-            icon="people-outline"
-            title="Coaches coming soon"
-            message="Top rated coaches will appear here as more profiles go live."
-            style={styles.topRatedEmpty}
-          />
-        )}
-
-        <View style={styles.ctaBanner}>
-          <View style={styles.ctaIcon}>
-            <Ionicons name="person-outline" size={IconSize.lg} color={Colors.white} />
-          </View>
-          <View style={styles.ctaCopy}>
-            <Text style={styles.ctaTitle}>Become a Coach</Text>
-            <Text style={styles.ctaSubtitle}>
-              List your profile and get enquiries from people searching for a coach
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.ctaBtn}
-            onPress={onGetStarted}
-            activeOpacity={PressOpacity.default}
-            accessibilityRole="button"
-            accessibilityLabel={signedIn ? 'Go to Dashboard' : 'Get Started Free'}
-          >
-            <Text style={styles.ctaBtnText}>Get Started Free {'>'}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      />
 
       <Modal visible={picker != null} transparent animationType="fade" onRequestClose={closePicker}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closePicker}>
@@ -856,13 +903,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
   },
+  listEmptyGrow: { flexGrow: 1 },
   filterGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  filterCell: {},
   filterControl: {
     flexDirection: 'row',
     alignItems: 'center',

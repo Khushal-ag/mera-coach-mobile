@@ -15,9 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
+  FormControl,
   IconSize,
   PressOpacity,
   Radius,
+  ScreenPad,
   Shadow,
   Spacing,
   Typography,
@@ -440,9 +442,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 placeholder="Select category"
                 required
                 hasError={!!errorFields.category}
+                labelStyle={styles.fieldLabel}
               />
               <View style={styles.field}>
-                <FormFieldLabel required>Mobile</FormFieldLabel>
+                <FormFieldLabel required style={styles.fieldLabel}>
+                  Mobile
+                </FormFieldLabel>
                 <View style={[styles.inputWrap, styles.inputReadOnly]}>
                   <PhoneTextInput
                     style={styles.input}
@@ -455,7 +460,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
               </View>
               <View style={styles.field}>
-                <FormFieldLabel required>Email</FormFieldLabel>
+                <FormFieldLabel required style={styles.fieldLabel}>
+                  Email
+                </FormFieldLabel>
                 <View
                   style={[
                     styles.inputWrap,
@@ -569,12 +576,15 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 onChange={setServiceLabels}
                 placeholder={servicesQuery.isPending ? 'Loading services...' : 'Select services'}
                 required
+                labelStyle={styles.fieldLabel}
               />
             </FormSection>
 
             <FormSection icon="clipboard-outline" title="About/ Description">
               <View style={styles.field}>
-                <FormFieldLabel required>About/ Description</FormFieldLabel>
+                <FormFieldLabel required style={styles.fieldLabel}>
+                  About/ Description
+                </FormFieldLabel>
                 <TextInput
                   style={[styles.textarea, errorFields.coachDesc && styles.textareaError]}
                   multiline
@@ -622,6 +632,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 options={LOCAL_LANGUAGE_OPTIONS}
                 onChange={setLocalLanguage}
                 placeholder="Select language"
+                labelStyle={styles.fieldLabel}
               />
               <Field
                 label="BMI report template"
@@ -647,7 +658,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               <View style={styles.row}>
                 <View style={styles.half}>
                   <View style={styles.field}>
-                    <FormFieldLabel required>Pin Code</FormFieldLabel>
+                    <FormFieldLabel required style={styles.fieldLabel}>
+                      Pin Code
+                    </FormFieldLabel>
                     <View
                       style={[
                         styles.inputWrap,
@@ -684,6 +697,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                     options={countries.map(c => c.label)}
                     onChange={setCountryLabel}
                     placeholder="Select country"
+                    labelStyle={styles.fieldLabel}
                   />
                 </View>
               </View>
@@ -727,7 +741,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         )}
       </KeyboardSafeScroll>
 
-      <StickyFooter>
+      <StickyFooter style={styles.footerBar}>
         <View style={styles.stepFooter}>
           <TouchableOpacity
             style={styles.prevBtn}
@@ -743,7 +757,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
             accessibilityRole="button"
             accessibilityLabel="Previous"
           >
-            <Text style={styles.prevBtnText}>Previous</Text>
+            <Text style={styles.prevBtnText} numberOfLines={1}>
+              Previous
+            </Text>
             <View style={styles.prevIconCircle}>
               <Ionicons
                 name="chevron-back-outline"
@@ -764,12 +780,14 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               accessibilityRole="button"
               accessibilityLabel="Next"
             >
-              <Text style={styles.nextBtnText}>Next</Text>
+              <Text style={styles.nextBtnText} numberOfLines={1}>
+                Next
+              </Text>
               <View style={styles.nextIconCircle}>
                 <Ionicons
                   name="chevron-forward-outline"
                   size={IconSize.sm}
-                  color={Colors.secondary}
+                  color={Colors.accentInk}
                 />
               </View>
             </TouchableOpacity>
@@ -790,12 +808,16 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 <ActivityIndicator color={Colors.white} size="small" />
               ) : (
                 <>
-                  <Text style={styles.nextBtnText}>Save Changes</Text>
-                  <Ionicons
-                    name="checkmark-outline"
-                    size={IconSize.md}
-                    color={Colors.white}
-                  />
+                  <Text style={styles.nextBtnText} numberOfLines={1}>
+                    Save Changes
+                  </Text>
+                  <View style={styles.saveIconCircle}>
+                    <Ionicons
+                      name="checkmark-outline"
+                      size={IconSize.sm}
+                      color={Colors.accentInk}
+                    />
+                  </View>
                 </>
               )}
             </TouchableOpacity>
@@ -810,17 +832,26 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
   return (
     <View style={styles.stepRow} accessibilityRole="summary">
       <View style={styles.stepItem}>
-        <View style={[styles.stepCircle, styles.stepCircleActive]}>
-          <Text style={styles.stepCircleText}>1</Text>
+        <View style={[styles.stepCircle, step === 1 ? styles.stepCircleActive : styles.stepCircleIdle]}>
+          <Text
+            style={[styles.stepCircleText, step !== 1 && styles.stepCircleTextIdle]}
+          >
+            1
+          </Text>
         </View>
-        <Text style={[styles.stepLabel, styles.stepLabelActive]} numberOfLines={2}>
+        <Text
+          style={[styles.stepLabel, step === 1 && styles.stepLabelActive]}
+          numberOfLines={2}
+        >
           Photo/ Identify
         </Text>
       </View>
       <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
       <View style={styles.stepItem}>
-        <View style={[styles.stepCircle, step === 2 && styles.stepCircleActive]}>
-          <Text style={[styles.stepCircleText, step !== 2 && styles.stepCircleTextInactive]}>
+        <View style={[styles.stepCircle, step === 2 ? styles.stepCircleActive : styles.stepCircleIdle]}>
+          <Text
+            style={[styles.stepCircleText, step !== 2 && styles.stepCircleTextIdle]}
+          >
             2
           </Text>
         </View>
@@ -851,7 +882,7 @@ function FormSection({
       <View style={styles.sectionHeader}>
         {icon ? (
           <View style={styles.sectionIconWrap}>
-            <Ionicons name={icon} size={IconSize.md} color={Colors.secondary} />
+            <Ionicons name={icon} size={IconSize.md} color={Colors.accentInk} />
           </View>
         ) : null}
         <View style={styles.sectionCopy}>
@@ -889,7 +920,9 @@ function Field({
 }: FieldProps) {
   return (
     <View style={styles.field}>
-      <FormFieldLabel required={required}>{label}</FormFieldLabel>
+      <FormFieldLabel required={required} style={styles.fieldLabel}>
+        {label}
+      </FormFieldLabel>
       <View style={[styles.inputWrap, hasError && styles.inputError]}>
         <TextInput
           style={styles.input}
@@ -919,25 +952,27 @@ function ImagePickerTile({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
-      style={styles.imageTile}
-      onPress={onPress}
-      disabled={uploading}
-      activeOpacity={PressOpacity.default}
-      accessibilityRole="button"
-      accessibilityLabel={uri ? `Change ${label}` : `Upload ${label}`}
-      accessibilityState={{ busy: uploading, disabled: uploading }}
-    >
-      {uri ? <Image source={{ uri }} style={styles.imagePreview} /> : null}
-      {uploading ? (
-        <View style={[styles.imageOverlay, !uri && styles.imageOverlayFill]}>
-          <ActivityIndicator color={Colors.primary} />
-        </View>
-      ) : !uri ? (
-        <Ionicons name="camera-outline" size={24} color={Colors.textLight} />
-      ) : null}
+    <View style={styles.imageTileCol}>
+      <TouchableOpacity
+        style={styles.imageTile}
+        onPress={onPress}
+        disabled={uploading}
+        activeOpacity={PressOpacity.default}
+        accessibilityRole="button"
+        accessibilityLabel={uri ? `Change ${label}` : `Upload ${label}`}
+        accessibilityState={{ busy: uploading, disabled: uploading }}
+      >
+        {uri ? <Image source={{ uri }} style={styles.imagePreview} /> : null}
+        {uploading ? (
+          <View style={[styles.imageOverlay, !uri && styles.imageOverlayFill]}>
+            <ActivityIndicator color={Colors.primary} />
+          </View>
+        ) : !uri ? (
+          <Ionicons name="camera-outline" size={24} color={Colors.textLight} />
+        ) : null}
+      </TouchableOpacity>
       <Text style={styles.imageLabel}>{label}</Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -946,7 +981,7 @@ const styles = StyleSheet.create({
   formRoot: { flex: 1 },
   body: { flex: 1 },
   bodyContent: {
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
     gap: Spacing.sm,
@@ -960,26 +995,31 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     gap: Spacing.xs,
   },
-  stepItem: { flex: 1, alignItems: 'center', maxWidth: 140 },
+  stepItem: { flex: 1, alignItems: 'center', maxWidth: 150 },
   stepCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+    borderWidth: 1.5,
   },
   stepCircleActive: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.accentInk,
+    borderColor: Colors.accentInk,
+  },
+  stepCircleIdle: {
+    backgroundColor: Colors.white,
+    borderColor: Colors.accentInk,
   },
   stepCircleText: {
     color: Colors.white,
     fontSize: 13,
     fontFamily: FontFamily.bold,
   },
-  stepCircleTextInactive: {
-    color: Colors.white,
+  stepCircleTextIdle: {
+    color: Colors.accentInk,
   },
   stepLabel: {
     fontSize: 11,
@@ -989,17 +1029,17 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   stepLabelActive: {
-    color: Colors.secondary,
+    color: Colors.accentInk,
     fontFamily: FontFamily.semibold,
   },
   stepLine: {
-    flex: 0.6,
+    flex: 0.55,
     height: 2,
     backgroundColor: Colors.border,
     marginTop: 13,
   },
   stepLineActive: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.accentInk,
   },
   sectionCard: {
     backgroundColor: Colors.white,
@@ -1016,9 +1056,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.secondaryLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1027,7 +1067,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontFamily: headingFont.bold,
-    color: Colors.textDark,
+    color: Colors.accentInk,
     lineHeight: 20,
   },
   sectionHint: {
@@ -1038,22 +1078,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: Colors.accentInk,
     borderStyle: 'dashed',
     borderRadius: Radius.md,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
     overflow: 'hidden',
+    paddingVertical: Spacing.md,
   },
   imagesDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
+    width: 1,
+    backgroundColor: Colors.accentInk,
+    alignSelf: 'stretch',
+  },
+  imageTileCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: Spacing.sm,
   },
   imageTile: {
-    flex: 1,
-    height: 110,
+    width: 88,
+    height: 88,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
     overflow: 'hidden',
     backgroundColor: Colors.disabledBg,
   },
@@ -1067,11 +1115,15 @@ const styles = StyleSheet.create({
   imageOverlayFill: { backgroundColor: 'transparent' },
   imageLabel: {
     fontSize: 12,
-    fontFamily: FontFamily.semibold,
-    color: Colors.secondary,
-    marginTop: 4,
+    fontFamily: FontFamily.bold,
+    color: Colors.accentInk,
+    textAlign: 'center',
   },
   field: { marginBottom: Spacing.md },
+  fieldLabel: {
+    fontFamily: headingFont.semibold,
+    color: Colors.textDark,
+  },
   inputWrap: {
     ...formFieldStyles.wrap,
     ...formFieldStyles.wrapSurface,
@@ -1087,7 +1139,7 @@ const styles = StyleSheet.create({
   },
   suggestLabel: {
     fontSize: 11,
-    fontFamily: FontFamily.semibold,
+    fontFamily: headingFont.semibold,
     color: Colors.textLight,
     marginTop: Spacing.xs,
     marginBottom: 6,
@@ -1110,15 +1162,17 @@ const styles = StyleSheet.create({
   pinInput: { paddingRight: 36 },
   pinLoader: { position: 'absolute', right: 12 },
   textarea: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
+    ...formFieldStyles.wrapSurface,
+    borderRadius: FormControl.radius,
+    borderWidth: FormControl.borderWidth,
     borderColor: Colors.border,
-    padding: Spacing.sm,
+    paddingHorizontal: FormControl.paddingHorizontal,
+    paddingVertical: Spacing.sm,
     fontSize: 14,
     fontFamily: FontFamily.regular,
     color: Colors.textDark,
-    height: 90,
+    minHeight: 90,
+    height: undefined,
     textAlignVertical: 'top',
   },
   textareaError: formFieldStyles.wrapError,
@@ -1132,6 +1186,9 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: Spacing.md,
   },
+  footerBar: {
+    paddingHorizontal: ScreenPad.horizontal,
+  },
   stepFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1143,42 +1200,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    minHeight: 48,
+    height: 48,
     borderRadius: Radius.pill,
     borderWidth: 1.5,
-    borderColor: Colors.secondary,
+    borderColor: Colors.accentInk,
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   prevBtnText: {
-    color: Colors.secondary,
-    fontSize: 15,
+    color: Colors.accentInk,
+    fontSize: 14,
     fontFamily: FontFamily.bold,
+    flexShrink: 1,
   },
   prevIconCircle: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.accentInk,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   nextBtn: {
-    flex: 1.15,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    minHeight: 48,
+    height: 48,
     borderRadius: Radius.pill,
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.accentInk,
+    paddingHorizontal: Spacing.sm,
   },
   nextBtnDisabled: { opacity: 0.7 },
   nextBtnText: {
     color: Colors.white,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: FontFamily.bold,
+    flexShrink: 1,
   },
   nextIconCircle: {
     width: 24,
@@ -1187,5 +1247,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  saveIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
 });

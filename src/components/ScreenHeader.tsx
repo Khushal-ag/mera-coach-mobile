@@ -46,7 +46,7 @@ export function HeaderBackButton({
       <Ionicons
         name="chevron-back-outline"
         size={IconSize.lg}
-        color={onDark ? Colors.white : Colors.headerGradientBottom}
+        color={onDark ? Colors.white : Colors.accentInk}
       />
     </TouchableOpacity>
   );
@@ -67,7 +67,7 @@ export function HeaderHomeButton({
   accessibilityLabel = 'Home',
 }: HeaderHomeButtonProps) {
   const navigation = useNavigation();
-  const handlePress = onPress ?? (() => navigation.navigate('Home'));
+  const handlePress = onPress ?? (() => navigation.navigate('Home', { page: 0 }));
 
   return (
     <TouchableOpacity
@@ -81,7 +81,7 @@ export function HeaderHomeButton({
       <Ionicons
         name="home-outline"
         size={IconSize.lg}
-        color={onDark ? Colors.white : Colors.headerGradientBottom}
+        color={onDark ? Colors.white : Colors.accentInk}
       />
     </TouchableOpacity>
   );

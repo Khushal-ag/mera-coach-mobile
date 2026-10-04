@@ -67,7 +67,8 @@ export type MainTabParamList = {
 /** Public + auth root stack (signed-in coach browsing stays reachable without signing out). */
 export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
-  Home: undefined;
+  Home: { page?: number } | undefined;
+  PublicBmi: undefined;
   CoachList: { categoryCode?: string } | undefined;
   CoachPublicProfile:
     | {

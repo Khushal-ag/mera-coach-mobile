@@ -1,22 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   Image,
   Pressable,
   StyleSheet,
+  ScrollView,
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BrandLogo from '../../components/BrandLogo';
-import {
-  BrandImages,
-  HOME_HERO_ASPECT,
-  HOME_HERO_HEIGHT,
-  HOME_RUNNER_HEAD_TOP,
-  LOGO_ASPECT,
-} from '../../constants/images';
+import HomeExplorePage from './HomeExplorePage';
+import { BrandImages, HOME_HERO_ASPECT, LOGO_ASPECT } from '../../constants/images';
 import {
   Colors,
   FontFamily,
@@ -29,38 +25,26 @@ import {
 import { useAuthState } from '../../auth/useAuthState';
 import type { RootScreenProps } from '../../types/navigation';
 
-const HOME_LOGO_WIDTH_FRAC = 0.6;
-const HOME_LOGO_HEAD_GAP = 6;
+const HOME_LOGO_WIDTH_FRAC = 0.48;
 
-function coverTopBiasLayout(screenW: number, screenH: number, imageAspect: number) {
-  const screenAspect = screenW / screenH;
-  if (screenAspect > imageAspect) {
-    const width = screenW;
-    const height = screenW / imageAspect;
-    return { width, height, left: 0, top: (screenH - height) * 0.2 };
-  }
-  const height = screenH;
-  const width = screenH * imageAspect;
-  return { width, height, left: (screenW - width) / 2, top: 0 };
-}
-
-export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
-  const { width: screenW, height: screenH } = useWindowDimensions();
+function MarketingPage({
+  width,
+  height,
+  navigation,
+  onGoExplore,
+}: {
+  width: number;
+  height: number;
+  navigation: RootScreenProps<'Home'>['navigation'];
+  onGoExplore: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const signedIn = useAuthState() === 'signedIn';
-  const layout = useMemo(
-    () => coverTopBiasLayout(screenW, screenH, HOME_HERO_ASPECT),
-    [screenW, screenH],
-  );
-
-  const targetLogoHeight = (screenW * HOME_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
-  const headY =
-    layout.top + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * layout.height;
-  const maxLogoHeight = Math.max(
-    120,
-    headY - (insets.top + Spacing.xxs) - HOME_LOGO_HEAD_GAP,
-  );
-  const homeLogoSize = Math.min(targetLogoHeight, maxLogoHeight);
+  const homeLogoSize = (width * HOME_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
+  const naturalHeroHeight = width / HOME_HERO_ASPECT;
+  const heroFit = naturalHeroHeight > height ? height / naturalHeroHeight : 1;
+  const heroWidth = width * heroFit;
+  const heroHeight = naturalHeroHeight * heroFit;
 
   const onGetStarted = () => {
     if (signedIn) {
@@ -71,25 +55,42 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.marketingPage, { width, height }]}>
       <Image
         source={BrandImages.homeHero}
-        style={[styles.hero, layout]}
-        resizeMode="cover"
+        style={{
+          position: 'absolute',
+          left: (width - heroWidth) / 2,
+          top: height - heroHeight,
+          width: heroWidth,
+          height: heroHeight,
+        }}
+        resizeMode="stretch"
         accessibilityIgnoresInvertColors
       />
 
-      <View style={[styles.topBrand, { paddingTop: insets.top + Spacing.xxs }]}>
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={onGoExplore}
+        accessibilityRole="button"
+        accessibilityLabel="Explore home"
+      />
+
+      <View
+        pointerEvents="none"
+        style={[styles.topBrand, { paddingTop: insets.top + Spacing.sm }]}
+      >
         <BrandLogo size={homeLogoSize} />
       </View>
 
       <View
+        pointerEvents="box-none"
         style={[
           styles.bottomBlock,
           { paddingBottom: Math.max(insets.bottom, Spacing.sm) + Spacing.md },
         ]}
       >
-        <View style={styles.headline}>
+        <View pointerEvents="none" style={styles.headline}>
           <Text style={styles.lineWhite}>Grow Your</Text>
           <Text style={styles.lineOrange}>Coaching</Text>
           <Text style={styles.lineWhite}>Business with</Text>
@@ -139,14 +140,64 @@ export default function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   );
 }
 
+export default function HomeScreen({ navigation, route }: RootScreenProps<'Home'>) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const pagerRef = useRef<ScrollView>(null);
+
+  const scrollToPage = useCallback(
+    (index: number, animated = true) => {
+      const next = Math.max(0, Math.min(1, index));
+      pagerRef.current?.scrollTo({ x: screenW * next, animated });
+    },
+    [screenW],
+  );
+
+  useEffect(() => {
+    const page = route.params?.page;
+    if (page == null) return;
+    scrollToPage(page, false);
+    navigation.setParams({ page: undefined });
+  }, [navigation, route.params?.page, scrollToPage]);
+
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        bounces={false}
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        style={styles.pager}
+      >
+        <MarketingPage
+          width={screenW}
+          height={screenH}
+          navigation={navigation}
+          onGoExplore={() => scrollToPage(1, true)}
+        />
+        <HomeExplorePage
+          width={screenW}
+          height={screenH}
+          navigation={navigation}
+          onGoHome={() => scrollToPage(0, true)}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.homeCanvas,
-    overflow: 'hidden',
   },
-  hero: {
-    position: 'absolute',
+  pager: {
+    flex: 1,
+  },
+  marketingPage: {
+    backgroundColor: Colors.homeCanvas,
+    overflow: 'hidden',
   },
   topBrand: {
     alignItems: 'center',
@@ -178,6 +229,8 @@ const styles = StyleSheet.create({
   brandLine: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   mera: {
     fontFamily: headingFont.extraBold,
@@ -187,6 +240,7 @@ const styles = StyleSheet.create({
   },
   coachWrap: {
     alignItems: 'flex-start',
+    flexShrink: 1,
   },
   coach: {
     fontFamily: headingFont.extraBold,
@@ -234,6 +288,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   ctaDivider: {
     width: StyleSheet.hairlineWidth * 2,
@@ -246,6 +301,7 @@ const styles = StyleSheet.create({
   },
   ctaLabelStack: {
     flex: 1,
+    minWidth: 0,
   },
   ctaPrimaryTitle: {
     fontFamily: FontFamily.bold,
@@ -261,6 +317,7 @@ const styles = StyleSheet.create({
   },
   ctaSecondaryLabel: {
     flex: 1,
+    minWidth: 0,
     fontFamily: FontFamily.bold,
     fontSize: 15,
     color: Colors.white,
@@ -272,5 +329,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
 });

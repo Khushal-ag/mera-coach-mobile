@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  type StyleProp,
+  type TextStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -49,6 +58,7 @@ interface MultiSelectFieldProps {
   placeholder?: string;
   required?: boolean;
   hasError?: boolean;
+  labelStyle?: StyleProp<TextStyle>;
   /**
    * When set, selecting this option clears all others; selecting any other option
    * clears this one (e.g. "None of the above"). Always rendered last in the list.
@@ -64,6 +74,7 @@ export default function MultiSelectField({
   placeholder,
   required,
   hasError,
+  labelStyle,
   exclusiveNoneCode,
 }: MultiSelectFieldProps) {
   const [open, setOpen] = useState(false);
@@ -112,7 +123,9 @@ export default function MultiSelectField({
 
   return (
     <View style={styles.field}>
-      <FormFieldLabel required={required}>{label}</FormFieldLabel>
+      <FormFieldLabel required={required} style={labelStyle}>
+        {label}
+      </FormFieldLabel>
       <TouchableOpacity
         style={[styles.box, hasError && styles.boxError]}
         onPress={() => setOpen(true)}

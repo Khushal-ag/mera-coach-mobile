@@ -22,7 +22,7 @@ import { serializeCoachEvents, validateCoachEventsDraft } from '../../utils/coac
 import { isPendingLocalMediaUrl } from '../../utils/mediaUrl';
 import type { EventsStackScreenProps } from '../../types/navigation';
 import type { CoachEvent } from '../../types/models';
-import TabRootHeader from '../../components/TabRootHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import { navigateToDashboard } from '../../utils/navigationBack';
 
 export default function EditEventsScreen({ navigation }: EventsStackScreenProps<'EventsHome'>) {
@@ -38,7 +38,11 @@ export default function EditEventsScreen({ navigation }: EventsStackScreenProps<
 
   return (
     <View style={styles.container}>
-      <TabRootHeader title="Events" onBack={() => navigateToDashboard(navigation)} />
+      <WaveScreenHeader
+        title="Events"
+        onBack={() => navigateToDashboard(navigation)}
+        onHome={() => navigateToDashboard(navigation)}
+      />
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={{ marginTop: 60 }} />

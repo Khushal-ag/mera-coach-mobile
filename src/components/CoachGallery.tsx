@@ -60,6 +60,94 @@ async function loadGallery(coachCode: string): Promise<DocumentListItem[]> {
   });
 }
 
+const GalleryThumb = React.memo(function GalleryThumb({
+  item,
+  uri,
+  broken,
+  tileSize,
+  editable,
+  busy,
+  deleteDisabled,
+  onOpen,
+  onMarkFailed,
+  onDelete,
+}: {
+  item: DocumentListItem;
+  uri: string;
+  broken: boolean;
+  tileSize?: number;
+  editable: boolean;
+  busy: boolean;
+  deleteDisabled: boolean;
+  onOpen: (uri: string) => void;
+  onMarkFailed: (docId: number) => void;
+  onDelete: (item: DocumentListItem, broken: boolean) => void;
+}) {
+  const source = useMemo(() => (uri && !broken ? { uri } : null), [uri, broken]);
+  const wrapStyle = useMemo(
+    () => [styles.thumbWrap, tileSize != null ? { width: tileSize } : null],
+    [tileSize],
+  );
+
+  return (
+    <View style={wrapStyle} collapsable={false}>
+      {broken ? (
+        <TouchableOpacity
+          style={[styles.thumb, styles.thumbBroken]}
+          onPress={() => onDelete(item, true)}
+          disabled={deleteDisabled}
+          accessibilityRole="button"
+          accessibilityLabel="Remove unavailable photo"
+          activeOpacity={PressOpacity.default}
+        >
+          {busy ? (
+            <ActivityIndicator color={Colors.primary} size="small" />
+          ) : (
+            <>
+              <Ionicons name="image-outline" size={22} color={Colors.textLight} />
+              <Text style={styles.thumbBrokenText}>Unavailable</Text>
+              <Text style={styles.thumbBrokenHint}>Tap to remove</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      ) : source ? (
+        <TouchableOpacity
+          activeOpacity={PressOpacity.default}
+          onPress={() => onOpen(uri)}
+          accessibilityRole="button"
+          accessibilityLabel="View gallery photo"
+        >
+          <Image
+            source={source}
+            style={styles.thumb}
+            onError={() => onMarkFailed(item.docId)}
+            onLoad={e => {
+              const { width, height } = e.nativeEvent.source;
+              if (isDegenerateImageSize(width, height)) onMarkFailed(item.docId);
+            }}
+          />
+        </TouchableOpacity>
+      ) : null}
+      {editable ? (
+        <TouchableOpacity
+          style={[styles.deleteBtn, busy && styles.deleteBtnBusy]}
+          onPress={() => onDelete(item, broken)}
+          disabled={deleteDisabled}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={broken ? 'Remove unavailable photo' : 'Delete photo'}
+        >
+          {busy ? (
+            <ActivityIndicator color={Colors.destructive} size="small" />
+          ) : (
+            <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
+          )}
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+});
+
 export default function CoachGallery({
   coachCode,
   editable = false,
@@ -72,6 +160,10 @@ export default function CoachGallery({
   const [failedDocIds, setFailedDocIds] = useState<Set<number>>(() => new Set());
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [gridWidth, setGridWidth] = useState(0);
+  const lightboxSource = useMemo(
+    () => (lightboxUri ? { uri: lightboxUri } : null),
+    [lightboxUri],
+  );
 
   const galleryKey = queryKeys.coachGallery(coachCode);
 
@@ -190,7 +282,7 @@ export default function CoachGallery({
     [coachCode, deletingDocId, galleryKey, invalidate, queryClient],
   );
 
-  const confirmDelete = (item: DocumentListItem, broken: boolean) => {
+  const confirmDelete = useCallback((item: DocumentListItem, broken: boolean) => {
     Alert.alert(
       broken ? 'Remove unavailable photo?' : 'Delete photo?',
       broken
@@ -207,7 +299,11 @@ export default function CoachGallery({
         },
       ],
     );
-  };
+  }, [removePhoto]);
+
+  const openLightbox = useCallback((uri: string) => setLightboxUri(uri), []);
+  const tileSize =
+    gridWidth > 0 ? (gridWidth - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS : undefined;
 
   if (hideWhenEmpty && !galleryQuery.isPending && visiblePhotos.length === 0) {
     return null;
@@ -251,7 +347,7 @@ export default function CoachGallery({
       ) : null}
 
       {galleryQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 12 }} />
+        <ActivityIndicator color={Colors.primary} style={styles.pendingSpinner} />
       ) : visiblePhotos.length === 0 ? (
         editable ? (
           <View style={styles.emptyCard}>
@@ -272,72 +368,21 @@ export default function CoachGallery({
           style={styles.grid}
           onLayout={e => setGridWidth(e.nativeEvent.layout.width)}
         >
-          {visiblePhotos.map(({ item, uri, broken }) => {
-            const busy = deletingDocId === item.docId;
-            const tileSize =
-              gridWidth > 0 ? (gridWidth - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS : undefined;
-            return (
-              <View
-                key={item.docId}
-                style={[styles.thumbWrap, tileSize != null && { width: tileSize }]}
-                collapsable={false}
-              >
-                {broken ? (
-                  <TouchableOpacity
-                    style={[styles.thumb, styles.thumbBroken]}
-                    onPress={() => confirmDelete(item, true)}
-                    disabled={busy || deletingDocId != null}
-                    accessibilityRole="button"
-                    accessibilityLabel="Remove unavailable photo"
-                    activeOpacity={PressOpacity.default}
-                  >
-                    {busy ? (
-                      <ActivityIndicator color={Colors.primary} size="small" />
-                    ) : (
-                      <>
-                        <Ionicons name="image-outline" size={22} color={Colors.textLight} />
-                        <Text style={styles.thumbBrokenText}>Unavailable</Text>
-                        <Text style={styles.thumbBrokenHint}>Tap to remove</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    activeOpacity={PressOpacity.default}
-                    onPress={() => setLightboxUri(uri)}
-                    accessibilityRole="button"
-                    accessibilityLabel="View gallery photo"
-                  >
-                    <Image
-                      source={{ uri }}
-                      style={styles.thumb}
-                      onError={() => markFailed(item.docId)}
-                      onLoad={e => {
-                        const { width, height } = e.nativeEvent.source;
-                        if (isDegenerateImageSize(width, height)) markFailed(item.docId);
-                      }}
-                    />
-                  </TouchableOpacity>
-                )}
-                {editable ? (
-                  <TouchableOpacity
-                    style={[styles.deleteBtn, busy && styles.deleteBtnBusy]}
-                    onPress={() => confirmDelete(item, broken)}
-                    disabled={busy || deletingDocId != null}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityRole="button"
-                    accessibilityLabel={broken ? 'Remove unavailable photo' : 'Delete photo'}
-                  >
-                    {busy ? (
-                      <ActivityIndicator color={Colors.destructive} size="small" />
-                    ) : (
-                      <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
-                    )}
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            );
-          })}
+          {visiblePhotos.map(({ item, uri, broken }) => (
+            <GalleryThumb
+              key={item.docId}
+              item={item}
+              uri={uri}
+              broken={broken}
+              tileSize={tileSize}
+              editable={editable}
+              busy={deletingDocId === item.docId}
+              deleteDisabled={deletingDocId != null}
+              onOpen={openLightbox}
+              onMarkFailed={markFailed}
+              onDelete={confirmDelete}
+            />
+          ))}
         </View>
       )}
 
@@ -354,12 +399,8 @@ export default function CoachGallery({
             onPress={() => setLightboxUri(null)}
           />
           <View style={styles.lightboxContent}>
-            {lightboxUri ? (
-              <Image
-                source={{ uri: lightboxUri }}
-                style={styles.lightboxImage}
-                resizeMode="contain"
-              />
+            {lightboxSource ? (
+              <Image source={lightboxSource} style={styles.lightboxImage} resizeMode="contain" />
             ) : null}
           </View>
           <TouchableOpacity style={styles.lightboxClose} onPress={() => setLightboxUri(null)}>
@@ -424,6 +465,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   emptyText: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.textLight },
+  pendingSpinner: { marginTop: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
   thumbWrap: { position: 'relative' },
   thumb: {

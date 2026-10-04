@@ -239,7 +239,7 @@ export default function DashboardScreen({
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.chromeIconBtn}
-                onPress={() => navigation.navigate('Home')}
+                onPress={() => navigation.navigate('Home', { page: 0 })}
                 accessibilityRole="button"
                 accessibilityLabel="Home"
                 activeOpacity={PressOpacity.default}
@@ -345,7 +345,7 @@ export default function DashboardScreen({
             <Text style={styles.primaryCtaTitle}>Add Client</Text>
             <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
           </View>
-          <View style={styles.primaryCtaArrow}>
+          <View style={styles.primaryCtaArrow} pointerEvents="none">
             <Ionicons name="arrow-forward-outline" size={20} color={Colors.white} />
           </View>
         </TouchableOpacity>
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     color: Colors.brandCoach,
     fontFamily: headingFont.extraBold,
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 },
   guideLine: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
@@ -505,6 +505,7 @@ const styles = StyleSheet.create({
   },
   metricItem: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -529,12 +530,14 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     lineHeight: 34,
     letterSpacing: -0.4,
+    maxWidth: '100%',
   },
   metricLabel: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
     color: Colors.textDark,
     marginTop: 2,
+    maxWidth: '100%',
   },
   statsError: {
     fontSize: 12,
@@ -555,19 +558,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    height: 74,
+    height: 72,
     backgroundColor: Colors.addClientBannerLight,
-    borderRadius: 24,
-    paddingHorizontal: Spacing.md,
+    borderRadius: 22,
+    paddingLeft: Spacing.md,
+    paddingRight: Spacing.lg,
     overflow: 'hidden',
   },
+  /** Large oval mostly off-canvas — only a soft vertical sweep shows. */
   primaryCtaCurve: {
     position: 'absolute',
-    right: -48,
-    top: -52,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    right: -150,
+    top: -95,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
     backgroundColor: Colors.addClientBannerDark,
   },
   primaryCtaIcon: {
@@ -579,8 +584,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
   },
-  primaryCtaCopy: { flex: 1, zIndex: 1 },
-  primaryCtaArrow: { zIndex: 1 },
+  primaryCtaCopy: { flex: 1, zIndex: 1, minWidth: 0 },
+  primaryCtaArrow: {
+    zIndex: 1,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   primaryCtaTitle: {
     color: Colors.white,
     fontSize: 18,
@@ -599,6 +610,7 @@ const styles = StyleSheet.create({
   },
   secondaryChip: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'flex-start',
     gap: 8,
     borderRadius: 18,
@@ -619,12 +631,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: headingFont.bold,
     color: Colors.textDark,
+    maxWidth: '100%',
   },
   secondarySub: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
     color: Colors.textLight,
     lineHeight: 14,
+    maxWidth: '100%',
   },
   carouselSection: {
     paddingTop: Spacing.sm,

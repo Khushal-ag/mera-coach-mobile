@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  type ListRenderItem,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,6 +53,71 @@ function checkupLine(item: ClientSummary): string {
   return raw.replace(/^Last check-up\s+/i, 'Last Check-up : ');
 }
 
+const ClientRow = React.memo(function ClientRow({
+  item,
+  onOpen,
+}: {
+  item: ClientSummary;
+  onOpen: (item: ClientSummary) => void;
+}) {
+  const mobile = (item.mobileNo ?? '').trim();
+  return (
+    <View style={styles.card}>
+      <ClientAvatar
+        clientCode={item.clientCode}
+        width={ListPortrait.width}
+        height={ListPortrait.height}
+        borderRadius={ListPortrait.radius}
+        allowUpload
+        style={styles.avatar}
+      />
+      <View style={styles.middle}>
+        <View style={styles.textRow}>
+          <TouchableOpacity
+            style={styles.info}
+            onPress={() => onOpen(item)}
+            activeOpacity={PressOpacity.strong}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${item.name}`}
+          >
+            <Text style={styles.name} numberOfLines={1}>
+              {item.name}
+            </Text>
+            {item.age != null ? (
+              <Text style={styles.meta} numberOfLines={1}>
+                Age: {item.age}
+              </Text>
+            ) : null}
+            {mobile ? (
+              <Text style={styles.meta} numberOfLines={1}>
+                {mobile}
+              </Text>
+            ) : null}
+            <Text style={styles.meta} numberOfLines={1}>
+              {checkupLine(item)}
+            </Text>
+          </TouchableOpacity>
+          <Ionicons
+            name="chevron-forward-outline"
+            size={IconSize.lg}
+            color={Colors.textDark}
+            style={styles.chevron}
+          />
+        </View>
+        <TouchableOpacity
+          style={styles.selectBtn}
+          onPress={() => onOpen(item)}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel={`Select ${item.name}`}
+        >
+          <Text style={styles.selectBtnText}>Select</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 export default function ClientListScreen({
   navigation,
 }: ClientsStackScreenProps<'ClientListHome'>) {
@@ -94,9 +160,11 @@ export default function ClientListScreen({
     setPage(1);
   };
 
-  const goAddClient = () => navigation.navigate('AddClient');
-  const goClientDetail = (item: ClientSummary) =>
-    navigation.navigate('ClientDetail', { client: item });
+  const goAddClient = useCallback(() => navigation.navigate('AddClient'), [navigation]);
+  const goClientDetail = useCallback(
+    (item: ClientSummary) => navigation.navigate('ClientDetail', { client: item }),
+    [navigation],
+  );
 
   const emptyState =
     clients.length === 0
@@ -110,6 +178,21 @@ export default function ClientListScreen({
           title: 'No matches',
           message: 'Try a different name or mobile number.',
         };
+
+  const renderItem = useCallback<ListRenderItem<ClientSummary>>(
+    ({ item }) => <ClientRow item={item} onOpen={goClientDetail} />,
+    [goClientDetail],
+  );
+
+  const keyExtractor = useCallback(
+    (item: ClientSummary) => item.id ?? item.clientCode ?? item.name,
+    [],
+  );
+
+  const listContentStyle = useMemo(
+    () => [filtered.length === 0 ? styles.emptyWrap : undefined, styles.listPadBottom],
+    [filtered.length],
+  );
 
   return (
     <View style={styles.container}>
@@ -149,7 +232,7 @@ export default function ClientListScreen({
         />
 
         {clientsQuery.isPending && !clientsQuery.data ? (
-          <ActivityIndicator color={Colors.secondary} style={{ marginTop: 30 }} />
+          <ActivityIndicator color={Colors.secondary} style={styles.loader} />
         ) : showLoadError ? (
           <ScrollView
             contentContainerStyle={styles.errorWrap}
@@ -172,15 +255,12 @@ export default function ClientListScreen({
         ) : (
           <FlatList
             data={pageItems}
-            keyExtractor={item => item.id ?? item.clientCode ?? item.name}
+            keyExtractor={keyExtractor}
             showsVerticalScrollIndicator={false}
             initialNumToRender={8}
             maxToRenderPerBatch={6}
             windowSize={5}
-            contentContainerStyle={[
-              filtered.length === 0 ? styles.emptyWrap : undefined,
-              { paddingBottom: ScreenPad.tabBarClearance },
-            ]}
+            contentContainerStyle={listContentStyle}
             refreshControl={
               <RefreshControl
                 refreshing={refreshControl.refreshing}
@@ -209,64 +289,7 @@ export default function ClientListScreen({
                 />
               ) : null
             }
-            renderItem={({ item }) => {
-              const mobile = (item.mobileNo ?? '').trim();
-              return (
-                <View style={styles.card}>
-                  <ClientAvatar
-                    clientCode={item.clientCode}
-                    width={ListPortrait.width}
-                    height={ListPortrait.height}
-                    borderRadius={ListPortrait.radius}
-                    allowUpload
-                    style={styles.avatar}
-                  />
-                  <View style={styles.middle}>
-                    <View style={styles.textRow}>
-                      <TouchableOpacity
-                        style={styles.info}
-                        onPress={() => goClientDetail(item)}
-                        activeOpacity={PressOpacity.strong}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Open ${item.name}`}
-                      >
-                        <Text style={styles.name} numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        {item.age != null ? (
-                          <Text style={styles.meta} numberOfLines={1}>
-                            Age: {item.age}
-                          </Text>
-                        ) : null}
-                        {mobile ? (
-                          <Text style={styles.meta} numberOfLines={1}>
-                            {mobile}
-                          </Text>
-                        ) : null}
-                        <Text style={styles.meta} numberOfLines={1}>
-                          {checkupLine(item)}
-                        </Text>
-                      </TouchableOpacity>
-                      <Ionicons
-                        name="chevron-forward-outline"
-                        size={IconSize.lg}
-                        color={Colors.textDark}
-                        style={styles.chevron}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      style={styles.selectBtn}
-                      onPress={() => goClientDetail(item)}
-                      activeOpacity={PressOpacity.default}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Select ${item.name}`}
-                    >
-                      <Text style={styles.selectBtnText}>Select</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            }}
+            renderItem={renderItem}
           />
         )}
       </View>
@@ -314,8 +337,10 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   search: { marginBottom: Spacing.sm },
+  loader: { marginTop: 30 },
   emptyWrap: { flexGrow: 1 },
   errorWrap: { flexGrow: 1 },
+  listPadBottom: { paddingBottom: ScreenPad.tabBarClearance },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

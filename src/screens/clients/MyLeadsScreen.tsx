@@ -48,7 +48,7 @@ import { navigateToDashboard } from '../../utils/navigationBack';
 
 const PAGE_SIZE = 5;
 
-function LeadRow({
+const LeadRow = React.memo(function LeadRow({
   lead,
   onToggleContacted,
   onSaveNotes,
@@ -126,13 +126,17 @@ function LeadRow({
               accessibilityLabel={`Call ${lead.clientMobile}`}
             >
               <Ionicons name="call-outline" size={IconSize.sm} color={Colors.secondary} />
-              <Text style={styles.phoneText}>{lead.clientMobile}</Text>
+              <Text style={styles.phoneText} numberOfLines={1}>
+                {lead.clientMobile}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Marked as contacted</Text>
+          <Text style={styles.toggleLabel} numberOfLines={2}>
+            Marked as contacted
+          </Text>
           <Switch
             value={lead.isContacted}
             onValueChange={next => onToggleContacted(lead, next)}
@@ -157,7 +161,7 @@ function LeadRow({
       </View>
     </View>
   );
-}
+});
 
 type LeadsScreenProps =
   | NativeStackScreenProps<DashboardStackParamList, 'Leads'>
@@ -452,19 +456,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     marginTop: Spacing.xs,
     minHeight: 30,
+    maxWidth: '100%',
   },
   phoneText: {
     fontSize: 13,
     fontFamily: FontFamily.semibold,
     color: Colors.secondary,
+    flexShrink: 1,
   },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
     marginTop: Spacing.sm,
   },
-  toggleLabel: { ...Typography.label },
+  toggleLabel: { ...Typography.label, flex: 1, minWidth: 0 },
   notesInput: {
     marginTop: Spacing.sm - 2,
     borderWidth: FormControl.borderWidth,

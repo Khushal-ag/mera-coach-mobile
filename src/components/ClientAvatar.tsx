@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Image,
@@ -53,6 +53,15 @@ export default function ClientAvatar({
   const isRoundedSquare = borderRadius != null;
   const panelBg = isRoundedSquare ? Colors.avatarPlaceholder : Colors.secondary;
   const spinnerColor = isRoundedSquare ? Colors.secondary : Colors.white;
+  const imageSource = useMemo(
+    () => (photoUrl ? { uri: photoUrl } : BrandImages.avatarDefault),
+    [photoUrl],
+  );
+  const sizeStyle = useMemo(() => ({ width: w, height: h }), [w, h]);
+  const avatarShapeStyle = useMemo(
+    () => ({ width: w, height: h, borderRadius: radius, backgroundColor: panelBg }),
+    [w, h, radius, panelBg],
+  );
 
   const handleUpload = async () => {
     onUploadPress?.();
@@ -91,24 +100,12 @@ export default function ClientAvatar({
   };
 
   return (
-    <View style={[styles.wrap, { width: w, height: h }, style]}>
-      <View
-        style={[
-          styles.avatar,
-          {
-            width: w,
-            height: h,
-            borderRadius: radius,
-            backgroundColor: panelBg,
-          },
-        ]}
-      >
+    <View style={[styles.wrap, sizeStyle, style]}>
+      <View style={[styles.avatar, avatarShapeStyle]}>
         {isLoading || uploading ? (
           <ActivityIndicator color={spinnerColor} size="small" />
-        ) : photoUrl ? (
-          <Image source={{ uri: photoUrl }} style={styles.image} resizeMode="cover" />
         ) : (
-          <Image source={BrandImages.avatarDefault} style={styles.image} resizeMode="cover" />
+          <Image source={imageSource} style={styles.image} resizeMode="cover" />
         )}
       </View>
       {allowUpload && clientCode ? (

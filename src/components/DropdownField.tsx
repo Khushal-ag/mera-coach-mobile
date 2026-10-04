@@ -1,11 +1,21 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  type StyleProp,
+  type TextStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
   FormControl,
+  IconSize,
   Radius,
   Shadow,
   Spacing,
@@ -14,6 +24,7 @@ import {
 } from '../constants/theme';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
+import type { IoniconName } from '../types/icons';
 
 type DropdownOption = string | MasterOption;
 
@@ -25,15 +36,15 @@ function normalizeOptions(options: DropdownOption[]): MasterOption[] {
 
 interface DropdownFieldProps {
   label?: string;
-  /** Stored value — typically itemCode for PARAMLIST fields, or the option string itself. */
   value: string;
   options: DropdownOption[];
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
   hasError?: boolean;
-  /** Inline toolbar style — hides label and shrinks the trigger. */
   compact?: boolean;
+  labelStyle?: StyleProp<TextStyle>;
+  leftIcon?: IoniconName;
 }
 
 export default function DropdownField({
@@ -45,30 +56,47 @@ export default function DropdownField({
   required,
   hasError,
   compact,
+  labelStyle,
+  leftIcon,
 }: DropdownFieldProps) {
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const normalized = useMemo(() => normalizeOptions(options), [options]);
   const selected = normalized.find(o => o.code === value || o.label === value);
-  // Avoid flashing raw item codes (e.g. PC001) before labels arrive.
   const display = selected?.label ?? '';
 
   return (
     <View style={[styles.field, compact && styles.fieldCompact]}>
-      {label ? <FormFieldLabel required={required}>{label}</FormFieldLabel> : null}
+      {label ? (
+        <FormFieldLabel required={required} style={labelStyle}>
+          {label}
+        </FormFieldLabel>
+      ) : null}
       <TouchableOpacity
         style={[styles.box, compact && styles.boxCompact, hasError && styles.boxError]}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={label ? `${label}: ${display || placeholder || 'Select'}` : undefined}
       >
+        {leftIcon ? (
+          <Ionicons
+            name={leftIcon}
+            size={IconSize.md}
+            color={Colors.accentInk}
+            style={formFieldStyles.inputIcon}
+          />
+        ) : null}
         <Text
           style={[display ? styles.value : styles.placeholder, compact && styles.valueCompact]}
           numberOfLines={1}
         >
           {display || placeholder || 'Select'}
         </Text>
-        <Ionicons name="chevron-down" size={compact ? 14 : 16} color={Colors.textLight} />
+        <Ionicons
+          name="chevron-down"
+          size={compact ? 14 : 16}
+          color={leftIcon ? Colors.accentInk : Colors.textLight}
+        />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>

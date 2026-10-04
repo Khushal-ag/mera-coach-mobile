@@ -67,12 +67,22 @@ export const Colors = {
   brandMeraOnDark: '#a8c4b4',
   /** Orange for “coach” wordmark on dark backgrounds. */
   brandCoach: '#f47f1e',
+  /** Public explore / BMI form canvas (Figma off-white). */
+  exploreCanvas: '#F8F7F2',
+  /** Explore hero banner fill (dark forest green). */
+  exploreBanner: '#0E4F42',
+  /** Pale mint for “Coaching” / “BMI” on dark explore banners. */
+  exploreBannerAccent: '#C5D9A8',
   /** Letterbox behind full-bleed home artwork. */
   homeCanvas: '#033d28',
   /** Deep green sampled from home-bg bottom scrim — native splash / photo letterbox. */
   splashCanvas: '#03422f',
-  /** Wave / in-app header green — matches secondary brand teal. */
-  headerGradientBottom: '#178676',
+  /** Outline icons, step labels, photo chrome on light surfaces. */
+  accentInk: '#11523C',
+  /** Wave header gradient top (sampled from wave-header.png). */
+  headerGradientTop: '#14766A',
+  /** Wave header gradient bottom (PNG art; also fallback). */
+  headerGradientBottom: '#004B3E',
   /** Auth primary CTA colors. */
   authCtaGradientStart: '#15886F',
   authCtaGradientEnd: '#026455',

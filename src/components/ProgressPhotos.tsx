@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -37,13 +37,61 @@ interface Props {
   clientCode: string;
 }
 
+const ProgressPhotoThumb = React.memo(function ProgressPhotoThumb({
+  item,
+  onOpen,
+  onDelete,
+}: {
+  item: DocumentListItem;
+  onOpen: (uri: string) => void;
+  onDelete: (item: DocumentListItem) => void;
+}) {
+  const uri = resolveMediaUrl(item.filePath);
+  const source = useMemo(() => (uri ? { uri } : null), [uri]);
+
+  return (
+    <View style={styles.thumbWrap}>
+      <TouchableOpacity
+        activeOpacity={PressOpacity.default}
+        onPress={() => {
+          if (!uri) return;
+          onOpen(uri);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="View progress photo"
+      >
+        {source ? (
+          <Image source={source} style={styles.thumb} />
+        ) : (
+          <View style={[styles.thumb, styles.thumbPlaceholder]}>
+            <Ionicons name="image-outline" size={24} color={Colors.textLight} />
+          </View>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.deleteBtn}
+        onPress={() => onDelete(item)}
+        activeOpacity={PressOpacity.default}
+        hitSlop={HitSlop.sm}
+        accessibilityRole="button"
+        accessibilityLabel="Delete photo"
+      >
+        <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
+      </TouchableOpacity>
+    </View>
+  );
+});
+
 export default function ProgressPhotos({ clientCode }: Props) {
   const coachCode = progressPhotosCoachCode();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+  const lightboxSource = useMemo(
+    () => (lightboxUri ? { uri: lightboxUri } : null),
+    [lightboxUri],
+  );
 
-  // Same query key as list/detail progress gallery — one Document/list per client.
   const photosQuery = useProgressPhotosQuery(clientCode);
   const photos = photosQuery.data ?? [];
 
@@ -84,23 +132,28 @@ export default function ProgressPhotos({ clientCode }: Props) {
     }
   };
 
-  const confirmDelete = (item: DocumentListItem) => {
-    Alert.alert('Delete photo?', 'This progress photo will be removed permanently.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteDocument({ docId: item.docId, coachCode });
-            invalidate();
-          } catch (err) {
-            Alert.alert('Delete failed', getErrorMessage(err, 'Please try again.'));
-          }
+  const confirmDelete = useCallback(
+    (item: DocumentListItem) => {
+      Alert.alert('Delete photo?', 'This progress photo will be removed permanently.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDocument({ docId: item.docId, coachCode });
+              invalidate();
+            } catch (err) {
+              Alert.alert('Delete failed', getErrorMessage(err, 'Please try again.'));
+            }
+          },
         },
-      },
-    ]);
-  };
+      ]);
+    },
+    [coachCode, invalidate],
+  );
+
+  const openLightbox = useCallback((uri: string) => setLightboxUri(uri), []);
 
   return (
     <View style={styles.section}>
@@ -126,7 +179,7 @@ export default function ProgressPhotos({ clientCode }: Props) {
       <Text style={styles.hint}>Add dated progress photos to track how your client is doing.</Text>
 
       {photosQuery.isPending ? (
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 12 }} />
+        <ActivityIndicator color={Colors.primary} style={styles.pendingSpinner} />
       ) : photos.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="images-outline" size={28} color={Colors.textLight} />
@@ -134,40 +187,14 @@ export default function ProgressPhotos({ clientCode }: Props) {
         </View>
       ) : (
         <View style={styles.grid}>
-          {photos.map(item => {
-            const uri = resolveMediaUrl(item.filePath);
-            return (
-              <View key={item.docId} style={styles.thumbWrap}>
-                <TouchableOpacity
-                  activeOpacity={PressOpacity.default}
-                  onPress={() => {
-                    if (!uri) return;
-                    setLightboxUri(uri);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="View progress photo"
-                >
-                  {uri ? (
-                    <Image source={{ uri }} style={styles.thumb} />
-                  ) : (
-                    <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                      <Ionicons name="image-outline" size={24} color={Colors.textLight} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => confirmDelete(item)}
-                  activeOpacity={PressOpacity.default}
-                  hitSlop={HitSlop.sm}
-                  accessibilityRole="button"
-                  accessibilityLabel="Delete photo"
-                >
-                  <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
-                </TouchableOpacity>
-              </View>
-            );
-          })}
+          {photos.map(item => (
+            <ProgressPhotoThumb
+              key={item.docId}
+              item={item}
+              onOpen={openLightbox}
+              onDelete={confirmDelete}
+            />
+          ))}
         </View>
       )}
 
@@ -189,12 +216,8 @@ export default function ProgressPhotos({ clientCode }: Props) {
             minimumZoomScale={1}
             centerContent
           >
-            {lightboxUri ? (
-              <Image
-                source={{ uri: lightboxUri }}
-                style={styles.lightboxImage}
-                resizeMode="contain"
-              />
+            {lightboxSource ? (
+              <Image source={lightboxSource} style={styles.lightboxImage} resizeMode="contain" />
             ) : null}
           </ScrollView>
           <TouchableOpacity style={styles.lightboxClose} onPress={() => setLightboxUri(null)}>
@@ -233,6 +256,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   emptyText: { ...Typography.label, color: Colors.textLight },
+  pendingSpinner: { marginTop: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm - 2 },
   thumbWrap: { width: THUMB, position: 'relative' },
   thumb: {

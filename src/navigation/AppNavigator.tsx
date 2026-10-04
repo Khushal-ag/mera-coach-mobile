@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../types/navigation';
 
 import SplashScreen from '../screens/home/SplashScreen';
 import HomeScreen from '../screens/home/HomeScreen';
+import PublicBmiScreen from '../screens/home/PublicBmiScreen';
 import CoachListScreen from '../screens/publicCoach/CoachListScreen';
 import CoachPublicProfileScreen from '../screens/publicCoach/CoachPublicProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -20,6 +21,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const publicScreens = (
   <>
     <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen name="PublicBmi" component={PublicBmiScreen} />
     <Stack.Screen name="CoachList" component={CoachListScreen} />
     <Stack.Screen name="CoachPublicProfile" component={CoachPublicProfileScreen} />
   </>

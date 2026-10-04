@@ -22,7 +22,7 @@ import { serializeCoachPackages, validateCoachPackagesDraft } from '../../utils/
 import { isPendingLocalMediaUrl } from '../../utils/mediaUrl';
 import type { PackagesStackScreenProps } from '../../types/navigation';
 import type { CoachPackage } from '../../types/models';
-import TabRootHeader from '../../components/TabRootHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import { navigateToDashboard } from '../../utils/navigationBack';
 
 export default function EditPackagesScreen({
@@ -40,7 +40,11 @@ export default function EditPackagesScreen({
 
   return (
     <View style={styles.container}>
-      <TabRootHeader title="Packages" onBack={() => navigateToDashboard(navigation)} />
+      <WaveScreenHeader
+        title="Packages"
+        onBack={() => navigateToDashboard(navigation)}
+        onHome={() => navigateToDashboard(navigation)}
+      />
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={{ marginTop: 60 }} />

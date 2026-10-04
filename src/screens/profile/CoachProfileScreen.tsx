@@ -23,7 +23,7 @@ import {
 } from '../../constants/theme';
 import PersonAvatar from '../../components/PersonAvatar';
 import ReloadState from '../../components/ReloadState';
-import TabRootHeader from '../../components/TabRootHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import { APP_DISPLAY_NAME } from '../../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support';
@@ -216,7 +216,11 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
 
   return (
     <View style={styles.container}>
-      <TabRootHeader title="My Profile" onBack={() => navigateToDashboard(navigation)} />
+      <WaveScreenHeader
+        title="Profile"
+        onBack={() => navigateToDashboard(navigation)}
+        onHome={() => navigateToDashboard(navigation)}
+      />
 
       <ScrollView
         style={styles.scroll}
