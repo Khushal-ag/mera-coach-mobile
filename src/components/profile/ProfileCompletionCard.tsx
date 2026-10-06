@@ -50,9 +50,7 @@ export default function ProfileCompletionCard({
         </View>
         <View style={styles.copy}>
           <Text style={styles.title}>
-            {completion.isPublicReady
-              ? 'Polish your public profile'
-              : 'Complete profile to go public'}
+            {completion.isPublicReady ? 'Add remaining details' : 'Complete profile to go public'}
           </Text>
           <Text style={styles.subtitle}>
             {completion.isPublicReady
@@ -72,7 +70,7 @@ export default function ProfileCompletionCard({
           {completion.items.map(item => (
             <View key={item.key} style={styles.checkRow}>
               <Ionicons
-                name={item.done ? 'checkmark-circle' : 'ellipse-outline'}
+                name={item.done ? 'checkmark-circle-outline' : 'ellipse-outline'}
                 size={IconSize.md}
                 color={item.done ? Colors.secondary : Colors.textLight}
               />
@@ -91,7 +89,7 @@ export default function ProfileCompletionCard({
         <AppButton
           label={completion.isPublicReady ? 'Edit Profile' : 'Complete Profile'}
           size="compact"
-          icon="arrow-forward"
+          icon="arrow-forward-outline"
           onPress={onPress}
           style={styles.cta}
         />

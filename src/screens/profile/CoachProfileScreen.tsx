@@ -131,7 +131,7 @@ function MenuRow({
       <Ionicons name={item.icon} size={IconSize.lg} color={iconColor} />
       <Text style={[styles.menuLabel, isLogout && styles.menuLabelDanger]}>{item.label}</Text>
       {!isLogout ? (
-        <Ionicons name="chevron-forward-outline" size={IconSize.md} color={Colors.accentInk} />
+        <Ionicons name="chevron-forward-outline" size={IconSize.lg} color={Colors.accentInk} />
       ) : null}
     </TouchableOpacity>
   );
@@ -262,7 +262,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
               <Text style={styles.role}>{profile?.category || ''}</Text>
               {profile?.city ? (
                 <Text style={styles.location}>
-                  <Ionicons name="location-outline" size={IconSize.xs} color={Colors.accentInk} />{' '}
+                  <Ionicons name="location-outline" size={IconSize.sm} color={Colors.accentInk} />{' '}
                   {profile.city}
                 </Text>
               ) : null}

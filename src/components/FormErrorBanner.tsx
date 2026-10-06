@@ -11,7 +11,7 @@ export default function FormErrorBanner({ message }: FormErrorBannerProps) {
   if (!message) return null;
   return (
     <View style={styles.banner} accessibilityRole="alert">
-      <Ionicons name="alert-circle" size={IconSize.md} color={Colors.destructive} />
+      <Ionicons name="alert-circle-outline" size={IconSize.md} color={Colors.destructive} />
       <Text style={styles.text}>{message}</Text>
     </View>
   );

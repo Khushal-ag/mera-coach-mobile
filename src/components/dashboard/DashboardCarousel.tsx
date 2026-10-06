@@ -3,19 +3,19 @@ import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
-  FontFamily,
   HitSlop,
+  IconSize,
   PressOpacity,
+  Radius,
   ScreenPad,
   Shadow,
   Spacing,
-  headingFont,
+  Typography,
 } from '../../constants/theme';
 import { BrandImages, TIPS_COACH_ASPECT } from '../../constants/images';
 
 const CARD_WIDTH = Dimensions.get('window').width - ScreenPad.horizontal * 2;
 const CARD_HEIGHT = Math.round(CARD_WIDTH / TIPS_COACH_ASPECT);
-const CARD_RADIUS = 20;
 
 interface DashboardCarouselProps {
   onStartNow?: () => void;
@@ -30,7 +30,7 @@ export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCa
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.bulbWrap}>
-            <Ionicons name="bulb-outline" size={22} color={Colors.white} />
+            <Ionicons name="bulb-outline" size={IconSize.sm} color={Colors.white} />
           </View>
           <Text style={styles.headerTitle}>Tips for your week</Text>
         </View>
@@ -44,31 +44,33 @@ export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCa
             accessibilityLabel="View all tips"
           >
             <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="arrow-forward-outline" size={15} color={Colors.secondary} />
+            <Ionicons name="arrow-forward-outline" size={IconSize.sm} color={Colors.secondary} />
           </TouchableOpacity>
         ) : null}
       </View>
 
-      <View style={styles.card}>
-        <Image source={BrandImages.tipsCoach} style={styles.hero} resizeMode="cover" />
-        {openTip ? (
-          <>
-            <TouchableOpacity
-              style={styles.startHit}
-              onPress={openTip}
-              activeOpacity={PressOpacity.default}
-              accessibilityRole="button"
-              accessibilityLabel="Start now: Your Personal Coach Awaits"
-            />
-            <TouchableOpacity
-              style={styles.playHit}
-              onPress={openTip}
-              activeOpacity={PressOpacity.default}
-              accessibilityRole="button"
-              accessibilityLabel="Open tip: Your Personal Coach Awaits"
-            />
-          </>
-        ) : null}
+      <View style={styles.cardShell}>
+        <View style={styles.card}>
+          <Image source={BrandImages.tipsCoach} style={styles.hero} resizeMode="cover" />
+          {openTip ? (
+            <>
+              <TouchableOpacity
+                style={styles.startHit}
+                onPress={openTip}
+                activeOpacity={PressOpacity.default}
+                accessibilityRole="button"
+                accessibilityLabel="Start now: Your Personal Coach Awaits"
+              />
+              <TouchableOpacity
+                style={styles.playHit}
+                onPress={openTip}
+                activeOpacity={PressOpacity.default}
+                accessibilityRole="button"
+                accessibilityLabel="Open tip: Your Personal Coach Awaits"
+              />
+            </>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -76,7 +78,6 @@ export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCa
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: Spacing.xs,
     paddingHorizontal: ScreenPad.horizontal,
   },
   header: {
@@ -85,33 +86,44 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.sm,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+    minWidth: 0,
+  },
   bulbWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: Typography.section.lineHeight,
+    height: Typography.section.lineHeight,
+    borderRadius: Typography.section.lineHeight / 2,
     backgroundColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
+    ...Typography.section,
+    lineHeight: Typography.section.lineHeight,
+    includeFontPadding: false,
   },
-  viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   viewAllText: {
+    ...Typography.bodyStrong,
     color: Colors.secondary,
-    fontSize: 14,
-    fontFamily: FontFamily.semibold,
+    lineHeight: Typography.section.lineHeight,
+    includeFontPadding: false,
+  },
+  cardShell: {
+    borderRadius: Radius.md,
+    backgroundColor: Colors.tipsPanel,
+    ...Shadow.sm,
   },
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: CARD_RADIUS,
+    borderRadius: Radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.tipsPanel,
-    ...Shadow.md,
   },
   hero: {
     width: CARD_WIDTH,

@@ -63,8 +63,7 @@ interface AssessmentWizardFlowProps {
   skipEmptyDietCommit?: boolean;
   /** Stack header title (e.g. Add Client, Checkup, Diet Plan). */
   headerTitle: string;
-  /** Optional trailing header control (e.g. Download PDF on diet-plan shortcut). */
-  headerRight?: React.ReactNode;
+  pageAction?: React.ReactNode;
   onHome?: () => void;
   onExit: () => void;
   onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
@@ -79,7 +78,7 @@ export default function AssessmentWizardFlow({
   finishLabel = 'Save Client',
   skipEmptyDietCommit = false,
   headerTitle,
-  headerRight,
+  pageAction,
   onHome,
   onExit,
   onComplete,
@@ -313,14 +312,8 @@ export default function AssessmentWizardFlow({
 
   return (
     <View style={styles.container}>
-      <WaveScreenHeader
-        title={headerTitle}
-        titleIcon={dietPlanPage ? 'people-outline' : undefined}
-        onBack={goBack}
-        onHome={onHome}
-        rightExtra={headerRight}
-        showHome={dietPlanPage || !headerRight}
-      />
+      <WaveScreenHeader title={headerTitle} onBack={goBack} onHome={onHome} />
+      {pageAction ? <View style={styles.pageAction}>{pageAction}</View> : null}
 
       <KeyboardSafeScroll
         ref={scrollRef}
@@ -361,6 +354,10 @@ export default function AssessmentWizardFlow({
 
 const styles = StyleSheet.create({
   ...wizardShellStyles,
+  pageAction: {
+    paddingTop: Spacing.md,
+    paddingHorizontal: ScreenPad.horizontal,
+  },
   dietBody: {
     paddingTop: Spacing.md,
     paddingHorizontal: ScreenPad.horizontal,

@@ -40,6 +40,17 @@ export default function ListPager({
   if (variant === 'square') {
     return (
       <View style={styles.squareRow}>
+        {safePage > 1 ? (
+          <TouchableOpacity
+            style={styles.stepBtn}
+            onPress={() => onChangePage(safePage - 1)}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel="Previous page"
+          >
+            <Text style={styles.stepText}>{'< Prev'}</Text>
+          </TouchableOpacity>
+        ) : null}
         {pageNumbers.map(num => {
           const active = num === safePage;
           return (
@@ -57,14 +68,14 @@ export default function ListPager({
           );
         })}
         <TouchableOpacity
-          style={styles.nextBtn}
+          style={styles.stepBtn}
           onPress={() => onChangePage(Math.min(totalPages, safePage + 1))}
           disabled={safePage >= totalPages}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
           accessibilityLabel="Next page"
         >
-          <Text style={[styles.nextText, safePage >= totalPages && styles.nextDisabled]}>
+          <Text style={[styles.stepText, safePage >= totalPages && styles.stepDisabled]}>
             Next {'>'}
           </Text>
         </TouchableOpacity>
@@ -152,7 +163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circleDotActive: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.accentInk,
   },
   circleText: {
     fontSize: 13,
@@ -168,24 +179,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
+    gap: Spacing.xxs,
     marginTop: Spacing.sm,
     marginBottom: Spacing.md,
   },
   squareBtn: {
-    minWidth: 36,
+    width: 36,
     height: 36,
-    paddingHorizontal: Spacing.sm,
     borderRadius: Radius.xs,
     backgroundColor: Colors.white,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   squareBtnActive: {
-    backgroundColor: Colors.secondary,
-    borderColor: Colors.secondary,
+    backgroundColor: Colors.accentInk,
+    borderColor: Colors.accentInk,
   },
   squareText: {
     fontSize: 13,
@@ -196,22 +206,22 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontFamily: FontFamily.bold,
   },
-  nextBtn: {
+  stepBtn: {
     minHeight: 36,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     borderRadius: Radius.xs,
     backgroundColor: Colors.white,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nextText: {
+  stepText: {
     fontSize: 13,
     fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
+    color: Colors.textDark,
   },
-  nextDisabled: {
-    color: Colors.border,
+  stepDisabled: {
+    color: Colors.textLight,
   },
 });

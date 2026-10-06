@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   IconSize,
@@ -25,7 +25,7 @@ import {
   headingFont,
 } from '../../../constants/theme';
 import { BrandImages } from '../../../constants/images';
-import WaveScreenHeader, { WaveHeaderActionButton } from '../../../components/WaveScreenHeader';
+import WaveScreenHeader from '../../../components/WaveScreenHeader';
 import ClientAvatar from '../../../components/ClientAvatar';
 import ProgressPhotos, { type ProgressPhotosHandle } from '../../../components/ProgressPhotos';
 import EmptyState from '../../../components/EmptyState';
@@ -88,10 +88,7 @@ const Tone = {
   feedbackWell: '#9779D9',
 } as const;
 
-type ProfileMark =
-  | { family: 'ion'; name: IoniconName }
-  | { family: 'mci'; name: 'ruler' | 'scale-bathroom' | 'bullseye' | 'human-handsup' }
-  | { family: 'feedback' };
+type ProfileMark = IoniconName;
 
 interface MetricCell {
   label: string;
@@ -120,33 +117,6 @@ interface ActionItem {
 function metricText(value: number | null | undefined, suffix: string): string {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return '-';
   return `${value} ${suffix}`;
-}
-
-function MarkIcon({ mark, size, color }: { mark: ProfileMark; size: number; color: string }) {
-  if (mark.family === 'mci') {
-    return (
-      <MaterialCommunityIcons
-        name={mark.name}
-        size={size}
-        color={color}
-        style={mark.name === 'ruler' ? styles.rulerTilt : undefined}
-      />
-    );
-  }
-  if (mark.family === 'feedback') {
-    return (
-      <View style={[styles.feedbackGlyph, { width: size, height: size }]}>
-        <Ionicons name="chatbubble-outline" size={size} color={color} />
-        <Ionicons
-          name="thumbs-up"
-          size={Math.round(size * 0.46)}
-          color={color}
-          style={styles.feedbackThumb}
-        />
-      </View>
-    );
-  }
-  return <Ionicons name={mark.name} size={size} color={color} />;
 }
 
 function IconWell({
@@ -228,28 +198,28 @@ export default function ClientDetailScreen({
         value: metricText(detail.age, 'yrs'),
         tile: Tone.ageTile,
         well: Tone.ageWell,
-        icon: { family: 'ion', name: 'calendar-outline' },
+        icon: 'calendar-outline',
       },
       {
         label: 'Height',
         value: metricText(detail.height, 'cm'),
         tile: Tone.heightTile,
         well: Tone.heightWell,
-        icon: { family: 'mci', name: 'ruler' },
+        icon: 'resize-outline',
       },
       {
         label: 'Weight',
         value: metricText(detail.weight, 'kg'),
         tile: Tone.weightTile,
         well: Tone.weightWell,
-        icon: { family: 'mci', name: 'scale-bathroom' },
+        icon: 'scale-outline',
       },
       {
         label: 'BMI',
         value: bmiValue != null ? bmiValue.toFixed(1) : '-',
         tile: Tone.bmiTile,
         well: Tone.bmiWell,
-        icon: { family: 'ion', name: 'speedometer-outline' },
+        icon: 'speedometer-outline',
       },
     ];
     return cells.filter(cell => cell.value !== '-');
@@ -262,21 +232,21 @@ export default function ClientDetailScreen({
         label: 'Goal',
         well: Tone.goalWell,
         iconColor: Tone.goalIcon,
-        icon: { family: 'mci', name: 'bullseye' },
+        icon: 'flag-outline',
         value: resolveMasterLabel(detail.primaryGoal, goalOptions),
       },
       {
         label: 'Diet Type',
         well: Tone.dietWell,
         iconColor: Tone.dietIcon,
-        icon: { family: 'ion', name: 'restaurant-outline' },
+        icon: 'restaurant-outline',
         value: resolveMasterLabel(detail.foodPreference, dietOptions),
       },
       {
         label: 'Activity',
         well: Tone.activityWell,
         iconColor: Tone.activityIcon,
-        icon: { family: 'mci', name: 'human-handsup' },
+        icon: 'walk-outline',
         value: resolveMasterLabel(detail.physicalActivity, activityOptions),
       },
     ];
@@ -328,28 +298,28 @@ export default function ClientDetailScreen({
       label: 'Checkup',
       tile: Tone.checkupTile,
       well: Tone.checkupWell,
-      icon: { family: 'ion', name: 'clipboard-outline' },
+      icon: 'clipboard-outline',
       onPress: () => navigation.navigate('ClientBmi', { client }),
     },
     {
       label: 'BMI Report',
       tile: Tone.reportTile,
       well: Tone.reportWell,
-      icon: { family: 'ion', name: 'document-text-outline' },
+      icon: 'document-text-outline',
       onPress: () => navigation.navigate('ClientBmiReport', { client }),
     },
     {
       label: 'Diet Plan',
       tile: Tone.planTile,
       well: Tone.planWell,
-      icon: { family: 'ion', name: 'reader-outline' },
+      icon: 'reader-outline',
       onPress: () => navigation.navigate('ClientDietPlan', { client }),
     },
     {
       label: 'Ask for feedback',
       tile: Tone.feedbackTile,
       well: Tone.feedbackWell,
-      icon: { family: 'feedback' },
+      icon: 'chatbubble-ellipses-outline',
       onPress: () => {
         void askForFeedback();
       },
@@ -360,18 +330,8 @@ export default function ClientDetailScreen({
     <View style={styles.container}>
       <WaveScreenHeader
         title="Client Profile"
-        titleIcon="people-outline"
         onBack={() => navigateBack(navigation, returnTo)}
         onHome={() => navigateToDashboard(navigation)}
-        rightExtra={
-          client.clientCode ? (
-            <WaveHeaderActionButton
-              icon="add-outline"
-              onPress={addProgressPhoto}
-              accessibilityLabel="Add progress photo"
-            />
-          ) : undefined
-        }
       />
 
       <ScrollView
@@ -453,7 +413,7 @@ export default function ClientDetailScreen({
                       style={[styles.metricCell, { backgroundColor: cell.tile }]}
                     >
                       <IconWell backgroundColor={cell.well} size={40}>
-                        <MarkIcon mark={cell.icon} size={20} color={Colors.white} />
+                        <Ionicons name={cell.icon} size={IconSize.lg} color={Colors.white} />
                       </IconWell>
                       <View style={styles.metricCopy}>
                         <Text style={styles.metricValue} numberOfLines={1}>
@@ -476,14 +436,14 @@ export default function ClientDetailScreen({
                   ]}
                 >
                   <IconWell backgroundColor={row.well} size={36}>
-                    <MarkIcon mark={row.icon} size={18} color={row.iconColor} />
+                    <Ionicons name={row.icon} size={IconSize.md} color={row.iconColor} />
                   </IconWell>
                   <Text style={styles.detailLabel}>{row.label}</Text>
                   <Text style={styles.detailValue} numberOfLines={2}>
                     {row.value}
                   </Text>
                   <Ionicons
-                    name="chevron-forward"
+                    name="chevron-forward-outline"
                     size={IconSize.md}
                     color={Tone.chevron}
                     accessibilityElementsHidden
@@ -534,12 +494,16 @@ export default function ClientDetailScreen({
                     accessibilityLabel={action.label}
                   >
                     <IconWell backgroundColor={action.well} size={34}>
-                      <MarkIcon mark={action.icon} size={18} color={Colors.white} />
+                      <Ionicons name={action.icon} size={IconSize.md} color={Colors.white} />
                     </IconWell>
                     <Text style={styles.actionText} numberOfLines={2}>
                       {action.label}
                     </Text>
-                    <Ionicons name="chevron-forward" size={IconSize.sm} color={Tone.chevron} />
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={IconSize.md}
+                      color={Tone.chevron}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -626,17 +590,6 @@ const styles = StyleSheet.create({
     width: 108,
     height: 112,
     flexShrink: 0,
-  },
-  rulerTilt: {
-    transform: [{ rotate: '-38deg' }],
-  },
-  feedbackGlyph: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  feedbackThumb: {
-    position: 'absolute',
-    top: 2,
   },
   iconWell: {
     alignItems: 'center',
@@ -755,7 +708,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    minHeight: 64,
+    minHeight: 57,
     borderRadius: Radius.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs + 2,

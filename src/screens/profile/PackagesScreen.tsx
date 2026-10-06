@@ -25,8 +25,10 @@ import {
   TouchTarget,
   Typography,
 } from '../../constants/theme';
+import AppButton from '../../components/AppButton';
+import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
-import WaveScreenHeader, { WaveHeaderActionButton } from '../../components/WaveScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import {
   buildSaveCoachProfileParams,
   getCoachProfileFull,
@@ -46,6 +48,7 @@ import type { PackagesStackScreenProps } from '../../types/navigation';
 import type { CoachPackage } from '../../types/models';
 
 const CANVAS = '#F3FAF7';
+const PAGE_SIZE = 5;
 
 export default function PackagesScreen({ navigation }: PackagesStackScreenProps<'PackagesHome'>) {
   const queryClient = useQueryClient();
@@ -55,6 +58,7 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
   });
   const refreshControl = useRefreshControl(profileQuery);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const errorMessage =
     profileQuery.isError && !profileQuery.data
@@ -63,6 +67,9 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
 
   const packages = profileQuery.data?.packages ?? [];
   const atMax = packages.length >= MAX_COACH_PACKAGES;
+  const totalPages = Math.max(1, Math.ceil(packages.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagePackages = packages.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const goAdd = () => {
     if (atMax) {
@@ -125,14 +132,17 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
         title="Packages"
         showBack={false}
         onHome={() => navigateToDashboard(navigation)}
-        rightExtra={
-          <WaveHeaderActionButton
-            icon="add-outline"
-            onPress={goAdd}
-            accessibilityLabel="Add package"
-          />
-        }
       />
+      <View style={styles.addRow}>
+        <AppButton
+          label="Add package"
+          size="compact"
+          icon="add-outline"
+          iconPosition="left"
+          onPress={goAdd}
+          accessibilityLabel="Add package"
+        />
+      </View>
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={styles.pending} />
@@ -166,8 +176,8 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
               </Text>
             </View>
           ) : (
-            packages.map((pkg, index) => {
-              const title = pkg.name.trim() || `Package ${index + 1}`;
+            pagePackages.map((pkg, index) => {
+              const title = pkg.name.trim() || `Package ${(safePage - 1) * PAGE_SIZE + index + 1}`;
               const price = pkg.price.trim();
               const removing = removingId === pkg.id;
               const imageUri = resolveMediaUrl(pkg.imageUrl);
@@ -221,6 +231,14 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
               );
             })
           )}
+          {packages.length > PAGE_SIZE ? (
+            <ListPager
+              page={safePage}
+              totalPages={totalPages}
+              onChangePage={setPage}
+              variant="square"
+            />
+          ) : null}
         </ScrollView>
       )}
     </View>
@@ -231,6 +249,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: CANVAS },
   pending: { marginTop: 60 },
   body: { flex: 1, backgroundColor: CANVAS },
+  addRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
+  },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

@@ -306,7 +306,9 @@ function HistoryCard({
           </View>
         ) : null}
         <View style={styles.historySpacer} />
-        {expanded ? null : <Ionicons name="chevron-down" size={IconSize.md} color={Tone.chevron} />}
+        {expanded ? null : (
+          <Ionicons name="chevron-down-outline" size={IconSize.md} color={Tone.chevron} />
+        )}
       </Pressable>
       {expanded && metrics.length > 0 ? (
         <View style={styles.historyRows}>
@@ -449,7 +451,6 @@ export default function ClientBmiReportScreen({
     <View style={styles.container}>
       <WaveScreenHeader
         title="BMI Report"
-        titleIcon="people-outline"
         onBack={() => navigateBack(navigation, returnTo)}
         onHome={() => navigateToDashboard(navigation)}
       />
@@ -586,7 +587,7 @@ export default function ClientBmiReportScreen({
               <SectionTitle>Measurement History</SectionTitle>
               {historyRows.length === 0 ? (
                 <View style={styles.emptyHistory}>
-                  <Ionicons name="time-outline" size={22} color={Colors.textLight} />
+                  <Ionicons name="time-outline" size={IconSize.xl} color={Colors.textLight} />
                   <Text style={styles.noHistoryTitle}>No past measurements</Text>
                   <Text style={styles.noHistory}>
                     Future BMI check-ups for this client will appear here.
@@ -631,7 +632,11 @@ export default function ClientBmiReportScreen({
                   <View style={styles.pdfBalance} />
                   <Text style={styles.pdfLabel}>Download & share Pdf</Text>
                   <View style={styles.pdfArrow}>
-                    <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.brandCoach} />
+                    <Ionicons
+                      name="arrow-forward-outline"
+                      size={IconSize.sm}
+                      color={Colors.brandCoach}
+                    />
                   </View>
                 </>
               )}

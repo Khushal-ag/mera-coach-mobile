@@ -45,9 +45,8 @@ export default function PublicHomeHeader({ onHomePress }: Props) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
   },
   brandBlock: {
     flexShrink: 1,
@@ -82,7 +81,6 @@ const styles = StyleSheet.create({
     height: TouchTarget.header,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: -Spacing.xs,
   },
   pressed: {
     opacity: PressOpacity.default,

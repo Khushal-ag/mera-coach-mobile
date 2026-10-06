@@ -546,7 +546,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 </View>
               </View>
               <Text style={styles.fieldHint}>
-                Shown as Clients on your public card. Update it for the number others see — not your
+                Shown as Clients on your public card. Update it for the number others see, not your
                 live roster count.
               </Text>
               <View style={styles.row}>
@@ -953,7 +953,7 @@ function ImagePickerTile({
             <ActivityIndicator color={Colors.primary} />
           </View>
         ) : !uri ? (
-          <Ionicons name="camera-outline" size={24} color={Colors.textLight} />
+          <Ionicons name="camera-outline" size={IconSize.xl} color={Colors.textLight} />
         ) : null}
       </TouchableOpacity>
       <Text style={styles.imageLabel}>{label}</Text>

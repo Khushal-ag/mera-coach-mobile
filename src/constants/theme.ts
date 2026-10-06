@@ -69,9 +69,9 @@ export const Colors = {
   brandCoach: '#f47f1e',
   /** Public explore / BMI form canvas (Figma off-white). */
   exploreCanvas: '#F8F7F2',
-  /** Explore hero banner fill (dark forest green). */
-  exploreBanner: '#0E4F42',
-  /** Pale mint for “Coaching” / “BMI” on dark explore banners. */
+  explorePanel: '#FAF8F2',
+  explorePanelBorder: '#E8E8E8',
+  /** Pale mint for “Coaching” on the explore banner photo. */
   exploreBannerAccent: '#C5D9A8',
   /** Letterbox behind full-bleed home artwork. */
   homeCanvas: '#033d28',

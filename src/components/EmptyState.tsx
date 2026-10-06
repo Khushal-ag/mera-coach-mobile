@@ -47,7 +47,7 @@ export default function EmptyState({
         <AppButton
           label={actionLabel}
           onPress={onAction}
-          icon="arrow-forward"
+          icon="arrow-forward-outline"
           style={styles.action}
         />
       ) : null}

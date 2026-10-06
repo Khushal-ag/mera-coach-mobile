@@ -25,8 +25,10 @@ import {
   TouchTarget,
   Typography,
 } from '../../constants/theme';
+import AppButton from '../../components/AppButton';
+import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
-import WaveScreenHeader, { WaveHeaderActionButton } from '../../components/WaveScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import {
   buildSaveCoachProfileParams,
   getCoachProfileFull,
@@ -46,6 +48,7 @@ import type { EventsStackScreenProps } from '../../types/navigation';
 import type { CoachEvent } from '../../types/models';
 
 const CANVAS = '#F3FAF7';
+const PAGE_SIZE = 5;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function formatDisplayDate(value: string): string | null {
@@ -81,6 +84,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
   });
   const refreshControl = useRefreshControl(profileQuery);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const errorMessage =
     profileQuery.isError && !profileQuery.data
@@ -89,6 +93,9 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
 
   const events = profileQuery.data?.events ?? [];
   const atMax = events.length >= MAX_COACH_EVENTS;
+  const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageEvents = events.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const goAdd = () => {
     if (atMax) {
@@ -151,14 +158,17 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
         title="Events"
         showBack={false}
         onHome={() => navigateToDashboard(navigation)}
-        rightExtra={
-          <WaveHeaderActionButton
-            icon="add-outline"
-            onPress={goAdd}
-            accessibilityLabel="Add event"
-          />
-        }
       />
+      <View style={styles.addRow}>
+        <AppButton
+          label="Add event"
+          size="compact"
+          icon="add-outline"
+          iconPosition="left"
+          onPress={goAdd}
+          accessibilityLabel="Add event"
+        />
+      </View>
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={styles.pending} />
@@ -192,12 +202,12 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
               </Text>
             </View>
           ) : (
-            events.map((event, index) => {
+            pageEvents.map((event, index) => {
               const when = [formatDisplayDate(event.date) ?? event.date, event.time]
                 .filter(Boolean)
                 .join(' · ');
               const where = event.location.trim();
-              const title = event.title.trim() || `Event ${index + 1}`;
+              const title = event.title.trim() || `Event ${(safePage - 1) * PAGE_SIZE + index + 1}`;
               const removing = removingId === event.id;
               const imageUri = resolveMediaUrl(event.imageUrl);
               return (
@@ -262,6 +272,14 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
               );
             })
           )}
+          {events.length > PAGE_SIZE ? (
+            <ListPager
+              page={safePage}
+              totalPages={totalPages}
+              onChangePage={setPage}
+              variant="square"
+            />
+          ) : null}
         </ScrollView>
       )}
     </View>
@@ -272,6 +290,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: CANVAS },
   pending: { marginTop: 60 },
   body: { flex: 1, backgroundColor: CANVAS },
+  addRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
+  },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

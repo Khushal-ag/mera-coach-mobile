@@ -221,7 +221,7 @@ export default function DashboardScreen({
   const metricIcons: Record<string, IoniconName> = {
     Clients: 'people',
     Leads: 'funnel',
-    Due: 'calendar-outline',
+    Due: 'calendar',
   };
 
   return (
@@ -275,7 +275,6 @@ export default function DashboardScreen({
                   size={IconSize.xxl}
                   color={Colors.secondary}
                 />
-                <View style={styles.notifDot} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.profileBtn}
@@ -286,7 +285,7 @@ export default function DashboardScreen({
                 hitSlop={HitSlop.sm}
               >
                 {coachPhotoUri ? (
-                  <PersonAvatar uri={coachPhotoUri} size={46} />
+                  <PersonAvatar uri={coachPhotoUri} size={TouchTarget.header} />
                 ) : (
                   <View style={styles.profilePlaceholder} />
                 )}
@@ -360,16 +359,18 @@ export default function DashboardScreen({
           accessibilityRole="button"
           accessibilityLabel="Add Client"
         >
-          <View style={styles.primaryCtaCurve} pointerEvents="none" />
-          <View style={styles.primaryCtaIcon}>
-            <Ionicons name="person-add" size={26} color={Colors.white} />
-          </View>
-          <View style={styles.primaryCtaCopy}>
-            <Text style={styles.primaryCtaTitle}>Add Client</Text>
-            <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
-          </View>
-          <View style={styles.primaryCtaArrow} pointerEvents="none">
-            <Ionicons name="arrow-forward" size={IconSize.xl} color={Colors.white} />
+          <View style={styles.primaryCtaFace}>
+            <View style={styles.primaryCtaCurve} pointerEvents="none" />
+            <View style={styles.primaryCtaIcon}>
+              <Ionicons name="person-add" size={IconSize.xl} color={Colors.white} />
+            </View>
+            <View style={styles.primaryCtaCopy}>
+              <Text style={styles.primaryCtaTitle}>Add Client</Text>
+              <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
+            </View>
+            <View style={styles.primaryCtaArrow} pointerEvents="none">
+              <Ionicons name="arrow-forward-outline" size={IconSize.lg} color={Colors.white} />
+            </View>
           </View>
         </TouchableOpacity>
 
@@ -384,7 +385,7 @@ export default function DashboardScreen({
               accessibilityLabel={action.label}
             >
               <View style={[styles.secondaryIcon, { backgroundColor: action.iconColor }]}>
-                <Ionicons name={action.icon} size={IconSize.xl} color={Colors.white} />
+                <Ionicons name={action.icon} size={IconSize.md} color={Colors.white} />
               </View>
               <Text style={styles.secondaryLabel} numberOfLines={1}>
                 {action.label}
@@ -410,14 +411,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     overflow: 'hidden',
     paddingHorizontal: ScreenPad.horizontal,
-    paddingBottom: Spacing.md,
   },
   heroTop: { zIndex: 1 },
   heroBrandRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   brandBlock: {
     flexShrink: 1,
@@ -435,7 +435,12 @@ const styles = StyleSheet.create({
     color: Colors.brandCoach,
     fontFamily: headingFont.extraBold,
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, flexShrink: 0 },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flexShrink: 0,
+  },
   guideLine: {
     ...Typography.caption,
     marginTop: Spacing.xxs,
@@ -449,55 +454,34 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
   },
   greetingLine: {
-    color: Colors.secondary,
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: FontFamily.medium,
-    letterSpacing: 0.1,
+    ...Typography.body,
+    color: Colors.greetingMuted,
   },
   coachName: {
-    marginTop: 6,
-    color: Colors.textDark,
-    fontFamily: headingFont.bold,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.4,
+    ...Typography.headline,
+    marginTop: Spacing.xxs,
   },
   heroSub: {
-    color: Colors.textLight,
-    fontSize: 15,
-    lineHeight: 21,
-    fontFamily: FontFamily.regular,
-    marginTop: 4,
+    ...Typography.caption,
+    marginTop: Spacing.xxs,
   },
   chromeIconBtn: {
-    width: TouchTarget.header,
-    height: TouchTarget.header,
-    borderRadius: TouchTarget.header / 2,
-    backgroundColor: 'transparent',
+    width: IconSize.xxl,
+    height: IconSize.xxl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notifDot: {
-    position: 'absolute',
-    top: 7,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.destructive,
-  },
   profileBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: TouchTarget.header,
+    height: TouchTarget.header,
+    borderRadius: TouchTarget.header / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profilePlaceholder: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: TouchTarget.header,
+    height: TouchTarget.header,
+    borderRadius: TouchTarget.header / 2,
     backgroundColor: Colors.disabledBg,
   },
   profileStatus: {
@@ -512,7 +496,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
   },
   metricsOverlap: {
-    marginTop: Spacing.xs,
+    marginTop: Spacing.lg,
     marginHorizontal: ScreenPad.horizontal,
     zIndex: 2,
   },
@@ -520,10 +504,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     backgroundColor: Colors.white,
-    borderRadius: 28,
-    paddingVertical: 12,
+    borderRadius: Radius.md,
+    minHeight: 85,
+    paddingVertical: 6,
     paddingHorizontal: Spacing.xs,
-    ...Shadow.md,
+    ...Shadow.sm,
   },
   metricItem: {
     flex: 1,
@@ -534,12 +519,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   metricIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 29,
+    height: 29,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xxs,
+    marginBottom: 2,
   },
   metricDivider: {
     width: StyleSheet.hairlineWidth,
@@ -547,14 +532,15 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   metricValue: {
-    ...Typography.metric,
-    lineHeight: 32,
-    letterSpacing: -0.6,
+    fontFamily: headingFont.bold,
+    fontSize: 15,
+    lineHeight: 18,
+    color: Colors.textDark,
     maxWidth: '100%',
   },
   metricLabel: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 16,
     fontFamily: FontFamily.regular,
     color: Colors.textDark,
     maxWidth: '100%',
@@ -567,21 +553,25 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     paddingHorizontal: ScreenPad.horizontal,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.lg,
   },
   completionSlot: {
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
   primaryCta: {
+    borderRadius: Radius.md,
+    backgroundColor: Colors.addClientBanner,
+    ...Shadow.sm,
+  },
+  primaryCtaFace: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    height: 80,
+    gap: Spacing.sm,
+    height: 68,
     backgroundColor: Colors.addClientBanner,
-    borderRadius: 28,
-    paddingLeft: 12,
-    paddingRight: Spacing.lg,
+    borderRadius: Radius.md,
+    paddingLeft: Spacing.sm,
+    paddingRight: Spacing.md,
     overflow: 'hidden',
   },
   primaryCtaCurve: {
@@ -594,9 +584,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.addClientBannerLight,
   },
   primaryCtaIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: Radius.md,
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
     backgroundColor: 'rgba(255,255,255,0.32)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -611,53 +601,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryCtaTitle: {
+    ...Typography.tileValue,
     color: Colors.white,
-    fontSize: 18,
-    lineHeight: 22,
-    fontFamily: headingFont.bold,
   },
   primaryCtaSub: {
+    ...Typography.caption,
     color: Colors.white,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: FontFamily.regular,
-    marginTop: 2,
+    marginTop: Spacing.xxs,
   },
   secondaryRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: Spacing.sm,
-    marginTop: Spacing.md,
+    marginTop: Spacing.lg,
   },
   secondaryChip: {
     flex: 1,
     minWidth: 0,
     alignItems: 'flex-start',
-    gap: Spacing.xs,
-    borderRadius: 22,
-    paddingTop: Spacing.md,
-    paddingBottom: 14,
-    paddingHorizontal: Spacing.sm,
-    minHeight: 156,
+    gap: Spacing.xxs,
+    borderRadius: Radius.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    minHeight: 115,
+    ...Shadow.sm,
   },
   secondaryIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    overflow: 'hidden',
   },
   secondaryLabel: {
-    ...Typography.tileValue,
+    ...Typography.section,
     maxWidth: '100%',
   },
   secondarySub: {
     ...Typography.caption,
-    fontFamily: FontFamily.regular,
     maxWidth: '100%',
   },
   carouselSection: {
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.lg,
   },
 });

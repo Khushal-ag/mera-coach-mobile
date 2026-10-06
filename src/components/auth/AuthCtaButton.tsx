@@ -70,7 +70,7 @@ export default function AuthCtaButton({
           <View
             style={[styles.arrowCircle, styles.arrowCircleBordered, { backgroundColor: arrowFill }]}
           >
-            <Ionicons name="arrow-back" size={IconSize.sm} color={arrowGlyph} />
+            <Ionicons name="arrow-back-outline" size={IconSize.sm} color={arrowGlyph} />
           </View>
         </View>
       ) : null}

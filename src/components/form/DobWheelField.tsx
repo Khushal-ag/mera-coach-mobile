@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, PressOpacity, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, IconSize, PressOpacity, Spacing } from '../../constants/theme';
 import FormFieldLabel from '../FormFieldLabel';
 import { CalendarDatePicker, formatCalendarLabel } from './CalendarDatePicker';
 import { ageFromDate, formatDob, parseDob } from '../../utils/validation';
@@ -49,7 +49,7 @@ export function DobWheelField({
         >
           <Ionicons
             name="calendar-outline"
-            size={17}
+            size={IconSize.md}
             color={Colors.accentInk}
             style={styles.icon}
           />
@@ -64,7 +64,7 @@ export function DobWheelField({
             accessibilityRole="button"
             accessibilityLabel="Clear date of birth"
           >
-            <Ionicons name="close-circle-outline" size={18} color={Colors.accentInk} />
+            <Ionicons name="close-circle-outline" size={IconSize.md} color={Colors.accentInk} />
           </TouchableOpacity>
         ) : null}
       </View>

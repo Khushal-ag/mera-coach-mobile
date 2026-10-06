@@ -9,7 +9,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
+import { Colors, IconSize } from '../constants/theme';
 import { BrandImages } from '../constants/images';
 import { uploadDocument } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
@@ -116,7 +116,7 @@ export default function ClientAvatar({
           accessibilityRole="button"
           accessibilityLabel="Upload client photo"
         >
-          <Ionicons name="camera-outline" size={12} color={Colors.white} />
+          <Ionicons name="camera-outline" size={IconSize.xs} color={Colors.white} />
         </TouchableOpacity>
       ) : null}
     </View>

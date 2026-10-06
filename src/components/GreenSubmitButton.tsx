@@ -46,7 +46,7 @@ export default function GreenSubmitButton({
         <>
           <Text style={styles.label}>{label}</Text>
           <View style={styles.arrow}>
-            <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.accentInk} />
+            <Ionicons name="arrow-forward-outline" size={IconSize.sm} color={Colors.accentInk} />
           </View>
         </>
       )}

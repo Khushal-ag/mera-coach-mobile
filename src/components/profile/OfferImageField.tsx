@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, PressOpacity, Radius, Shadow, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  IconSize,
+  PressOpacity,
+  Radius,
+  Shadow,
+  Spacing,
+} from '../../constants/theme';
 import { isDegenerateImageSize, resolveMediaUrl } from '../../utils/mediaUrl';
 
 interface Props {
@@ -60,7 +68,7 @@ export default function OfferImageField({
           />
         ) : (
           <View style={[styles.thumb, styles.thumbEmpty]}>
-            <Ionicons name="image-outline" size={22} color={Colors.textLight} />
+            <Ionicons name="image-outline" size={IconSize.xl} color={Colors.textLight} />
           </View>
         )}
       </TouchableOpacity>
@@ -75,7 +83,7 @@ export default function OfferImageField({
         >
           <Ionicons
             name={hasStored ? 'camera-outline' : 'add-circle-outline'}
-            size={16}
+            size={IconSize.sm}
             color={Colors.secondary}
           />
           <Text style={styles.actionText}>{hasStored ? 'Change photo' : 'Add photo'}</Text>
@@ -89,7 +97,7 @@ export default function OfferImageField({
             accessibilityLabel="Remove photo"
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Ionicons name="trash-outline" size={15} color={Colors.destructive} />
+            <Ionicons name="trash-outline" size={IconSize.sm} color={Colors.destructive} />
             <Text style={styles.removeText}>Remove</Text>
           </TouchableOpacity>
         ) : null}

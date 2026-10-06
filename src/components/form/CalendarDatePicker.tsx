@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontFamily, Radius, Spacing, headingFont } from '../../constants/theme';
+import { Colors, FontFamily, IconSize, Radius, Spacing, headingFont } from '../../constants/theme';
 import { parseDob } from '../../utils/validation';
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
@@ -215,7 +215,7 @@ export function CalendarDatePicker({
               accessibilityRole="button"
               accessibilityLabel="Previous month"
             >
-              <Ionicons name="chevron-back" size={20} color={Colors.accentInk} />
+              <Ionicons name="chevron-back-outline" size={IconSize.lg} color={Colors.accentInk} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setPickingYear(open => !open)}
@@ -235,7 +235,11 @@ export function CalendarDatePicker({
               accessibilityRole="button"
               accessibilityLabel="Next month"
             >
-              <Ionicons name="chevron-forward" size={20} color={Colors.accentInk} />
+              <Ionicons
+                name="chevron-forward-outline"
+                size={IconSize.lg}
+                color={Colors.accentInk}
+              />
             </TouchableOpacity>
           </View>
 

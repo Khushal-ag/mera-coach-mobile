@@ -16,36 +16,44 @@ function trimSentence(text: string): string {
 }
 
 export function buildCoachDescriptionSuggestions(input: DescriptionSuggestionInput): string[] {
-  const name = input.coachName.trim() || 'I';
+  const named = input.coachName.trim();
   const category = input.categoryLabel.trim() || 'health and wellness coach';
   const services =
-    input.serviceLabels.length > 0
-      ? input.serviceLabels.slice(0, 4).join(', ')
-      : 'personalized coaching';
+    input.serviceLabels.length > 0 ? input.serviceLabels.slice(0, 4).join(', ').toLowerCase() : '';
   const exp = parseInt(input.experienceYears, 10);
   const clients = parseInt(input.happyClientCount, 10);
-  const expPhrase = exp > 0 ? `${exp}+ years of experience` : 'hands-on coaching experience';
-  const clientPhrase = clients > 0 ? `${clients}+ happy clients` : 'clients who trust my guidance';
+  const expPhrase = exp > 0 ? `${exp}+ years of experience` : '';
+  const clientPhrase = clients > 0 ? `${clients}+ clients` : '';
+  const facts = [expPhrase, clientPhrase].filter(Boolean).join(' and ');
+  const role = category.toLowerCase();
+  const intro = named ? `${named} is a ${role}` : `I am a ${role}`;
 
   const base = input.categoryDescription?.trim();
 
   const options: string[] = [
     trimSentence(
-      `${name} is a ${category.toLowerCase()} with ${expPhrase}, helping ${clientPhrase} reach sustainable health goals through ${services.toLowerCase()}.`,
+      `${intro}${facts ? ` with ${facts}` : ''}${services ? `. Services: ${services}` : ''}`,
     ),
     trimSentence(
-      `Passionate ${category.toLowerCase()} offering ${services.toLowerCase()}. I focus on practical plans and accountability that fit your routine.`,
+      services
+        ? `I offer ${services}. Plans stay simple and practical`
+        : `I am a ${role}. Plans stay simple and practical`,
     ),
   ];
 
   if (base) {
+    const who = named ? `${named} works` : 'I work';
     options.push(
-      trimSentence(`${base} ${name} works with ${clientPhrase} on ${services.toLowerCase()}.`),
+      trimSentence(
+        `${base} ${who} with ${clientPhrase || 'clients'}${services ? ` on ${services}` : ''}`,
+      ),
     );
   } else {
     options.push(
       trimSentence(
-        `Hi, I'm ${name}. I help with fitness, nutrition, and daily habits. Let's build a plan that works for you.`,
+        named
+          ? `Hi, I'm ${named}. I coach fitness, nutrition, and daily habits`
+          : 'I coach fitness, nutrition, and daily habits',
       ),
     );
   }

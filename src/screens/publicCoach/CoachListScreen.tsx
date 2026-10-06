@@ -94,7 +94,7 @@ function FilterControl({
           {value}
         </Text>
       </View>
-      <Ionicons name="chevron-down" size={IconSize.sm} color={Colors.textLight} />
+      <Ionicons name="chevron-down-outline" size={IconSize.sm} color={Colors.textLight} />
     </TouchableOpacity>
   );
 }
@@ -137,7 +137,7 @@ const CoachResultCard = React.memo(function CoachResultCard({
           <View style={styles.metaRow}>
             {showRating ? (
               <View style={styles.metaItem}>
-                <Ionicons name="star" size={IconSize.xs} color={Colors.accent} />
+                <Ionicons name="star-outline" size={IconSize.xs} color={Colors.accent} />
                 <Text style={styles.metaText}>
                   {coach.rating} ({coach.reviews})
                 </Text>
@@ -220,7 +220,7 @@ const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
         </Text>
         {showRating ? (
           <View style={styles.topRatedMetaRow}>
-            <Ionicons name="star" size={10} color={Colors.accent} />
+            <Ionicons name="star-outline" size={IconSize.xs} color={Colors.accent} />
             <Text style={styles.topRatedMeta}>
               {coach.rating} ({coach.reviews})
             </Text>
@@ -228,7 +228,7 @@ const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
         ) : null}
         {coach.experience > 0 ? (
           <View style={styles.topRatedMetaRow}>
-            <Ionicons name="calendar-outline" size={10} color={Colors.textLight} />
+            <Ionicons name="calendar-outline" size={IconSize.xs} color={Colors.textLight} />
             <Text style={styles.topRatedMeta} numberOfLines={1}>
               {coach.experience} Yrs
             </Text>
@@ -236,7 +236,7 @@ const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
         ) : null}
         {coach.city ? (
           <View style={styles.topRatedMetaRow}>
-            <Ionicons name="location-outline" size={10} color={Colors.textLight} />
+            <Ionicons name="location-outline" size={IconSize.xs} color={Colors.textLight} />
             <Text style={styles.topRatedMeta} numberOfLines={1}>
               {coach.city}
             </Text>
@@ -244,7 +244,7 @@ const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
         ) : null}
       </View>
       <View style={styles.topRatedChevron}>
-        <Ionicons name="chevron-forward" size={IconSize.sm} color={Colors.secondary} />
+        <Ionicons name="chevron-forward-outline" size={IconSize.md} color={Colors.secondary} />
       </View>
     </TouchableOpacity>
   );
@@ -618,12 +618,17 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const listFooter = (
     <>
       {!coachesQuery.isPending && !showLoadError && showPager ? (
-        <ListPager page={safePage} totalPages={totalPages} onChangePage={setPage} />
+        <ListPager
+          page={safePage}
+          totalPages={totalPages}
+          onChangePage={setPage}
+          variant="circle"
+        />
       ) : null}
 
       <View style={styles.topRatedHeader}>
         <View style={styles.topRatedTitleRow}>
-          <Ionicons name="star" size={IconSize.md} color={Colors.accent} />
+          <Ionicons name="star-outline" size={IconSize.md} color={Colors.accent} />
           <Text style={styles.topRatedTitle}>Top Rated Coaches</Text>
         </View>
         <TouchableOpacity
@@ -766,7 +771,11 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                         {pickerLabel(opt)}
                       </Text>
                       {active ? (
-                        <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                        <Ionicons
+                          name="checkmark-outline"
+                          size={IconSize.md}
+                          color={Colors.primary}
+                        />
                       ) : null}
                     </TouchableOpacity>
                   );

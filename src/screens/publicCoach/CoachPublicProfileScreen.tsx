@@ -147,7 +147,7 @@ const SuccessStoryCard = React.memo(function SuccessStoryCard({
     >
       <View style={styles.storyCopy}>
         <View style={styles.focusPill}>
-          <Ionicons name="checkmark-circle" size={IconSize.xs} color={Colors.accentInk} />
+          <Ionicons name="checkmark-circle-outline" size={IconSize.sm} color={Colors.accentInk} />
           <Text style={styles.focusPillText}>Focus</Text>
         </View>
         <Text style={styles.storyTitle} numberOfLines={2}>
@@ -266,7 +266,7 @@ const ProfileHero = React.memo(function ProfileHero({
                 accessibilityLabel="Previous photo"
                 activeOpacity={PressOpacity.soft}
               >
-                <Ionicons name="chevron-back" size={IconSize.lg} color={Colors.white} />
+                <Ionicons name="chevron-back-outline" size={IconSize.lg} color={Colors.white} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.photoNav, styles.photoNavRight]}
@@ -276,7 +276,7 @@ const ProfileHero = React.memo(function ProfileHero({
                 accessibilityLabel="Next photo"
                 activeOpacity={PressOpacity.soft}
               >
-                <Ionicons name="chevron-forward" size={IconSize.lg} color={Colors.white} />
+                <Ionicons name="chevron-forward-outline" size={IconSize.lg} color={Colors.white} />
               </TouchableOpacity>
             </>
           ) : null}
@@ -300,7 +300,7 @@ const ProfileHero = React.memo(function ProfileHero({
               </Text>
               {category ? (
                 <View style={styles.categoryPill}>
-                  <Ionicons name="person" size={IconSize.xs} color={Colors.white} />
+                  <Ionicons name="person-outline" size={IconSize.sm} color={Colors.white} />
                   <Text style={styles.categoryText} numberOfLines={1}>
                     {category}
                   </Text>
@@ -315,7 +315,7 @@ const ProfileHero = React.memo(function ProfileHero({
                     accessibilityRole="button"
                     accessibilityLabel="Previous photo"
                   >
-                    <Ionicons name="chevron-back" size={IconSize.xs} color={Colors.white} />
+                    <Ionicons name="chevron-back-outline" size={IconSize.sm} color={Colors.white} />
                   </TouchableOpacity>
                   <Text style={styles.photoPagerText}>
                     {safePhotoIndex + 1} / {photoCount}
@@ -326,7 +326,11 @@ const ProfileHero = React.memo(function ProfileHero({
                     accessibilityRole="button"
                     accessibilityLabel="Next photo"
                   >
-                    <Ionicons name="chevron-forward" size={IconSize.xs} color={Colors.white} />
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={IconSize.sm}
+                      color={Colors.white}
+                    />
                   </TouchableOpacity>
                 </View>
               ) : null}
@@ -560,7 +564,7 @@ const EnquiryBookingForm = React.memo(
                 <Text style={styles.formCtaText}>It&apos;s Free!</Text>
               </View>
               <View style={styles.formCtaIcon}>
-                <Ionicons name="arrow-forward" size={IconSize.md} color={Colors.white} />
+                <Ionicons name="arrow-forward-outline" size={IconSize.md} color={Colors.white} />
               </View>
             </>
           )}
@@ -817,9 +821,9 @@ function CoachProfilePage({
 
         {coach.tags.length > 0 ? (
           <View style={styles.section}>
-            <SectionTag icon="checkmark-circle" label="Expertise" />
+            <SectionTag icon="checkmark-circle-outline" label="Expertise" />
             <Text style={styles.sectionTitle}>What I Specialise In</Text>
-            <Text style={styles.sectionSubtitle}>Explore areas {coach.name} provides.</Text>
+            <Text style={styles.sectionSubtitle}>Services and topics on this profile.</Text>
             <View
               style={styles.expertiseChipGroup}
               accessibilityRole="text"
@@ -831,7 +835,11 @@ function CoachProfilePage({
                   style={styles.expertiseChip}
                   importantForAccessibility="no-hide-descendants"
                 >
-                  <Ionicons name="checkmark-circle" size={IconSize.sm} color={Colors.accentInk} />
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={IconSize.sm}
+                    color={Colors.accentInk}
+                  />
                   <Text style={styles.expertiseTitle} numberOfLines={2}>
                     {formatExpertiseLabel(tag)}
                   </Text>
@@ -843,11 +851,9 @@ function CoachProfilePage({
 
         {showSuccessStories ? (
           <View style={styles.section}>
-            <SectionTag icon="checkmark-circle" label="Outcomes" />
+            <SectionTag icon="checkmark-circle-outline" label="Outcomes" />
             <Text style={styles.sectionTitle}>Success Stories</Text>
-            <Text style={styles.sectionSubtitle}>
-              Outcomes and focus areas from {coach.name}&apos;s public profile.
-            </Text>
+            <Text style={styles.sectionSubtitle}>From {coach.name}&apos;s public profile.</Text>
             <View style={styles.storiesList}>
               {packages.map(pkg => (
                 <SuccessStoryCard key={pkg.id} pkg={pkg} onSelect={selectPackageService} />
@@ -858,15 +864,19 @@ function CoachProfilePage({
 
         {showRating ? (
           <View style={styles.section}>
-            <SectionTag icon="checkmark-circle" label="Review" />
+            <SectionTag icon="checkmark-circle-outline" label="Review" />
             <View style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
                 <View style={styles.reviewHeaderCopy}>
                   <Text style={styles.reviewTitle}>Client ratings</Text>
-                  <Text style={styles.reviewSubtitle}>Right where the guidance of Mera Coach.</Text>
+                  <Text style={styles.reviewSubtitle}>Ratings from clients on Mera Coach.</Text>
                 </View>
                 <View style={styles.reviewShield}>
-                  <Ionicons name="shield-checkmark" size={IconSize.lg} color={Colors.accentInk} />
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={IconSize.lg}
+                    color={Colors.accentInk}
+                  />
                 </View>
               </View>
               <View style={styles.reviewDivider} />

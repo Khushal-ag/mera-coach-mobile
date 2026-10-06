@@ -405,9 +405,12 @@ function AddGalleryEventForm({
                 accessibilityLabel={item.label}
               >
                 <View style={[styles.chipIcon, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon} size={14} color={Colors.white} />
+                  <Ionicons name={item.icon} size={12} color={Colors.white} />
                 </View>
-                <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>
+                <Text
+                  style={[styles.chipLabel, selected && styles.chipLabelSelected]}
+                  numberOfLines={2}
+                >
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -473,7 +476,7 @@ function AddGalleryEventForm({
             {clientLabel}
           </Text>
           <Ionicons
-            name="chevron-down"
+            name="chevron-down-outline"
             size={IconSize.sm}
             color={clientEnabled ? ICON_MUTED : FIELD_DISABLED_TEXT}
             style={styles.fieldChevron}
@@ -568,7 +571,9 @@ function AddGalleryEventForm({
           accessibilityLabel="By publishing, you confirm that you have the right to share this content."
         >
           <View style={[styles.check, !consent && styles.checkOff]}>
-            {consent ? <Ionicons name="checkmark" size={14} color={Colors.white} /> : null}
+            {consent ? (
+              <Ionicons name="checkmark-outline" size={IconSize.sm} color={Colors.white} />
+            ) : null}
           </View>
           <Text style={styles.consentText}>
             By publishing, you confirm that you have the right to share this content.
@@ -590,7 +595,11 @@ function AddGalleryEventForm({
             <>
               <Text style={styles.publishLabel}>Publish</Text>
               <View style={styles.publishArrow}>
-                <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.accentInk} />
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={IconSize.sm}
+                  color={Colors.accentInk}
+                />
               </View>
             </>
           )}
@@ -683,7 +692,9 @@ function ClientOption({
       <Text style={[styles.optionText, selected && styles.optionTextSelected]} numberOfLines={1}>
         {client.name}
       </Text>
-      {selected ? <Ionicons name="checkmark" size={IconSize.md} color={Colors.accentInk} /> : null}
+      {selected ? (
+        <Ionicons name="checkmark-outline" size={IconSize.md} color={Colors.accentInk} />
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -728,13 +739,14 @@ const styles = StyleSheet.create({
   chip: {
     flex: 1,
     minWidth: 0,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    minHeight: 78,
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: 10,
-    borderRadius: Radius.md,
+    gap: 4,
+    minHeight: 40,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: Radius.sm,
     borderWidth: 1.5,
   },
   chipIdle: {
@@ -742,18 +754,18 @@ const styles = StyleSheet.create({
     borderColor: CHIP_IDLE_BORDER,
   },
   chipIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chipLabel: {
-    alignSelf: 'stretch',
-    textAlign: 'center',
+    flexShrink: 1,
+    textAlign: 'left',
     fontFamily: FontFamily.semibold,
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 12,
     color: CHIP_IDLE_LABEL,
   },
   chipLabelSelected: {

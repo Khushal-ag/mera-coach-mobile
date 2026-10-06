@@ -113,7 +113,7 @@ export default function ClientDietPlanScreen({
   };
 
   const shareButton = canSharePdf ? (
-    <PdfDownloadShareButton variant="headerOnDark" onPress={shareDietPdf} loading={preparingPdf} />
+    <PdfDownloadShareButton variant="primary" onPress={shareDietPdf} loading={preparingPdf} />
   ) : null;
 
   return (
@@ -139,7 +139,7 @@ export default function ClientDietPlanScreen({
         commitMode="dietPlan"
         finishLabel="Save Plan"
         skipEmptyDietCommit
-        headerRight={shareButton}
+        pageAction={shareButton}
         onHome={() => navigateToDashboard(navigation)}
         onExit={() => navigateBack(navigation, returnTo)}
         onComplete={onComplete}

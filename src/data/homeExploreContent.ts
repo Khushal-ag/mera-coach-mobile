@@ -10,7 +10,7 @@ export type ExploreFeatureTarget =
   | { kind: 'register' }
   | { kind: 'login' };
 
-export interface ExploreFeature {
+interface ExploreFeature {
   label: string;
   icon: IoniconName;
   color: string;
@@ -27,7 +27,7 @@ export const EXPLORE_FEATURES: ExploreFeature[] = [
     target: { kind: 'clients' },
   },
   {
-    label: 'Tract Client Progress',
+    label: 'Track Client Progress',
     icon: 'stats-chart-outline',
     color: Colors.brandCoach,
     bg: Colors.primaryLight,

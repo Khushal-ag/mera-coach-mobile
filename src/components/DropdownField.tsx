@@ -105,8 +105,8 @@ export default function DropdownField({
           {display || placeholder || 'Select'}
         </Text>
         <Ionicons
-          name="chevron-down"
-          size={compact ? 14 : 16}
+          name="chevron-down-outline"
+          size={compact ? IconSize.sm : IconSize.md}
           color={tone === 'mint' || leftIcon ? Colors.accentInk : Colors.textLight}
         />
       </TouchableOpacity>
@@ -143,7 +143,11 @@ export default function DropdownField({
                         {opt.label}
                       </Text>
                       {active ? (
-                        <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                        <Ionicons
+                          name="checkmark-outline"
+                          size={IconSize.md}
+                          color={Colors.primary}
+                        />
                       ) : null}
                     </TouchableOpacity>
                   );

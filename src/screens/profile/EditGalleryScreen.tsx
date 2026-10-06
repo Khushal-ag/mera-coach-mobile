@@ -269,7 +269,7 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
                     accessibilityLabel={`Remove ${photo.name}`}
                     hitSlop={HitSlop.sm}
                   >
-                    <Ionicons name="close" size={IconSize.md} color={Colors.textLight} />
+                    <Ionicons name="close-outline" size={IconSize.md} color={Colors.textLight} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -295,7 +295,11 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
             <>
               <Text style={styles.publishLabel}>Publish</Text>
               <View style={styles.publishArrow}>
-                <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.accentInk} />
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={IconSize.sm}
+                  color={Colors.accentInk}
+                />
               </View>
             </>
           )}

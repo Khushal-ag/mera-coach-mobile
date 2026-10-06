@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   HitSlop,
+  IconSize,
   Radius,
   Shadow,
   Spacing,
@@ -82,7 +83,7 @@ const ProgressPhotoThumb = React.memo(function ProgressPhotoThumb({
           <Image source={source} style={strip ? styles.stripThumb : styles.thumb} />
         ) : (
           <View style={[strip ? styles.stripThumb : styles.thumb, styles.thumbPlaceholder]}>
-            <Ionicons name="image-outline" size={24} color={Colors.textLight} />
+            <Ionicons name="image-outline" size={IconSize.xl} color={Colors.textLight} />
           </View>
         )}
       </TouchableOpacity>
@@ -96,7 +97,7 @@ const ProgressPhotoThumb = React.memo(function ProgressPhotoThumb({
       >
         <Ionicons
           name="trash-outline"
-          size={14}
+          size={IconSize.sm}
           color={strip ? Colors.white : Colors.destructive}
         />
       </TouchableOpacity>
@@ -213,7 +214,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
       <Text style={styles.stripEmpty}>No progress photos yet.</Text>
     ) : (
       <View style={styles.empty}>
-        <Ionicons name="images-outline" size={28} color={Colors.textLight} />
+        <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.textLight} />
         <Text style={styles.emptyText}>No progress photos yet.</Text>
       </View>
     )
@@ -267,7 +268,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
                 <ActivityIndicator color={Colors.white} size="small" />
               ) : (
                 <>
-                  <Ionicons name="camera-outline" size={16} color={Colors.white} />
+                  <Ionicons name="camera-outline" size={IconSize.sm} color={Colors.white} />
                   <Text style={styles.uploadBtnText}>Add</Text>
                 </>
               )}
@@ -304,7 +305,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
             ) : null}
           </ScrollView>
           <TouchableOpacity style={styles.lightboxClose} onPress={() => setLightboxUri(null)}>
-            <Ionicons name="close" size={24} color={Colors.white} />
+            <Ionicons name="close-outline" size={IconSize.xl} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </Modal>

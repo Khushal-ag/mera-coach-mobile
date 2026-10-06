@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -44,22 +43,18 @@ function ChromeCircleButton({
 
 interface WaveScreenHeaderProps {
   title: string;
-  titleIcon?: IoniconName;
   onBack?: () => void;
   onHome?: () => void;
   showHome?: boolean;
   showBack?: boolean;
-  rightExtra?: React.ReactNode;
 }
 
 export default function WaveScreenHeader({
   title,
-  titleIcon,
   onBack,
   onHome,
   showHome = true,
   showBack = true,
-  rightExtra,
 }: WaveScreenHeaderProps) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -106,47 +101,22 @@ export default function WaveScreenHeader({
             />
           ) : null}
           <View style={[styles.titleBlock, showBack ? styles.titleAfterBack : null]}>
-            {titleIcon ? (
-              <Ionicons
-                name={titleIcon}
-                size={IconSize.lg}
-                color={Colors.white}
-                style={styles.titleIcon}
-              />
-            ) : null}
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
           </View>
-          {rightExtra || showHome ? (
+          {showHome ? (
             <View style={styles.rightCluster}>
-              {rightExtra}
-              {showHome ? (
-                <ChromeCircleButton
-                  icon="home-outline"
-                  onPress={handleHome}
-                  accessibilityLabel="Home"
-                />
-              ) : null}
+              <ChromeCircleButton
+                icon="home-outline"
+                onPress={handleHome}
+                accessibilityLabel="Home"
+              />
             </View>
           ) : null}
         </View>
       </View>
     </View>
-  );
-}
-
-export function WaveHeaderActionButton({
-  icon,
-  onPress,
-  accessibilityLabel,
-}: {
-  icon: IoniconName;
-  onPress: () => void;
-  accessibilityLabel: string;
-}) {
-  return (
-    <ChromeCircleButton icon={icon} onPress={onPress} accessibilityLabel={accessibilityLabel} />
   );
 }
 
@@ -180,9 +150,6 @@ const styles = StyleSheet.create({
   },
   titleAfterBack: {
     marginLeft: Spacing.sm,
-  },
-  titleIcon: {
-    marginRight: Spacing.xs,
   },
   title: {
     ...Typography.title,

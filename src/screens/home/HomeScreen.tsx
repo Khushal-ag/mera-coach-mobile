@@ -115,7 +115,7 @@ function MarketingPage({
             <Text style={styles.ctaPrimarySub}>as a coach</Text>
           </View>
           <View style={styles.arrowCircle}>
-            <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.brandCoach} />
+            <Ionicons name="arrow-forward-outline" size={IconSize.sm} color={Colors.brandCoach} />
           </View>
         </Pressable>
 
@@ -125,11 +125,11 @@ function MarketingPage({
           accessibilityRole="button"
           accessibilityLabel="Find a Coach"
         >
-          <Ionicons name="search" size={IconSize.lg} color={Colors.white} />
+          <Ionicons name="search-outline" size={IconSize.lg} color={Colors.white} />
           <View style={[styles.ctaDivider, styles.ctaDividerMuted]} />
           <Text style={styles.ctaSecondaryLabel}>Find a Coach</Text>
           <View style={styles.arrowCircle}>
-            <Ionicons name="arrow-forward" size={IconSize.sm} color={Colors.secondary} />
+            <Ionicons name="arrow-forward-outline" size={IconSize.sm} color={Colors.secondary} />
           </View>
         </Pressable>
       </View>

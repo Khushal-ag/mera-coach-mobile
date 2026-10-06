@@ -33,7 +33,7 @@ export default function FoodItemChip({ item, onQtyChange, onRemove }: FoodItemCh
         accessibilityRole="button"
         accessibilityLabel="Decrease quantity"
       >
-        <Ionicons name="remove" size={IconSize.xs} color={Colors.accentInk} />
+        <Ionicons name="remove-outline" size={IconSize.sm} color={Colors.accentInk} />
       </TouchableOpacity>
       <Text style={styles.qty}>{item.qty}</Text>
       <TouchableOpacity
@@ -44,7 +44,7 @@ export default function FoodItemChip({ item, onQtyChange, onRemove }: FoodItemCh
         accessibilityRole="button"
         accessibilityLabel="Increase quantity"
       >
-        <Ionicons name="add" size={IconSize.xs} color={Colors.accentInk} />
+        <Ionicons name="add-outline" size={IconSize.sm} color={Colors.accentInk} />
       </TouchableOpacity>
       <Text style={styles.kcal}>{item.kcal * item.qty} kcal</Text>
       <TouchableOpacity

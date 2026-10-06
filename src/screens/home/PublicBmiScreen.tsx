@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -11,13 +12,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PublicHomeHeader from '../../components/home/PublicHomeHeader';
-import BmiGaugeArt from '../../components/home/BmiGaugeArt';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
 import { submitCoachEnquiry } from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
+import { BrandImages, PUBLIC_BMI_BANNER_ASPECT } from '../../constants/images';
 import {
   Colors,
   FontFamily,
@@ -60,8 +61,6 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
     setSubmitting(true);
     setBanner(null);
     try {
-      // Figma form only collects name + mobile. submitBmiLead requires height/weight/BMI,
-      // so this screen uses the public coach enquiry lead endpoint instead.
       await submitCoachEnquiry({
         clientName: name.trim(),
         clientMobile: mobile.trim(),
@@ -77,7 +76,8 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
     }
   };
 
-  const bannerH = Math.min(150, Math.max(128, screenW * 0.38));
+  const contentWidth = screenW - Spacing.md * 2;
+  const heroHeight = contentWidth / PUBLIC_BMI_BANNER_ASPECT;
 
   return (
     <View style={styles.screen}>
@@ -93,14 +93,15 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
       >
         <PublicHomeHeader onHomePress={goHome} />
 
-        <View style={[styles.hero, { height: bannerH, marginTop: Spacing.md }]}>
-          <View style={styles.heroText}>
-            <Text style={styles.heroCheck}>Check Your</Text>
-            <Text style={styles.heroBmi}>BMI</Text>
-            <View style={styles.heroRule} />
-            <Text style={styles.heroSub}>Add your details to see your result</Text>
-          </View>
-          <BmiGaugeArt size={112} style={styles.heroArt} />
+        <View style={[styles.hero, { width: contentWidth, height: heroHeight }]}>
+          <Image
+            source={BrandImages.publicBmiBanner}
+            style={{ width: contentWidth, height: heroHeight }}
+            resizeMode="stretch"
+            accessibilityRole="image"
+            accessibilityLabel="Check Your BMI"
+            accessibilityIgnoresInvertColors
+          />
         </View>
 
         <View style={styles.revealBar}>
@@ -108,14 +109,14 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
         </View>
 
         <Text style={styles.helper}>
-          Share your name and mobile. A top-rated coach will call you back.{' '}
-          <Text style={styles.helperStrong}>Free, no commitment.</Text>
+          Share your name and mobile. A top-rated coach will call you back.
         </Text>
+        <Text style={styles.helperStrong}>Free, no commitment.</Text>
 
         <FormErrorBanner message={banner} />
         {success ? (
           <View style={styles.successBox} accessibilityRole="text">
-            <Ionicons name="checkmark-circle" size={IconSize.lg} color={Colors.secondary} />
+            <Ionicons name="checkmark-circle-outline" size={IconSize.lg} color={Colors.secondary} />
             <Text style={styles.successText}>
               Thanks! A coach will reach out to discuss your BMI.
             </Text>
@@ -128,7 +129,7 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
             <Ionicons
               name="person-outline"
               size={IconSize.md}
-              color={Colors.textLight}
+              color={Colors.secondary}
               style={styles.inputIcon}
             />
             <TextInput
@@ -154,12 +155,12 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
             <Ionicons
               name="call-outline"
               size={IconSize.md}
-              color={Colors.textLight}
+              color={Colors.secondary}
               style={styles.inputIcon}
             />
             <PhoneTextInput
               style={styles.input}
-              placeholder="10-digit-mobile number"
+              placeholder="10-digit mobile number"
               placeholderTextColor={Colors.textLight}
               value={mobile}
               onChangeText={v => {
@@ -179,14 +180,20 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
           disabled={submitting}
           accessibilityRole="button"
           accessibilityLabel="Discuss Your BMI with Coaches"
+          accessibilityState={{ disabled: submitting, busy: submitting }}
         >
           {submitting ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
             <>
-              <Text style={styles.submitText}>Discuss Your BMI with Coaches</Text>
+              <Text style={styles.submitLine}>Discuss Your BMI</Text>
+              <Text style={styles.submitLine}>with Coaches</Text>
               <View style={styles.submitArrow}>
-                <Ionicons name="arrow-forward" size={14} color={Colors.brandCoach} />
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={IconSize.sm}
+                  color={Colors.brandCoach}
+                />
               </View>
             </>
           )}
@@ -208,72 +215,40 @@ const styles = StyleSheet.create({
     opacity: PressOpacity.default,
   },
   hero: {
+    marginTop: Spacing.md,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.exploreBanner,
     overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: Spacing.md,
-    paddingRight: Spacing.sm,
-  },
-  heroText: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    paddingRight: Spacing.xs,
-  },
-  heroCheck: {
-    fontFamily: FontFamily.medium,
-    fontSize: 16,
-    lineHeight: 22,
-    color: Colors.white,
-  },
-  heroBmi: {
-    fontFamily: headingFont.bold,
-    fontSize: 22,
-    lineHeight: 28,
-    color: Colors.exploreBannerAccent,
-  },
-  heroRule: {
-    width: 56,
-    height: StyleSheet.hairlineWidth * 2,
-    backgroundColor: Colors.onDarkBorderStrong,
-    marginVertical: Spacing.xs,
-  },
-  heroSub: {
-    fontFamily: FontFamily.regular,
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.onDarkNearWhite,
-  },
-  heroArt: {
-    marginRight: Spacing.xs,
   },
   revealBar: {
-    marginTop: Spacing.md,
-    backgroundColor: Colors.secondary,
-    borderRadius: Radius.sm,
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.accentInk,
     paddingVertical: Spacing.sm + 2,
     paddingHorizontal: Spacing.md,
   },
   revealBarText: {
-    fontFamily: FontFamily.semibold,
-    fontSize: 13,
-    lineHeight: 18,
+    fontFamily: FontFamily.medium,
+    fontSize: 14,
+    lineHeight: 20,
     color: Colors.white,
     textAlign: 'center',
   },
   helper: {
     marginTop: Spacing.md,
-    marginBottom: Spacing.md,
     fontFamily: FontFamily.regular,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 20,
     color: Colors.textDark,
     textAlign: 'center',
     paddingHorizontal: Spacing.xs,
   },
   helperStrong: {
+    marginTop: Spacing.xxs,
+    marginBottom: Spacing.md,
     fontFamily: FontFamily.bold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.textDark,
+    textAlign: 'center',
   },
   successBox: {
     flexDirection: 'row',
@@ -297,7 +272,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     ...formFieldStyles.wrap,
     ...formFieldStyles.wrapSurface,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.md,
     height: FormControl.height,
   },
   inputIcon: {
@@ -309,28 +284,28 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: Spacing.sm,
-    flexDirection: 'row',
+    minHeight: 68,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.brandCoach,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.brandCoach,
-    borderRadius: Radius.pill,
-    minHeight: 56,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: 52,
     ...Shadow.md,
   },
-  submitText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 15,
+  submitLine: {
+    fontFamily: headingFont.bold,
+    fontSize: 16,
+    lineHeight: 21,
     color: Colors.white,
-    flexShrink: 1,
     textAlign: 'center',
   },
   submitArrow: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    position: 'absolute',
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',

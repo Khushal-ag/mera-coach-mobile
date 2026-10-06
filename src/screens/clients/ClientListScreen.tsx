@@ -16,8 +16,8 @@ import {
   Colors,
   FontFamily,
   IconSize,
+  HitSlop,
   ListCard,
-  ListPortrait,
   PressOpacity,
   Radius,
   ScreenPad,
@@ -25,13 +25,13 @@ import {
   headingFont,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
+import AppButton from '../../components/AppButton';
 import EmptyState from '../../components/EmptyState';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import ClientAvatar from '../../components/ClientAvatar';
 import SearchField from '../../components/SearchField';
-import SectionTag from '../../components/SectionTag';
-import WaveScreenHeader, { WaveHeaderActionButton } from '../../components/WaveScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
@@ -44,6 +44,8 @@ import type { ClientSummary } from '../../types/models';
 import { navigateToDashboard } from '../../utils/navigationBack';
 
 const PAGE_SIZE = 5;
+/** Figma client row portrait (leads match; checkups stay on ListPortrait). */
+const CLIENT_PORTRAIT = { width: 82, height: 91, radius: 12 } as const;
 
 function checkupLine(item: ClientSummary): string {
   const raw = lastCheckupLabel(item.lastCheckupDate);
@@ -63,9 +65,9 @@ const ClientRow = React.memo(function ClientRow({
     <View style={styles.card}>
       <ClientAvatar
         clientCode={item.clientCode}
-        width={ListPortrait.width}
-        height={ListPortrait.height}
-        borderRadius={ListPortrait.radius}
+        width={CLIENT_PORTRAIT.width}
+        height={CLIENT_PORTRAIT.height}
+        borderRadius={CLIENT_PORTRAIT.radius}
         allowUpload
         style={styles.avatar}
       />
@@ -81,23 +83,19 @@ const ClientRow = React.memo(function ClientRow({
             <Text style={styles.name} numberOfLines={1}>
               {item.name}
             </Text>
-            {item.age != null ? (
-              <Text style={styles.meta} numberOfLines={1}>
-                Age: {item.age}
-              </Text>
-            ) : null}
-            {mobile ? (
-              <Text style={styles.meta} numberOfLines={1}>
-                {mobile}
-              </Text>
-            ) : null}
+            <Text style={styles.meta} numberOfLines={1}>
+              Age: {item.age != null ? item.age : '-'}
+            </Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              {mobile || '-'}
+            </Text>
             <Text style={styles.meta} numberOfLines={1}>
               {checkupLine(item)}
             </Text>
           </TouchableOpacity>
           <Ionicons
             name="chevron-forward-outline"
-            size={IconSize.lg}
+            size={IconSize.md}
             color={Colors.textDark}
             style={styles.chevron}
           />
@@ -108,6 +106,7 @@ const ClientRow = React.memo(function ClientRow({
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
           accessibilityLabel={`Select ${item.name}`}
+          hitSlop={HitSlop.sm}
         >
           <Text style={styles.selectBtnText}>Select</Text>
         </TouchableOpacity>
@@ -150,8 +149,8 @@ export default function ClientListScreen({
     ? getErrorMessage(clientsQuery.error, 'Could not load clients. Pull down to try again.')
     : null;
   const showLoadError = !!errorMessage && clients.length === 0;
-  const totalCount = clients.length;
-  const totalLabel = totalCount === 1 ? '1 Client' : `${totalCount} Clients`;
+  const showPageAdd =
+    clients.length > 0 || showLoadError || (clientsQuery.isPending && !clientsQuery.data);
 
   const onSearchChange = (value: string) => {
     setSearch(value);
@@ -169,7 +168,7 @@ export default function ClientListScreen({
       ? {
           illustration: BrandImages.emptyClients,
           title: 'No clients yet',
-          message: 'Tap + to add your first client and start their assessment.',
+          message: 'Add your first client and start their assessment.',
         }
       : {
           icon: 'search-outline' as const,
@@ -196,30 +195,23 @@ export default function ClientListScreen({
     <View style={styles.container}>
       <WaveScreenHeader
         title="My Clients"
-        titleIcon="people-outline"
         onBack={() => navigateToDashboard(navigation)}
         onHome={() => navigateToDashboard(navigation)}
-        rightExtra={
-          <WaveHeaderActionButton
-            icon="add-outline"
-            onPress={goAddClient}
-            accessibilityLabel="Add client"
-          />
-        }
       />
 
       <View style={styles.body}>
-        <SectionTag icon="person-outline" label="Client roster" />
-
-        <View style={styles.totalCard} accessibilityRole="text" accessibilityLabel={totalLabel}>
-          <View style={styles.totalIcon}>
-            <Ionicons name="people-outline" size={22} color={Colors.secondary} />
+        {showPageAdd ? (
+          <View style={styles.addRow}>
+            <AppButton
+              label="Add client"
+              size="compact"
+              icon="add-outline"
+              iconPosition="left"
+              onPress={goAddClient}
+              accessibilityLabel="Add client"
+            />
           </View>
-          <View style={styles.totalCopy}>
-            <Text style={styles.totalEyebrow}>Total Clients</Text>
-            <Text style={styles.totalValue}>{totalLabel}</Text>
-          </View>
-        </View>
+        ) : null}
 
         <SearchField
           style={styles.search}
@@ -302,37 +294,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.sm,
   },
-  totalCard: {
+  addRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.secondaryMuted,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm + 2,
+    justifyContent: 'flex-end',
     marginBottom: Spacing.sm,
-  },
-  totalIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  totalCopy: { flex: 1, minWidth: 0 },
-  totalEyebrow: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    color: Colors.textLight,
-  },
-  totalValue: {
-    fontSize: 16,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-    marginTop: 1,
   },
   search: { marginBottom: Spacing.sm },
   loader: { marginTop: 30 },
@@ -342,14 +307,13 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: ListCard.minHeight,
     backgroundColor: Colors.white,
     borderRadius: ListCard.radius,
     overflow: 'hidden',
     marginBottom: Spacing.sm,
     borderWidth: ListCard.borderWidth,
     borderColor: ListCard.borderColor,
-    padding: ListPortrait.contentPad,
+    padding: 12,
   },
   avatar: {
     marginRight: Spacing.sm,
@@ -379,19 +343,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   selectBtn: {
-    alignSelf: 'stretch',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    minHeight: 40,
+    width: 174,
+    maxWidth: '100%',
+    height: 28,
+    marginTop: 6,
   },
   selectBtnText: {
     color: Colors.white,
-    fontSize: 14,
+    fontSize: 12,
+    lineHeight: 14,
     fontFamily: FontFamily.bold,
   },
 });

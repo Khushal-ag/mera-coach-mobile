@@ -21,7 +21,6 @@ import {
   FormControl,
   IconSize,
   ListCard,
-  ListPortrait,
   PressOpacity,
   Radius,
   ScreenPad,
@@ -89,13 +88,8 @@ const LeadRow = React.memo(function LeadRow({
 
   return (
     <View style={styles.card}>
-      <PersonAvatar
-        width={ListPortrait.width}
-        height={ListPortrait.height}
-        borderRadius={ListPortrait.radius}
-        style={styles.avatar}
-      />
-      <View style={styles.content}>
+      <View style={styles.topRow}>
+        <PersonAvatar width={82} height={91} borderRadius={12} style={styles.avatar} />
         <View style={styles.info}>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>
@@ -107,16 +101,12 @@ const LeadRow = React.memo(function LeadRow({
               </View>
             ) : null}
           </View>
-          {lead.dateLabel ? (
-            <Text style={styles.date} numberOfLines={1}>
-              {lead.dateLabel}
-            </Text>
-          ) : null}
-          {lead.lookingFor ? (
-            <Text style={styles.lookingFor} numberOfLines={2}>
-              Looking for: {lead.lookingFor}
-            </Text>
-          ) : null}
+          <Text style={styles.date} numberOfLines={1}>
+            {lead.dateLabel || '-'}
+          </Text>
+          <Text style={styles.lookingFor} numberOfLines={2}>
+            Looking for: {lead.lookingFor || '-'}
+          </Text>
           {lead.clientMobile ? (
             <TouchableOpacity
               style={styles.phonePill}
@@ -130,35 +120,39 @@ const LeadRow = React.memo(function LeadRow({
                 {lead.clientMobile}
               </Text>
             </TouchableOpacity>
-          ) : null}
+          ) : (
+            <Text style={styles.date} numberOfLines={1}>
+              -
+            </Text>
+          )}
         </View>
+      </View>
 
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel} numberOfLines={2}>
-            Marked as contacted
-          </Text>
-          <Switch
-            value={lead.isContacted}
-            onValueChange={next => onToggleContacted(lead, next)}
-            trackColor={{ false: Colors.border, true: Colors.secondaryLight }}
-            thumbColor={lead.isContacted ? Colors.secondary : Colors.textLight}
-            accessibilityLabel={lead.isContacted ? 'Mark lead as new' : 'Mark lead as contacted'}
-          />
-        </View>
-
-        <TextInput
-          style={styles.notesInput}
-          value={editingNotes ? notesDraft : lead.notes}
-          onChangeText={setNotesDraft}
-          onFocus={beginNotesEdit}
-          onEndEditing={commitNotes}
-          placeholder="Add note.."
-          placeholderTextColor={Colors.textLight}
-          editable={!savingNotes}
-          returnKeyType="done"
-          blurOnSubmit
+      <View style={styles.toggleRow}>
+        <Text style={styles.toggleLabel} numberOfLines={2}>
+          Marked as contacted
+        </Text>
+        <Switch
+          value={lead.isContacted}
+          onValueChange={next => onToggleContacted(lead, next)}
+          trackColor={{ false: Colors.border, true: Colors.accentInk }}
+          thumbColor={Colors.white}
+          accessibilityLabel={lead.isContacted ? 'Mark lead as new' : 'Mark lead as contacted'}
         />
       </View>
+
+      <TextInput
+        style={styles.notesInput}
+        value={editingNotes ? notesDraft : lead.notes}
+        onChangeText={setNotesDraft}
+        onFocus={beginNotesEdit}
+        onEndEditing={commitNotes}
+        placeholder="Add note.."
+        placeholderTextColor={Colors.textLight}
+        editable={!savingNotes}
+        returnKeyType="done"
+        blurOnSubmit
+      />
     </View>
   );
 });
@@ -192,7 +186,6 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
     });
   }, [leads, search]);
 
-  const newCount = useMemo(() => leads.filter(l => !l.isContacted).length, [leads]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageItems = useMemo(() => {
@@ -306,48 +299,37 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
             />
           </ScrollView>
         ) : (
-          <>
-            {leads.length > 0 ? (
-              <View style={styles.summaryChip}>
-                <Ionicons name="people-outline" size={IconSize.lg} color={Colors.secondary} />
-                <View style={styles.summaryText}>
-                  <Text style={styles.summaryTotal}>{leads.length} Total Clients</Text>
-                  <Text style={styles.summaryNew}>{newCount} New</Text>
-                </View>
-              </View>
-            ) : null}
-            <FlatList
-              data={pageItems}
-              keyExtractor={item => String(item.id)}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={8}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-              contentContainerStyle={[
-                filtered.length === 0 ? styles.emptyWrap : undefined,
-                { paddingBottom: ScreenPad.tabBarClearance },
-              ]}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshControl.refreshing}
-                  onRefresh={refreshControl.onRefresh}
-                  {...refreshControlTheme}
+          <FlatList
+            data={pageItems}
+            keyExtractor={item => String(item.id)}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+            contentContainerStyle={[
+              filtered.length === 0 ? styles.emptyWrap : undefined,
+              { paddingBottom: ScreenPad.tabBarClearance },
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshControl.refreshing}
+                onRefresh={refreshControl.onRefresh}
+                {...refreshControlTheme}
+              />
+            }
+            ListEmptyComponent={<EmptyState {...emptyState} />}
+            ListFooterComponent={
+              filtered.length > PAGE_SIZE ? (
+                <ListPager
+                  page={safePage}
+                  totalPages={totalPages}
+                  onChangePage={setPage}
+                  variant="square"
                 />
-              }
-              ListEmptyComponent={<EmptyState {...emptyState} />}
-              ListFooterComponent={
-                filtered.length > PAGE_SIZE ? (
-                  <ListPager
-                    page={safePage}
-                    totalPages={totalPages}
-                    onChangePage={setPage}
-                    variant="square"
-                  />
-                ) : null
-              }
-              renderItem={renderItem}
-            />
-          </>
+              ) : null
+            }
+            renderItem={renderItem}
+          />
         )}
       </View>
     </View>
@@ -363,72 +345,49 @@ const styles = StyleSheet.create({
   },
   search: { marginBottom: Spacing.sm },
   loader: { marginTop: Spacing.xl - 2 },
-  summaryChip: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm - 2,
-    marginBottom: Spacing.sm,
-  },
-  summaryText: { justifyContent: 'center' },
-  summaryTotal: {
-    ...Typography.caption,
-    color: Colors.textLight,
-  },
-  summaryNew: {
-    fontSize: 13,
-    fontFamily: FontFamily.bold,
-    color: Colors.textDark,
-    marginTop: 1,
-  },
   emptyWrap: { flexGrow: 1 },
   errorWrap: { flexGrow: 1 },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: ListCard.minHeight,
     backgroundColor: Colors.white,
     borderRadius: ListCard.radius,
-    overflow: 'hidden',
     marginBottom: Spacing.sm,
     borderWidth: ListCard.borderWidth,
     borderColor: ListCard.borderColor,
-    padding: ListPortrait.contentPad,
+    padding: Spacing.md,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
   },
   avatar: {
-    marginRight: Spacing.sm,
+    flexShrink: 0,
   },
-  content: {
-    flex: 1,
-    minWidth: 0,
-  },
-  info: { minWidth: 0 },
+  info: { flex: 1, minWidth: 0 },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.xs,
-    flexWrap: 'wrap',
   },
   name: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 16,
     fontFamily: headingFont.bold,
     color: Colors.textDark,
-    lineHeight: 24,
-    flexShrink: 1,
+    lineHeight: 22,
   },
   newPill: {
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.sm - 2,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    height: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   newPillText: {
     color: Colors.white,
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: FontFamily.bold,
   },
   date: {
@@ -453,13 +412,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondaryLight,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
     marginTop: Spacing.xs,
-    minHeight: 30,
+    height: 24,
     maxWidth: '100%',
   },
   phoneText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: FontFamily.semibold,
     color: Colors.secondary,
     flexShrink: 1,

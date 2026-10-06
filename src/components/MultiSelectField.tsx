@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
   FontFamily,
+  IconSize,
   Radius,
   Shadow,
   Spacing,
@@ -148,8 +149,8 @@ export default function MultiSelectField({
           {selectedOptions.length ? `${selectedOptions.length} selected` : placeholder || 'Select'}
         </Text>
         <Ionicons
-          name="chevron-down"
-          size={16}
+          name="chevron-down-outline"
+          size={IconSize.md}
           color={tone === 'mint' ? Colors.accentInk : Colors.textLight}
         />
       </TouchableOpacity>
@@ -163,8 +164,8 @@ export default function MultiSelectField({
               </Text>
               <TouchableOpacity onPress={() => remove(opt)}>
                 <Ionicons
-                  name="close"
-                  size={14}
+                  name="close-outline"
+                  size={IconSize.sm}
                   color={tone === 'mint' ? Colors.accentInk : Colors.secondary}
                 />
               </TouchableOpacity>
@@ -217,7 +218,13 @@ export default function MultiSelectField({
                           (tone === 'mint' ? styles.checkboxActiveMint : styles.checkboxActive),
                       ]}
                     >
-                      {active && <Ionicons name="checkmark" size={13} color={Colors.white} />}
+                      {active && (
+                        <Ionicons
+                          name="checkmark-outline"
+                          size={IconSize.sm}
+                          color={Colors.white}
+                        />
+                      )}
                     </View>
                   </TouchableOpacity>
                 );

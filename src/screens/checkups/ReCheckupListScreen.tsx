@@ -21,7 +21,6 @@ import {
   Radius,
   ScreenPad,
   Spacing,
-  Typography,
   headingFont,
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
@@ -208,58 +207,48 @@ export default function ReCheckupListScreen({
             />
           </ScrollView>
         ) : (
-          <>
-            {!dueQuery.isPending ? (
-              <View style={styles.summaryChip}>
-                <View style={styles.summaryIcon}>
-                  <Ionicons name="people" size={IconSize.sm} color={Colors.white} />
-                </View>
-                <Text style={styles.summaryText}>{dueClients.length} Due for re-checkup</Text>
-              </View>
-            ) : null}
-            <FlatList
-              data={pageItems}
-              keyExtractor={(item, index) => item.clientCode ?? `${item.name}-${index}`}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={8}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-              contentContainerStyle={[
-                visible.length === 0 ? styles.emptyWrap : undefined,
-                { paddingBottom: ScreenPad.tabBarClearance },
-              ]}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshControl.refreshing}
-                  onRefresh={refreshControl.onRefresh}
-                  {...refreshControlTheme}
+          <FlatList
+            data={pageItems}
+            keyExtractor={(item, index) => item.clientCode ?? `${item.name}-${index}`}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+            contentContainerStyle={[
+              visible.length === 0 ? styles.emptyWrap : undefined,
+              { paddingBottom: ScreenPad.tabBarClearance },
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshControl.refreshing}
+                onRefresh={refreshControl.onRefresh}
+                {...refreshControlTheme}
+              />
+            }
+            ListEmptyComponent={
+              <EmptyState
+                icon={search.trim() ? 'search-outline' : undefined}
+                illustration={search.trim() ? undefined : BrandImages.emptyCheckups}
+                title={search.trim() ? 'No matches' : 'No checkups due'}
+                message={
+                  search.trim()
+                    ? 'Try a different name or mobile number.'
+                    : 'No clients are due for re-checkup right now.'
+                }
+              />
+            }
+            ListFooterComponent={
+              visible.length > PAGE_SIZE ? (
+                <ListPager
+                  page={safePage}
+                  totalPages={totalPages}
+                  onChangePage={setPage}
+                  variant="square"
                 />
-              }
-              ListEmptyComponent={
-                <EmptyState
-                  icon={search.trim() ? 'search-outline' : undefined}
-                  illustration={search.trim() ? undefined : BrandImages.emptyCheckups}
-                  title={search.trim() ? 'No matches' : 'No checkups due'}
-                  message={
-                    search.trim()
-                      ? 'Try a different name or mobile number.'
-                      : 'No clients are due for re-checkup right now.'
-                  }
-                />
-              }
-              ListFooterComponent={
-                visible.length > PAGE_SIZE ? (
-                  <ListPager
-                    page={safePage}
-                    totalPages={totalPages}
-                    onChangePage={setPage}
-                    variant="square"
-                  />
-                ) : null
-              }
-              renderItem={renderRow}
-            />
-          </>
+              ) : null
+            }
+            renderItem={renderRow}
+          />
         )}
       </View>
     </View>
@@ -275,30 +264,6 @@ const styles = StyleSheet.create({
   },
   search: { marginBottom: Spacing.sm },
   loader: { marginTop: Spacing.xl - 2 },
-  summaryChip: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm - 2,
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingLeft: Spacing.xs,
-    paddingRight: Spacing.md,
-    paddingVertical: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  summaryIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryText: {
-    ...Typography.label,
-    color: Colors.textDark,
-  },
   emptyWrap: { flexGrow: 1 },
   errorWrap: { flexGrow: 1 },
   card: {

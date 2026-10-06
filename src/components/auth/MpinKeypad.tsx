@@ -94,7 +94,7 @@ export default function MpinKeypad({
                   accessibilityLabel={isBackspace ? 'Delete' : key}
                 >
                   {isBackspace ? (
-                    <Ionicons name="close" size={IconSize.xl} color={Colors.secondary} />
+                    <Ionicons name="close-outline" size={IconSize.xl} color={Colors.secondary} />
                   ) : (
                     <Text style={styles.keyLabel}>{key}</Text>
                   )}

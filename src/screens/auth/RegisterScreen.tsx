@@ -181,7 +181,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
                 {selectedCategory?.label ||
                   (categoriesLoading ? 'Loading categories...' : 'Select a category')}
               </Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.textLight} />
+              <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
             </TouchableOpacity>
           </View>
 
@@ -315,7 +315,11 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
                         {opt.label}
                       </Text>
                       {active ? (
-                        <Ionicons name="checkmark" size={18} color={Colors.secondary} />
+                        <Ionicons
+                          name="checkmark-outline"
+                          size={IconSize.md}
+                          color={Colors.secondary}
+                        />
                       ) : null}
                     </TouchableOpacity>
                   );

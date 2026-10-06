@@ -24,8 +24,9 @@ import {
   Spacing,
   Typography,
 } from '../../constants/theme';
+import AppButton from '../../components/AppButton';
 import ReloadState from '../../components/ReloadState';
-import WaveScreenHeader, { WaveHeaderActionButton } from '../../components/WaveScreenHeader';
+import WaveScreenHeader from '../../components/WaveScreenHeader';
 import {
   COACH_GALLERY_DOC_TYPE,
   COACH_GALLERY_MAX_PHOTOS,
@@ -190,14 +191,17 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
         title="Photo gallery"
         onBack={() => navigation.goBack()}
         onHome={() => navigateToDashboard(navigation)}
-        rightExtra={
-          <WaveHeaderActionButton
-            icon="add-outline"
-            onPress={goAdd}
-            accessibilityLabel="Add gallery"
-          />
-        }
       />
+      <View style={styles.addRow}>
+        <AppButton
+          label="Add photo"
+          size="compact"
+          icon="add-outline"
+          iconPosition="left"
+          onPress={goAdd}
+          accessibilityLabel="Add gallery"
+        />
+      </View>
 
       {profileQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={styles.pending} />
@@ -234,7 +238,7 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
         >
           {visiblePhotos.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Ionicons name="images-outline" size={28} color={Colors.accentInk} />
+              <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.accentInk} />
               <Text style={styles.emptyTitle}>No photos yet</Text>
               <Text style={styles.emptyMessage}>
                 Add photos of your sessions, transformations, and coaching space.
@@ -292,7 +296,7 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
               accessibilityRole="button"
               accessibilityLabel="Close photo"
             >
-              <Ionicons name="close" size={24} color={Colors.white} />
+              <Ionicons name="close-outline" size={IconSize.xl} color={Colors.white} />
             </TouchableOpacity>
           </View>
         </Modal>
@@ -373,7 +377,7 @@ function GalleryThumb({
         {busy ? (
           <ActivityIndicator color={Colors.destructive} size="small" />
         ) : (
-          <Ionicons name="trash-outline" size={14} color={Colors.destructive} />
+          <Ionicons name="trash-outline" size={IconSize.sm} color={Colors.destructive} />
         )}
       </TouchableOpacity>
     </View>
@@ -384,6 +388,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: CANVAS },
   pending: { marginTop: 60 },
   body: { flex: 1, backgroundColor: CANVAS },
+  addRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.md,
+  },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

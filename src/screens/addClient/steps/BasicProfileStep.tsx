@@ -207,7 +207,12 @@ function HeightField({
 
       {unit === 'cm' ? (
         <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
-          <Ionicons name="resize-outline" size={17} color={Colors.accentInk} style={styles.icon} />
+          <Ionicons
+            name="resize-outline"
+            size={IconSize.md}
+            color={Colors.accentInk}
+            style={styles.icon}
+          />
           <TextInput
             style={styles.input}
             placeholder="e.g. 165"
@@ -304,7 +309,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
             accessibilityRole="button"
             accessibilityLabel="Add client photos"
           >
-            <Ionicons name="camera-outline" size={14} color="#F08A2C" />
+            <Ionicons name="camera-outline" size={IconSize.sm} color="#F08A2C" />
             <Text style={styles.photoActionText}>{photos.length ? 'Add more' : 'Add photos'}</Text>
           </TouchableOpacity>
         ) : null}
@@ -320,7 +325,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
           accessibilityRole="button"
           accessibilityLabel="Add client photos"
         >
-          <Ionicons name="images-outline" size={28} color={Colors.accentInk} />
+          <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.accentInk} />
           <Text style={styles.photoEmptyText}>Tap to select photos</Text>
         </TouchableOpacity>
       ) : (
@@ -337,7 +342,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
                 hitSlop={HitSlop.sm}
               >
                 <View style={styles.photoRemoveIcon}>
-                  <Ionicons name="close" size={14} color={Colors.destructive} />
+                  <Ionicons name="close-outline" size={IconSize.sm} color={Colors.destructive} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -349,7 +354,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
               accessibilityRole="button"
               accessibilityLabel="Add more photos"
             >
-              <Ionicons name="add" size={28} color={Colors.accentInk} />
+              <Ionicons name="add-outline" size={IconSize.xxl} color={Colors.accentInk} />
             </TouchableOpacity>
           ) : null}
         </View>

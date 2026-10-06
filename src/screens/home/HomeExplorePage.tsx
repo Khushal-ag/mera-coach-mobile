@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import PublicHomeHeader from '../../components/home/PublicHomeHeader';
-import BmiGaugeArt from '../../components/home/BmiGaugeArt';
 import CategoryIcon from '../../components/CategoryIcon';
 import EmptyState from '../../components/EmptyState';
 import ReloadState from '../../components/ReloadState';
@@ -22,20 +21,40 @@ import { getErrorMessage } from '../../api/client';
 import { MASTER_STALE_MS } from '../../api/queryClient';
 import { queryKeys } from '../../api/queryKeys';
 import { useAuthState } from '../../auth/useAuthState';
-import { BrandImages } from '../../constants/images';
+import {
+  BrandImages,
+  HOME_BMI_CARD_BITMAP,
+  HOME_BMI_CARD_FRAME,
+  HOME_EXPLORE_BANNER_ASPECT,
+} from '../../constants/images';
 import {
   Colors,
   FontFamily,
+  HitSlop,
   IconSize,
   PressOpacity,
   Radius,
   Shadow,
   Spacing,
-  TouchTarget,
   headingFont,
 } from '../../constants/theme';
 import type { RootScreenProps } from '../../types/navigation';
 import type { CoachCategory } from '../../types/models';
+
+const BMI_HEADER_END = '#1F543C';
+const BMI_HEADER_STRIPS = [
+  '#053B2D',
+  '#093F2F',
+  '#0C4231',
+  '#104633',
+  '#144936',
+  '#184D38',
+  '#1B503A',
+  BMI_HEADER_END,
+] as const;
+const BMI_CARD_BORDER = '#E5E5E5';
+const BMI_CTA = '#FFA937';
+const BMI_BODY_COPY = 'Get your BMI in seconds. Then share your details with a coach.';
 
 type Nav = RootScreenProps<'Home'>['navigation'];
 
@@ -110,9 +129,17 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
 
   const categoryGap = Spacing.sm;
   const sidePad = Spacing.md;
-  const categoryWidth = (width - sidePad * 2 - categoryGap * 2) / 3;
-
-  const bannerHeight = Math.min(148, Math.max(120, height * 0.16));
+  const panelPad = Spacing.md;
+  const panelBorder = 1;
+  const contentWidth = width - sidePad * 2;
+  const panelInner = contentWidth - panelBorder * 2 - panelPad * 2;
+  const bannerHeight = contentWidth / HOME_EXPLORE_BANNER_ASPECT;
+  const categoryWidth = Math.floor((panelInner - categoryGap * 2) / 3);
+  const bmiArtFrameW = Math.round(Math.min(148, Math.max(96, panelInner * 0.4)));
+  const bmiArtScale = bmiArtFrameW / HOME_BMI_CARD_FRAME.width;
+  const bmiArtFrameH = Math.round(HOME_BMI_CARD_FRAME.height * bmiArtScale);
+  const bmiArtW = HOME_BMI_CARD_BITMAP.width * bmiArtScale;
+  const bmiArtH = HOME_BMI_CARD_BITMAP.height * bmiArtScale;
 
   const featureRows = useMemo(() => {
     const cells: ((typeof EXPLORE_FEATURES)[number] | null)[] = [...EXPLORE_FEATURES, null];
@@ -144,143 +171,184 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
       >
         <PublicHomeHeader onHomePress={onGoHome} />
 
-        <View style={[styles.banner, { height: bannerHeight, marginTop: Spacing.md }]}>
-          <View style={styles.bannerTextCol}>
+        <View style={[styles.banner, { width: contentWidth, height: bannerHeight }]}>
+          <Image
+            source={BrandImages.exploreBannerPhoto}
+            style={{ width: contentWidth, height: bannerHeight }}
+            resizeMode="stretch"
+            accessibilityIgnoresInvertColors
+          />
+          <View pointerEvents="none" style={styles.bannerTextCol}>
             <Text style={styles.bannerLine}>
               <Text style={styles.bannerCoaching}>Coaching </Text>
               <Text style={styles.bannerFor}>for</Text>
             </Text>
             <Text style={styles.bannerGoal}>Every Goal</Text>
           </View>
-          <View style={styles.bannerArt}>
-            <View style={styles.bannerGlow} />
-            <Image
-              source={BrandImages.exploreBannerPhoto}
-              style={styles.bannerPhoto}
-              resizeMode="cover"
-              accessibilityIgnoresInvertColors
+        </View>
+
+        <View style={styles.panel}>
+          <Text style={[styles.sectionTitle, styles.sectionTitleFirst]}>Coach Category</Text>
+          {categoriesLoading ? (
+            <View style={styles.categoryLoader}>
+              <ActivityIndicator color={Colors.secondary} />
+            </View>
+          ) : categoriesError ? (
+            <ReloadState
+              title="Could not load categories"
+              message={categoriesError}
+              onRetry={() => void categoriesQuery.refetch()}
+              loading={categoriesQuery.isFetching}
+              showPullHint={false}
+              style={styles.categoryState}
             />
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Coach Category</Text>
-        {categoriesLoading ? (
-          <View style={styles.categoryLoader}>
-            <ActivityIndicator color={Colors.secondary} />
-          </View>
-        ) : categoriesError ? (
-          <ReloadState
-            title="Could not load categories"
-            message={categoriesError}
-            onRetry={() => void categoriesQuery.refetch()}
-            loading={categoriesQuery.isFetching}
-            showPullHint={false}
-            style={styles.categoryState}
-          />
-        ) : categories.length === 0 ? (
-          <EmptyState
-            illustration={BrandImages.emptyLeads}
-            icon="grid-outline"
-            title="Categories coming soon"
-            message="Coach categories will appear here once they are available."
-            style={styles.categoryState}
-          />
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryRow}
-            bounces={false}
-          >
-            {categories.map(cat => (
-              <Pressable
-                key={cat.code}
-                style={({ pressed }) => [
-                  styles.categoryCard,
-                  { width: categoryWidth },
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => openCategory(cat)}
-                accessibilityRole="button"
-                accessibilityLabel={cat.label}
-              >
-                <CategoryIcon category={cat} size={28} color={cat.color ?? Colors.secondary} />
-                <Text style={styles.categoryLabel} numberOfLines={2}>
-                  {cat.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-
-        <Text style={styles.sectionTitle}>App Features</Text>
-        <View style={styles.featuresCard}>
-          {featureRows.map((row, rowIndex) => (
-            <View
-              key={`row-${rowIndex}`}
-              style={[
-                styles.featureRow,
-                rowIndex < featureRows.length - 1 && styles.featureRowBorder,
-              ]}
+          ) : categories.length === 0 ? (
+            <EmptyState
+              illustration={BrandImages.emptyLeads}
+              icon="grid-outline"
+              title="Categories coming soon"
+              message="Coach categories will appear here once they are available."
+              style={styles.categoryState}
+            />
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryRow}
+              bounces={false}
             >
-              {row.map((item, colIndex) => {
-                const isLastCol = colIndex === row.length - 1;
-                if (!item) {
-                  return (
-                    <View
-                      key={`empty-${rowIndex}`}
-                      style={[styles.featureCell, !isLastCol && styles.featureCellBorder]}
-                    />
-                  );
-                }
-                return (
-                  <Pressable
-                    key={item.label}
-                    style={({ pressed }) => [
-                      styles.featureCell,
-                      !isLastCol && styles.featureCellBorder,
-                      pressed && styles.pressed,
-                    ]}
-                    onPress={() => openCoachFeature(navigation, signedIn, item.target)}
-                    accessibilityRole="button"
-                    accessibilityLabel={item.label}
-                  >
-                    <View style={[styles.featureIconWell, { backgroundColor: item.bg }]}>
-                      <Ionicons name={item.icon} size={IconSize.lg} color={item.color} />
-                    </View>
-                    <Text style={styles.featureLabel}>{item.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-        </View>
+              {categories.map(cat => (
+                <Pressable
+                  key={cat.code}
+                  style={({ pressed }) => [
+                    styles.categoryCard,
+                    { width: categoryWidth },
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => openCategory(cat)}
+                  accessibilityRole="button"
+                  accessibilityLabel={cat.label}
+                >
+                  <CategoryIcon
+                    category={cat}
+                    size={IconSize.xxl}
+                    color={cat.color ?? Colors.secondary}
+                  />
+                  <Text style={styles.categoryLabel} numberOfLines={2}>
+                    {cat.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
 
-        <View style={styles.bmiCard}>
-          <View style={styles.bmiHeader}>
-            <View style={styles.bmiHeaderIcon}>
-              <Ionicons name="speedometer-outline" size={16} color={Colors.secondary} />
-            </View>
-            <Text style={styles.bmiHeaderTitle}>Check Your BMI</Text>
-          </View>
-          <View style={styles.bmiBody}>
-            <View style={styles.bmiCopyCol}>
-              <Text style={styles.bmiCopy}>
-                Get your BMI in seconds.{'\n'}Share your details after to...
-              </Text>
-              <Pressable
-                style={({ pressed }) => [styles.checkNowBtn, pressed && styles.pressed]}
-                onPress={() => navigation.navigate('PublicBmi')}
-                accessibilityRole="button"
-                accessibilityLabel="Check Now"
+          <Text style={styles.sectionTitle}>App Features</Text>
+          <View style={styles.featuresCard}>
+            {featureRows.map((row, rowIndex) => (
+              <View
+                key={`row-${rowIndex}`}
+                style={[
+                  styles.featureRow,
+                  rowIndex < featureRows.length - 1 && styles.featureRowBorder,
+                ]}
               >
-                <Text style={styles.checkNowText}>Check Now</Text>
-                <View style={styles.checkNowArrow}>
-                  <Ionicons name="arrow-forward" size={14} color={Colors.brandCoach} />
-                </View>
-              </Pressable>
+                {row.map((item, colIndex) => {
+                  const isLastCol = colIndex === row.length - 1;
+                  if (!item) {
+                    return (
+                      <View
+                        key={`empty-${rowIndex}`}
+                        style={[styles.featureCell, !isLastCol && styles.featureCellBorder]}
+                      />
+                    );
+                  }
+                  return (
+                    <Pressable
+                      key={item.label}
+                      style={({ pressed }) => [
+                        styles.featureCell,
+                        !isLastCol && styles.featureCellBorder,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => openCoachFeature(navigation, signedIn, item.target)}
+                      accessibilityRole="button"
+                      accessibilityLabel={item.label}
+                    >
+                      <View style={[styles.featureIconWell, { backgroundColor: item.bg }]}>
+                        <Ionicons name={item.icon} size={IconSize.lg} color={item.color} />
+                      </View>
+                      <Text style={styles.featureLabel}>{item.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.bmiCard}>
+            <View style={styles.bmiHeader}>
+              <View pointerEvents="none" style={styles.bmiHeaderWash}>
+                {BMI_HEADER_STRIPS.map((tone, index) => (
+                  <View
+                    key={tone}
+                    style={[
+                      styles.bmiHeaderStrip,
+                      {
+                        backgroundColor: tone,
+                        left: `${(index * 100) / BMI_HEADER_STRIPS.length}%`,
+                        width: `${100 / BMI_HEADER_STRIPS.length + 0.6}%`,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <View style={styles.bmiHeaderIcon}>
+                <Ionicons
+                  name="speedometer-outline"
+                  size={IconSize.sm}
+                  color={BMI_HEADER_STRIPS[0]}
+                />
+              </View>
+              <Text style={styles.bmiHeaderTitle}>Check Your BMI</Text>
             </View>
-            <BmiGaugeArt size={108} />
+            <View style={styles.bmiBody}>
+              <View style={styles.bmiCopyCol}>
+                <Text style={styles.bmiCopy}>{BMI_BODY_COPY}</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.checkNowBtn, pressed && styles.pressed]}
+                  onPress={() => navigation.navigate('PublicBmi')}
+                  hitSlop={HitSlop.sm}
+                  accessibilityRole="button"
+                  accessibilityLabel="Check Now"
+                >
+                  <Text style={styles.checkNowText}>Check Now</Text>
+                  <View style={styles.checkNowArrow}>
+                    <Ionicons
+                      name="arrow-forward-outline"
+                      size={IconSize.sm}
+                      color={Colors.brandCoach}
+                    />
+                  </View>
+                </Pressable>
+              </View>
+              <View
+                pointerEvents="none"
+                style={[styles.bmiArtFrame, { width: bmiArtFrameW, height: bmiArtFrameH }]}
+              >
+                <Image
+                  source={BrandImages.homeBmiCard}
+                  style={{
+                    position: 'absolute',
+                    width: bmiArtW,
+                    height: bmiArtH,
+                    left: -HOME_BMI_CARD_FRAME.x * bmiArtScale,
+                    top: -HOME_BMI_CARD_FRAME.y * bmiArtScale,
+                  }}
+                  resizeMode="stretch"
+                  accessibilityIgnoresInvertColors
+                />
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -291,7 +359,7 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: Colors.exploreCanvas,
+    backgroundColor: Colors.background,
   },
   scroll: {
     flex: 1,
@@ -303,17 +371,19 @@ const styles = StyleSheet.create({
     opacity: PressOpacity.default,
   },
   banner: {
+    marginTop: Spacing.md,
     borderRadius: Radius.lg,
-    backgroundColor: Colors.exploreBanner,
     overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: Spacing.md,
   },
   bannerTextCol: {
-    flex: 1,
-    zIndex: 2,
-    paddingVertical: Spacing.sm,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '60%',
+    zIndex: 1,
+    justifyContent: 'center',
+    paddingLeft: Spacing.md,
     paddingRight: Spacing.xs,
   },
   bannerLine: {
@@ -339,28 +409,16 @@ const styles = StyleSheet.create({
     color: Colors.white,
     marginTop: 2,
   },
-  bannerArt: {
-    width: '42%',
-    height: '100%',
-    position: 'relative',
+  panel: {
+    marginTop: Spacing.md,
+    backgroundColor: Colors.explorePanel,
+    borderWidth: 1,
+    borderColor: Colors.explorePanelBorder,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
     overflow: 'hidden',
-  },
-  bannerGlow: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.secondaryLight,
-    opacity: 0.35,
-    right: 8,
-    top: '12%',
-  },
-  bannerPhoto: {
-    width: '160%',
-    height: '140%',
-    position: 'absolute',
-    right: -8,
-    top: -12,
   },
   sectionTitle: {
     marginTop: Spacing.lg,
@@ -369,6 +427,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22,
     color: Colors.textDark,
+  },
+  sectionTitleFirst: {
+    marginTop: 0,
   },
   categoryLoader: {
     minHeight: 108,
@@ -405,8 +466,6 @@ const styles = StyleSheet.create({
   featuresCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
     overflow: 'hidden',
     ...Shadow.sm,
   },
@@ -415,7 +474,7 @@ const styles = StyleSheet.create({
   },
   featureRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.bannerBorder,
   },
   featureCell: {
     flex: 1,
@@ -427,7 +486,7 @@ const styles = StyleSheet.create({
   },
   featureCellBorder: {
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: Colors.border,
+    borderRightColor: Colors.bannerBorder,
   },
   featureIconWell: {
     width: 44,
@@ -448,17 +507,27 @@ const styles = StyleSheet.create({
   bmiCard: {
     marginTop: Spacing.lg,
     backgroundColor: Colors.white,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: BMI_CARD_BORDER,
     overflow: 'hidden',
-    ...Shadow.sm,
   },
   bmiHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.secondary,
+    backgroundColor: BMI_HEADER_END,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 10,
+    overflow: 'hidden',
+  },
+  bmiHeaderWash: {
+    ...StyleSheet.absoluteFill,
+  },
+  bmiHeaderStrip: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
   },
   bmiHeaderIcon: {
     width: 28,
@@ -467,22 +536,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   bmiHeaderTitle: {
+    flex: 1,
     fontFamily: headingFont.bold,
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.white,
+    zIndex: 1,
   },
   bmiBody: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
+    alignItems: 'flex-end',
+    paddingLeft: Spacing.md,
+    paddingRight: Spacing.xs,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
   bmiCopyCol: {
     flex: 1,
     gap: Spacing.sm,
+    zIndex: 1,
+  },
+  bmiArtFrame: {
+    overflow: 'hidden',
+    flexShrink: 0,
   },
   bmiCopy: {
     fontFamily: FontFamily.regular,
@@ -494,24 +573,26 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.brandCoach,
+    justifyContent: 'center',
+    gap: 8,
+    height: 31,
+    paddingLeft: 14,
+    paddingRight: 4,
+    backgroundColor: BMI_CTA,
+    borderWidth: 1,
+    borderColor: BMI_CTA,
     borderRadius: Radius.pill,
-    paddingVertical: Spacing.sm,
-    paddingLeft: Spacing.md,
-    paddingRight: Spacing.sm,
-    minHeight: TouchTarget.min,
-    ...Shadow.md,
   },
   checkNowText: {
     fontFamily: FontFamily.bold,
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 16,
     color: Colors.white,
   },
   checkNowArrow: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',

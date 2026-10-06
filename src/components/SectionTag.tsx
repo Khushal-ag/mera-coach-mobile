@@ -13,7 +13,7 @@ interface SectionTagProps {
 export default function SectionTag({ icon, label, style }: SectionTagProps) {
   return (
     <View style={[styles.tag, style]}>
-      <Ionicons name={icon} size={IconSize.xs} color={Colors.accentInk} />
+      <Ionicons name={icon} size={IconSize.sm} color={Colors.accentInk} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );

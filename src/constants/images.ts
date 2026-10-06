@@ -21,9 +21,21 @@ export const BrandImages = {
   heroSmileMask: require('../../assets/illustrations/hero-smile-mask.png'),
   /** Finished WhatsApp CTA bitmap for public coach profile. */
   whatsappCoachButton: require('../../assets/illustrations/whatsapp-coach-button.png'),
-  /** Closest existing photo for the explore “Coaching for Every Goal” banner art. */
-  exploreBannerPhoto: require('../../assets/illustrations/dashboard-slide-1.jpg'),
+  exploreBannerPhoto: require('../../assets/illustrations/home-explore-banner.jpg'),
+  homeBmiCard: require('../../assets/illustrations/home-bmi-card.png'),
+  publicBmiBanner: require('../../assets/illustrations/public-bmi-banner.png'),
 } as const;
+
+/** Width / height of BrandImages.publicBmiBanner (1198×647). */
+export const PUBLIC_BMI_BANNER_ASPECT = 1198 / 647;
+
+/** Pixel size of BrandImages.homeBmiCard (1216×750). */
+export const HOME_BMI_CARD_BITMAP = { width: 1216, height: 750 } as const;
+
+export const HOME_BMI_CARD_FRAME = { x: 380, y: 180, width: 836, height: 568 } as const;
+
+/** Width / height of BrandImages.exploreBannerPhoto (1610×506). */
+export const HOME_EXPLORE_BANNER_ASPECT = 1610 / 506;
 
 /** Width / height of BrandImages.bmiGaugeArc (968×488). */
 export const BMI_GAUGE_ARC_ASPECT = 968 / 488;
