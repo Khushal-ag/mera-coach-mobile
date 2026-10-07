@@ -8,13 +8,19 @@ interface SectionTagProps {
   icon: IoniconName;
   label: string;
   style?: StyleProp<ViewStyle>;
+  color?: string;
 }
 
-export default function SectionTag({ icon, label, style }: SectionTagProps) {
+export default function SectionTag({
+  icon,
+  label,
+  style,
+  color = Colors.accentInk,
+}: SectionTagProps) {
   return (
     <View style={[styles.tag, style]}>
-      <Ionicons name={icon} size={IconSize.sm} color={Colors.accentInk} />
-      <Text style={styles.label}>{label}</Text>
+      <Ionicons name={icon} size={IconSize.sm} color={color} />
+      <Text style={[styles.label, { color }]}>{label}</Text>
     </View>
   );
 }

@@ -355,7 +355,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const totalCount = coachesQuery.data?.totalCount ?? filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const showPager = totalCount > PAGE_SIZE;
+  const showPager = totalCount > 0;
 
   const topRatedCoaches = useMemo(() => {
     const list = topRatedQuery.data?.coaches ?? [];
@@ -623,6 +623,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           totalPages={totalPages}
           onChangePage={setPage}
           variant="circle"
+          alwaysShow
         />
       ) : null}
 

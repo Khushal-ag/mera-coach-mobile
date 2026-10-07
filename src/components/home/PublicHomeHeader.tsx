@@ -20,11 +20,11 @@ export default function PublicHomeHeader({ onHomePress }: Props) {
   return (
     <View style={styles.row}>
       <View style={styles.brandBlock}>
-        <Text style={styles.brandLine} accessibilityRole="header">
+        <Text style={styles.brandLine} numberOfLines={1} accessibilityRole="header">
           <Text style={styles.mera}>Mera</Text>
           <Text style={styles.coach}>Coach</Text>
         </Text>
-        <Text style={styles.tagline}>
+        <Text style={styles.tagline} numberOfLines={1}>
           Guide <Text style={styles.dot}>•</Text> Support <Text style={styles.dot}>•</Text>{' '}
           transform
         </Text>
@@ -44,13 +44,15 @@ export default function PublicHomeHeader({ onHomePress }: Props) {
 
 const styles = StyleSheet.create({
   row: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   brandBlock: {
-    flexShrink: 1,
-    paddingRight: Spacing.sm,
+    flex: 1,
+    minWidth: 0,
   },
   brandLine: {
     fontFamily: headingFont.bold,
@@ -79,6 +81,7 @@ const styles = StyleSheet.create({
   homeBtn: {
     width: TouchTarget.header,
     height: TouchTarget.header,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },

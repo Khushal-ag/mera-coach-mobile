@@ -19,7 +19,6 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COACH_GALLERY_DOC_TYPE, COACH_GALLERY_REF_TYPE } from '../../config/appConfig';
 import {
   Colors,
   FontFamily,
@@ -56,9 +55,7 @@ import {
   submitCoachEnquiry,
   whatsAppUrlFromMobile,
 } from '../../api/coachApi';
-import { listDocuments } from '../../api/documentApi';
 import { getClientList } from '../../api/clientApi';
-import { PHOTO_STALE_MS } from '../../api/queryClient';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode, isAuthenticated } from '../../auth/session';
 import { getErrorMessage } from '../../api/client';
@@ -69,7 +66,7 @@ import {
 } from '../../utils/coachPublicStats';
 import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../../utils/coachDisplay';
 import { mergeCoachProfile } from '../../utils/mergeCoachProfile';
-import { isDegenerateImageSize, resolveMediaUrl } from '../../utils/mediaUrl';
+import { isDegenerateImageSize, resolveCoachPhotoUrl, resolveMediaUrl } from '../../utils/mediaUrl';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -97,8 +94,40 @@ const STAT_ICONS: Record<string, IoniconName> = {
   rating: 'star-outline',
 };
 
-const HERO_PHOTO_ASPECT = 1.2;
+const HERO_PHOTO_ASPECT = 1.28;
+const HERO_PHOTO_FOCUS = 1.32;
+const HERO_CURVE_LIP_RATIO = 19 / 226;
 const HERO_PHOTO_TOP_RADIUS = 28;
+const HERO_PHOTO_NAV_SIZE = 38;
+const HERO_PHOTO_NAV_INSET = 14;
+const HERO_PHOTO_NAV_ICON = 18;
+const EXPERTISE_COLUMNS = 3;
+const EXPERTISE_CHIP_HEIGHT = 42;
+const EXPERTISE_LABEL_FONT_SIZE = 12;
+const EXPERTISE_LABEL_MIN_SCALE = 0.6;
+const EXPERTISE_CHECK_SIZE = 16;
+const SECTION_PILL_BG = '#E8F7F2';
+const SECTION_PILL_INK = '#04705D';
+const BOOKING_FADE_COLORS = ['#F2F9F4', '#F0F8F3', '#EEF8F2', '#ECF7F1'] as const;
+const BOOKING_FADE_OVERLAP = 8;
+
+function heroPhotoImageLayout(frameWidth: number, sourceAspect: number | null) {
+  const frameHeight = frameWidth / HERO_PHOTO_ASPECT;
+  const aspect = sourceAspect && sourceAspect > 0 ? sourceAspect : HERO_PHOTO_ASPECT;
+  const heightAtFrameWidth = frameWidth / aspect;
+  const widthMatched = heightAtFrameWidth >= frameHeight;
+  const coverWidth = widthMatched ? frameWidth : frameHeight * aspect;
+  const coverHeight = widthMatched ? heightAtFrameWidth : frameHeight;
+  const width = coverWidth * HERO_PHOTO_FOCUS;
+  const height = coverHeight * HERO_PHOTO_FOCUS;
+  return {
+    position: 'absolute' as const,
+    top: 0,
+    left: (frameWidth - width) / 2,
+    width,
+    height,
+  };
+}
 
 function formatStatValue(key: string, value: string): string {
   if (key === 'rating') {
@@ -118,6 +147,9 @@ type ProfilePageProps = {
   onHome: () => void;
   pageWidth: number;
   pageHeight: number;
+  logicalIndex: number;
+  coachCount: number;
+  onShowCoach: (index: number) => void;
 };
 
 const SuccessStoryCard = React.memo(function SuccessStoryCard({
@@ -184,15 +216,15 @@ type ProfileHeroProps = {
   smileHeight: number;
   waBtnHeight: number;
   activePhoto: string | null;
-  multiPhoto: boolean;
-  safePhotoIndex: number;
-  photoCount: number;
   name: string;
   category?: string;
   bio: string;
   whatsAppUrl: string | null;
-  onPrevPhoto: () => void;
-  onNextPhoto: () => void;
+  showCoachNav: boolean;
+  coachPosition: number;
+  coachCount: number;
+  onPrevCoach: () => void;
+  onNextCoach: () => void;
   onMarkPhotoFailed: (uri: string) => void;
 };
 
@@ -201,18 +233,28 @@ const ProfileHero = React.memo(function ProfileHero({
   smileHeight,
   waBtnHeight,
   activePhoto,
-  multiPhoto,
-  safePhotoIndex,
-  photoCount,
   name,
   category,
   bio,
   whatsAppUrl,
-  onPrevPhoto,
-  onNextPhoto,
+  showCoachNav,
+  coachPosition,
+  coachCount,
+  onPrevCoach,
+  onNextCoach,
   onMarkPhotoFailed,
 }: ProfileHeroProps) {
   const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
+  const [sourceAspect, setSourceAspect] = useState<number | null>(null);
+  const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
+  if (activePhoto !== trackedPhoto) {
+    setTrackedPhoto(activePhoto);
+    setSourceAspect(null);
+  }
+  const photoImageStyle = useMemo(
+    () => heroPhotoImageLayout(contentWidth, sourceAspect),
+    [contentWidth, sourceAspect],
+  );
   const smileStyle = useMemo(
     () => ({ width: contentWidth, height: smileHeight }),
     [contentWidth, smileHeight],
@@ -226,6 +268,19 @@ const ProfileHero = React.memo(function ProfileHero({
     () => ({ width: contentWidth, height: waBtnHeight }),
     [contentWidth, waBtnHeight],
   );
+  const photoNavStyle = useMemo(() => {
+    const photoHeight = contentWidth / HERO_PHOTO_ASPECT;
+    const visibleHeight = Math.max(
+      HERO_PHOTO_NAV_SIZE,
+      photoHeight - smileHeight * HERO_CURVE_LIP_RATIO,
+    );
+    return {
+      top: (visibleHeight - HERO_PHOTO_NAV_SIZE) / 2,
+      width: HERO_PHOTO_NAV_SIZE,
+      height: HERO_PHOTO_NAV_SIZE,
+      borderRadius: HERO_PHOTO_NAV_SIZE / 2,
+    };
+  }, [contentWidth, smileHeight]);
 
   const openWhatsApp = () => {
     if (!whatsAppUrl) return;
@@ -239,7 +294,7 @@ const ProfileHero = React.memo(function ProfileHero({
           {photoSource ? (
             <Image
               source={photoSource}
-              style={styles.photoImage}
+              style={photoImageStyle}
               resizeMode="cover"
               onError={() => {
                 if (activePhoto) onMarkPhotoFailed(activePhoto);
@@ -248,6 +303,11 @@ const ProfileHero = React.memo(function ProfileHero({
                 const { width, height } = e.nativeEvent.source;
                 if (activePhoto && isDegenerateImageSize(width, height)) {
                   onMarkPhotoFailed(activePhoto);
+                  return;
+                }
+                if (width > 0 && height > 0) {
+                  const next = width / height;
+                  setSourceAspect(prev => (prev === next ? prev : next));
                 }
               }}
             />
@@ -256,29 +316,29 @@ const ProfileHero = React.memo(function ProfileHero({
               <PersonAvatar size={128} />
             </View>
           )}
-          {multiPhoto ? (
-            <>
-              <TouchableOpacity
-                style={[styles.photoNav, styles.photoNavLeft]}
-                onPress={onPrevPhoto}
-                hitSlop={HitSlop.sm}
-                accessibilityRole="button"
-                accessibilityLabel="Previous photo"
-                activeOpacity={PressOpacity.soft}
-              >
-                <Ionicons name="chevron-back-outline" size={IconSize.lg} color={Colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.photoNav, styles.photoNavRight]}
-                onPress={onNextPhoto}
-                hitSlop={HitSlop.sm}
-                accessibilityRole="button"
-                accessibilityLabel="Next photo"
-                activeOpacity={PressOpacity.soft}
-              >
-                <Ionicons name="chevron-forward-outline" size={IconSize.lg} color={Colors.white} />
-              </TouchableOpacity>
-            </>
+          {showCoachNav ? (
+            <TouchableOpacity
+              style={[styles.photoNav, styles.photoNavLeft, photoNavStyle]}
+              onPress={onPrevCoach}
+              hitSlop={HitSlop.sm}
+              accessibilityRole="button"
+              accessibilityLabel="Previous coach"
+              activeOpacity={PressOpacity.soft}
+            >
+              <Ionicons name="chevron-back" size={HERO_PHOTO_NAV_ICON} color={Colors.white} />
+            </TouchableOpacity>
+          ) : null}
+          {showCoachNav ? (
+            <TouchableOpacity
+              style={[styles.photoNav, styles.photoNavRight, photoNavStyle]}
+              onPress={onNextCoach}
+              hitSlop={HitSlop.sm}
+              accessibilityRole="button"
+              accessibilityLabel="Next coach"
+              activeOpacity={PressOpacity.soft}
+            >
+              <Ionicons name="chevron-forward" size={HERO_PHOTO_NAV_ICON} color={Colors.white} />
+            </TouchableOpacity>
           ) : null}
         </View>
 
@@ -290,7 +350,7 @@ const ProfileHero = React.memo(function ProfileHero({
             style={[
               styles.infoBody,
               {
-                paddingBottom: whatsAppUrl ? Spacing.md + waOverlap : Spacing.md,
+                paddingBottom: whatsAppUrl ? waOverlap + Spacing.md + 2 : Spacing.md,
               },
             ]}
           >
@@ -307,30 +367,28 @@ const ProfileHero = React.memo(function ProfileHero({
                 </View>
               ) : null}
               {bio ? <Text style={styles.bio}>{bio}</Text> : null}
-              {multiPhoto ? (
-                <View style={styles.photoPager}>
+              {showCoachNav ? (
+                <View style={styles.coachIndexPill}>
                   <TouchableOpacity
-                    onPress={onPrevPhoto}
+                    onPress={onPrevCoach}
                     hitSlop={HitSlop.sm}
                     accessibilityRole="button"
-                    accessibilityLabel="Previous photo"
+                    accessibilityLabel="Previous coach"
+                    activeOpacity={PressOpacity.soft}
                   >
-                    <Ionicons name="chevron-back-outline" size={IconSize.sm} color={Colors.white} />
+                    <Ionicons name="chevron-back" size={IconSize.sm} color={Colors.white} />
                   </TouchableOpacity>
-                  <Text style={styles.photoPagerText}>
-                    {safePhotoIndex + 1} / {photoCount}
+                  <Text style={styles.coachIndexLabel}>
+                    {coachPosition} / {coachCount}
                   </Text>
                   <TouchableOpacity
-                    onPress={onNextPhoto}
+                    onPress={onNextCoach}
                     hitSlop={HitSlop.sm}
                     accessibilityRole="button"
-                    accessibilityLabel="Next photo"
+                    accessibilityLabel="Next coach"
+                    activeOpacity={PressOpacity.soft}
                   >
-                    <Ionicons
-                      name="chevron-forward-outline"
-                      size={IconSize.sm}
-                      color={Colors.white}
-                    />
+                    <Ionicons name="chevron-forward" size={IconSize.sm} color={Colors.white} />
                   </TouchableOpacity>
                 </View>
               ) : null}
@@ -434,6 +492,24 @@ const EnquiryBookingForm = React.memo(
         }}
       >
         <View style={styles.bookingIntro}>
+          <View pointerEvents="none" style={styles.bookingFade}>
+            {BOOKING_FADE_COLORS.map((color, index) => {
+              const share = 100 / BOOKING_FADE_COLORS.length;
+              return (
+                <View
+                  key={color}
+                  style={[
+                    styles.bookingFadeStrip,
+                    {
+                      backgroundColor: color,
+                      top: `${index * share}%`,
+                      height: `${share + BOOKING_FADE_OVERLAP}%`,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
           <View style={styles.bookingIntroCopy}>
             <View style={styles.bookingLabelRow}>
               <Ionicons name="calendar-outline" size={IconSize.sm} color={Colors.accentInk} />
@@ -590,6 +666,9 @@ function CoachProfilePage({
   onHome,
   pageWidth,
   pageHeight,
+  logicalIndex,
+  coachCount,
+  onShowCoach,
 }: ProfilePageProps) {
   const insets = useSafeAreaInsets();
   const profileQuery = useQuery({
@@ -597,19 +676,6 @@ function CoachProfilePage({
     queryFn: () => getCoachProfileByCode(coachCode),
     enabled: !!coachCode,
     placeholderData: listCoach?.id === coachCode ? listCoach : undefined,
-  });
-
-  const galleryQuery = useQuery({
-    queryKey: queryKeys.coachGallery(coachCode),
-    queryFn: () =>
-      listDocuments({
-        coachCode,
-        refCode: coachCode,
-        refType: COACH_GALLERY_REF_TYPE,
-        docType: COACH_GALLERY_DOC_TYPE,
-      }),
-    enabled: !!coachCode,
-    staleTime: PHOTO_STALE_MS,
   });
 
   const myCoachCode = getCurrentCoachCode();
@@ -653,32 +719,23 @@ function CoachProfilePage({
   const formSectionY = useRef(0);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [servicePrefill, setServicePrefill] = useState<ServicePrefill | null>(null);
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const [failedPhotoUris, setFailedPhotoUris] = useState<Set<string>>(() => new Set());
+  const [failedPhotoUri, setFailedPhotoUri] = useState<string | null>(null);
   const [trackedCoachCode, setTrackedCoachCode] = useState(coachCode);
   if (coachCode !== trackedCoachCode) {
     setTrackedCoachCode(coachCode);
-    setPhotoIndex(0);
-    setFailedPhotoUris(new Set());
+    setFailedPhotoUri(null);
     setServicePrefill(null);
   }
 
-  const heroPhotos: string[] = [];
-  if (coach) {
-    const primary = resolveMediaUrl(coach.profilePicUrl || coach.logoUrl || '');
-    if (primary && !failedPhotoUris.has(primary)) heroPhotos.push(primary);
-    for (const item of galleryQuery.data ?? []) {
-      const uri = resolveMediaUrl(item.filePath);
-      if (!uri || failedPhotoUris.has(uri) || heroPhotos.includes(uri)) continue;
-      heroPhotos.push(uri);
-    }
-  }
-
-  const safePhotoIndex = heroPhotos.length === 0 ? 0 : Math.min(photoIndex, heroPhotos.length - 1);
+  const heroPhoto = coach ? resolveCoachPhotoUrl(coach) : '';
   const whatsAppUrl = coach ? whatsAppUrlFromMobile(coach.mobile) : null;
-  const activePhoto = heroPhotos[safePhotoIndex] ?? null;
-  const multiPhoto = heroPhotos.length > 1;
+  const activePhoto = heroPhoto && heroPhoto !== failedPhotoUri ? heroPhoto : null;
+  const showCoachNav = coachCount > 1;
   const contentWidth = Math.max(0, pageWidth - Spacing.md * 2);
+  const expertiseChipWidth = Math.max(
+    0,
+    Math.floor((contentWidth - Spacing.xs * (EXPERTISE_COLUMNS - 1)) / EXPERTISE_COLUMNS),
+  );
   const smileHeight = Math.round(contentWidth / HERO_SMILE_MASK_ASPECT);
   const waBtnHeight = contentWidth / WHATSAPP_COACH_BUTTON_ASPECT;
   const serviceOptions = [
@@ -692,30 +749,18 @@ function CoachProfilePage({
     scrollRef.current?.scrollTo({ y: Math.max(0, formSectionY.current - 12), animated: true });
   }, []);
 
-  const heroPhotoCount = heroPhotos.length;
-  const goPrevPhoto = useCallback(() => {
-    setPhotoIndex(i => {
-      if (heroPhotoCount <= 1) return i;
-      const safe = Math.min(i, heroPhotoCount - 1);
-      return safe <= 0 ? heroPhotoCount - 1 : safe - 1;
-    });
-  }, [heroPhotoCount]);
+  const goPrevCoach = useCallback(() => {
+    if (coachCount <= 1) return;
+    onShowCoach(logicalIndex <= 0 ? coachCount - 1 : logicalIndex - 1);
+  }, [coachCount, logicalIndex, onShowCoach]);
 
-  const goNextPhoto = useCallback(() => {
-    setPhotoIndex(i => {
-      if (heroPhotoCount <= 1) return i;
-      const safe = Math.min(i, heroPhotoCount - 1);
-      return safe >= heroPhotoCount - 1 ? 0 : safe + 1;
-    });
-  }, [heroPhotoCount]);
+  const goNextCoach = useCallback(() => {
+    if (coachCount <= 1) return;
+    onShowCoach(logicalIndex >= coachCount - 1 ? 0 : logicalIndex + 1);
+  }, [coachCount, logicalIndex, onShowCoach]);
 
   const markPhotoFailed = useCallback((uri: string) => {
-    setFailedPhotoUris(prev => {
-      if (prev.has(uri)) return prev;
-      const next = new Set(prev);
-      next.add(uri);
-      return next;
-    });
+    setFailedPhotoUri(prev => (prev === uri ? prev : uri));
   }, []);
 
   const onFormSectionLayout = useCallback((y: number) => {
@@ -775,7 +820,7 @@ function CoachProfilePage({
         directionalLockEnabled
         nestedScrollEnabled
       >
-        <View style={[styles.topHeader, { paddingTop: insets.top + Spacing.sm }]}>
+        <View style={[styles.topHeader, { paddingTop: insets.top + Spacing.xs }]}>
           <PublicHomeHeader onHomePress={onHome} />
         </View>
 
@@ -784,15 +829,15 @@ function CoachProfilePage({
           smileHeight={smileHeight}
           waBtnHeight={waBtnHeight}
           activePhoto={activePhoto}
-          multiPhoto={multiPhoto}
-          safePhotoIndex={safePhotoIndex}
-          photoCount={heroPhotos.length}
           name={coach.name}
           category={coach.category}
           bio={heroBio}
           whatsAppUrl={whatsAppUrl}
-          onPrevPhoto={goPrevPhoto}
-          onNextPhoto={goNextPhoto}
+          showCoachNav={showCoachNav}
+          coachPosition={logicalIndex + 1}
+          coachCount={coachCount}
+          onPrevCoach={goPrevCoach}
+          onNextCoach={goNextCoach}
           onMarkPhotoFailed={markPhotoFailed}
         />
 
@@ -821,7 +866,12 @@ function CoachProfilePage({
 
         {coach.tags.length > 0 ? (
           <View style={styles.section}>
-            <SectionTag icon="checkmark-circle-outline" label="Expertise" />
+            <SectionTag
+              icon="ribbon-outline"
+              label="Expertise"
+              color={SECTION_PILL_INK}
+              style={styles.sectionPill}
+            />
             <Text style={styles.sectionTitle}>What I Specialise In</Text>
             <Text style={styles.sectionSubtitle}>Services and topics on this profile.</Text>
             <View
@@ -829,29 +879,50 @@ function CoachProfilePage({
               accessibilityRole="text"
               accessibilityLabel={`Expertise: ${coach.tags.map(formatExpertiseLabel).join(', ')}`}
             >
-              {coach.tags.map(tag => (
-                <View
-                  key={tag}
-                  style={styles.expertiseChip}
-                  importantForAccessibility="no-hide-descendants"
-                >
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={IconSize.sm}
-                    color={Colors.accentInk}
-                  />
-                  <Text style={styles.expertiseTitle} numberOfLines={2}>
-                    {formatExpertiseLabel(tag)}
-                  </Text>
-                </View>
-              ))}
+              {Array.from(
+                { length: Math.ceil(coach.tags.length / EXPERTISE_COLUMNS) },
+                (_, rowIndex) => {
+                  const rowTags = coach.tags.slice(
+                    rowIndex * EXPERTISE_COLUMNS,
+                    rowIndex * EXPERTISE_COLUMNS + EXPERTISE_COLUMNS,
+                  );
+                  return (
+                    <View key={rowTags.join('\0')} style={styles.expertiseRow}>
+                      {rowTags.map(tag => (
+                        <View
+                          key={tag}
+                          style={[styles.expertiseChip, { width: expertiseChipWidth }]}
+                          importantForAccessibility="no-hide-descendants"
+                        >
+                          <View style={styles.expertiseCheck}>
+                            <Ionicons name="checkmark" size={10} color={Colors.accentInk} />
+                          </View>
+                          <Text
+                            style={styles.expertiseTitle}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={EXPERTISE_LABEL_MIN_SCALE}
+                          >
+                            {formatExpertiseLabel(tag)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                },
+              )}
             </View>
           </View>
         ) : null}
 
         {showSuccessStories ? (
           <View style={styles.section}>
-            <SectionTag icon="checkmark-circle-outline" label="Outcomes" />
+            <SectionTag
+              icon="trophy-outline"
+              label="Outcomes"
+              color={SECTION_PILL_INK}
+              style={styles.sectionPill}
+            />
             <Text style={styles.sectionTitle}>Success Stories</Text>
             <Text style={styles.sectionSubtitle}>From {coach.name}&apos;s public profile.</Text>
             <View style={styles.storiesList}>
@@ -864,7 +935,12 @@ function CoachProfilePage({
 
         {showRating ? (
           <View style={styles.section}>
-            <SectionTag icon="checkmark-circle-outline" label="Review" />
+            <SectionTag
+              icon="star-outline"
+              label="Review"
+              color={SECTION_PILL_INK}
+              style={styles.sectionPill}
+            />
             <View style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
                 <View style={styles.reviewHeaderCopy}>
@@ -967,38 +1043,25 @@ export default function CoachPublicProfileScreen({
 
   const canSwipe = codes.length > 1;
 
-  const pagerData = useMemo((): PagerItem[] => {
-    if (!canSwipe) {
-      return codes.map((code, i) => ({ key: code, code, logicalIndex: i }));
-    }
-    const n = codes.length;
-    const items: PagerItem[] = [
-      { key: `clone-last-${codes[n - 1]}`, code: codes[n - 1], logicalIndex: n - 1 },
-    ];
-    for (let i = 0; i < n; i++) {
-      items.push({ key: `real-${codes[i]}-${i}`, code: codes[i], logicalIndex: i });
-    }
-    items.push({ key: `clone-first-${codes[0]}`, code: codes[0], logicalIndex: 0 });
-    return items;
-  }, [canSwipe, codes]);
-
-  const initialPagerIndex = canSwipe ? initialIndex + 1 : 0;
+  const pagerData = useMemo(
+    (): PagerItem[] => codes.map((code, i) => ({ key: code, code, logicalIndex: i })),
+    [codes],
+  );
 
   const listRef = useRef<FlatList<PagerItem>>(null);
-  const jumpingRef = useRef(false);
-  const pagerIndexRef = useRef(initialPagerIndex);
+  const pagerIndexRef = useRef(initialIndex);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
   const goHome = useCallback(() => navigation.navigate('Home', { page: 0 }), [navigation]);
 
   const prefetchAroundLogical = useCallback(
     (logicalIndex: number) => {
-      if (!codes.length) return;
-      const n = codes.length;
-      const targets = canSwipe
-        ? [logicalIndex, (logicalIndex - 1 + n) % n, (logicalIndex + 1) % n]
-        : [logicalIndex];
-      for (const i of targets) {
+      const len = codes.length;
+      if (!len) return;
+      const targets = [logicalIndex - 1, logicalIndex, logicalIndex + 1].map(
+        i => ((i % len) + len) % len,
+      );
+      for (const i of new Set(targets)) {
         const code = codes[i];
         if (!code) continue;
         void queryClient.prefetchQuery({
@@ -1007,7 +1070,7 @@ export default function CoachPublicProfileScreen({
         });
       }
     },
-    [canSwipe, codes, queryClient],
+    [codes, queryClient],
   );
 
   const scrollToPagerIndex = useCallback(
@@ -1020,43 +1083,24 @@ export default function CoachPublicProfileScreen({
 
   const onMomentumScrollEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (!canSwipe || pageWidth <= 0 || jumpingRef.current) return;
-      const rawIndex = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
-      const lastClone = pagerData.length - 1;
-      pagerIndexRef.current = rawIndex;
-
-      if (rawIndex <= 0) {
-        jumpingRef.current = true;
-        pagerIndexRef.current = codes.length;
-        scrollToPagerIndex(codes.length, false);
-        prefetchAroundLogical(codes.length - 1);
-        requestAnimationFrame(() => {
-          jumpingRef.current = false;
-        });
-        return;
-      }
-      if (rawIndex >= lastClone) {
-        jumpingRef.current = true;
-        pagerIndexRef.current = 1;
-        scrollToPagerIndex(1, false);
-        prefetchAroundLogical(0);
-        requestAnimationFrame(() => {
-          jumpingRef.current = false;
-        });
-        return;
-      }
-
-      const logical = rawIndex - 1;
-      prefetchAroundLogical(logical);
+      if (!canSwipe || pageWidth <= 0) return;
+      const index = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+      if (index < 0 || index >= codes.length) return;
+      pagerIndexRef.current = index;
+      prefetchAroundLogical(index);
     },
-    [
-      canSwipe,
-      pageWidth,
-      pagerData.length,
-      codes.length,
-      scrollToPagerIndex,
-      prefetchAroundLogical,
-    ],
+    [canSwipe, pageWidth, codes.length, prefetchAroundLogical],
+  );
+
+  const goToLogicalIndex = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= codes.length) return;
+      const adjacent = Math.abs(index - pagerIndexRef.current) === 1;
+      pagerIndexRef.current = index;
+      scrollToPagerIndex(index, adjacent);
+      prefetchAroundLogical(index);
+    },
+    [codes.length, scrollToPagerIndex, prefetchAroundLogical],
   );
 
   useEffect(() => {
@@ -1073,9 +1117,12 @@ export default function CoachPublicProfileScreen({
         onHome={goHome}
         pageWidth={pageWidth}
         pageHeight={pageHeight}
+        logicalIndex={item.logicalIndex}
+        coachCount={codes.length}
+        onShowCoach={goToLogicalIndex}
       />
     ),
-    [goBack, goHome, listCoachByCode, pageHeight, pageWidth],
+    [codes.length, goBack, goHome, goToLogicalIndex, listCoachByCode, pageHeight, pageWidth],
   );
 
   if (!codes.length) {
@@ -1106,7 +1153,7 @@ export default function CoachPublicProfileScreen({
       showsHorizontalScrollIndicator={false}
       bounces={canSwipe}
       removeClippedSubviews={false}
-      initialScrollIndex={initialPagerIndex}
+      initialScrollIndex={initialIndex}
       getItemLayout={(_, index) => ({
         length: pageWidth,
         offset: pageWidth * index,
@@ -1143,6 +1190,7 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   topHeader: {
+    paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
   },
   heroBlock: {
@@ -1163,13 +1211,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 1,
   },
-  photoImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '110%',
-  },
   photoFallback: {
     flex: 1,
     alignItems: 'center',
@@ -1178,18 +1219,13 @@ const styles = StyleSheet.create({
   },
   photoNav: {
     position: 'absolute',
-    top: '50%',
-    marginTop: -20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: Colors.accentInk,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 3,
   },
-  photoNavLeft: { left: Spacing.sm },
-  photoNavRight: { right: Spacing.sm },
+  photoNavLeft: { left: HERO_PHOTO_NAV_INSET },
+  photoNavRight: { right: HERO_PHOTO_NAV_INSET },
   infoPanel: {
     zIndex: 2,
     overflow: 'visible',
@@ -1236,24 +1272,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.regular,
     lineHeight: 21,
-    marginBottom: Spacing.sm,
   },
-  photoPager: {
+  coachIndexPill: {
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    backgroundColor: '#0A3D2E',
+    gap: 12,
+    marginTop: Spacing.md,
+    backgroundColor: '#3E6658',
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    marginTop: Spacing.xs,
   },
-  photoPagerText: {
+  coachIndexLabel: {
     color: Colors.white,
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-    minWidth: 40,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: FontFamily.medium,
+    minWidth: 44,
     textAlign: 'center',
   },
   waBtn: {
@@ -1309,29 +1345,49 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginBottom: Spacing.md,
   },
+  sectionPill: {
+    backgroundColor: SECTION_PILL_BG,
+  },
   expertiseChipGroup: {
+    gap: Spacing.xs,
+  },
+  expertiseRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: Spacing.xs,
   },
   expertiseChip: {
+    height: EXPERTISE_CHIP_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
+    flexGrow: 0,
+    flexShrink: 0,
     gap: 6,
     backgroundColor: Colors.white,
     borderRadius: Radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    maxWidth: '100%',
+    paddingHorizontal: 8,
+    overflow: 'hidden',
+  },
+  expertiseCheck: {
+    width: EXPERTISE_CHECK_SIZE,
+    height: EXPERTISE_CHECK_SIZE,
+    borderRadius: EXPERTISE_CHECK_SIZE / 2,
+    borderWidth: 1.5,
+    borderColor: Colors.accentInk,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   expertiseTitle: {
-    fontSize: 12,
+    flex: 1,
+    minWidth: 0,
+    fontSize: EXPERTISE_LABEL_FONT_SIZE,
     fontFamily: FontFamily.semibold,
     color: Colors.accentInk,
-    lineHeight: 16,
-    flexShrink: 1,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   storiesList: { gap: Spacing.sm },
   storyCard: {
@@ -1464,11 +1520,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    backgroundColor: Colors.secondaryLight,
+    backgroundColor: BOOKING_FADE_COLORS[0],
     borderRadius: Radius.lg,
     padding: Spacing.md,
+    overflow: 'hidden',
   },
-  bookingIntroCopy: { flex: 1, minWidth: 0 },
+  bookingFade: {
+    ...StyleSheet.absoluteFill,
+  },
+  bookingFadeStrip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  bookingIntroCopy: { flex: 1, minWidth: 0, zIndex: 1 },
   bookingLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1505,6 +1570,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    zIndex: 1,
   },
   bookingBubbleLines: {
     position: 'absolute',

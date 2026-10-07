@@ -1,15 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Colors,
-  FontFamily,
-  IconSize,
-  PressOpacity,
-  Radius,
-  Shadow,
-  Spacing,
-} from '../constants/theme';
+import { Colors, FontFamily, IconSize, PressOpacity, Radius, Spacing } from '../constants/theme';
 
 export function visiblePageNumbers(current: number, total: number): number[] {
   if (total <= 0) return [];
@@ -24,6 +16,7 @@ interface ListPagerProps {
   onChangePage: (page: number) => void;
   /** Circle dots (coach directory) vs square + Next (leads / checkups). */
   variant?: 'circle' | 'square';
+  alwaysShow?: boolean;
 }
 
 export default function ListPager({
@@ -31,8 +24,9 @@ export default function ListPager({
   totalPages,
   onChangePage,
   variant = 'circle',
+  alwaysShow = false,
 }: ListPagerProps) {
-  if (totalPages <= 1) return null;
+  if (totalPages < 1 || (!alwaysShow && totalPages <= 1)) return null;
 
   const safePage = Math.min(Math.max(1, page), totalPages);
   const pageNumbers = visiblePageNumbers(safePage, totalPages);
@@ -83,20 +77,24 @@ export default function ListPager({
     );
   }
 
+  const atFirst = safePage <= 1;
+  const atLast = safePage >= totalPages;
+
   return (
     <View style={styles.circleRow}>
       <TouchableOpacity
         style={styles.chevron}
-        onPress={() => onChangePage(Math.max(1, safePage - 1))}
-        disabled={safePage <= 1}
+        onPress={() => onChangePage(safePage - 1)}
+        disabled={atFirst}
         activeOpacity={PressOpacity.default}
         accessibilityRole="button"
         accessibilityLabel="Previous page"
+        accessibilityState={{ disabled: atFirst }}
       >
         <Ionicons
           name="chevron-back-outline"
-          size={IconSize.md}
-          color={safePage <= 1 ? Colors.border : Colors.textDark}
+          size={IconSize.sm}
+          color={atFirst ? Colors.textLight : Colors.textDark}
         />
       </TouchableOpacity>
       {pageNumbers.map(num => {
@@ -117,16 +115,17 @@ export default function ListPager({
       })}
       <TouchableOpacity
         style={styles.chevron}
-        onPress={() => onChangePage(Math.min(totalPages, safePage + 1))}
-        disabled={safePage >= totalPages}
+        onPress={() => onChangePage(safePage + 1)}
+        disabled={atLast}
         activeOpacity={PressOpacity.default}
         accessibilityRole="button"
         accessibilityLabel="Next page"
+        accessibilityState={{ disabled: atLast }}
       >
         <Ionicons
           name="chevron-forward-outline"
-          size={IconSize.md}
-          color={safePage >= totalPages ? Colors.border : Colors.textDark}
+          size={IconSize.sm}
+          color={atLast ? Colors.textLight : Colors.textDark}
         />
       </TouchableOpacity>
     </View>
@@ -142,12 +141,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    marginTop: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    ...Shadow.sm,
+    borderWidth: 1,
+    borderColor: Colors.explorePanelBorder,
   },
   chevron: {
     width: 32,
@@ -156,11 +154,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circleDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.exploreCanvas,
   },
   circleDotActive: {
     backgroundColor: Colors.accentInk,
@@ -168,7 +167,7 @@ const styles = StyleSheet.create({
   circleText: {
     fontSize: 13,
     fontFamily: FontFamily.semibold,
-    color: Colors.textDark,
+    color: Colors.accentInk,
   },
   circleTextActive: {
     color: Colors.white,
