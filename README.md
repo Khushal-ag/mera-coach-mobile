@@ -33,11 +33,11 @@ Coaches manage clients, deliver assessments, and keep the public listing that br
 
 |        | Journey            | What happens                                                                       |
 | ------ | ------------------ | ---------------------------------------------------------------------------------- |
-| **01** | **Discover**       | Browse categories, Find Your Coach (search, city, rating) — no sign-in required    |
-| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number              |
-| **03** | **Manage**         | Dashboard for clients, leads, and due checkups; client detail with goals & actions |
-| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS        |
-| **05** | **Build presence** | My Profile hub — gallery, packages, and events for the public listing              |
+| **01** | **Discover**       | Marketing hero, then explore — banner, categories, features, Check Your BMI — no sign-in required |
+| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number                                |
+| **03** | **Manage**         | Tabs: Dashboard, Packages, Events, Profile. Clients, leads, and due checkups sit under Dashboard    |
+| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS                          |
+| **05** | **Build presence** | Packages, Events, and Photo gallery each open a list; add or create is its own screen               |
 
 Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS later) · API via `EXPO_PUBLIC_API_BASE_URL` (photos & PDFs on the same host)
 
@@ -50,14 +50,14 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="docs/screenshots/explore.png" width="340" alt="Explore — coaching categories, features checklist, Know Your BMI, and Find a Coach" />
+      <img src="docs/screenshots/explore.png" width="340" alt="Explore — coaching categories, features, and a BMI check" />
       <br />
-      <sub><b>Explore</b><br />Where visitors land — categories, BMI check, Find a Coach</sub>
+      <sub><b>Explore</b><br />Second home page — banner, categories, features, Check Your BMI</sub>
     </td>
     <td align="center" width="50%">
-      <img src="docs/screenshots/find-coach.png" width="340" alt="Find Your Coach — search, city and rating filters, coach result cards" />
+      <img src="docs/screenshots/find-coach.png" width="340" alt="Find Your Coach — search, city and rating filters, and coach result cards" />
       <br />
-      <sub><b>Find Your Coach</b><br />Search and filters that surface the right coach</sub>
+      <sub><b>Find a Coach</b><br />Search, city, and rating. Circle pages stay up even on one page</sub>
     </td>
   </tr>
 </table>
@@ -81,9 +81,9 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 ### Build presence
 
 <div align="center">
-  <img src="docs/screenshots/profile.png" width="360" alt="My Profile hub with coach summary and public profile editors for gallery, packages, and events" />
+  <img src="docs/screenshots/profile.png" width="360" alt="Profile — coach summary, with Photo gallery, Packages, and Events" />
   <br />
-  <sub><b>My Profile</b><br />Shape the public page — gallery, packages, events</sub>
+  <sub><b>Profile</b><br />Account hub. Photo gallery, Packages, and Events each start as a list</sub>
 </div>
 
 <p align="center"><sub>iOS Simulator · light mode</sub></p>
@@ -92,12 +92,12 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 
 ## How it works
 
-1. **Explore & find** — Open the app as a visitor. Browse coaching categories or use Find Your Coach (search, city, rating).
-2. **Reach out** — Send an enquiry or BMI lead from a coach’s public page, or open WhatsApp when a mobile number is available.
+1. **Explore & find** — Open the app as a visitor. Home is two pages: a marketing hero (Get Started, Find a Coach), then explore — banner, coach categories from the API, features, and Check Your BMI. Find a Coach filters by search, city, and rating.
+2. **Reach out** — Send an enquiry from a coach’s public page, or a BMI lead from Check Your BMI. Open WhatsApp when a mobile number is available. The profile shows one photo; side arrows move between coaches in the browse list.
 3. **Coach sign-in** — Register or log in. On return, unlock with MPIN. Land on Dashboard.
-4. **Run the practice** — Track clients, enquiry leads, and due checkups. Add a client to start an assessment.
+4. **Run the practice** — Signed-in tabs are Dashboard, Packages, Events, and Profile. Dashboard tracks clients, enquiry leads, and due checkups. Add a client to start an assessment.
 5. **Assess & deliver** — Body stats → lifestyle → goals → BMI → multi-meal diet. Share BMI and diet PDFs. Ask for feedback via SMS (links to the site).
-6. **Shape the listing** — Edit gallery, packages, and events from My Profile so the public page stays current.
+6. **Shape the listing** — Packages, Events, and Photo gallery open a list first. Add or create (Package Creation, Add Event, Add Gallery) is a separate screen with a back button.
 
 ---
 
@@ -105,10 +105,10 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 
 | Area                      | What you get                                                                                             |
 | ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Discovery**             | Explore by category · Find Your Coach (city, rating, search) · public browse without signing in          |
-| **Practice hub**          | Dashboard metrics · clients list & detail · leads · checkups due                                         |
-| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS |
-| **Public presence**       | Profile gallery, packages, events · enquiry & BMI leads · WhatsApp when available                        |
+| **Discovery**             | Two-page public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in |
+| **Practice hub**          | Tabs: Dashboard, Packages, Events, Profile · clients, leads, checkups due                                              |
+| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS               |
+| **Public presence**       | One coach photo, arrows through the browse list · gallery, packages, and events as lists · enquiry & BMI leads · WhatsApp when available |
 | **Account**               | Coach register / login · MPIN · password change · privacy & terms · support via `hello@mera-coach.com`   |
 
 ---
@@ -117,23 +117,29 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 
 - **Discovery and delivery share one product** — visitors browse; coaches work the same app after sign-in.
 - **Assessment that finishes the job** — body stats through BMI and diet, with PDFs coaches can share.
-- **A listing that brings work in** — gallery, packages, and events feed the public page; enquiries and WhatsApp close the loop.
-- **Thoughtful mobile UX** — Outfit + Fraunces, forest / terracotta / gold, shared empty / error / reload states
+- **A listing that brings work in** — Packages, Events, and Photo gallery are lists you add to; enquiries and WhatsApp close the loop.
+- **Thoughtful mobile UX** — Montserrat headings, Poppins body text, teal, terracotta, and mint, wave header on in-app screens (Dashboard uses its own header)
 
 ---
 
 ## Design
 
-| Role      | Token      | Value     |
-| --------- | ---------- | --------- |
-| Primary   | Terracotta | `#c04b2b` |
-| Secondary | Forest     | `#1b4332` |
-| Accent    | Gold       | `#c9882a` |
-| Surface   | Cream      | `#fdf8f2` |
+| Role      | Token        | Value     |
+| --------- | ------------ | --------- |
+| Primary   | `primary`    | `#d05c26` |
+| Secondary | `secondary`  | `#178676` |
+| Accent    | `accent`     | `#e8a317` |
+| Surface   | `background` | `#f5f7f5` |
 
-**Type** — Outfit (UI) · Fraunces (display)
+Primary is terracotta, secondary is teal, and the surface is mint. Those names and the hex values are `Colors` in `src/constants/theme.ts`.
 
-**System** — Shared components (`AppButton`, `EmptyState`, `ReloadState`, `StickyFooter`, `ScreenHeader`) · 44pt touch targets · empty / error / reload states · sticky footers for primary CTAs · accessibility labels on interactive controls
+**Type** — Montserrat headings (`headingFont`) · Poppins body text (`bodyFont`)
+
+**Chrome** — In-app screens use the wave header: back when the screen is pushed, title, and home. Tab roots (Packages, Events, Profile) have title and home, no back. Dashboard does not use the wave header.
+
+**Lists** — Find a Coach uses a circle page control and keeps it visible even on one page. Client, lead, checkup, event, and package lists use a square page control.
+
+**System** — Shared components (`AppButton`, `EmptyState`, `ReloadState`, `StickyFooter`, `WaveScreenHeader`) · 44pt touch targets · empty / error / reload states · sticky footers for primary CTAs · accessibility labels on interactive controls
 
 **Tokens** — `src/constants/theme.ts` · light UI only (`userInterfaceStyle: light`)
 
@@ -174,17 +180,18 @@ Prefer Releases APK assets or the official Play listing once published. No fabri
 ```mermaid
 flowchart LR
   subgraph visitors [Visitors]
-    Explore --> FindCoach[Find Your Coach]
-    FindCoach --> PublicPage[Public coach page]
+    Hero[Marketing hero] --> Explore
+    Hero --> FindCoach[Find a Coach]
+    Explore --> FindCoach
+    Explore --> Bmi[Check Your BMI]
+    FindCoach --> PublicPage[Coach profile]
     PublicPage --> Leads[Enquiry / BMI lead]
   end
   subgraph coaches [Coaches]
-    Auth[Login / Register / MPIN] --> Dashboard
-    Dashboard --> Clients
-    Dashboard --> Checkups
-    Dashboard --> Profile
+    Auth[Login / Register / MPIN] --> Tabs["Dashboard · Packages · Events · Profile"]
+    Tabs --> Clients
+    Tabs --> Listing["Gallery · Packages · Events lists"]
     Clients --> Assess[Assessment · BMI · Diet · PDF]
-    Profile --> Listing[Gallery · Packages · Events]
   end
   App[Mera Coach app] --> API["REST API + /document"]
   Explore -.-> App
@@ -199,7 +206,7 @@ src/
   api/           HTTP client & domain APIs
   auth/          Session (SecureStore)
   components/    Shared UI
-  navigation/    Root stack + main tabs
+  navigation/    Root stack + tabs (Dashboard, Packages, Events, Profile)
   screens/       home, auth, dashboard, clients, checkups, profile, publicCoach, addClient
 assets/brand/    Logo mark, wordmark, full lockup
 docs/            RELEASING.md · screenshots/
