@@ -71,26 +71,10 @@ function parseIsProfileVisible(raw: Record<string, unknown>): boolean | undefine
   return undefined;
 }
 
-/** Required public fields for auto isProfileVisible on Coach/save. */
-export function isPublicProfileDataSufficient(fields: {
-  experienceYears?: number | null;
-  happyClientCount?: number | null;
-  coachDesc?: string | null;
-  add_Line?: string | null;
-  pinCode?: string | null;
-}): boolean {
-  const pinDigits = String(fields.pinCode ?? '').replace(/\D/g, '');
-  return (
-    fields.experienceYears != null &&
-    Number.isFinite(fields.experienceYears) &&
-    fields.experienceYears >= 0 &&
-    fields.happyClientCount != null &&
-    Number.isFinite(fields.happyClientCount) &&
-    fields.happyClientCount >= 0 &&
-    !!String(fields.coachDesc ?? '').trim() &&
-    !!String(fields.add_Line ?? '').trim() &&
-    pinDigits.length === 6
-  );
+function parseMissingPublicFields(raw: Record<string, unknown>): string[] | undefined {
+  const v = raw.missingPublicFields ?? raw.MissingPublicFields;
+  if (!Array.isArray(v)) return undefined;
+  return v.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
 interface RawPublicCoach {
@@ -144,7 +128,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     categoryCode: raw.coachTypeCode,
     category: raw.coachTypeName,
     rating: raw.rating ?? 0,
-    // Public list currently mirrors happyClientCount into reviewCount; profile-by-id often omits it.
+    // reviewCount is not a review total. Callers must not show rating/reviews as client reviews.
     reviews: raw.reviewCount ?? 0,
     // Self-reported marketing field (Edit Profile Experience yrs), not tenure from signup.
     experience: raw.experienceYears ?? 0,
@@ -300,6 +284,8 @@ interface RawCoachProfileFull {
   IsProfileVisible?: boolean | number | string;
   isProfileVisible?: boolean | number | string;
   Is_profileVisible?: boolean | number | string;
+  missingPublicFields?: string[];
+  MissingPublicFields?: string[];
   packages?: unknown;
   packagesJson?: unknown;
   products?: unknown;
@@ -333,8 +319,13 @@ export interface CoachProfileFull {
   coachDesc: string;
   bmiReportTemplate: string;
   dietChartTemplate: string;
-  /** undefined if API omits the field. */
+  /** undefined if API omits the field. Stored directory flag — not a client override. */
   isProfileVisible?: boolean;
+  /**
+   * Required public fields still empty. Same labels as the server visibility rules.
+   * Undefined when the API omits the list.
+   */
+  missingPublicFields?: string[];
   packages: CoachPackage[];
   events: CoachEvent[];
 }
@@ -371,6 +362,7 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     bmiReportTemplate: raw.bmiReportTemplate ?? '',
     dietChartTemplate: raw.dietChartTemplate ?? '',
     isProfileVisible: parseIsProfileVisible(bag),
+    missingPublicFields: parseMissingPublicFields(bag),
     packages: parseCoachPackages(pickPackagesRaw(bag)),
     events: parseCoachEvents(pickEventsRaw(bag)),
   };
@@ -393,10 +385,11 @@ interface BmiLeadParams {
   clientMobile: string;
   gender?: string;
   age?: number | null;
-  heightCm: number;
-  weightKg: number;
-  bmiValue: number;
-  bmiCategory: string;
+  /** Omit when the screen did not measure height, weight, or BMI. */
+  heightCm?: number;
+  weightKg?: number;
+  bmiValue?: number;
+  bmiCategory?: string;
 }
 
 export async function submitBmiLead(params: BmiLeadParams): Promise<void> {
@@ -435,8 +428,6 @@ interface SaveCoachProfileParams {
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
-  /** 1/0; computed from public-field sufficiency when omitted. */
-  isProfileVisible?: number;
   /** Attached when provided (including empty arrays to clear). */
   packages?: CoachPackage[];
   /** Attached when provided (including empty arrays to clear). */
@@ -445,9 +436,8 @@ interface SaveCoachProfileParams {
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
   const { packages, events, ...rest } = params;
-  const isProfileVisible =
-    params.isProfileVisible ?? (isPublicProfileDataSufficient(params) ? 1 : 0);
-  const body: Record<string, unknown> = { ...rest, isProfileVisible };
+  // Visibility is recomputed on the server. Do not send a client flag.
+  const body: Record<string, unknown> = { ...rest };
 
   // Always send when defined so empty arrays clear PackagesJson / EventsJson on the API.
   if (packages !== undefined) {
@@ -471,11 +461,6 @@ export function buildSaveCoachProfileParams(
   profile: CoachProfileFull,
   overrides?: Partial<Pick<SaveCoachProfileParams, 'packages' | 'events'>>,
 ): SaveCoachProfileParams {
-  const experienceYears = profile.experienceYears;
-  const happyClientCount = profile.happyClientCount;
-  const coachDesc = profile.coachDesc;
-  const add_Line = profile.addLine;
-  const pinCode = profile.pinCode;
   return {
     coachId: profile.coachId,
     coachName: profile.coachName,
@@ -484,33 +469,25 @@ export function buildSaveCoachProfileParams(
     email: profile.email,
     businessName: profile.businessName,
     serviceCodes: profile.serviceCodes,
-    experienceYears,
-    happyClientCount,
+    // Manual happy-client count. Do not add the live roster before save.
+    experienceYears: profile.experienceYears,
+    happyClientCount: profile.happyClientCount,
     certificationCount: profile.certificationCount,
     tagline: profile.tagline,
     localLanguage: profile.localLanguage,
     locality: profile.locality,
-    add_Line,
+    add_Line: profile.addLine,
     city_Cd: profile.cityCd,
     state_Cd: profile.stateCd,
-    pinCode,
+    pinCode: profile.pinCode,
     country_Cd: profile.countryCd,
     logo_Url: profile.logoUrl,
     profile_Pic_Url: profile.profilePicUrl,
-    coachDesc,
+    coachDesc: profile.coachDesc,
     bmiReportTemplate: profile.bmiReportTemplate,
     dietChartTemplate: profile.dietChartTemplate,
     packages: overrides?.packages ?? profile.packages,
     events: overrides?.events ?? profile.events,
-    isProfileVisible: isPublicProfileDataSufficient({
-      experienceYears,
-      happyClientCount,
-      coachDesc,
-      add_Line,
-      pinCode,
-    })
-      ? 1
-      : 0,
   };
 }
 

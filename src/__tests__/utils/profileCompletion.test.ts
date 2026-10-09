@@ -1,5 +1,19 @@
 import { getProfileCompletion } from '../../utils/profileCompletion';
 
+const completeProfile = {
+  profilePicUrl: 'https://cdn.example/photo.jpg',
+  coachName: 'Ada',
+  coachTypeCode: 'NUT',
+  cityCd: 'Pune',
+  tagline: 'Strength first',
+  coachDesc: 'Helping clients reach goals',
+  serviceCodes: ['SRV1'],
+  experienceYears: 5,
+  happyClientCount: 20,
+  pinCode: '560001',
+  addLine: '12 MG Road',
+};
+
 describe('getProfileCompletion', () => {
   it('marks incomplete when required public fields are missing', () => {
     const result = getProfileCompletion({
@@ -12,10 +26,22 @@ describe('getProfileCompletion', () => {
     });
     expect(result.isPublicReady).toBe(false);
     expect(result.percent).toBe(0);
-    expect(result.missingLabels.length).toBe(6);
+    expect(result.missingLabels).toEqual([
+      'Profile photo',
+      'Coach name',
+      'Coach category',
+      'City',
+      'Tagline',
+      'About / description',
+      'Services',
+      'Years of experience',
+      'Happy clients count',
+      'Pincode',
+      'Locality or address',
+    ]);
   });
 
-  it('is public-ready when required fields are filled even without photo', () => {
+  it('does not treat the short field list as enough to go public', () => {
     const result = getProfileCompletion({
       experienceYears: 5,
       happyClientCount: 20,
@@ -24,26 +50,29 @@ describe('getProfileCompletion', () => {
       pinCode: '560001',
       profilePicUrl: '',
     });
-    expect(result.isPublicReady).toBe(true);
-    expect(result.percent).toBe(Math.round((5 / 6) * 100));
-    expect(result.missingLabels).toEqual(['Profile photo']);
+    expect(result.isPublicReady).toBe(false);
+    expect(result.missingLabels).toEqual(
+      expect.arrayContaining(['Profile photo', 'Coach name', 'Coach category', 'City', 'Tagline', 'Services']),
+    );
   });
 
-  it('reaches 100% when photo and required fields are present', () => {
-    const result = getProfileCompletion({
-      experienceYears: 3,
-      happyClientCount: 10,
-      coachDesc: 'Coach bio',
-      add_Line: 'Address',
-      pinCode: '110001',
-      profilePicUrl: 'https://cdn.example/photo.jpg',
-    });
+  it('previews public only when every server-required field is present and visibility is unknown', () => {
+    const result = getProfileCompletion(completeProfile);
     expect(result.isPublicReady).toBe(true);
     expect(result.percent).toBe(100);
     expect(result.missingLabels).toEqual([]);
   });
 
-  it('respects explicit isProfileVisible even if fields look incomplete', () => {
+  it('accepts locality instead of an address line', () => {
+    const result = getProfileCompletion({
+      ...completeProfile,
+      addLine: '',
+      locality: 'Koregaon Park',
+    });
+    expect(result.isPublicReady).toBe(true);
+  });
+
+  it('respects an explicit public flag even if fields look incomplete', () => {
     const result = getProfileCompletion({
       experienceYears: null,
       happyClientCount: null,
@@ -53,5 +82,24 @@ describe('getProfileCompletion', () => {
       isProfileVisible: true,
     });
     expect(result.isPublicReady).toBe(true);
+  });
+
+  it('does not say public when the server will hide the profile', () => {
+    const result = getProfileCompletion({
+      ...completeProfile,
+      isProfileVisible: false,
+    });
+    expect(result.isPublicReady).toBe(false);
+  });
+
+  it('uses the server missing-field list when the API sends one', () => {
+    const result = getProfileCompletion({
+      ...completeProfile,
+      isProfileVisible: false,
+      missingPublicFields: ['Profile photo', 'Tagline'],
+    });
+    expect(result.isPublicReady).toBe(false);
+    expect(result.missingLabels).toEqual(['Profile photo', 'Tagline']);
+    expect(result.percent).toBe(Math.round((9 / 11) * 100));
   });
 });

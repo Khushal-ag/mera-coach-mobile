@@ -1,6 +1,7 @@
 /**
- * Prefer live ClientList length when viewing your own profile.
- * Otherwise use happyClientCount; hide rating when reviewCount is 0.
+ * Public "Happy Clients" is the manually entered count.
+ * The live roster is a separate number on the coach's own profile screen.
+ * Rating is a formula and reviewCount is not a review total — do not show either as reviews.
  */
 
 type PublicStatItem = {
@@ -10,27 +11,23 @@ type PublicStatItem = {
 };
 
 export function resolvePublicClientCount(opts: {
-  coachId: string;
-  /** From API `happyClientCount`. */
+  coachId?: string;
+  /** From API `happyClientCount` — the stored manual count. */
   marketingClients: number;
   viewerCoachCode?: string | null;
-  /** Live roster length when the viewer is this coach; omit when unknown. */
+  /** Ignored. The live roster must not replace or increment the manual count. */
   liveRosterLength?: number | null;
 }): number {
-  const { coachId, marketingClients, viewerCoachCode, liveRosterLength } = opts;
-  if (viewerCoachCode && coachId === viewerCoachCode && liveRosterLength != null) {
-    return liveRosterLength;
-  }
-  return marketingClients;
+  return opts.marketingClients;
 }
 
 export function shouldShowPublicClientCount(count: number | null | undefined): boolean {
   return count != null && count > 0;
 }
 
-/** Hide seeded ratings when reviewCount is 0. */
-export function shouldShowPublicRating(rating: number, reviews: number): boolean {
-  return rating > 0 && reviews > 0;
+/** Formula ratings and client totals are not client reviews. */
+export function shouldShowPublicRating(_rating: number, _reviews: number): boolean {
+  return false;
 }
 
 export function buildPublicProfileStats(opts: {

@@ -55,9 +55,7 @@ import {
   submitCoachEnquiry,
   whatsAppUrlFromMobile,
 } from '../../api/coachApi';
-import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
-import { getCurrentCoachCode, isAuthenticated } from '../../auth/session';
 import { getErrorMessage } from '../../api/client';
 import {
   buildPublicProfileStats,
@@ -678,26 +676,13 @@ function CoachProfilePage({
     placeholderData: listCoach?.id === coachCode ? listCoach : undefined,
   });
 
-  const myCoachCode = getCurrentCoachCode();
-  const isOwnProfile = isAuthenticated() && !!myCoachCode && myCoachCode === coachCode;
-  const myClientsQuery = useQuery({
-    queryKey: queryKeys.clientList(myCoachCode),
-    queryFn: () => getClientList(),
-    enabled: isOwnProfile,
-  });
-
   const listMatch = listCoach?.id === coachCode ? listCoach : undefined;
   const coach =
     profileQuery.isError && !profileQuery.data
       ? undefined
       : mergeCoachProfile(profileQuery.data, listMatch);
   const clientCount = coach
-    ? resolvePublicClientCount({
-        coachId: coach.id,
-        marketingClients: coach.clients,
-        viewerCoachCode: myCoachCode,
-        liveRosterLength: myClientsQuery.data?.length,
-      })
+    ? resolvePublicClientCount({ marketingClients: coach.clients })
     : null;
   const showRating = coach ? shouldShowPublicRating(coach.rating, coach.reviews) : false;
   const publicStats = coach

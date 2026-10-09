@@ -6,7 +6,7 @@ import {
 } from '../../utils/coachPublicStats';
 
 describe('resolvePublicClientCount', () => {
-  it('prefers live roster when viewer is the coach', () => {
+  it('keeps the manual count when the viewer is the coach', () => {
     expect(
       resolvePublicClientCount({
         coachId: 'btlajm',
@@ -14,10 +14,10 @@ describe('resolvePublicClientCount', () => {
         viewerCoachCode: 'btlajm',
         liveRosterLength: 3,
       }),
-    ).toBe(3);
+    ).toBe(42);
   });
 
-  it('returns live 0 when roster is empty', () => {
+  it('does not replace a manual count with an empty roster', () => {
     expect(
       resolvePublicClientCount({
         coachId: 'btlajm',
@@ -25,10 +25,10 @@ describe('resolvePublicClientCount', () => {
         viewerCoachCode: 'btlajm',
         liveRosterLength: 0,
       }),
-    ).toBe(0);
+    ).toBe(42);
   });
 
-  it('falls back to marketing count for other coaches', () => {
+  it('returns the manual count for other coaches', () => {
     expect(
       resolvePublicClientCount({
         coachId: 'btlajm',
@@ -39,11 +39,12 @@ describe('resolvePublicClientCount', () => {
     ).toBe(42);
   });
 
-  it('uses marketing count including 0 when no live overlay', () => {
+  it('keeps a manual zero', () => {
     expect(
       resolvePublicClientCount({
         coachId: 'x',
         marketingClients: 0,
+        liveRosterLength: 4,
       }),
     ).toBe(0);
   });
@@ -59,9 +60,9 @@ describe('shouldShowPublicClientCount', () => {
 });
 
 describe('shouldShowPublicRating', () => {
-  it('hides seeded ratings with zero reviews', () => {
+  it('does not present a formula rating or client total as reviews', () => {
     expect(shouldShowPublicRating(3.5, 0)).toBe(false);
-    expect(shouldShowPublicRating(3.7, 42)).toBe(true);
+    expect(shouldShowPublicRating(4.8, 42)).toBe(false);
   });
 });
 
@@ -93,7 +94,7 @@ describe('buildPublicProfileStats', () => {
     ]);
   });
 
-  it('includes all four when all are available', () => {
+  it('includes clients, experience, and services without a review rating', () => {
     expect(
       buildPublicProfileStats({
         clientCount: 5,
@@ -106,7 +107,6 @@ describe('buildPublicProfileStats', () => {
       { key: 'clients', value: '5', label: 'Happy Clients' },
       { key: 'experience', value: '4', label: 'Years Exp.' },
       { key: 'services', value: '2', label: 'Services' },
-      { key: 'rating', value: '4.8', label: 'Rating' },
     ]);
   });
 });

@@ -25,7 +25,7 @@ export function mergeCoachProfile(
     packages: api.packages?.length ? api.packages : list.packages,
     events: api.events?.length ? api.events : list.events,
     // Numbers from profile-by-id: keep API zeros for clients (happyClientCount) / experience.
-    // reviewCount is often omitted on profile-by-id (mapped to 0) — keep list reviews then.
+    // rating/reviews are not client reviews; keep list numbers only so directory data is not dropped.
     rating: api.rating > 0 ? api.rating : list.rating,
     reviews: api.reviews > 0 ? api.reviews : list.reviews,
     clients: api.clients,

@@ -16,7 +16,7 @@ import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
-import { submitCoachEnquiry } from '../../api/coachApi';
+import { submitBmiLead } from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
 import { BrandImages, PUBLIC_BMI_BANNER_ASPECT } from '../../constants/images';
 import {
@@ -61,10 +61,11 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
     setSubmitting(true);
     setBanner(null);
     try {
-      await submitCoachEnquiry({
+      // Coach/enquiry requires a coach code. This form has none — Coach/bmi-lead
+      // accepts name + mobile and only requires those two fields.
+      await submitBmiLead({
         clientName: name.trim(),
         clientMobile: mobile.trim(),
-        lookingFor: 'BMI discussion',
       });
       setSuccess(true);
     } catch (err) {
@@ -105,11 +106,13 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
         </View>
 
         <View style={styles.revealBar}>
-          <Text style={styles.revealBarText}>Enter your name and mobile to reveal your BMI</Text>
+          <Text style={styles.revealBarText}>
+            Enter your name and mobile for a coach to call you
+          </Text>
         </View>
 
         <Text style={styles.helper}>
-          Share your name and mobile. A top-rated coach will call you back.
+          Share your name and mobile. A coach will call you back.
         </Text>
         <Text style={styles.helperStrong}>Free, no commitment.</Text>
 
@@ -118,7 +121,7 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
           <View style={styles.successBox} accessibilityRole="text">
             <Ionicons name="checkmark-circle-outline" size={IconSize.lg} color={Colors.secondary} />
             <Text style={styles.successText}>
-              Thanks! A coach will reach out to discuss your BMI.
+              Thanks! A coach will reach out shortly.
             </Text>
           </View>
         ) : null}

@@ -196,8 +196,8 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       : null;
 
   const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
-  const ratingDisplay =
-    profile?.rating != null && profile.rating > 0 ? String(profile.rating) : '-';
+  // The API rating is a formula, not client reviews.
+  const ratingDisplay = '-';
 
   const handleMenuPress = async (item: MenuItem) => {
     if (item.tab === 'Packages') {

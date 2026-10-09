@@ -45,7 +45,6 @@ import {
   getCoachProfileFull,
   getCoachCategories,
   getServicesForCategory,
-  isPublicProfileDataSufficient,
   saveCoachProfile,
 } from '../../api/coachApi';
 import { getCountries, type MasterOption } from '../../api/masterApi';
@@ -338,6 +337,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           .map(label => serviceOptions.find(s => s.label === label)?.code)
           .filter((code): code is string => !!code),
         experienceYears: experienceYearsNum,
+        // Manual count as entered. Do not add the live roster.
         happyClientCount: happyClientCountNum,
         certificationCount: parseInt(certificationCount, 10) || 0,
         tagline: tagline.trim(),
@@ -355,15 +355,6 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         dietChartTemplate: dietChartTemplate.trim(),
         packages: serializeCoachPackages(latest.packages),
         events: serializeCoachEvents(latest.events),
-        isProfileVisible: isPublicProfileDataSufficient({
-          experienceYears: experienceYearsNum,
-          happyClientCount: happyClientCountNum,
-          coachDesc: coachDescTrimmed,
-          add_Line: addLineTrimmed,
-          pinCode: pinCodeTrimmed,
-        })
-          ? 1
-          : 0,
       });
       await updateSessionFullName(coachName.trim());
       invalidateCoachProfileCaches(queryClient, profile.coachCode, { gallery: true });
@@ -387,10 +378,24 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     happyClientCount,
   });
 
+  const completionServiceCodes =
+    serviceLabels === null && resolvedServiceLabels.length === 0
+      ? profile.serviceCodes
+      : resolvedServiceLabels
+          .map(label => serviceOptions.find(s => s.label === label)?.code)
+          .filter((code): code is string => !!code);
+  const parsedExperience = parseInt(experienceYears, 10);
+  const parsedHappyClients = parseInt(happyClientCount, 10);
   const liveCompletion = getProfileCompletion({
-    experienceYears: parseInt(experienceYears, 10) || 0,
-    happyClientCount: parseInt(happyClientCount, 10) || 0,
+    coachName,
+    coachTypeCode: categoryCode,
+    cityCd,
+    tagline,
     coachDesc,
+    serviceCodes: completionServiceCodes,
+    experienceYears: Number.isFinite(parsedExperience) ? parsedExperience : null,
+    happyClientCount: Number.isFinite(parsedHappyClients) ? parsedHappyClients : null,
+    locality,
     addLine,
     pinCode,
     profilePicUrl,

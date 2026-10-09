@@ -35,10 +35,8 @@ import {
   coachPublicSortParam,
 } from '../../data/coachDirectory';
 import { getCoachCategories, getCoachPublicCities, getCoachPublicList } from '../../api/coachApi';
-import { getClientList } from '../../api/clientApi';
 import { MASTER_STALE_MS } from '../../api/queryClient';
 import { queryKeys } from '../../api/queryKeys';
-import { getCurrentCoachCode, isAuthenticated } from '../../auth/session';
 import { useAuthState } from '../../auth/useAuthState';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQueriesRefreshControl, refreshControlTheme } from '../../hooks/useRefreshControl';
@@ -56,7 +54,7 @@ import {
   prepareCoachCardBio,
   visibleCoachTags,
 } from '../../utils/coachDisplay';
-import { resolvePublicClientCount, shouldShowPublicRating } from '../../utils/coachPublicStats';
+import { shouldShowPublicRating } from '../../utils/coachPublicStats';
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import type { RootScreenProps } from '../../types/navigation';
 import type { Coach } from '../../types/models';
@@ -265,7 +263,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const [picker, setPicker] = useState<PickerKind>(null);
   const [combineOpen, setCombineOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 400);
-  const myCoachCode = getCurrentCoachCode();
 
   const categoriesQuery = useQuery({
     queryKey: queryKeys.coachCategories,
@@ -280,12 +277,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     }),
     queryFn: ({ signal }) =>
       getCoachPublicCities({ coachTypeCode: activeCategory || undefined }, signal),
-  });
-
-  const myClientsQuery = useQuery({
-    queryKey: queryKeys.clientList(myCoachCode),
-    queryFn: () => getClientList(),
-    enabled: isAuthenticated() && !!myCoachCode,
   });
 
   const cityOptions = useMemo(() => {
@@ -486,58 +477,23 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   );
 
   const coachCodes = useMemo(() => filtered.map(c => c.id), [filtered]);
-  const coachesForNav = useMemo(
-    () =>
-      filtered.map(c => {
-        const clientCount = resolvePublicClientCount({
-          coachId: c.id,
-          marketingClients: c.clients,
-          viewerCoachCode: myCoachCode,
-          liveRosterLength: myClientsQuery.data?.length,
-        });
-        return { ...c, clients: clientCount };
-      }),
-    [filtered, myCoachCode, myClientsQuery.data?.length],
-  );
-
   const topRatedCodes = useMemo(() => topRatedCoaches.map(c => c.id), [topRatedCoaches]);
-  const topRatedForNav = useMemo(
-    () =>
-      topRatedCoaches.map(c => {
-        const clientCount = resolvePublicClientCount({
-          coachId: c.id,
-          marketingClients: c.clients,
-          viewerCoachCode: myCoachCode,
-          liveRosterLength: myClientsQuery.data?.length,
-        });
-        return { ...c, clients: clientCount };
-      }),
-    [topRatedCoaches, myCoachCode, myClientsQuery.data?.length],
-  );
-
-  const rosterLength = myClientsQuery.data?.length;
 
   const renderCoachItem = useCallback<ListRenderItem<Coach>>(
     ({ item: coach }) => {
       const photoUri = resolveCoachPhotoUrl(coach);
-      const clientCount = resolvePublicClientCount({
-        coachId: coach.id,
-        marketingClients: coach.clients,
-        viewerCoachCode: myCoachCode,
-        liveRosterLength: rosterLength,
-      });
       return (
         <CoachResultCard
           coach={coach}
           photoUri={photoUri}
-          clientCount={clientCount}
+          clientCount={coach.clients}
           coachCodes={coachCodes}
-          coaches={coachesForNav}
+          coaches={filtered}
           onViewProfile={openCoachProfile}
         />
       );
     },
-    [myCoachCode, rosterLength, coachCodes, coachesForNav, openCoachProfile],
+    [coachCodes, filtered, openCoachProfile],
   );
 
   const keyExtractor = useCallback((item: Coach) => item.id, []);
@@ -652,17 +608,14 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.topRatedRow}
         >
-          {topRatedCoaches.map((coach, index) => {
-            const clientCount = topRatedForNav[index]?.clients ?? coach.clients;
-            return (
-              <TopRatedCompactCard
-                key={coach.id}
-                coach={coach}
-                photoUri={resolveCoachPhotoUrl(coach)}
-                onPress={() => openCoachProfile(coach, clientCount, topRatedCodes, topRatedForNav)}
-              />
-            );
-          })}
+          {topRatedCoaches.map(coach => (
+            <TopRatedCompactCard
+              key={coach.id}
+              coach={coach}
+              photoUri={resolveCoachPhotoUrl(coach)}
+              onPress={() => openCoachProfile(coach, coach.clients, topRatedCodes, topRatedCoaches)}
+            />
+          ))}
         </ScrollView>
       ) : (
         <EmptyState
