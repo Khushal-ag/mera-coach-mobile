@@ -268,7 +268,7 @@ function AddGalleryEventForm({
     });
     if (!picked) return;
     if (approxBase64Bytes(picked.base64) > MAX_UPLOAD_BYTES) {
-      Alert.alert('File too large', 'Photo or video must be 10MB or smaller.');
+      showBanner('Photo or video must be 10MB or smaller.');
       return;
     }
 
@@ -289,10 +289,7 @@ function AddGalleryEventForm({
     } catch (err) {
       setDraft(current => ({ ...current, imageUrl: previousUrl }));
       setPickedName(previousUrl ? fileNameFromUri(previousUrl) : '');
-      Alert.alert(
-        'Upload failed',
-        getErrorMessage(err, 'Could not upload photo. Please try again.'),
-      );
+      showBanner(getErrorMessage(err, 'Could not upload photo. Please try again.'));
     } finally {
       setUploading(false);
     }

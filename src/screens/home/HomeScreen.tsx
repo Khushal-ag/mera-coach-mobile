@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import BrandLogo from '../../components/BrandLogo';
 import HomeExplorePage from './HomeExplorePage';
 import { BrandImages, HOME_HERO_ASPECT, LOGO_ASPECT } from '../../constants/images';
@@ -88,16 +89,21 @@ function MarketingPage({
         ]}
       >
         <View pointerEvents="none" style={styles.headline}>
-          <Text style={styles.lineWhite}>Grow Your</Text>
-          <Text style={styles.lineOrange}>Coaching</Text>
-          <Text style={styles.lineWhite}>Business with</Text>
-          <View style={styles.brandLine}>
-            <Text style={styles.mera}>mera</Text>
-            <View style={styles.coachWrap}>
-              <Text style={styles.coach}> coach</Text>
-              <View style={styles.coachUnderline} />
-            </View>
-          </View>
+          <Text style={styles.headlineText}>
+            {'Grow Your\n'}
+            <Text style={styles.headlineAccent}>Coaching</Text>
+            {'\nBusiness with\nmera '}
+            <Text style={styles.headlineAccent}>coach</Text>
+          </Text>
+          <Svg width={82} height={12} viewBox="0 0 82 12" style={styles.headlineUnderline}>
+            <Path
+              d="M2 8.6C26 6 64 3.2 78 7.8"
+              stroke={Colors.brandCoach}
+              strokeWidth={3}
+              strokeLinecap="round"
+              fill="none"
+            />
+          </Svg>
         </View>
 
         <Pressable
@@ -184,6 +190,15 @@ export default function HomeScreen({ navigation, route }: RootScreenProps<'Home'
   );
 }
 
+/** Figma hero: Montserrat Bold 32 / 33, letter-spacing -2%. */
+const heroHeadlineType = {
+  fontFamily: headingFont.bold,
+  fontSize: 32,
+  lineHeight: 33,
+  letterSpacing: -0.64,
+  includeFontPadding: false,
+} as const;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -209,50 +224,19 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headline: {
+    alignItems: 'flex-start',
     marginBottom: Spacing.sm,
   },
-  lineWhite: {
-    fontFamily: headingFont.bold,
-    fontSize: 22,
-    lineHeight: 28,
+  headlineText: {
+    ...heroHeadlineType,
     color: Colors.white,
   },
-  lineOrange: {
-    fontFamily: headingFont.bold,
-    fontSize: 22,
-    lineHeight: 28,
+  headlineAccent: {
+    ...heroHeadlineType,
     color: Colors.brandCoach,
   },
-  brandLine: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    flexWrap: 'wrap',
-    maxWidth: '100%',
-  },
-  mera: {
-    fontFamily: headingFont.bold,
-    fontSize: 22,
-    lineHeight: 28,
-    color: Colors.white,
-  },
-  coachWrap: {
-    alignItems: 'flex-start',
-    flexShrink: 1,
-  },
-  coach: {
-    fontFamily: headingFont.bold,
-    fontSize: 22,
-    lineHeight: 28,
-    color: Colors.brandCoach,
-  },
-  coachUnderline: {
-    alignSelf: 'stretch',
-    height: 4,
-    borderRadius: 3,
-    backgroundColor: Colors.brandCoach,
-    marginTop: 1,
-    marginLeft: Spacing.xs,
-    transform: [{ rotate: '-2deg' }],
+  headlineUnderline: {
+    marginTop: 2,
   },
   ctaPrimary: {
     flexDirection: 'row',

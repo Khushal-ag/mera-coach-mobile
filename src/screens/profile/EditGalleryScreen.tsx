@@ -153,7 +153,7 @@ function GalleryComposer({ coachCode }: { coachCode: string }) {
       return;
     }
     if (remaining <= 0) {
-      Alert.alert('Gallery full', `You can add up to ${COACH_GALLERY_MAX_PHOTOS} photos.`);
+      setBanner(`You can add up to ${COACH_GALLERY_MAX_PHOTOS} photos.`);
       return;
     }
     const assets = await pickImagesFromCameraOrLibrary({

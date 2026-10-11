@@ -19,6 +19,7 @@ import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import ClientListScreen from '../screens/clients/ClientListScreen';
 import ClientDetailScreen from '../screens/clients/detail/ClientDetailScreen';
 import AddClientScreen from '../screens/addClient/AddClientScreen';
+import PremiumScreen from '../screens/premium/PremiumScreen';
 import MyLeadsScreen from '../screens/clients/MyLeadsScreen';
 import ReCheckupListScreen from '../screens/checkups/ReCheckupListScreen';
 import CoachProfileScreen from '../screens/profile/CoachProfileScreen';
@@ -70,6 +71,7 @@ function DashboardStackNavigator() {
       <DashboardStack.Screen name="ClientListHome" component={ClientListScreen} />
       <DashboardStack.Screen name="ClientDetail" component={ClientDetailScreen} />
       <DashboardStack.Screen name="AddClient" component={AddClientScreen} />
+      <DashboardStack.Screen name="Premium" component={PremiumScreen} />
       <DashboardStack.Screen name="ClientBmi" component={ClientBmiScreen} />
       <DashboardStack.Screen name="ClientBmiReport" component={ClientBmiReportScreen} />
       <DashboardStack.Screen name="ClientDietPlan" component={ClientDietPlanScreen} />

@@ -25,6 +25,7 @@ import {
   Typography,
 } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import {
@@ -71,6 +72,7 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
   const [failedDocIds, setFailedDocIds] = useState<Set<number>>(() => new Set());
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [gridWidth, setGridWidth] = useState(0);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const profileError =
     profileQuery.isError && !profileQuery.data
@@ -113,16 +115,14 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
 
   const goAdd = () => {
     if (!coachCode) {
-      Alert.alert(
-        'Gallery not ready',
-        profileError ?? 'Your profile is still loading. Try again in a moment.',
-      );
+      setActionError(profileError ?? 'Your profile is still loading. Try again in a moment.');
       return;
     }
     if (atMax) {
-      Alert.alert('Gallery full', `You can add up to ${COACH_GALLERY_MAX_PHOTOS} photos.`);
+      setActionError(`You can add up to ${COACH_GALLERY_MAX_PHOTOS} photos.`);
       return;
     }
+    setActionError(null);
     navigation.navigate('EditGallery');
   };
 
@@ -133,6 +133,7 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
       const docId = item.docId;
       const previous = queryClient.getQueryData<DocumentListItem[]>(galleryKey);
       setDeletingDocId(docId);
+      setActionError(null);
       await queryClient.cancelQueries({ queryKey: galleryKey });
       queryClient.setQueryData<DocumentListItem[]>(galleryKey, old =>
         (old ?? []).filter(row => row.docId !== docId),
@@ -153,7 +154,7 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
         } else {
           invalidate();
         }
-        Alert.alert('Delete failed', getErrorMessage(err, 'Please try again.'));
+        setActionError(getErrorMessage(err, 'Could not delete this photo. Please try again.'));
       } finally {
         setDeletingDocId(null);
       }
@@ -201,6 +202,10 @@ export default function GalleryScreen({ navigation }: ProfileStackScreenProps<'G
           onPress={goAdd}
           accessibilityLabel="Add gallery"
         />
+      </View>
+      <View style={styles.bannerPad}>
+        <FormErrorBanner message={actionError} />
+        <FormErrorBanner message={refreshControl.refreshError} />
       </View>
 
       {profileQuery.isPending ? (
@@ -394,6 +399,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
   },
+  bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

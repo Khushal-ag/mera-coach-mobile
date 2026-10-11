@@ -20,7 +20,7 @@ export function getCurrentCoachCode(): string | undefined {
   return currentCoachCode;
 }
 
-function getCurrentCoachId(): string | undefined {
+export function getCurrentCoachId(): string | undefined {
   return currentCoachId;
 }
 

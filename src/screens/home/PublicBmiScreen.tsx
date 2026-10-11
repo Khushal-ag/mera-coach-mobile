@@ -111,18 +111,14 @@ export default function PublicBmiScreen({ navigation }: RootScreenProps<'PublicB
           </Text>
         </View>
 
-        <Text style={styles.helper}>
-          Share your name and mobile. A coach will call you back.
-        </Text>
+        <Text style={styles.helper}>Share your name and mobile. A coach will call you back.</Text>
         <Text style={styles.helperStrong}>Free, no commitment.</Text>
 
         <FormErrorBanner message={banner} />
         {success ? (
           <View style={styles.successBox} accessibilityRole="text">
             <Ionicons name="checkmark-circle-outline" size={IconSize.lg} color={Colors.secondary} />
-            <Text style={styles.successText}>
-              Thanks! A coach will reach out shortly.
-            </Text>
+            <Text style={styles.successText}>Thanks! A coach will reach out shortly.</Text>
           </View>
         ) : null}
 

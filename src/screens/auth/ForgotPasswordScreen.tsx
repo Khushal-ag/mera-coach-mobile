@@ -1,5 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, HitSlop, IconSize, PressOpacity, Spacing } from '../../constants/theme';
 import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';

@@ -31,13 +31,13 @@ Coaches manage clients, deliver assessments, and keep the public listing that br
 
 ## One place for the coaching journey
 
-|        | Journey            | What happens                                                                       |
-| ------ | ------------------ | ---------------------------------------------------------------------------------- |
+|        | Journey            | What happens                                                                                      |
+| ------ | ------------------ | ------------------------------------------------------------------------------------------------- |
 | **01** | **Discover**       | Marketing hero, then explore — banner, categories, features, Check Your BMI — no sign-in required |
-| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number                                |
-| **03** | **Manage**         | Tabs: Dashboard, Packages, Events, Profile. Clients, leads, and due checkups sit under Dashboard    |
-| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS                          |
-| **05** | **Build presence** | Packages, Events, and Photo gallery each open a list; add or create is its own screen               |
+| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number                             |
+| **03** | **Manage**         | Tabs: Dashboard, Packages, Events, Profile. Clients, leads, and due checkups sit under Dashboard  |
+| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS                       |
+| **05** | **Build presence** | Packages, Events, and Photo gallery each open a list; add or create is its own screen             |
 
 Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS later) · API via `EXPO_PUBLIC_API_BASE_URL` (photos & PDFs on the same host)
 
@@ -103,13 +103,13 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 
 ## Features
 
-| Area                      | What you get                                                                                             |
-| ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Discovery**             | Two-page public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in |
-| **Practice hub**          | Tabs: Dashboard, Packages, Events, Profile · clients, leads, checkups due                                              |
-| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS               |
+| Area                      | What you get                                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery**             | Two-page public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                 |
+| **Practice hub**          | Tabs: Dashboard, Packages, Events, Profile · clients, leads, checkups due                                                                |
+| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS                                 |
 | **Public presence**       | One coach photo, arrows through the browse list · gallery, packages, and events as lists · enquiry & BMI leads · WhatsApp when available |
-| **Account**               | Coach register / login · MPIN · password change · privacy & terms · support via `hello@mera-coach.com`   |
+| **Account**               | Coach register / login · MPIN · password change · privacy & terms · support via `hello@mera-coach.com`                                   |
 
 ---
 
@@ -228,11 +228,13 @@ cp .env.example .env   # set EXPO_PUBLIC_API_BASE_URL
 bun start              # then i / a / Expo Go QR
 ```
 
-| Variable                         | Required | Purpose                                              |
-| -------------------------------- | -------- | ---------------------------------------------------- |
-| `EXPO_PUBLIC_API_BASE_URL`       | Yes      | REST + `/document` media                             |
-| `EXPO_PUBLIC_WEB_BASE_URL`       | No       | Feedback SMS site (default `https://mera-coach.com`) |
-| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | No       | Store listing privacy URL                            |
+| Variable                            | Required | Purpose                                                                                            |
+| ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_BASE_URL`          | Yes      | REST + `/document` media                                                                           |
+| `EXPO_PUBLIC_WEB_BASE_URL`          | No       | Feedback SMS site (default `https://mera-coach.com`)                                               |
+| `EXPO_PUBLIC_PAYMENT_URL`           | No       | Pay Now checkout (default `{WEB_BASE_URL}/premium`)                                                |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL`    | No       | Store listing privacy URL                                                                          |
+| `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED` | No       | `yes`, `true`, or `1` blocks unpaid coaches from Add Client. Off for `no`, `false`, `0`, or unset. |
 
 Never commit real `.env` values. Support: `hello@mera-coach.com`
 

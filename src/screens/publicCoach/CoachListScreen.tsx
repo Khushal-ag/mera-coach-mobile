@@ -45,6 +45,7 @@ import ListPager from '../../components/ListPager';
 import PersonAvatar from '../../components/PersonAvatar';
 import SearchField from '../../components/SearchField';
 import EmptyState from '../../components/EmptyState';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import { getErrorMessage } from '../../api/client';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
@@ -500,6 +501,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
 
   const listHeader = (
     <>
+      <FormErrorBanner message={refreshControl.refreshError} />
       <View style={styles.filterGrid}>
         <View style={filterCellStyle}>
           <FilterControl

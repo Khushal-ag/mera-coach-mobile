@@ -27,6 +27,7 @@ import { BrandImages } from '../../constants/images';
 import EmptyState from '../../components/EmptyState';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import ClientAvatar from '../../components/ClientAvatar';
 import SearchField from '../../components/SearchField';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
@@ -177,6 +178,7 @@ export default function ReCheckupListScreen({
       />
 
       <View style={styles.body}>
+        <FormErrorBanner message={refreshControl.refreshError} />
         <SearchField
           style={styles.search}
           placeholder="Search name. mobile, email"

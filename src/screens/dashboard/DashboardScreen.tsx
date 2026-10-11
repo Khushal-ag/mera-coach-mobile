@@ -27,6 +27,7 @@ import {
   Typography,
   headingFont,
 } from '../../constants/theme';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import DashboardCarousel from '../../components/dashboard/DashboardCarousel';
 import PersonAvatar from '../../components/PersonAvatar';
 import { getClientList, getEnquiryLeads, getRecheckupList } from '../../api/clientApi';
@@ -41,6 +42,7 @@ import ProfileCompletionCard from '../../components/profile/ProfileCompletionCar
 import type { DashboardStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
 import { RETURN_TO_DASHBOARD } from '../../utils/navigationBack';
+import { useOpenAddClient } from '../../hooks/useOpenAddClient';
 
 function greetingFor(date = new Date()): string {
   const h = date.getHours();
@@ -71,6 +73,7 @@ export default function DashboardScreen({
 }: DashboardStackScreenProps<'DashboardHome'>) {
   const insets = useSafeAreaInsets();
   const coachCode = getCurrentCoachCode();
+  const { openAddClient, checkingSubscription, subscriptionError } = useOpenAddClient();
   const [heroFade] = useState(() => new Animated.Value(0));
   const [heroSlide] = useState(() => new Animated.Value(14));
   const [metricsFade] = useState(() => new Animated.Value(0));
@@ -132,7 +135,7 @@ export default function DashboardScreen({
     [profileFullQuery.data],
   );
 
-  const { refreshing, onRefresh } = useQueriesRefreshControl([
+  const { refreshing, onRefresh, refreshError } = useQueriesRefreshControl([
     clientsQuery,
     recheckupQuery,
     leadsQuery,
@@ -215,7 +218,7 @@ export default function DashboardScreen({
   ];
 
   function goAddClient() {
-    navigation.navigate('AddClient', { returnTo: RETURN_TO_DASHBOARD });
+    void openAddClient({ returnTo: RETURN_TO_DASHBOARD });
   }
 
   const metricIcons: Record<string, IoniconName> = {
@@ -308,6 +311,7 @@ export default function DashboardScreen({
           { opacity: metricsFade, transform: [{ translateY: metricsSlide }] },
         ]}
       >
+        <FormErrorBanner message={refreshError} />
         {statsError ? <Text style={styles.statsError}>{statsError}</Text> : null}
         <View style={styles.metricsStrip}>
           {metrics.map((metric, i) => (
@@ -352,12 +356,15 @@ export default function DashboardScreen({
           </View>
         ) : null}
 
+        <FormErrorBanner message={subscriptionError} />
         <TouchableOpacity
           style={styles.primaryCta}
           onPress={goAddClient}
+          disabled={checkingSubscription}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
           accessibilityLabel="Add Client"
+          accessibilityState={{ disabled: checkingSubscription, busy: checkingSubscription }}
         >
           <View style={styles.primaryCtaFace}>
             <View style={styles.primaryCtaCurve} pointerEvents="none" />
@@ -366,10 +373,16 @@ export default function DashboardScreen({
             </View>
             <View style={styles.primaryCtaCopy}>
               <Text style={styles.primaryCtaTitle}>Add Client</Text>
-              <Text style={styles.primaryCtaSub}>Start a new assessment</Text>
+              <Text style={styles.primaryCtaSub}>
+                {checkingSubscription ? 'Checking your subscription' : 'Start a new assessment'}
+              </Text>
             </View>
             <View style={styles.primaryCtaArrow} pointerEvents="none">
-              <Ionicons name="arrow-forward-outline" size={IconSize.lg} color={Colors.white} />
+              {checkingSubscription ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <Ionicons name="arrow-forward-outline" size={IconSize.lg} color={Colors.white} />
+              )}
             </View>
           </View>
         </TouchableOpacity>

@@ -26,6 +26,7 @@ import {
   Typography,
 } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
@@ -59,6 +60,7 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
   const refreshControl = useRefreshControl(profileQuery);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const errorMessage =
     profileQuery.isError && !profileQuery.data
@@ -73,9 +75,10 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
 
   const goAdd = () => {
     if (atMax) {
-      Alert.alert('Package limit', `You can add up to ${MAX_COACH_PACKAGES} packages.`);
+      setActionError(`You can add up to ${MAX_COACH_PACKAGES} packages.`);
       return;
     }
+    setActionError(null);
     navigation.navigate('EditPackages');
   };
 
@@ -89,10 +92,11 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
     const next = (profile.packages ?? []).filter(pkg => pkg.id !== id);
     const packagesError = validateCoachPackagesDraft(next);
     if (packagesError) {
-      Alert.alert('Could not remove package', packagesError);
+      setActionError(packagesError);
       return;
     }
     setRemovingId(id);
+    setActionError(null);
     try {
       const serialized = serializeCoachPackages(next);
       const latest = await getCoachProfileFull();
@@ -103,10 +107,7 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
       );
       invalidateCoachProfileCaches(queryClient, latest.coachCode);
     } catch (err) {
-      Alert.alert(
-        'Could not remove package',
-        getErrorMessage(err, 'Something went wrong. Please try again.'),
-      );
+      setActionError(getErrorMessage(err, 'Could not remove this package. Please try again.'));
     } finally {
       setRemovingId(null);
     }
@@ -142,6 +143,10 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
           onPress={goAdd}
           accessibilityLabel="Add package"
         />
+      </View>
+      <View style={styles.bannerPad}>
+        <FormErrorBanner message={actionError} />
+        <FormErrorBanner message={refreshControl.refreshError} />
       </View>
 
       {profileQuery.isPending ? (
@@ -255,6 +260,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
   },
+  bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

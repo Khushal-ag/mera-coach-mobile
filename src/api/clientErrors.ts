@@ -144,6 +144,9 @@ export const FRIENDLY_SERVER_UNREACHABLE =
 /** Shown for client-side timeouts / status -1 network failures. */
 export const FRIENDLY_NETWORK = 'Could not reach the server. Check your connection and try again.';
 
+/** Generic lookup miss. Call sites with a clearer context should replace this. */
+export const FRIENDLY_NOT_FOUND = 'We could not find what you were looking for.';
+
 /** True for ADO.NET / SQL Server connection dump text that must never reach the UI. */
 export function isSqlServerInfraMessage(message: string): boolean {
   const lower = message.toLowerCase();
@@ -257,7 +260,7 @@ export function mapToUserFacingMessage(message: string, status = 0, errorCode?: 
     (status === 404 || errorCode === 404) &&
     (!trimmed || lower === 'not found' || lower.startsWith('request failed'))
   ) {
-    return 'We could not find what you were looking for.';
+    return FRIENDLY_NOT_FOUND;
   }
 
   if (

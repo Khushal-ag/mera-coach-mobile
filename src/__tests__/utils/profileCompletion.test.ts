@@ -52,7 +52,14 @@ describe('getProfileCompletion', () => {
     });
     expect(result.isPublicReady).toBe(false);
     expect(result.missingLabels).toEqual(
-      expect.arrayContaining(['Profile photo', 'Coach name', 'Coach category', 'City', 'Tagline', 'Services']),
+      expect.arrayContaining([
+        'Profile photo',
+        'Coach name',
+        'Coach category',
+        'City',
+        'Tagline',
+        'Services',
+      ]),
     );
   });
 

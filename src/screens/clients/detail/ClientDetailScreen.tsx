@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +25,7 @@ import {
 } from '../../../constants/theme';
 import { BrandImages } from '../../../constants/images';
 import WaveScreenHeader from '../../../components/WaveScreenHeader';
+import FormErrorBanner from '../../../components/FormErrorBanner';
 import ClientAvatar from '../../../components/ClientAvatar';
 import ProgressPhotos, { type ProgressPhotosHandle } from '../../../components/ProgressPhotos';
 import EmptyState from '../../../components/EmptyState';
@@ -153,6 +153,7 @@ export default function ClientDetailScreen({
   const returnTo = route.params?.returnTo;
   const photosRef = useRef<ProgressPhotosHandle>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const onPhotoUploading = useCallback((uploading: boolean) => {
     setPhotoUploading(uploading);
   }, []);
@@ -255,27 +256,18 @@ export default function ClientDetailScreen({
 
   const askForFeedback = async () => {
     if (!isValidSmsPhone(mobile)) {
-      Alert.alert(
-        'Mobile required',
-        'Add a valid mobile number for this client before asking for feedback.',
-      );
+      setActionError('Add a valid mobile number for this client before asking for feedback.');
       return;
     }
     const coachCode = getCurrentCoachCode()?.trim() ?? '';
     const clientCode = (client.clientCode ?? '').trim();
     if (!coachCode || !clientCode) {
-      Alert.alert(
-        'Unable to send',
-        'Coach or client id is missing. Pull to refresh and try again.',
-      );
+      setActionError('Coach or client id is missing. Pull to refresh and try again.');
       return;
     }
     const feedbackUrl = buildFeedbackWebUrl({ coachCode, clientCode });
     if (!feedbackUrl) {
-      Alert.alert(
-        'Feedback link unavailable',
-        'Coach or client id is missing, so the feedback link could not be built.',
-      );
+      setActionError('Coach or client id is missing, so the feedback link could not be built.');
       return;
     }
     const body = buildFeedbackSmsBody({
@@ -283,13 +275,11 @@ export default function ClientDetailScreen({
       coachName: getCurrentCoachName(),
       feedbackUrl,
     });
+    setActionError(null);
     try {
       await openFeedbackSms({ phone: mobile, body });
     } catch (err) {
-      Alert.alert(
-        'Could not open SMS',
-        getErrorMessage(err, 'Please try again from a phone with SMS.'),
-      );
+      setActionError(getErrorMessage(err, 'Could not open SMS. Try again from a phone with SMS.'));
     }
   };
 
@@ -346,11 +336,16 @@ export default function ClientDetailScreen({
           />
         }
       >
+        <View style={styles.bannerPad}>
+          <FormErrorBanner message={actionError} />
+          <FormErrorBanner message={refreshControl.refreshError} />
+        </View>
         <View style={styles.profileCard}>
           <ClientAvatar
             clientCode={client.clientCode}
             size={68}
             allowUpload
+            onUploadError={setActionError}
             style={styles.avatar}
           />
           <View style={styles.profileCopy}>
@@ -534,6 +529,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Tone.page },
   scroll: { flex: 1 },
   scrollContent: { paddingTop: Spacing.md, paddingBottom: Spacing.xl },
+  bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Pressable,
   TouchableOpacity,
   useWindowDimensions,
@@ -28,6 +27,7 @@ import {
 } from '../../../constants/theme';
 import { BMI_GAUGE_ARC_ASPECT, BrandImages } from '../../../constants/images';
 import WaveScreenHeader from '../../../components/WaveScreenHeader';
+import FormErrorBanner from '../../../components/FormErrorBanner';
 import ClientAvatar from '../../../components/ClientAvatar';
 import ReloadState from '../../../components/ReloadState';
 import { getBmiReport } from '../../../api/clientApi';
@@ -357,6 +357,7 @@ export default function ClientBmiReportScreen({
   const returnTo = route.params?.returnTo;
   const ids = { clientCode: client?.clientCode, assessmentCode: client?.assessmentCode };
   const [preparingPdf, setPreparingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [expandedIndex, setExpandedIndex] = useState(0);
   const { width: screenWidth } = useWindowDimensions();
 
@@ -426,9 +427,10 @@ export default function ClientBmiReportScreen({
     if (preparingPdf) return;
     const coachCode = getCurrentCoachCode();
     if (!coachCode || !ids.clientCode) {
-      Alert.alert('Cannot download PDF', 'Client information is missing.');
+      setPdfError('Client information is missing, so this PDF could not be downloaded.');
       return;
     }
+    setPdfError(null);
     setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
@@ -441,7 +443,7 @@ export default function ClientBmiReportScreen({
         'bmi-report.pdf',
       );
     } catch (err) {
-      Alert.alert('PDF unavailable', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
+      setPdfError(getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
     } finally {
       setPreparingPdf(false);
     }
@@ -467,6 +469,8 @@ export default function ClientBmiReportScreen({
           />
         }
       >
+        <FormErrorBanner message={pdfError} />
+        <FormErrorBanner message={refreshControl.refreshError} />
         {errorMessage ? (
           <ReloadState
             title="Couldn't load report"

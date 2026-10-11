@@ -19,6 +19,7 @@ export type DashboardStackParamList = {
   ClientListHome: undefined;
   ClientDetail: WithReturnTo<{ client?: ClientSummary }> | undefined;
   AddClient: { returnTo?: NavigationReturnTo } | undefined;
+  Premium: { returnTo?: NavigationReturnTo } | undefined;
   ClientBmi: WithReturnTo<{ client?: ClientSummary }> | undefined;
   ClientBmiReport: WithReturnTo<{ client?: ClientSummary }> | undefined;
   ClientDietPlan: WithReturnTo<{ client?: ClientSummary }> | undefined;

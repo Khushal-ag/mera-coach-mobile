@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COACH_GALLERY_REF_TYPE, COACH_PACKAGE_IMAGE_DOC_TYPE } from '../../config/appConfig';
 import {
@@ -31,6 +31,7 @@ interface Props {
   focusPackageId?: string;
   reservedSlots?: number;
   initialPhotoId?: string | null;
+  onError?: (message: string) => void;
 }
 
 function parseAmount(price: string): number | null {
@@ -86,6 +87,7 @@ export default function CoachPackagesEditor({
   focusPackageId,
   reservedSlots = 0,
   initialPhotoId = null,
+  onError,
 }: Props) {
   const [items, setItems] = useState(packages);
   const itemsRef = useRef(packages);
@@ -170,10 +172,7 @@ export default function CoachPackagesEditor({
       if (itemsRef.current.some(item => item.id === pkgId)) {
         updateById(pkgId, { imageUrl: previousUrl });
       }
-      Alert.alert(
-        'Upload failed',
-        getErrorMessage(err, 'Could not upload photo. Please try again.'),
-      );
+      onError?.(getErrorMessage(err, 'Could not upload photo. Please try again.'));
     } finally {
       setUploadingId(null);
     }

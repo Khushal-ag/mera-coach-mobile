@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { pickImagesFromCameraOrLibrary } from '../../../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -16,6 +16,7 @@ import {
 } from '../../../constants/theme';
 import { wizardPillStyles } from '../../../constants/wizardStyles';
 import FormFieldLabel from '../../../components/FormFieldLabel';
+import FormErrorBanner from '../../../components/FormErrorBanner';
 import { DobWheelField } from '../../../components/form/DobWheelField';
 import PhoneTextInput from '../../../components/PhoneTextInput';
 import ProgressPhotos from '../../../components/ProgressPhotos';
@@ -264,6 +265,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
   const photos = form.photos ?? [];
   const remaining = MAX_CLIENT_PHOTOS - photos.length;
   const canAdd = remaining > 0;
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const setPhotos = (next: PendingClientPhoto[]) => {
     update('photos', next);
@@ -271,9 +273,10 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
 
   const pickPhotos = async () => {
     if (!canAdd) {
-      Alert.alert('Limit reached', `You can add up to ${MAX_CLIENT_PHOTOS} photos.`);
+      setPhotoError(`You can add up to ${MAX_CLIENT_PHOTOS} photos.`);
       return;
     }
+    setPhotoError(null);
     const assets = await pickImagesFromCameraOrLibrary({
       quality: 0.7,
       selectionLimit: remaining,
@@ -317,6 +320,7 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
       <Text style={styles.photoHint}>
         Uploaded after client details are saved. Up to {MAX_CLIENT_PHOTOS} photos.
       </Text>
+      <FormErrorBanner message={photoError} />
 
       {photos.length === 0 ? (
         <TouchableOpacity

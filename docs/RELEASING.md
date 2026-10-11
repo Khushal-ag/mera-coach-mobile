@@ -50,11 +50,13 @@ Release CI always uses `production-apk` on **Android only**.
 
 Set on the Expo project (EAS Secrets / environment for production), **not** in the repo:
 
-| Variable                         | Required | Purpose                                                                               |
-| -------------------------------- | -------- | ------------------------------------------------------------------------------------- |
-| `EXPO_PUBLIC_API_BASE_URL`       | Yes      | API + `/document` media host (must not be localhost for store/GitHub builds)          |
-| `EXPO_PUBLIC_WEB_BASE_URL`       | No       | Public site for feedback SMS links (defaults to `https://mera-coach.com` in app code) |
-| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | No       | Hosted privacy URL for store listings                                                 |
+| Variable                            | Required | Purpose                                                                                            |
+| ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_BASE_URL`          | Yes      | API + `/document` media host (must not be localhost for store/GitHub builds)                       |
+| `EXPO_PUBLIC_WEB_BASE_URL`          | No       | Public site for feedback SMS links (defaults to `https://mera-coach.com` in app code)              |
+| `EXPO_PUBLIC_PAYMENT_URL`           | No       | Pay Now website checkout (defaults to `{WEB_BASE_URL}/premium`; coach id is appended)              |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL`    | No       | Hosted privacy URL for store listings                                                              |
+| `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED` | No       | `yes`, `true`, or `1` blocks unpaid coaches from Add Client. Off for `no`, `false`, `0`, or unset. |
 
 Also complete once:
 

@@ -24,10 +24,15 @@ export const BrandImages = {
   exploreBannerPhoto: require('../../assets/illustrations/home-explore-banner.jpg'),
   homeBmiCard: require('../../assets/illustrations/home-bmi-card.png'),
   publicBmiBanner: require('../../assets/illustrations/public-bmi-banner.png'),
+  /** Premium paywall hero: coach outdoors, green and warm light, no type. */
+  premiumHero: require('../../assets/illustrations/premium-hero.jpg'),
 } as const;
 
 /** Width / height of BrandImages.publicBmiBanner (1198×647). */
 export const PUBLIC_BMI_BANNER_ASPECT = 1198 / 647;
+
+/** Width / height of BrandImages.premiumHero (1280×720). */
+export const PREMIUM_HERO_ASPECT = 1280 / 720;
 
 /** Pixel size of BrandImages.homeBmiCard (1216×750). */
 export const HOME_BMI_CARD_BITMAP = { width: 1216, height: 750 } as const;

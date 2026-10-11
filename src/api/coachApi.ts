@@ -4,6 +4,12 @@ import { pickCoachCreatedAt } from '../utils/experience';
 import { fontAwesomeToIonicon } from '../utils/fontAwesomeToIonicon';
 import { parseCoachEvents } from '../utils/coachEvents';
 import { parseCoachPackages } from '../utils/coachPackages';
+import {
+  mapPremiumCatalog,
+  mapPremiumOffer,
+  type PremiumCatalog,
+  type PremiumOffer,
+} from '../utils/premiumOffer';
 import type { Coach, CoachCategory, CoachEvent, CoachPackage } from '../types/models';
 import { fetchMasterItems, type MasterOption } from './masterApi';
 
@@ -366,6 +372,24 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     packages: parseCoachPackages(pickPackagesRaw(bag)),
     events: parseCoachEvents(pickEventsRaw(bag)),
   };
+}
+
+/** Signed-in coach: paid flag, the app plan, and one suggested promo (or none). */
+export async function getCoachPremiumOffer(signal?: AbortSignal): Promise<PremiumOffer> {
+  const raw = await apiFetch<unknown>('/v{version}/Coach/premium', { signal });
+  if (raw == null || typeof raw !== 'object') {
+    throw new ApiError('Premium plan could not be loaded.', 204);
+  }
+  return mapPremiumOffer(raw);
+}
+
+/** Every active subscription plan and the suggested promo. Prices come from the API. */
+export async function getCoachPremiumPlans(signal?: AbortSignal): Promise<PremiumCatalog> {
+  const raw = await apiFetch<unknown>('/v{version}/Coach/premium-plans', { signal });
+  if (raw == null || typeof raw !== 'object') {
+    throw new ApiError('Premium plans could not be loaded.', 204);
+  }
+  return mapPremiumCatalog(raw);
 }
 
 interface CoachEnquiryParams {

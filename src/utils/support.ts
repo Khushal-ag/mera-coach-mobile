@@ -35,6 +35,22 @@ export function openAccountDeletionEmail(): Promise<void> {
   );
 }
 
+/**
+ * Opens website checkout. False when the device cannot open the page, so the
+ * Premium screen can show its own error instead of a system alert.
+ */
+export async function openPaymentUrl(url: string): Promise<boolean> {
+  try {
+    if (await Linking.canOpenURL(url)) {
+      await Linking.openURL(url);
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 export async function openPrivacyPolicyUrl(): Promise<void> {
   if (!PRIVACY_POLICY_URL) {
     Alert.alert(

@@ -234,6 +234,7 @@ function EditPackagesForm({
           focusPackageId={packageId ?? packages[0]?.id}
           reservedSlots={reservedSlots}
           initialPhotoId={packageId ?? null}
+          onError={showBanner}
         />
         <TouchableOpacity
           style={[styles.createBtn, submitBusy && styles.createBtnDisabled]}

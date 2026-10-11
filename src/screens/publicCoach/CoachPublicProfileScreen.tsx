@@ -40,6 +40,7 @@ import PersonAvatar from '../../components/PersonAvatar';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import DropdownField from '../../components/DropdownField';
 import EmptyState from '../../components/EmptyState';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import PublicHomeHeader from '../../components/home/PublicHomeHeader';
 import KeyboardSafeScroll, {
@@ -244,6 +245,7 @@ const ProfileHero = React.memo(function ProfileHero({
 }: ProfileHeroProps) {
   const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
   if (activePhoto !== trackedPhoto) {
     setTrackedPhoto(activePhoto);
@@ -282,7 +284,8 @@ const ProfileHero = React.memo(function ProfileHero({
 
   const openWhatsApp = () => {
     if (!whatsAppUrl) return;
-    Linking.openURL(whatsAppUrl).catch(() => Alert.alert('Unable to open WhatsApp'));
+    setLinkError(null);
+    Linking.openURL(whatsAppUrl).catch(() => setLinkError('Could not open WhatsApp.'));
   };
 
   return (
@@ -410,6 +413,7 @@ const ProfileHero = React.memo(function ProfileHero({
           />
         </TouchableOpacity>
       ) : null}
+      <FormErrorBanner message={linkError} />
     </View>
   );
 });
@@ -437,6 +441,7 @@ const EnquiryBookingForm = React.memo(
     onSectionLayout,
   }: EnquiryBookingFormProps) {
     const [form, setForm] = useState<EnquiryForm>(BLANK_FORM);
+    const [formError, setFormError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const submittingRef = useRef(false);
     const [appliedPrefillToken, setAppliedPrefillToken] = useState<number | null>(null);
@@ -457,7 +462,11 @@ const EnquiryBookingForm = React.memo(
         validateMobile(form.mobile) ||
         validateOptionalEmail(form.email) ||
         (!form.service.trim() ? 'Please select what you are looking for.' : null);
-      if (validationError) return Alert.alert('Validation Error', validationError);
+      if (validationError) {
+        setFormError(validationError);
+        return;
+      }
+      setFormError(null);
 
       submittingRef.current = true;
       setSubmitting(true);
@@ -475,7 +484,7 @@ const EnquiryBookingForm = React.memo(
         );
         setForm(BLANK_FORM);
       } catch (err) {
-        Alert.alert('Something went wrong', getErrorMessage(err, 'Please try again.'));
+        setFormError(getErrorMessage(err, 'Please try again.'));
       } finally {
         submittingRef.current = false;
         setSubmitting(false);
@@ -529,6 +538,7 @@ const EnquiryBookingForm = React.memo(
         </View>
 
         <View style={styles.formCard}>
+          <FormErrorBanner message={formError} />
           <View style={styles.field}>
             <FormFieldLabel required>Your Name</FormFieldLabel>
             <View style={styles.inputWrap}>
@@ -681,9 +691,7 @@ function CoachProfilePage({
     profileQuery.isError && !profileQuery.data
       ? undefined
       : mergeCoachProfile(profileQuery.data, listMatch);
-  const clientCount = coach
-    ? resolvePublicClientCount({ marketingClients: coach.clients })
-    : null;
+  const clientCount = coach ? resolvePublicClientCount({ marketingClients: coach.clients }) : null;
   const showRating = coach ? shouldShowPublicRating(coach.rating, coach.reviews) : false;
   const publicStats = coach
     ? buildPublicProfileStats({

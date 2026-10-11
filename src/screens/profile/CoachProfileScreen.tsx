@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,10 +23,12 @@ import {
   headingFont,
 } from '../../constants/theme';
 import PersonAvatar from '../../components/PersonAvatar';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
-import { APP_DISPLAY_NAME } from '../../config/appConfig';
+import SubscriptionStatusCard from '../../components/profile/SubscriptionStatusCard';
+import { APP_DISPLAY_NAME, isSubscriptionRequired } from '../../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support';
 import { formatExperienceDisplay } from '../../utils/experience';
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
@@ -35,10 +36,11 @@ import { getProfileCompletion } from '../../utils/profileCompletion';
 import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
 import { getCurrentCoachCode } from '../../auth/session';
 import { logoutLocal } from '../../auth/logout';
-import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
+import { getCoachPremiumOffer, getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { getClientList } from '../../api/clientApi';
 import { queryKeys } from '../../api/queryKeys';
 import { getErrorMessage } from '../../api/client';
+import { subscriptionCheckErrorMessage } from '../../utils/premiumOffer';
 import type { ProfileStackParamList, ProfileStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
 import { navigateToDashboard } from '../../utils/navigationBack';
@@ -138,6 +140,7 @@ function MenuRow({
 }
 
 export default function CoachProfileScreen({ navigation }: ProfileStackScreenProps<'ProfileHome'>) {
+  const [actionError, setActionError] = useState<string | null>(null);
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfile,
     queryFn: getCoachProfile,
@@ -152,16 +155,23 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     queryKey: queryKeys.clientList(getCurrentCoachCode()),
     queryFn: () => getClientList(),
   });
+  const premiumQuery = useQuery({
+    queryKey: queryKeys.coachPremium,
+    queryFn: ({ signal }) => getCoachPremiumOffer(signal),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
   const profile = profileQuery.data;
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
     [profileFullQuery.data],
   );
 
-  const { refreshing, onRefresh } = useQueriesRefreshControl([
+  const { refreshing, onRefresh, refreshError } = useQueriesRefreshControl([
     profileQuery,
     profileFullQuery,
     clientsQuery,
+    premiumQuery,
   ]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
@@ -223,11 +233,25 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
         try {
           await logoutLocal();
         } catch (err) {
-          Alert.alert('Could not log out', getErrorMessage(err, 'Please try again.'));
+          setActionError(getErrorMessage(err, 'Could not log out. Please try again.'));
         }
         return;
     }
   };
+
+  const openSubscription = () => {
+    navigation.navigate('Dashboard', {
+      screen: 'Premium',
+      params: {
+        returnTo: { name: 'Profile', params: { screen: 'ProfileHome' } },
+      },
+    });
+  };
+
+  const subscriptionError =
+    premiumQuery.isError && !premiumQuery.data
+      ? subscriptionCheckErrorMessage(premiumQuery.error)
+      : null;
 
   return (
     <View style={styles.container}>
@@ -245,6 +269,10 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} {...refreshControlTheme} />
         }
       >
+        <View style={styles.bannerPad}>
+          <FormErrorBanner message={actionError} />
+          <FormErrorBanner message={refreshError} />
+        </View>
         {profileQuery.isPending ? (
           <ActivityIndicator color={Colors.secondary} style={{ marginTop: 40 }} />
         ) : errorMessage ? (
@@ -308,6 +336,20 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
         )}
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Subscription</Text>
+          <View style={styles.underline} />
+          <SubscriptionStatusCard
+            subscription={premiumQuery.data?.subscription ?? null}
+            loading={premiumQuery.isPending}
+            errorMessage={subscriptionError}
+            retrying={premiumQuery.isFetching}
+            onRetry={() => void premiumQuery.refetch()}
+            subscriptionRequired={isSubscriptionRequired()}
+            onManage={openSubscription}
+          />
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Public profile</Text>
           <View style={styles.underline} />
           <Text style={styles.sectionHint}>
@@ -354,6 +396,7 @@ const UNDERLINE = '#F08A2C';
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: CANVAS },
   scroll: { flex: 1, backgroundColor: CANVAS },
+  bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   profileCard: {
     backgroundColor: Colors.white,
     marginHorizontal: ScreenPad.horizontal,

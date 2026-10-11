@@ -64,6 +64,8 @@ export const queryKeys = {
    * One JWT identity at a time; `clearSession` / login wipe RQ so account switches stay isolated.
    */
   coachProfile: ['coachProfile'] as const,
+  coachPremium: ['coachPremium'] as const,
+  coachPremiumPlans: ['coachPremiumPlans'] as const,
   coachProfileFull: ['coachProfileFull'] as const,
   coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,
   clientList: (coachCode?: string) => ['clientList', coachCode] as const,

@@ -37,6 +37,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               ClientListHome: 'clients',
               ClientDetail: 'client-detail',
               AddClient: 'add-client',
+              Premium: 'premium',
               ClientBmi: 'client-bmi',
               ClientBmiReport: 'client-bmi-report',
               ClientDietPlan: 'client-diet-plan',

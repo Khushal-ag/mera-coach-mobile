@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   Switch,
   Linking,
-  Alert,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -30,6 +29,7 @@ import {
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import EmptyState from '../../components/EmptyState';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import PersonAvatar from '../../components/PersonAvatar';
@@ -51,10 +51,12 @@ const LeadRow = React.memo(function LeadRow({
   lead,
   onToggleContacted,
   onSaveNotes,
+  onActionError,
 }: {
   lead: EnquiryLead;
   onToggleContacted: (lead: EnquiryLead, next: boolean) => void;
   onSaveNotes: (lead: EnquiryLead, notes: string) => void;
+  onActionError: (message: string) => void;
 }) {
   const [notesDraft, setNotesDraft] = useState(lead.notes);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -64,7 +66,7 @@ const LeadRow = React.memo(function LeadRow({
   const openTel = () => {
     if (!lead.clientMobile) return;
     Linking.openURL(`tel:${lead.clientMobile}`).catch(() =>
-      Alert.alert('Unable to call', 'Could not open the phone dialer.'),
+      onActionError('Could not open the phone dialer.'),
     );
   };
 
@@ -166,6 +168,7 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
   const coachCode = getCurrentCoachCode();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const leadsQuery = useQuery({
     queryKey: queryKeys.enquiryLeads(coachCode),
@@ -211,28 +214,30 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
       );
       try {
         await updateEnquiryLead({ leadId: lead.id, isContacted: next });
+        setActionError(null);
       } catch (err) {
         if (previous) queryClient.setQueryData(key, previous);
-        Alert.alert('Update failed', getErrorMessage(err, 'Could not update lead status.'));
+        setActionError(getErrorMessage(err, 'Could not update lead status.'));
         await invalidate();
       }
     },
-    [coachCode, queryClient, invalidate],
+    [coachCode, queryClient, invalidate, setActionError],
   );
 
   const onSaveNotes = useCallback(
     async (lead: EnquiryLead, notes: string) => {
       try {
         await updateEnquiryLead({ leadId: lead.id, notes });
+        setActionError(null);
         queryClient.setQueryData<EnquiryLead[]>(queryKeys.enquiryLeads(coachCode), old =>
           (old ?? []).map(l => (l.id === lead.id ? { ...l, notes } : l)),
         );
       } catch (err) {
-        Alert.alert('Save failed', getErrorMessage(err, 'Could not save notes.'));
+        setActionError(getErrorMessage(err, 'Could not save notes.'));
         await invalidate();
       }
     },
-    [coachCode, queryClient, invalidate],
+    [coachCode, queryClient, invalidate, setActionError],
   );
 
   const errorMessage = leadsQuery.isError
@@ -255,9 +260,14 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
 
   const renderItem = useCallback(
     ({ item }: { item: EnquiryLead }) => (
-      <LeadRow lead={item} onToggleContacted={onToggleContacted} onSaveNotes={onSaveNotes} />
+      <LeadRow
+        lead={item}
+        onToggleContacted={onToggleContacted}
+        onSaveNotes={onSaveNotes}
+        onActionError={setActionError}
+      />
     ),
-    [onToggleContacted, onSaveNotes],
+    [onToggleContacted, onSaveNotes, setActionError],
   );
 
   return (
@@ -269,6 +279,8 @@ export default function MyLeadsScreen({ navigation }: LeadsScreenProps) {
       />
 
       <View style={styles.body}>
+        <FormErrorBanner message={actionError} />
+        <FormErrorBanner message={refreshControl.refreshError} />
         <SearchField
           style={styles.search}
           placeholder="Search name. mobile, email"

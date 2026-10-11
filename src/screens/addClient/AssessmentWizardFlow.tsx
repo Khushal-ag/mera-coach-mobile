@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScreenPad, Spacing } from '../../constants/theme';
 import { wizardShellStyles } from '../../constants/wizardStyles';
@@ -64,6 +64,8 @@ interface AssessmentWizardFlowProps {
   /** Stack header title (e.g. Add Client, Checkup, Diet Plan). */
   headerTitle: string;
   pageAction?: React.ReactNode;
+  /** Extra message shown in the form error banner (for example a PDF failure). */
+  notice?: string | null;
   onHome?: () => void;
   onExit: () => void;
   onComplete: (result?: AssessmentCompleteResult) => void | Promise<void>;
@@ -79,6 +81,7 @@ export default function AssessmentWizardFlow({
   skipEmptyDietCommit = false,
   headerTitle,
   pageAction,
+  notice,
   onHome,
   onExit,
   onComplete,
@@ -220,7 +223,7 @@ export default function AssessmentWizardFlow({
           }));
         }
         if (committed.photoUploadError) {
-          Alert.alert('Photo not saved', committed.photoUploadError);
+          setBanner(committed.photoUploadError);
         }
       } else if (phaseId === 'lifestyle') {
         await commitLifestyle(form, ids);
@@ -305,7 +308,7 @@ export default function AssessmentWizardFlow({
         ? { errorFields, onLowerFieldFocus: scrollLowerFieldsIntoView }
         : {};
 
-  const bannerMessage = formErrorBanner || apiError || null;
+  const bannerMessage = formErrorBanner || apiError || notice || null;
   const dietPlanPage = commitMode === 'dietPlan';
   // dietPlan shortcut: Save Plan only after generate/regenerate (not when viewing a saved report).
   const showFinishBtn = !dietPlanPage || (!!form.dietPlan && hasUnsavedDietPlan);

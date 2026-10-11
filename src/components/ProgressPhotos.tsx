@@ -34,6 +34,7 @@ import {
 } from '../constants/theme';
 import { deleteDocument, uploadDocument, type DocumentListItem } from '../api/documentApi';
 import { getErrorMessage } from '../api/client';
+import FormErrorBanner from './FormErrorBanner';
 import { getDocumentSavedById } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
 import { progressPhotosCoachCode, useProgressPhotosQuery } from '../hooks/useProgressPhotosQuery';
@@ -113,6 +114,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const lightboxSource = useMemo(() => (lightboxUri ? { uri: lightboxUri } : null), [lightboxUri]);
 
   const photosQuery = useProgressPhotosQuery(clientCode);
@@ -128,6 +130,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
 
   const pickAndUpload = useCallback(async () => {
     if (uploadingRef.current) return;
+    setActionError(null);
     const assets = await pickImagesFromCameraOrLibrary({
       quality: 0.8,
       selectionLimit: 5,
@@ -150,10 +153,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
       }
       invalidate();
     } catch (err) {
-      Alert.alert(
-        'Upload failed',
-        getErrorMessage(err, 'Could not upload photo. Please try again.'),
-      );
+      setActionError(getErrorMessage(err, 'Could not upload photo. Please try again.'));
     } finally {
       uploadingRef.current = false;
       setUploading(false);
@@ -174,11 +174,14 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setActionError(null);
             try {
               await deleteDocument({ docId: item.docId, coachCode });
               invalidate();
             } catch (err) {
-              Alert.alert('Delete failed', getErrorMessage(err, 'Please try again.'));
+              setActionError(
+                getErrorMessage(err, 'Could not delete this photo. Please try again.'),
+              );
             }
           },
         },
@@ -279,6 +282,8 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
           </Text>
         </>
       )}
+
+      <FormErrorBanner message={actionError} />
 
       {gallery}
 

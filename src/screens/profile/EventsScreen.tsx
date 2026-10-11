@@ -26,6 +26,7 @@ import {
   Typography,
 } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
@@ -85,6 +86,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
   const refreshControl = useRefreshControl(profileQuery);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const errorMessage =
     profileQuery.isError && !profileQuery.data
@@ -99,9 +101,10 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
 
   const goAdd = () => {
     if (atMax) {
-      Alert.alert('Event limit', `You can add up to ${MAX_COACH_EVENTS} events.`);
+      setActionError(`You can add up to ${MAX_COACH_EVENTS} events.`);
       return;
     }
+    setActionError(null);
     navigation.navigate('AddEvent');
   };
 
@@ -115,10 +118,11 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
     const next = (profile.events ?? []).filter(event => event.id !== id);
     const eventsError = validateCoachEventsDraft(next);
     if (eventsError) {
-      Alert.alert('Could not remove event', eventsError);
+      setActionError(eventsError);
       return;
     }
     setRemovingId(id);
+    setActionError(null);
     try {
       const serialized = serializeCoachEvents(next);
       const latest = await getCoachProfileFull();
@@ -129,10 +133,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
       );
       invalidateCoachProfileCaches(queryClient, latest.coachCode);
     } catch (err) {
-      Alert.alert(
-        'Could not remove event',
-        getErrorMessage(err, 'Something went wrong. Please try again.'),
-      );
+      setActionError(getErrorMessage(err, 'Could not remove this event. Please try again.'));
     } finally {
       setRemovingId(null);
     }
@@ -168,6 +169,10 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
           onPress={goAdd}
           accessibilityLabel="Add event"
         />
+      </View>
+      <View style={styles.bannerPad}>
+        <FormErrorBanner message={actionError} />
+        <FormErrorBanner message={refreshControl.refreshError} />
       </View>
 
       {profileQuery.isPending ? (
@@ -296,6 +301,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
   },
+  bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

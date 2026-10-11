@@ -4,7 +4,6 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
@@ -31,6 +30,8 @@ interface ClientAvatarProps {
   allowUpload?: boolean;
   /** Optional side effect when the upload badge is pressed (e.g. analytics). */
   onUploadPress?: () => void;
+  /** Upload and precondition failures. Null clears the previous message. */
+  onUploadError?: (message: string | null) => void;
   style?: ViewStyle;
 }
 
@@ -42,6 +43,7 @@ export default function ClientAvatar({
   borderRadius,
   allowUpload = false,
   onUploadPress,
+  onUploadError,
   style,
 }: ClientAvatarProps) {
   const { photoUrl, isLoading, invalidate } = useClientPhotoUrl(clientCode);
@@ -65,8 +67,9 @@ export default function ClientAvatar({
 
   const handleUpload = async () => {
     onUploadPress?.();
+    onUploadError?.(null);
     if (!clientCode) {
-      Alert.alert('Save client first', 'Client photo can be uploaded after the client is saved.');
+      onUploadError?.('Client photo can be uploaded after the client is saved.');
       return;
     }
 
@@ -90,10 +93,7 @@ export default function ClientAvatar({
       });
       invalidate();
     } catch (err) {
-      Alert.alert(
-        'Upload failed',
-        getErrorMessage(err, 'Could not upload photo. Please try again.'),
-      );
+      onUploadError?.(getErrorMessage(err, 'Could not upload photo. Please try again.'));
     } finally {
       setUploading(false);
     }

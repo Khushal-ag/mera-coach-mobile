@@ -26,6 +26,7 @@ import {
 } from '../../constants/theme';
 import { BrandImages } from '../../constants/images';
 import AppButton from '../../components/AppButton';
+import FormErrorBanner from '../../components/FormErrorBanner';
 import EmptyState from '../../components/EmptyState';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
@@ -42,6 +43,7 @@ import { lastCheckupLabel } from '../../utils/recheckup';
 import type { ClientsStackScreenProps } from '../../types/navigation';
 import type { ClientSummary } from '../../types/models';
 import { navigateToDashboard } from '../../utils/navigationBack';
+import { useOpenAddClient } from '../../hooks/useOpenAddClient';
 
 const PAGE_SIZE = 5;
 /** Figma client row portrait (leads match; checkups stay on ListPortrait). */
@@ -56,9 +58,11 @@ function checkupLine(item: ClientSummary): string {
 const ClientRow = React.memo(function ClientRow({
   item,
   onOpen,
+  onUploadError,
 }: {
   item: ClientSummary;
   onOpen: (item: ClientSummary) => void;
+  onUploadError: (message: string | null) => void;
 }) {
   const mobile = (item.mobileNo ?? '').trim();
   return (
@@ -69,6 +73,7 @@ const ClientRow = React.memo(function ClientRow({
         height={CLIENT_PORTRAIT.height}
         borderRadius={CLIENT_PORTRAIT.radius}
         allowUpload
+        onUploadError={onUploadError}
         style={styles.avatar}
       />
       <View style={styles.middle}>
@@ -120,6 +125,7 @@ export default function ClientListScreen({
 }: ClientsStackScreenProps<'ClientListHome'>) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const clientsQuery = useQuery({
     queryKey: queryKeys.clientList(getCurrentCoachCode()),
@@ -157,7 +163,10 @@ export default function ClientListScreen({
     setPage(1);
   };
 
-  const goAddClient = useCallback(() => navigation.navigate('AddClient'), [navigation]);
+  const { openAddClient, checkingSubscription, subscriptionError } = useOpenAddClient();
+  const goAddClient = useCallback(() => {
+    void openAddClient();
+  }, [openAddClient]);
   const goClientDetail = useCallback(
     (item: ClientSummary) => navigation.navigate('ClientDetail', { client: item }),
     [navigation],
@@ -177,7 +186,7 @@ export default function ClientListScreen({
         };
 
   const renderItem = useCallback<ListRenderItem<ClientSummary>>(
-    ({ item }) => <ClientRow item={item} onOpen={goClientDetail} />,
+    ({ item }) => <ClientRow item={item} onOpen={goClientDetail} onUploadError={setActionError} />,
     [goClientDetail],
   );
 
@@ -200,6 +209,9 @@ export default function ClientListScreen({
       />
 
       <View style={styles.body}>
+        <FormErrorBanner message={subscriptionError} />
+        <FormErrorBanner message={actionError} />
+        <FormErrorBanner message={refreshControl.refreshError} />
         {showPageAdd ? (
           <View style={styles.addRow}>
             <AppButton
@@ -208,6 +220,7 @@ export default function ClientListScreen({
               icon="add-outline"
               iconPosition="left"
               onPress={goAddClient}
+              loading={checkingSubscription}
               accessibilityLabel="Add client"
             />
           </View>

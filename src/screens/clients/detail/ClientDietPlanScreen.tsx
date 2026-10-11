@@ -27,6 +27,7 @@ export default function ClientDietPlanScreen({
   const returnTo = route.params?.returnTo;
   const queryClient = useQueryClient();
   const [preparingPdf, setPreparingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const { profile, ids, isLoading, isError, error, detailReady, refetch } = useCheckupProfile(
     client,
     { assessmentIdMode: 'latest' },
@@ -52,9 +53,10 @@ export default function ClientDietPlanScreen({
     const coachCode = getCurrentCoachCode();
     const clientCode = client?.clientCode ?? ids.clientCode;
     if (!coachCode || !clientCode) {
-      Alert.alert('Cannot download PDF', 'Client information is missing.');
+      setPdfError('Client information is missing, so this PDF could not be downloaded.');
       return;
     }
+    setPdfError(null);
     setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
@@ -63,7 +65,7 @@ export default function ClientDietPlanScreen({
         'diet-plan.pdf',
       );
     } catch (err) {
-      Alert.alert('PDF unavailable', getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
+      setPdfError(getErrorMessage(err, PDF_GENERATE_FAILED_MESSAGE));
     } finally {
       setPreparingPdf(false);
     }
@@ -140,6 +142,7 @@ export default function ClientDietPlanScreen({
         finishLabel="Save Plan"
         skipEmptyDietCommit
         pageAction={shareButton}
+        notice={pdfError}
         onHome={() => navigateToDashboard(navigation)}
         onExit={() => navigateBack(navigation, returnTo)}
         onComplete={onComplete}
