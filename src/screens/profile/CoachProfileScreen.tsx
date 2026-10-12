@@ -236,9 +236,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
             coachName: profile?.name,
           });
         } catch (err) {
-          setActionError(
-            getErrorMessage(err, 'Could not share your public profile link.'),
-          );
+          setActionError(getErrorMessage(err, 'Could not share your public profile link.'));
         }
         return;
       case 'support':

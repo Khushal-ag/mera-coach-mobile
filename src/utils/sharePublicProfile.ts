@@ -28,8 +28,6 @@ export async function shareCoachPublicProfile(options?: {
   const text = `Check out ${name}'s coaching profile on Mera Coach.`;
 
   await Share.share(
-    Platform.OS === 'ios'
-      ? { title, message: text, url }
-      : { title, message: `${text}\n${url}` },
+    Platform.OS === 'ios' ? { title, message: text, url } : { title, message: `${text}\n${url}` },
   );
 }
