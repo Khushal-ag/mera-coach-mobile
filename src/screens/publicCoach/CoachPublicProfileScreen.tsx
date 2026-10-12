@@ -36,6 +36,7 @@ import {
   HERO_SMILE_MASK_ASPECT,
   WHATSAPP_COACH_BUTTON_ASPECT,
 } from '../../constants/images';
+import AppButton from '../../components/AppButton';
 import PersonAvatar from '../../components/PersonAvatar';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import DropdownField from '../../components/DropdownField';
@@ -66,6 +67,7 @@ import {
 import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../../utils/coachDisplay';
 import { mergeCoachProfile } from '../../utils/mergeCoachProfile';
 import { isDegenerateImageSize, resolveCoachPhotoUrl, resolveMediaUrl } from '../../utils/mediaUrl';
+import { shareCoachPublicProfile } from '../../utils/sharePublicProfile';
 import {
   validateMobile,
   validateOptionalEmail,
@@ -215,6 +217,7 @@ type ProfileHeroProps = {
   smileHeight: number;
   waBtnHeight: number;
   activePhoto: string | null;
+  coachCode: string;
   name: string;
   category?: string;
   bio: string;
@@ -232,6 +235,7 @@ const ProfileHero = React.memo(function ProfileHero({
   smileHeight,
   waBtnHeight,
   activePhoto,
+  coachCode,
   name,
   category,
   bio,
@@ -245,11 +249,16 @@ const ProfileHero = React.memo(function ProfileHero({
 }: ProfileHeroProps) {
   const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);
-  const [linkError, setLinkError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
+  const [trackedCoachCode, setTrackedCoachCode] = useState(coachCode);
   if (activePhoto !== trackedPhoto) {
     setTrackedPhoto(activePhoto);
     setSourceAspect(null);
+  }
+  if (coachCode !== trackedCoachCode) {
+    setTrackedCoachCode(coachCode);
+    setActionError(null);
   }
   const photoImageStyle = useMemo(
     () => heroPhotoImageLayout(contentWidth, sourceAspect),
@@ -284,8 +293,15 @@ const ProfileHero = React.memo(function ProfileHero({
 
   const openWhatsApp = () => {
     if (!whatsAppUrl) return;
-    setLinkError(null);
-    Linking.openURL(whatsAppUrl).catch(() => setLinkError('Could not open WhatsApp.'));
+    setActionError(null);
+    Linking.openURL(whatsAppUrl).catch(() => setActionError('Could not open WhatsApp.'));
+  };
+
+  const shareProfile = () => {
+    setActionError(null);
+    void shareCoachPublicProfile({ coachCode, coachName: name }).catch(err => {
+      setActionError(getErrorMessage(err, 'Could not share this profile link.'));
+    });
   };
 
   return (
@@ -413,7 +429,16 @@ const ProfileHero = React.memo(function ProfileHero({
           />
         </TouchableOpacity>
       ) : null}
-      <FormErrorBanner message={linkError} />
+      <AppButton
+        label="Share profile"
+        variant="secondary"
+        icon="share-social-outline"
+        iconPosition="left"
+        onPress={shareProfile}
+        style={[styles.shareBtn, !whatsAppUrl && styles.shareBtnSolo]}
+        accessibilityLabel="Share profile"
+      />
+      <FormErrorBanner message={actionError} />
     </View>
   );
 });
@@ -822,6 +847,7 @@ function CoachProfilePage({
           smileHeight={smileHeight}
           waBtnHeight={waBtnHeight}
           activePhoto={activePhoto}
+          coachCode={coach.id}
           name={coach.name}
           category={coach.category}
           bio={heroBio}
@@ -1288,6 +1314,13 @@ const styles = StyleSheet.create({
   waBtn: {
     alignSelf: 'stretch',
     zIndex: 4,
+  },
+  shareBtn: {
+    alignSelf: 'stretch',
+    marginTop: Spacing.sm,
+  },
+  shareBtnSolo: {
+    marginTop: Spacing.md,
   },
   statsStrip: {
     flexDirection: 'row',
