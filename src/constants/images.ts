@@ -3,6 +3,8 @@ import { AuthLayout } from './authLayout';
 export const BrandImages = {
   logoFull: require('../../assets/brand/logo-full.png'),
   homeHero: require('../../assets/illustrations/home-bg.png'),
+  /** Orange curved swoosh under the home marketing headline (164×24 @2x of 82×12). */
+  homeHeadlineUnderline: require('../../assets/illustrations/home-headline-underline.png'),
   loginAtmosphere: require('../../assets/illustrations/auth-bg.png'),
   mpinAtmosphere: require('../../assets/illustrations/mpin-bg.jpg'),
   emptyClients: require('../../assets/illustrations/empty-clients.png'),

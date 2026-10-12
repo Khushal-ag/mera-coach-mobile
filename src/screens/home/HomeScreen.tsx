@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import BrandLogo from '../../components/BrandLogo';
 import HomeExplorePage from './HomeExplorePage';
 import { BrandImages, HOME_HERO_ASPECT, LOGO_ASPECT } from '../../constants/images';
@@ -95,15 +94,13 @@ function MarketingPage({
             {'\nBusiness with\nmera '}
             <Text style={styles.headlineAccent}>coach</Text>
           </Text>
-          <Svg width={82} height={12} viewBox="0 0 82 12" style={styles.headlineUnderline}>
-            <Path
-              d="M2 8.6C26 6 64 3.2 78 7.8"
-              stroke={Colors.brandCoach}
-              strokeWidth={3}
-              strokeLinecap="round"
-              fill="none"
-            />
-          </Svg>
+          <Image
+            source={BrandImages.homeHeadlineUnderline}
+            style={styles.headlineUnderline}
+            resizeMode="contain"
+            accessibilityElementsHidden
+            accessibilityIgnoresInvertColors
+          />
         </View>
 
         <Pressable
@@ -237,6 +234,8 @@ const styles = StyleSheet.create({
   },
   headlineUnderline: {
     marginTop: 2,
+    width: 90,
+    height: 24,
   },
   ctaPrimary: {
     flexDirection: 'row',
