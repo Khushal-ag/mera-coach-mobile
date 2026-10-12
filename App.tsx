@@ -13,12 +13,13 @@ import { queryClient } from './src/api/queryClient';
 import { fontMap } from './src/constants/fonts';
 import { Colors } from './src/constants/theme';
 import type { RootStackParamList } from './src/types/navigation';
+import { APP_SCHEME, subscribePaidReturnDeepLinks } from './src/utils/appDeepLink';
 
 void SplashScreen.preventAutoHideAsync();
 
-// Path-based URLs for web only; empty prefixes keep native deep links off.
+// Native scheme from app.json (`expo.scheme`) + path map for web / deep links.
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: [],
+  prefixes: [`${APP_SCHEME}://`],
   config: {
     screens: {
       Home: '',
@@ -88,6 +89,8 @@ export default function App() {
       void SplashScreen.hideAsync();
     }
   }, [fontsReady]);
+
+  useEffect(() => subscribePaidReturnDeepLinks(), []);
 
   if (!fontsReady) {
     return null;

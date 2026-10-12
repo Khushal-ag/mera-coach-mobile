@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,7 @@ import {
   type PremiumPlan,
   type SuggestedPromo,
 } from '../../utils/premiumOffer';
+import { refreshPremiumAfterPayment } from '../../utils/appDeepLink';
 import type { DashboardStackScreenProps } from '../../types/navigation';
 import {
   Colors,
@@ -156,16 +157,25 @@ function PromoBox({ promo }: { promo: SuggestedPromo }) {
 
 export default function PremiumScreen({ navigation, route }: DashboardStackScreenProps<'Premium'>) {
   const returnTo = route.params?.returnTo;
+  const paidReturn = route.params?.paid === '1';
   const plansQuery = useQuery({
     queryKey: queryKeys.coachPremiumPlans,
     queryFn: ({ signal }) => getCoachPremiumPlans(signal),
     staleTime: 0,
+    // After browser checkout, returning to this screen should pick up the new period.
+    refetchOnWindowFocus: true,
   });
   const refreshControl = useRefreshControl(plansQuery);
   const catalog = plansQuery.data;
   const plans = catalog?.plans ?? [];
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!paidReturn) return;
+    refreshPremiumAfterPayment();
+    navigation.setParams({ paid: undefined });
+  }, [paidReturn, navigation]);
   const selected =
     plans.find(plan => planSelectionKey(plan) === selectedKey) ?? defaultPremiumPlan(plans);
   const minimumMonths = selected ? planMinimumMonths(selected) : 0;

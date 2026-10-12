@@ -3,12 +3,17 @@ export const APP_DISPLAY_NAME = 'Mera Coach';
 /** Matches web Contact page — used for support and account deletion requests. */
 export const SUPPORT_EMAIL = 'hello@mera-coach.com';
 
-/** Optional public URL for Play Console (set in EAS env when hosted). */
-export const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL?.trim() ?? '';
-
-/** Public site for SMS feedback links (EXPO_PUBLIC_WEB_BASE_URL). */
+/** Public site for SMS feedback, privacy, and payment fallbacks. */
 export const WEB_BASE_URL =
   process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim() || 'https://mera-coach.com';
+
+/**
+ * Hosted privacy policy. EXPO_PUBLIC_PRIVACY_POLICY_URL when set, otherwise
+ * the public site `/privacy` page so Legal → View online stays wired.
+ */
+export const PRIVACY_POLICY_URL =
+  process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL?.trim() ||
+  `${WEB_BASE_URL.replace(/\/$/, '')}/privacy`;
 
 /**
  * Website checkout opened by Pay Now. Card entry stays on the site.
