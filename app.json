@@ -58,7 +58,7 @@
       }
     },
     "android": {
-      "package": "com.meracoach.app",
+      "package": "com.henchsolutions.meracoach",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
       "blockedPermissions": [

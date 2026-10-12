@@ -33,6 +33,7 @@ import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support'
 import { formatExperienceDisplay } from '../../utils/experience';
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import { getProfileCompletion } from '../../utils/profileCompletion';
+import { shareCoachPublicProfile } from '../../utils/sharePublicProfile';
 import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
 import { getCurrentCoachCode } from '../../auth/session';
 import { logoutLocal } from '../../auth/logout';
@@ -51,10 +52,15 @@ interface MenuItem {
   route?: keyof ProfileStackParamList;
   /** Cross-tab destinations (Packages / Events tabs). */
   tab?: 'Packages' | 'Events';
-  action?: 'support' | 'deleteAccount' | 'logout';
+  action?: 'support' | 'deleteAccount' | 'logout' | 'shareProfile';
 }
 
 const publicProfileItems: MenuItem[] = [
+  {
+    icon: 'share-social-outline',
+    label: 'Share profile',
+    action: 'shareProfile',
+  },
   {
     icon: 'images-outline',
     label: 'Photo gallery',
@@ -223,6 +229,18 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       return;
     }
     switch (item.action) {
+      case 'shareProfile':
+        try {
+          await shareCoachPublicProfile({
+            coachCode: getCurrentCoachCode(),
+            coachName: profile?.name,
+          });
+        } catch (err) {
+          setActionError(
+            getErrorMessage(err, 'Could not share your public profile link.'),
+          );
+        }
+        return;
       case 'support':
         return openSupportEmail();
       case 'deleteAccount':

@@ -221,7 +221,7 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| **Version** | \`${VERSION}\` |"
-            echo "| **Android package** | \`com.meracoach.app\` |"
+            echo "| **Android package** | \`com.henchsolutions.meracoach\` |"
             echo ""
             echo "### Downloads"
             echo ""

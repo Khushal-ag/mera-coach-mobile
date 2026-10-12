@@ -1,7 +1,7 @@
 # Mera Coach — Release $TAG
 
 **Version:** $VERSION  
-**Android package:** `com.meracoach.app`
+**Android package:** `com.henchsolutions.meracoach`
 
 ## Highlights
 
