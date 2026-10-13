@@ -48,3 +48,4 @@ qa-screenshots/
 # generated native folders
 /ios
 /android
+*.aab

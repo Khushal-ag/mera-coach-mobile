@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -31,7 +32,7 @@ import SubscriptionStatusCard from '../../components/profile/SubscriptionStatusC
 import { APP_DISPLAY_NAME, isSubscriptionRequired } from '../../config/appConfig';
 import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support';
 import { formatExperienceDisplay } from '../../utils/experience';
-import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
+import { isDegenerateImageSize, resolveMediaUrl } from '../../utils/mediaUrl';
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import { shareCoachPublicProfile } from '../../utils/sharePublicProfile';
 import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
@@ -186,7 +187,16 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       ? getErrorMessage(profileQuery.error, 'Could not load profile. Pull down to try again.')
       : null;
 
-  const photoUri = resolveCoachPhotoUrl(profile ?? {});
+  const photoUri = resolveMediaUrl(profile?.profilePicUrl || profileFullQuery.data?.profilePicUrl);
+  const coverRaw = profile?.coverUrl || profileFullQuery.data?.coverUrl || '';
+  const coverUri = resolveMediaUrl(coverRaw);
+  const [coverTrack, setCoverTrack] = useState(coverUri);
+  const [failedCoverUri, setFailedCoverUri] = useState<string | null>(null);
+  if (coverUri !== coverTrack) {
+    setCoverTrack(coverUri);
+    setFailedCoverUri(null);
+  }
+  const showCover = Boolean(coverUri) && failedCoverUri !== coverUri;
 
   const clientsFailed = clientsQuery.isError && clientsQuery.data == null;
   // Prefer live ClientList length. Fall back to happyClientCount only while the roster
@@ -301,37 +311,67 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
         ) : (
           <>
             <View style={styles.profileCard}>
-              <PersonAvatar uri={photoUri} size={80} style={styles.avatar} />
-              <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
-              <Text style={styles.role}>{profile?.category || ''}</Text>
-              {profile?.city ? (
-                <Text style={styles.location}>
-                  <Ionicons name="location-outline" size={IconSize.sm} color={Colors.accentInk} />{' '}
-                  {profile.city}
-                </Text>
-              ) : null}
+              <View style={styles.profileClip}>
+                {showCover ? (
+                  <View style={styles.coverFrame} pointerEvents="none">
+                    <Image
+                      source={{ uri: coverUri }}
+                      style={styles.coverImage}
+                      resizeMode="cover"
+                      accessible={false}
+                      onError={() => setFailedCoverUri(coverUri)}
+                      onLoad={e => {
+                        const { width, height } = e.nativeEvent.source;
+                        if (isDegenerateImageSize(width, height)) setFailedCoverUri(coverUri);
+                      }}
+                    />
+                  </View>
+                ) : null}
+                <View style={[styles.profileBody, showCover && styles.profileBodyOnCover]}>
+                  <View style={showCover ? styles.avatarRing : undefined}>
+                    <PersonAvatar
+                      uri={photoUri}
+                      name={profile?.name}
+                      size={80}
+                      style={showCover ? styles.avatarFlush : styles.avatar}
+                    />
+                  </View>
+                  <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
+                  <Text style={styles.role}>{profile?.category || ''}</Text>
+                  {profile?.city ? (
+                    <Text style={styles.location}>
+                      <Ionicons
+                        name="location-outline"
+                        size={IconSize.sm}
+                        color={Colors.accentInk}
+                      />{' '}
+                      {profile.city}
+                    </Text>
+                  ) : null}
 
-              <View style={styles.statsRow}>
-                <View style={styles.stat}>
-                  {clientsPendingBlank ? (
-                    <ActivityIndicator color={Colors.secondary} size="small" />
-                  ) : (
-                    <Text style={styles.statValue}>{clientCountDisplay}</Text>
-                  )}
-                  <Text style={styles.statLabel}>Clients</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>{experienceDisplay}</Text>
-                  <Text style={styles.statLabel}>Experience</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>{ratingDisplay}</Text>
-                  <Text style={styles.statLabel}>Rating</Text>
+                  <View style={styles.statsRow}>
+                    <View style={styles.stat}>
+                      {clientsPendingBlank ? (
+                        <ActivityIndicator color={Colors.secondary} size="small" />
+                      ) : (
+                        <Text style={styles.statValue}>{clientCountDisplay}</Text>
+                      )}
+                      <Text style={styles.statLabel}>Clients</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.stat}>
+                      <Text style={styles.statValue}>{experienceDisplay}</Text>
+                      <Text style={styles.statLabel}>Experience</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.stat}>
+                      <Text style={styles.statValue}>{ratingDisplay}</Text>
+                      <Text style={styles.statLabel}>Rating</Text>
+                    </View>
+                  </View>
+                  {clientsError ? <Text style={styles.rosterError}>{clientsError}</Text> : null}
                 </View>
               </View>
-              {clientsError ? <Text style={styles.rosterError}>{clientsError}</Text> : null}
             </View>
 
             {completionError ? (
@@ -414,15 +454,44 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: CANVAS },
   bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   profileCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: ScreenPad.horizontal,
     marginTop: Spacing.md,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    alignItems: 'center',
+    ...Shadow.sm,
+  },
+  profileClip: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    alignItems: 'stretch',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border,
-    ...Shadow.sm,
+    overflow: 'hidden',
+  },
+  coverFrame: {
+    width: '100%',
+    aspectRatio: 2.35,
+    backgroundColor: Colors.secondary,
+  },
+  coverImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  profileBody: {
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  profileBodyOnCover: {
+    paddingTop: 0,
+  },
+  avatarRing: {
+    marginTop: -43,
+    marginBottom: Spacing.sm,
+    padding: 3,
+    borderRadius: 999,
+    backgroundColor: Colors.white,
   },
   completionSlot: {
     marginHorizontal: ScreenPad.horizontal,
@@ -431,6 +500,10 @@ const styles = StyleSheet.create({
   avatar: {
     marginBottom: Spacing.sm,
     marginRight: 0,
+  },
+  avatarFlush: {
+    marginRight: 0,
+    marginBottom: 0,
   },
   name: {
     ...Typography.headline,

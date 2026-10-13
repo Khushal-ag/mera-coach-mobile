@@ -166,8 +166,10 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   );
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [profilePicUrl, setProfilePicUrl] = useState(profile.profilePicUrl);
+  const [coverUrl, setCoverUrl] = useState(profile.coverUrl);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [saving, setSaving] = useState(false);
   const {
     errorFields,
@@ -244,21 +246,28 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         ? serviceOptions.filter(s => profile.serviceCodes.includes(s.code)).map(s => s.label)
         : [];
 
-  const pickImage = async (target: 'logo' | 'photo') => {
+  const pickImage = async (target: 'logo' | 'photo' | 'cover') => {
     const picked = await pickImageFromCameraOrLibrary({
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: target === 'cover' ? [16, 9] : [1, 1],
       quality: 0.7,
     });
     if (!picked) return;
 
     const localUri = picked.uri;
-    const previousUrl = target === 'logo' ? logoUrl : profilePicUrl;
-    if (target === 'logo') setLogoUrl(localUri);
-    else setProfilePicUrl(localUri);
+    const previousUrl = target === 'logo' ? logoUrl : target === 'photo' ? profilePicUrl : coverUrl;
+    const setUrl =
+      target === 'logo' ? setLogoUrl : target === 'photo' ? setProfilePicUrl : setCoverUrl;
+    const setUploading =
+      target === 'logo'
+        ? setUploadingLogo
+        : target === 'photo'
+          ? setUploadingPhoto
+          : setUploadingCover;
+    const docType = target === 'logo' ? 'LOGO' : target === 'photo' ? 'PROFILE_PIC' : 'COVER';
+    setUrl(localUri);
 
     const dataUrl = `data:${picked.mimeType};base64,${picked.base64}`;
-    const setUploading = target === 'logo' ? setUploadingLogo : setUploadingPhoto;
     setUploading(true);
     setBanner(null);
     try {
@@ -267,14 +276,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         coachCode: profile.coachCode,
         refCode: profile.coachCode,
         refType: 'COACH',
-        docType: target === 'logo' ? 'LOGO' : 'PROFILE_PIC',
+        docType,
         savedBy: getDocumentSavedById(profile.coachId),
       });
-      if (target === 'logo') setLogoUrl(url);
-      else setProfilePicUrl(url);
+      setUrl(url);
     } catch (err) {
-      if (target === 'logo') setLogoUrl(previousUrl);
-      else setProfilePicUrl(previousUrl);
+      setUrl(previousUrl);
       setBanner(getErrorMessage(err, 'Image upload failed. Please try again.'));
     } finally {
       setUploading(false);
@@ -286,8 +293,10 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     if (
       uploadingLogo ||
       uploadingPhoto ||
+      uploadingCover ||
       isPendingLocalMediaUrl(logoUrl) ||
-      isPendingLocalMediaUrl(profilePicUrl)
+      isPendingLocalMediaUrl(profilePicUrl) ||
+      isPendingLocalMediaUrl(coverUrl)
     ) {
       setBanner('Please wait for the image upload to finish.');
       return;
@@ -350,6 +359,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         country_Cd: country?.code ?? countryLabel,
         logo_Url: logoUrl,
         profile_Pic_Url: profilePicUrl,
+        cover_Url: coverUrl,
         coachDesc: coachDescTrimmed,
         bmiReportTemplate: bmiReportTemplate.trim(),
         dietChartTemplate: dietChartTemplate.trim(),
@@ -495,8 +505,29 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
             <FormSection
               icon="camera-outline"
               title="Photo"
-              hint="A Clear photo helps clients recognize you."
+              hint="A clear photo helps clients recognize you. The cover is the banner on your public page."
             >
+              <TouchableOpacity
+                style={styles.coverTile}
+                onPress={() => pickImage('cover')}
+                disabled={uploadingCover}
+                activeOpacity={PressOpacity.default}
+                accessibilityRole="button"
+                accessibilityLabel={coverUrl ? 'Change cover image' : 'Upload cover image'}
+                accessibilityState={{ busy: uploadingCover, disabled: uploadingCover }}
+              >
+                {resolveMediaUrl(coverUrl) ? (
+                  <Image source={{ uri: resolveMediaUrl(coverUrl) }} style={styles.imagePreview} />
+                ) : null}
+                {uploadingCover ? (
+                  <View style={[styles.imageOverlay, !coverUrl && styles.imageOverlayFill]}>
+                    <ActivityIndicator color={Colors.primary} />
+                  </View>
+                ) : !coverUrl ? (
+                  <Ionicons name="image-outline" size={IconSize.xl} color={Colors.textLight} />
+                ) : null}
+                <Text style={styles.coverLabel}>Cover</Text>
+              </TouchableOpacity>
               <View style={styles.imagesDash}>
                 <ImagePickerTile
                   label="Profile Photo"
@@ -1063,6 +1094,31 @@ const styles = StyleSheet.create({
   sectionHint: {
     ...Typography.caption,
     marginTop: 2,
+  },
+  coverTile: {
+    height: 120,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.accentInk,
+    borderStyle: 'dashed',
+    backgroundColor: Colors.white,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  coverLabel: {
+    position: 'absolute',
+    left: Spacing.sm,
+    bottom: Spacing.sm,
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    color: Colors.accentInk,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.sm,
+    overflow: 'hidden',
   },
   imagesDash: {
     flexDirection: 'row',

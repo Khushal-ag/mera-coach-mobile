@@ -52,6 +52,8 @@ export interface Coach {
   profilePicUrl?: string;
   /** Relative or absolute logo URL from API (`logo_Url`). */
   logoUrl?: string;
+  /** Relative or absolute public banner from API (`cover_Url` / `Cover_Url`). */
+  coverUrl?: string;
   packages?: CoachPackage[];
   events?: CoachEvent[];
 }

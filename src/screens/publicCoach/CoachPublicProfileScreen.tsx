@@ -96,6 +96,8 @@ const STAT_ICONS: Record<string, IoniconName> = {
 };
 
 const HERO_PHOTO_ASPECT = 1.28;
+/** Wide public banner above the portrait card. Width / height. */
+const COVER_STRIP_ASPECT = 2.35;
 const HERO_PHOTO_FOCUS = 1.32;
 const HERO_CURVE_LIP_RATIO = 19 / 226;
 const HERO_PHOTO_TOP_RADIUS = 28;
@@ -217,6 +219,7 @@ type ProfileHeroProps = {
   smileHeight: number;
   waBtnHeight: number;
   activePhoto: string | null;
+  coverUri: string | null;
   coachCode: string;
   name: string;
   category?: string;
@@ -235,6 +238,7 @@ const ProfileHero = React.memo(function ProfileHero({
   smileHeight,
   waBtnHeight,
   activePhoto,
+  coverUri,
   coachCode,
   name,
   category,
@@ -248,6 +252,15 @@ const ProfileHero = React.memo(function ProfileHero({
   onMarkPhotoFailed,
 }: ProfileHeroProps) {
   const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
+  const coverSource = useMemo(() => (coverUri ? { uri: coverUri } : null), [coverUri]);
+  const [coverFailed, setCoverFailed] = useState(false);
+  const [trackedCover, setTrackedCover] = useState(coverUri);
+  if (coverUri !== trackedCover) {
+    setTrackedCover(coverUri);
+    setCoverFailed(false);
+  }
+  const showCover = Boolean(coverSource) && !coverFailed;
+  const coverHeight = Math.round(contentWidth / COVER_STRIP_ASPECT);
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
@@ -306,7 +319,22 @@ const ProfileHero = React.memo(function ProfileHero({
 
   return (
     <View style={styles.heroBlock}>
-      <View style={styles.photoCard}>
+      {showCover && coverSource ? (
+        <View style={[styles.coverStrip, { height: coverHeight }]}>
+          <Image
+            source={coverSource}
+            style={styles.coverImage}
+            resizeMode="cover"
+            accessible={false}
+            onError={() => setCoverFailed(true)}
+            onLoad={e => {
+              const { width, height } = e.nativeEvent.source;
+              if (isDegenerateImageSize(width, height)) setCoverFailed(true);
+            }}
+          />
+        </View>
+      ) : null}
+      <View style={[styles.photoCard, showCover && styles.photoCardOnCover]}>
         <View style={styles.photoFrame}>
           {photoSource ? (
             <Image
@@ -746,6 +774,7 @@ function CoachProfilePage({
   }
 
   const heroPhoto = coach ? resolveCoachPhotoUrl(coach) : '';
+  const coverUri = coach ? resolveMediaUrl(coach.coverUrl) : '';
   const whatsAppUrl = coach ? whatsAppUrlFromMobile(coach.mobile) : null;
   const activePhoto = heroPhoto && heroPhoto !== failedPhotoUri ? heroPhoto : null;
   const showCoachNav = coachCount > 1;
@@ -847,6 +876,7 @@ function CoachProfilePage({
           smileHeight={smileHeight}
           waBtnHeight={waBtnHeight}
           activePhoto={activePhoto}
+          coverUri={coverUri || null}
           coachCode={coach.id}
           name={coach.name}
           category={coach.category}
@@ -1216,10 +1246,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     overflow: 'visible',
   },
+  coverStrip: {
+    borderTopLeftRadius: HERO_PHOTO_TOP_RADIUS,
+    borderTopRightRadius: HERO_PHOTO_TOP_RADIUS,
+    overflow: 'hidden',
+    marginBottom: -16,
+    backgroundColor: Colors.headerGradientTop,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
   photoCard: {
     borderTopLeftRadius: HERO_PHOTO_TOP_RADIUS,
     borderTopRightRadius: HERO_PHOTO_TOP_RADIUS,
     overflow: 'visible',
+  },
+  photoCardOnCover: {
+    zIndex: 1,
   },
   photoFrame: {
     width: '100%',

@@ -41,4 +41,14 @@ describe('mergeCoachProfile', () => {
     const merged = mergeCoachProfile(base({ clients: 0 }), base({ clients: 40 }))!;
     expect(merged.clients).toBe(0);
   });
+
+  it('keeps a cover from the profile response and fills one the list already has', () => {
+    expect(mergeCoachProfile(base({ coverUrl: '/document/a/cover.jpg' }), base())!.coverUrl).toBe(
+      '/document/a/cover.jpg',
+    );
+    expect(
+      mergeCoachProfile(base({ coverUrl: '' }), base({ coverUrl: '/document/a/cover.jpg' }))!
+        .coverUrl,
+    ).toBe('/document/a/cover.jpg');
+  });
 });

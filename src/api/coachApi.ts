@@ -1,5 +1,6 @@
 import { apiFetch, apiGet, apiPost, apiPut, withQuery, ApiError } from './client';
 import { getCoachTypeStyle } from '../data/coachTypeStyles';
+import { readCoachMediaFields } from '../utils/coachMediaFields';
 import { pickCoachCreatedAt } from '../utils/experience';
 import { fontAwesomeToIonicon } from '../utils/fontAwesomeToIonicon';
 import { parseCoachEvents } from '../utils/coachEvents';
@@ -126,6 +127,7 @@ function pickEventsRaw(raw: Record<string, unknown>): unknown {
 
 function mapPublicCoach(raw: RawPublicCoach): Coach {
   const bag = raw as unknown as Record<string, unknown>;
+  const media = readCoachMediaFields(bag);
   const packages = parseCoachPackages(pickPackagesRaw(bag));
   const events = parseCoachEvents(pickEventsRaw(bag));
   return {
@@ -146,8 +148,9 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     tags: splitServiceNames(raw.serviceNames),
     clients: raw.happyClientCount ?? 0,
     createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
-    logoUrl: raw.logo_Url ?? '',
-    profilePicUrl: raw.profile_Pic_Url ?? '',
+    logoUrl: media.logoUrl,
+    profilePicUrl: media.profilePicUrl,
+    coverUrl: media.coverUrl,
     packages: packages.length ? packages : undefined,
     events: events.length ? events : undefined,
   };
@@ -284,6 +287,7 @@ interface RawCoachProfileFull {
   country_Cd?: string;
   logo_Url?: string;
   profile_Pic_Url?: string;
+  cover_Url?: string;
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
@@ -322,6 +326,7 @@ export interface CoachProfileFull {
   countryCd: string;
   logoUrl: string;
   profilePicUrl: string;
+  coverUrl: string;
   coachDesc: string;
   bmiReportTemplate: string;
   dietChartTemplate: string;
@@ -342,6 +347,7 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     throw new ApiError('Coach profile not found.', 204);
   }
   const bag = raw as unknown as Record<string, unknown>;
+  const media = readCoachMediaFields(bag);
   return {
     coachId: raw.coachId ?? 0,
     coachCode: raw.coachCode ?? '',
@@ -362,8 +368,9 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     stateCd: raw.state_Cd ?? '',
     pinCode: raw.pinCode ?? '',
     countryCd: raw.country_Cd ?? '',
-    logoUrl: raw.logo_Url ?? '',
-    profilePicUrl: raw.profile_Pic_Url ?? '',
+    logoUrl: media.logoUrl,
+    profilePicUrl: media.profilePicUrl,
+    coverUrl: media.coverUrl,
     coachDesc: raw.coachDesc ?? '',
     bmiReportTemplate: raw.bmiReportTemplate ?? '',
     dietChartTemplate: raw.dietChartTemplate ?? '',
@@ -449,6 +456,7 @@ interface SaveCoachProfileParams {
   country_Cd?: string;
   logo_Url?: string;
   profile_Pic_Url?: string;
+  cover_Url?: string;
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
@@ -507,6 +515,7 @@ export function buildSaveCoachProfileParams(
     country_Cd: profile.countryCd,
     logo_Url: profile.logoUrl,
     profile_Pic_Url: profile.profilePicUrl,
+    cover_Url: profile.coverUrl,
     coachDesc: profile.coachDesc,
     bmiReportTemplate: profile.bmiReportTemplate,
     dietChartTemplate: profile.dietChartTemplate,

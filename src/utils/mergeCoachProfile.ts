@@ -21,6 +21,7 @@ export function mergeCoachProfile(
     country: api.country || list.country,
     profilePicUrl: api.profilePicUrl || list.profilePicUrl,
     logoUrl: api.logoUrl || list.logoUrl,
+    coverUrl: api.coverUrl || list.coverUrl,
     mobile: api.mobile || list.mobile,
     packages: api.packages?.length ? api.packages : list.packages,
     events: api.events?.length ? api.events : list.events,
