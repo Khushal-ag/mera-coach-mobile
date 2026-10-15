@@ -165,21 +165,13 @@ export interface FormValidationResult {
 
 export const MANDATORY_FIELDS_BANNER = 'Please fill all mandatory fields';
 
-/** Either Date of Birth or Age is enough. Age is derived when only DOB is entered. */
-function collectDobOrAgeErrors(dob: string, age: string): FieldErrorMap {
+/** Age is required. Date of Birth is optional; picking one fills in the age. */
+function collectDobAndAgeErrors(dob: string, age: string): FieldErrorMap {
   const errors: FieldErrorMap = {};
-  if (!dob.trim() && !age.trim()) {
-    const msg = 'Please enter Date of Birth or Age.';
-    errors.dob = msg;
-    errors.age = msg;
-    return errors;
-  }
+  const ageError = validateAge(age);
+  if (ageError) errors.age = ageError;
   if (dob.trim() && !parseDob(dob)) {
     errors.dob = 'Please enter a valid Date of Birth (DD/MM/YYYY).';
-  }
-  if (age.trim()) {
-    const ageErr = validateAge(age, false);
-    if (ageErr) errors.age = ageErr;
   }
   return errors;
 }
@@ -251,18 +243,19 @@ function validateNonNegativeInt(
 export function validateClientPersonalProfile(form: ClientProfile): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'name', validateRequired(form.name, 'Full name'));
-  putError(errors, 'phone', validateMobile(form.phone));
+  // Client mobile: digits only, up to 10 (enforced as the coach types). No format rule.
+  putError(errors, 'phone', validateRequired(form.phone, 'Mobile number'));
   putError(errors, 'email', validateOptionalEmail(form.email));
   putError(errors, 'location', validateRequired(form.location, 'Location'));
-  Object.assign(errors, collectDobOrAgeErrors(form.dob, form.age));
+  Object.assign(errors, collectDobAndAgeErrors(form.dob, form.age));
   if (!form.gender) errors.gender = 'Gender is required.';
   putError(errors, 'height', validateHeight(form.height.trim()));
   putError(errors, 'weight', validateWeight(form.weight.trim()));
   return resultFromErrors(errors);
 }
 
-/** Lifestyle + health-goals step (mirrors web Step 2 validation). */
-export function validateClientLifestyleProfile(form: ClientProfile): FormValidationResult {
+/** Lifestyle preferences screen. */
+export function validateClientLifestylePreferences(form: ClientProfile): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(
     errors,
@@ -281,13 +274,27 @@ export function validateClientLifestyleProfile(form: ClientProfile): FormValidat
     'regionalCuisine',
     validateRequired(form.regionalCuisine ?? '', 'Regional cuisine'),
   );
+  return resultFromErrors(errors);
+}
+
+/** Health goals screen. Primary goal and target timeline are optional. */
+export function validateClientHealthGoals(form: ClientProfile): FormValidationResult {
+  const errors: FieldErrorMap = {};
   if (!form.medicalConditions?.length) {
     errors.medicalConditions = 'Please select at least one medical condition.';
   }
   if (!form.foodAllergies?.length) {
     errors.foodAllergies = 'Please select at least one food allergy.';
   }
-  putError(errors, 'primaryGoal', validateRequired(form.primaryGoal ?? '', 'Primary goal'));
+  return resultFromErrors(errors);
+}
+
+/** Both lifestyle screens together (final check when leaving the phase). */
+export function validateClientLifestyleProfile(form: ClientProfile): FormValidationResult {
+  const errors = {
+    ...validateClientLifestylePreferences(form).errors,
+    ...validateClientHealthGoals(form).errors,
+  };
   return resultFromErrors(errors);
 }
 

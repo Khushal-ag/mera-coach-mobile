@@ -38,7 +38,7 @@ export function DobWheelField({
 
   return (
     <View style={styles.field}>
-      <FormFieldLabel>Date of Birth</FormFieldLabel>
+      <FormFieldLabel>Date of Birth (optional)</FormFieldLabel>
       <View style={[styles.inputWrap, hasError && styles.inputWrapError]}>
         <TouchableOpacity
           style={styles.dobPressable}
@@ -68,9 +68,7 @@ export function DobWheelField({
           </TouchableOpacity>
         ) : null}
       </View>
-      <Text style={styles.hint}>
-        Enter Date of Birth or Age. Picking a Date of Birth fills in Age.
-      </Text>
+      <Text style={styles.hint}>Optional. Picking a Date of Birth fills in Age.</Text>
       <CalendarDatePicker
         visible={open}
         title="Date of Birth"

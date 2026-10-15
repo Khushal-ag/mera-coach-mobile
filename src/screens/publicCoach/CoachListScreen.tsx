@@ -138,7 +138,7 @@ const CoachResultCard = React.memo(function CoachResultCard({
               <View style={styles.metaItem}>
                 <Ionicons name="star-outline" size={IconSize.xs} color={Colors.accent} />
                 <Text style={styles.metaText}>
-                  {coach.rating} ({coach.reviews})
+                  {coach.rating.toFixed(1)} ({coach.reviews})
                 </Text>
               </View>
             ) : null}
@@ -221,7 +221,7 @@ const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
           <View style={styles.topRatedMetaRow}>
             <Ionicons name="star-outline" size={IconSize.xs} color={Colors.accent} />
             <Text style={styles.topRatedMeta}>
-              {coach.rating} ({coach.reviews})
+              {coach.rating.toFixed(1)} ({coach.reviews})
             </Text>
           </View>
         ) : null}
