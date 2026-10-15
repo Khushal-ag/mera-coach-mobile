@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 31,
+    minHeight: 31,
     paddingLeft: 14,
     paddingRight: 4,
     backgroundColor: BMI_CTA,

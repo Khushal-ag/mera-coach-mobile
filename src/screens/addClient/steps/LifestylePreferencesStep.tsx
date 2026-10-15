@@ -55,7 +55,7 @@ export default function LifestylePreferencesStep({
       />
       {form.gender === 'F' && (
         <DropdownField
-          label="Pregnancy / BF"
+          label="Pregnancy / BF (optional)"
           value={form.pregnancyBf}
           options={pregnancyOptions}
           onChange={v => update('pregnancyBf', v)}

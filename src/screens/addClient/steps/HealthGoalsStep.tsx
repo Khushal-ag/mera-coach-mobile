@@ -61,7 +61,7 @@ export default function HealthGoalsStep({
         tone="mint"
       />
       <DropdownField
-        label="Target Timeline"
+        label="Target Timeline (optional)"
         value={form.targetTimeline}
         options={timelineOptions}
         onChange={v => update('targetTimeline', v)}
@@ -71,7 +71,7 @@ export default function HealthGoalsStep({
       />
 
       <View style={styles.field}>
-        <FormFieldLabel>Additional Notes</FormFieldLabel>
+        <FormFieldLabel>Additional Notes (optional)</FormFieldLabel>
         <TextInput
           style={styles.textarea}
           placeholder="Any specific preferences, dislikes, meal timing constraints, etc."

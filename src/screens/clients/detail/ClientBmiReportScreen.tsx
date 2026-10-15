@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
   gaugePill: {
     marginTop: 6,
     alignSelf: 'stretch',
-    height: 40,
+    minHeight: 40,
     borderRadius: Radius.pill,
     paddingHorizontal: 16,
     alignItems: 'center',

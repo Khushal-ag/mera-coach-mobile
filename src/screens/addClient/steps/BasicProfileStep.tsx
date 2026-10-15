@@ -441,35 +441,34 @@ export default function BasicProfileStep({
 
       <DobWheelField form={form} update={update} hasError={err('dob')} />
 
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Field
-            label="Age"
-            icon="calendar-outline"
-            field="age"
-            placeholder="Years (or use DOB)"
-            keyboardType="numeric"
-            form={form}
-            update={update}
-            hasError={err('age')}
-            onFocus={onLowerFieldFocus}
-          />
-        </View>
-        <View style={styles.half}>
-          <FormFieldLabel required>Gender</FormFieldLabel>
-          <View style={[styles.pickerRow, err('gender') && styles.pickerRowError]}>
-            {GENDER_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[styles.pill, form.gender === opt.value && styles.pillActive]}
-                onPress={() => update('gender', opt.value)}
-              >
-                <Text style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <Field
+        label="Age"
+        icon="calendar-outline"
+        field="age"
+        placeholder="Years (or use DOB)"
+        keyboardType="numeric"
+        form={form}
+        update={update}
+        hasError={err('age')}
+        onFocus={onLowerFieldFocus}
+      />
+
+      <View style={styles.field}>
+        <FormFieldLabel required>Gender</FormFieldLabel>
+        <View style={[styles.pickerRow, err('gender') && styles.pickerRowError]}>
+          {GENDER_OPTIONS.map(opt => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[styles.pill, form.gender === opt.value && styles.pillActive]}
+              onPress={() => update('gender', opt.value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: form.gender === opt.value }}
+            >
+              <Text style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 

@@ -53,7 +53,7 @@ export async function pickImagesFromCameraOrLibrary(
   const source = await promptImageSource();
   if (!source) return [];
 
-  const { allowsEditing = false, aspect, quality = 0.7, selectionLimit } = options;
+  const { allowsEditing = false, aspect, quality = 0.5, selectionLimit } = options;
 
   if (source === 'camera') {
     const perm = await ImagePicker.requestCameraPermissionsAsync();

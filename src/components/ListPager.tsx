@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   squareBtn: {
     width: 36,
-    height: 36,
+    minHeight: 36,
     borderRadius: Radius.xs,
     backgroundColor: Colors.white,
     borderWidth: 1,

@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     width: 174,
     maxWidth: '100%',
-    height: 28,
+    minHeight: 28,
     marginTop: 6,
   },
   selectBtnText: {

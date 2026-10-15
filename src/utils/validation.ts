@@ -165,6 +165,7 @@ export interface FormValidationResult {
 
 export const MANDATORY_FIELDS_BANNER = 'Please fill all mandatory fields';
 
+/** Either Date of Birth or Age is enough. Age is derived when only DOB is entered. */
 function collectDobOrAgeErrors(dob: string, age: string): FieldErrorMap {
   const errors: FieldErrorMap = {};
   if (!dob.trim() && !age.trim()) {

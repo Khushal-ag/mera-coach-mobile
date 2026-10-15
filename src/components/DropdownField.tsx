@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   boxCompact: {
-    height: FormControl.compactHeight,
+    minHeight: FormControl.compactHeight,
     paddingHorizontal: Spacing.sm - 2,
     borderWidth: 1,
   },

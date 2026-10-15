@@ -33,9 +33,12 @@ import PersonAvatar from '../../components/PersonAvatar';
 import { getClientList, getEnquiryLeads, getRecheckupList } from '../../api/clientApi';
 import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { queryKeys } from '../../api/queryKeys';
-import { getCurrentCoachCode, getCurrentCoachName } from '../../auth/session';
+import { getCurrentCoachCode, getCurrentCoachId, getCurrentCoachName } from '../../auth/session';
+import { buildCoachPaymentUrl } from '../../utils/premiumOffer';
+import { openPaymentUrl } from '../../utils/support';
 import { getErrorMessage } from '../../api/client';
 import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
+import { describeValidity } from '../../utils/validity';
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import { resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
@@ -130,6 +133,11 @@ export default function DashboardScreen({
   const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
   const coachPhotoUri = resolveCoachPhotoUrl(profileQuery.data ?? profileFullQuery.data ?? {});
   const greeting = greetingFor();
+  const validity = describeValidity(profileQuery.data?.validUpto);
+  const renew = () =>
+    void openPaymentUrl(
+      buildCoachPaymentUrl({ coachId: getCurrentCoachId(), coachCode: getCurrentCoachCode() }),
+    );
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
     [profileFullQuery.data],
@@ -302,6 +310,37 @@ export default function DashboardScreen({
             {coachName}
           </Text>
           <Text style={styles.heroSub}>Clients, leads, and checkup</Text>
+          {validity ? (
+            <TouchableOpacity
+              style={[
+                styles.validityPill,
+                validity.tone === 'soon' && styles.validityPillSoon,
+                validity.tone === 'expired' && styles.validityPillExpired,
+              ]}
+              onPress={validity.tone === 'ok' ? undefined : renew}
+              disabled={validity.tone === 'ok'}
+              accessibilityRole={validity.tone === 'ok' ? 'text' : 'button'}
+              accessibilityLabel={
+                validity.tone === 'expired'
+                  ? `Validity expired on ${validity.dateLabel}. Tap to renew.`
+                  : `Valid till ${validity.dateLabel}`
+              }
+            >
+              <Text
+                style={[
+                  styles.validityText,
+                  validity.tone === 'soon' && styles.validityTextSoon,
+                  validity.tone === 'expired' && styles.validityTextExpired,
+                ]}
+              >
+                {validity.tone === 'expired'
+                  ? `Validity expired on ${validity.dateLabel}. Renew`
+                  : validity.tone === 'soon'
+                    ? `Valid till ${validity.dateLabel} (${validity.daysLeft} day${validity.daysLeft === 1 ? '' : 's'} left). Renew`
+                    : `Valid till ${validity.dateLabel}`}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </Animated.View>
       </View>
 
@@ -474,6 +513,19 @@ const styles = StyleSheet.create({
     ...Typography.headline,
     marginTop: Spacing.xxs,
   },
+  validityPill: {
+    alignSelf: 'flex-start',
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.metricClientsBg,
+  },
+  validityPillSoon: { backgroundColor: Colors.accentLight },
+  validityPillExpired: { backgroundColor: Colors.destructiveSoft },
+  validityText: { ...Typography.caption, color: Colors.tipsPanel },
+  validityTextSoon: { color: Colors.destructiveOrange },
+  validityTextExpired: { color: Colors.destructive },
   heroSub: {
     ...Typography.caption,
     marginTop: Spacing.xxs,

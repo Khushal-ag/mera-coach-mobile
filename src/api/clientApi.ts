@@ -233,7 +233,8 @@ export async function saveClientDetail(
       assessmentDate: formatLocalDate(),
       age: parseInt(profile.age, 10) || 0,
       weight: parseFloat(profile.weight) || 0,
-      height: parseFloat(profile.height) || 0,
+      // API field is a whole number; ft/in converts to cm with decimals.
+      height: Math.round(parseFloat(profile.height)) || 0,
       savedBy: savedByDisplayName(),
     },
   );

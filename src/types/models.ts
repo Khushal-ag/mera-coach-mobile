@@ -44,6 +44,8 @@ export interface Coach {
   tags: string[];
   /** From API `happyClientCount` (Edit Profile "Happy Clients"). */
   clients: number;
+  /** Subscription end date (the coach ValidUpto) when the API provides it. */
+  validUpto?: string;
   /** Account/coach creation date when the API provides one (used to derive tenure). */
   createdAt?: string;
   /** Present when loaded via profile-by-id; used for WhatsApp. */

@@ -114,6 +114,7 @@ describe('validateClientPersonalProfile (aggregate)', () => {
         name: 'Ada',
         phone: '9876543210',
         location: 'Mumbai',
+        dob: '15/03/1990',
         age: '30',
         gender: 'F',
         height: '165',
@@ -123,6 +124,24 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual({});
     expect(result.banner).toBeNull();
+  });
+
+  it.each([
+    ['age only', { age: '30' }],
+    ['date of birth only', { dob: '15/03/1990' }],
+  ])('accepts %s', (_label, extra) => {
+    const result = validateClientPersonalProfile(
+      emptyProfile({
+        name: 'Ada',
+        phone: '9876543210',
+        location: 'Mumbai',
+        gender: 'F',
+        height: '165',
+        weight: '60',
+        ...extra,
+      }),
+    );
+    expect(result.ok).toBe(true);
   });
 
   it('flags invalid email without requiring it', () => {

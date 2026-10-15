@@ -595,12 +595,11 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                       clearFieldError('certificationCount');
                     }}
                     keyboardType="numeric"
-                    required
                     hasError={!!errorFields.certificationCount}
                   />
                 </View>
                 <View style={styles.half}>
-                  <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
+                  <Field label="Tagline (optional)" value={tagline} onChangeText={setTagline} />
                 </View>
               </View>
 
@@ -1246,7 +1245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    height: 48,
+    minHeight: 48,
     borderRadius: Radius.pill,
     borderWidth: 1.5,
     borderColor: Colors.accentInk,
@@ -1274,7 +1273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    height: 48,
+    minHeight: 48,
     borderRadius: Radius.pill,
     backgroundColor: Colors.accentInk,
     paddingHorizontal: Spacing.sm,

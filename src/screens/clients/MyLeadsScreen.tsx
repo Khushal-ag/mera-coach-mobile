@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
     paddingHorizontal: 10,
-    height: 25,
+    minHeight: 25,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.sm,
     marginTop: Spacing.xs,
-    height: 24,
+    minHeight: 24,
     maxWidth: '100%',
   },
   phoneText: {
