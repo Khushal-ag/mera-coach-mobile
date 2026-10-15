@@ -445,7 +445,8 @@ export default function BasicProfileStep({
         label="Age"
         icon="calendar-outline"
         field="age"
-        placeholder="Years (or use DOB)"
+        placeholder="Years"
+        required
         keyboardType="numeric"
         form={form}
         update={update}

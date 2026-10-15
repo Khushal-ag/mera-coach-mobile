@@ -22,6 +22,8 @@ import { computeBmiMetrics } from '../../utils/bmi';
 import {
   validateClientPersonalProfile,
   validateClientLifestyleProfile,
+  validateClientLifestylePreferences,
+  validateClientHealthGoals,
 } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import {
@@ -175,6 +177,19 @@ export default function AssessmentWizardFlow({
       return;
     }
     if (savingRef.current) return;
+
+    // Each lifestyle screen is checked before moving on, not only the last one.
+    const screenCheck =
+      entry.screenId === 'lifestylePreferences'
+        ? validateClientLifestylePreferences
+        : entry.screenId === 'healthGoals'
+          ? validateClientHealthGoals
+          : null;
+    if (screenCheck && applyValidation(screenCheck(form))) {
+      setApiError('');
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
 
     const nextEntry = flatNav[index + 1];
     const leavingPhase = !nextEntry || nextEntry.type === 'interstitial';

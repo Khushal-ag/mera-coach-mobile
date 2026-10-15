@@ -104,7 +104,7 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     expect(result.ok).toBe(false);
     expect(result.banner).toBe(MANDATORY_FIELDS_BANNER);
     expect(Object.keys(result.errors).sort()).toEqual(
-      ['age', 'dob', 'gender', 'height', 'location', 'name', 'phone', 'weight'].sort(),
+      ['age', 'gender', 'height', 'location', 'name', 'phone', 'weight'].sort(),
     );
   });
 
@@ -126,22 +126,36 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     expect(result.banner).toBeNull();
   });
 
-  it.each([
-    ['age only', { age: '30' }],
-    ['date of birth only', { dob: '15/03/1990' }],
-  ])('accepts %s', (_label, extra) => {
+  const base = {
+    name: 'Ada',
+    phone: '123',
+    location: 'Mumbai',
+    gender: 'F',
+    height: '165',
+    weight: '60',
+  };
+
+  it('requires age but not date of birth', () => {
+    expect(validateClientPersonalProfile(emptyProfile({ ...base, age: '30' })).ok).toBe(true);
+    const noAge = validateClientPersonalProfile(emptyProfile({ ...base, dob: '15/03/1990' }));
+    expect(noAge.ok).toBe(false);
+    expect(Object.keys(noAge.errors)).toEqual(['age']);
+  });
+
+  it('rejects a date of birth that is entered but invalid', () => {
     const result = validateClientPersonalProfile(
-      emptyProfile({
-        name: 'Ada',
-        phone: '9876543210',
-        location: 'Mumbai',
-        gender: 'F',
-        height: '165',
-        weight: '60',
-        ...extra,
-      }),
+      emptyProfile({ ...base, age: '30', dob: '31/02/2020' }),
     );
-    expect(result.ok).toBe(true);
+    expect(Object.keys(result.errors)).toEqual(['dob']);
+  });
+
+  it('accepts any client mobile that is not empty (no format rule)', () => {
+    expect(validateClientPersonalProfile(emptyProfile({ ...base, age: '30', phone: '1' })).ok).toBe(
+      true,
+    );
+    expect(validateClientPersonalProfile(emptyProfile({ ...base, age: '30', phone: '' })).ok).toBe(
+      false,
+    );
   });
 
   it('flags invalid email without requiring it', () => {
@@ -168,7 +182,7 @@ describe('validateClientLifestyleProfile', () => {
     expect(result.ok).toBe(false);
     expect(result.errors.medicalConditions).toBeTruthy();
     expect(result.errors.foodAllergies).toBeTruthy();
-    expect(result.errors.primaryGoal).toBeTruthy();
+    expect(result.errors.primaryGoal).toBeUndefined();
     expect(result.errors.targetTimeline).toBeUndefined();
   });
 

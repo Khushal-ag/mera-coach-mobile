@@ -51,12 +51,11 @@ export default function HealthGoalsStep({
         tone="mint"
       />
       <DropdownField
-        label="Primary Goal"
+        label="Primary Goal (optional)"
         value={form.primaryGoal}
         options={goalOptions}
         onChange={v => update('primaryGoal', v)}
         placeholder="Select"
-        required
         hasError={err('primaryGoal')}
         tone="mint"
       />

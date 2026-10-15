@@ -136,7 +136,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     categoryCode: raw.coachTypeCode,
     category: raw.coachTypeName,
     rating: raw.rating ?? 0,
-    // reviewCount is not a review total. Callers must not show rating/reviews as client reviews.
+    // Number of client feedback ratings behind `rating`; 0 means no ratings yet.
     reviews: raw.reviewCount ?? 0,
     // Self-reported marketing field (Edit Profile Experience yrs), not tenure from signup.
     experience: raw.experienceYears ?? 0,

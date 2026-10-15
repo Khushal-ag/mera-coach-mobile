@@ -222,8 +222,9 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       : null;
 
   const experienceDisplay = formatExperienceDisplay(profile?.experience, profile?.createdAt);
-  // The API rating is a formula, not client reviews.
-  const ratingDisplay = '-';
+  // Average of the ratings clients submitted on the feedback form. "-" until the first one.
+  const reviewCount = profile?.reviews ?? 0;
+  const ratingDisplay = reviewCount > 0 && profile ? profile.rating.toFixed(1) : '-';
 
   const handleMenuPress = async (item: MenuItem) => {
     if (item.tab === 'Packages') {
@@ -366,7 +367,9 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
                     <View style={styles.statDivider} />
                     <View style={styles.stat}>
                       <Text style={styles.statValue}>{ratingDisplay}</Text>
-                      <Text style={styles.statLabel}>Rating</Text>
+                      <Text style={styles.statLabel}>
+                        {reviewCount > 0 ? `Rating (${reviewCount})` : 'Rating'}
+                      </Text>
                     </View>
                   </View>
                   {clientsError ? <Text style={styles.rosterError}>{clientsError}</Text> : null}
