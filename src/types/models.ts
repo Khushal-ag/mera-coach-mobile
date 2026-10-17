@@ -1,32 +1,5 @@
 import type { IoniconName } from './icons';
 
-/** Coach-defined offer shown on public profile (no in-app payment). */
-export interface CoachPackage {
-  id: string;
-  name: string;
-  /** Optional display price (e.g. "₹4,999" or "Starting ₹2,999"). */
-  price: string;
-  /** Duration or session count (e.g. "8 weeks" / "12 sessions"). */
-  duration: string;
-  description: string;
-  /** Optional cover image path/URL from Document upload (stored in packagesJson). */
-  imageUrl?: string;
-}
-
-/** Coach-hosted event for public profile showcase. */
-export interface CoachEvent {
-  id: string;
-  title: string;
-  /** Prefer YYYY-MM-DD; DD/MM/YYYY also accepted when reading. */
-  date: string;
-  time: string;
-  location: string;
-  /** Optional WhatsApp / Maps / registration URL. */
-  link: string;
-  /** Optional cover image path/URL from Document upload (stored in eventsJson). */
-  imageUrl?: string;
-}
-
 export interface Coach {
   id: string;
   name: string;
@@ -56,8 +29,6 @@ export interface Coach {
   logoUrl?: string;
   /** Relative or absolute public banner from API (`cover_Url` / `Cover_Url`). */
   coverUrl?: string;
-  packages?: CoachPackage[];
-  events?: CoachEvent[];
 }
 
 export interface CoachCategory {

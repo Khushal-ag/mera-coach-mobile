@@ -3,15 +3,13 @@ import { getCoachTypeStyle } from '../data/coachTypeStyles';
 import { readCoachMediaFields } from '../utils/coachMediaFields';
 import { pickCoachCreatedAt } from '../utils/experience';
 import { fontAwesomeToIonicon } from '../utils/fontAwesomeToIonicon';
-import { parseCoachEvents } from '../utils/coachEvents';
-import { parseCoachPackages } from '../utils/coachPackages';
 import {
   mapPremiumCatalog,
   mapPremiumOffer,
   type PremiumCatalog,
   type PremiumOffer,
 } from '../utils/premiumOffer';
-import type { Coach, CoachCategory, CoachEvent, CoachPackage } from '../types/models';
+import type { Coach, CoachCategory } from '../types/models';
 import { fetchMasterItems, type MasterOption } from './masterApi';
 
 export async function getCoachCategories(context?: {
@@ -117,19 +115,9 @@ function splitServiceNames(serviceNames?: string): string[] {
     .filter(Boolean);
 }
 
-function pickPackagesRaw(raw: Record<string, unknown>): unknown {
-  return raw.packages ?? raw.packagesJson ?? raw.products ?? raw.productsJson;
-}
-
-function pickEventsRaw(raw: Record<string, unknown>): unknown {
-  return raw.events ?? raw.eventsJson ?? raw.coachEvents ?? raw.coachEventsJson;
-}
-
 function mapPublicCoach(raw: RawPublicCoach): Coach {
   const bag = raw as unknown as Record<string, unknown>;
   const media = readCoachMediaFields(bag);
-  const packages = parseCoachPackages(pickPackagesRaw(bag));
-  const events = parseCoachEvents(pickEventsRaw(bag));
   return {
     id: raw.coachCode,
     name: raw.coachName,
@@ -152,8 +140,6 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     logoUrl: media.logoUrl,
     profilePicUrl: media.profilePicUrl,
     coverUrl: media.coverUrl,
-    packages: packages.length ? packages : undefined,
-    events: events.length ? events : undefined,
   };
 }
 
@@ -297,12 +283,6 @@ interface RawCoachProfileFull {
   Is_profileVisible?: boolean | number | string;
   missingPublicFields?: string[];
   MissingPublicFields?: string[];
-  packages?: unknown;
-  packagesJson?: unknown;
-  products?: unknown;
-  events?: unknown;
-  eventsJson?: unknown;
-  coachEvents?: unknown;
 }
 
 export interface CoachProfileFull {
@@ -338,8 +318,6 @@ export interface CoachProfileFull {
    * Undefined when the API omits the list.
    */
   missingPublicFields?: string[];
-  packages: CoachPackage[];
-  events: CoachEvent[];
 }
 
 export async function getCoachProfileFull(): Promise<CoachProfileFull> {
@@ -377,8 +355,6 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     dietChartTemplate: raw.dietChartTemplate ?? '',
     isProfileVisible: parseIsProfileVisible(bag),
     missingPublicFields: parseMissingPublicFields(bag),
-    packages: parseCoachPackages(pickPackagesRaw(bag)),
-    events: parseCoachEvents(pickEventsRaw(bag)),
   };
 }
 
@@ -435,7 +411,7 @@ export async function getServicesForCategory(categoryCode: string): Promise<Mast
   return items.map(i => ({ code: i.itemCode, label: i.itemName }));
 }
 
-/** Coach/save body. packages/events are only attached when non-empty. */
+/** Coach/save body. */
 interface SaveCoachProfileParams {
   coachId: number;
   coachName: string;
@@ -461,68 +437,11 @@ interface SaveCoachProfileParams {
   coachDesc?: string;
   bmiReportTemplate?: string;
   dietChartTemplate?: string;
-  /** Attached when provided (including empty arrays to clear). */
-  packages?: CoachPackage[];
-  /** Attached when provided (including empty arrays to clear). */
-  events?: CoachEvent[];
 }
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
-  const { packages, events, ...rest } = params;
   // Visibility is recomputed on the server. Do not send a client flag.
-  const body: Record<string, unknown> = { ...rest };
-
-  // Always send when defined so empty arrays clear PackagesJson / EventsJson on the API.
-  if (packages !== undefined) {
-    body.packages = packages;
-    body.packagesJson = JSON.stringify(packages);
-  }
-  if (events !== undefined) {
-    body.events = events;
-    body.eventsJson = JSON.stringify(events);
-  }
-
-  await apiPost('/v{version}/Coach/save', body);
-}
-
-/**
- * Map a loaded full profile into a Coach/save body.
- * Includes packages/events from profile (or overrides) so dedicated editors can
- * round-trip them; empty arrays are sent so clears persist.
- */
-export function buildSaveCoachProfileParams(
-  profile: CoachProfileFull,
-  overrides?: Partial<Pick<SaveCoachProfileParams, 'packages' | 'events'>>,
-): SaveCoachProfileParams {
-  return {
-    coachId: profile.coachId,
-    coachName: profile.coachName,
-    coachTypeCode: profile.coachTypeCode,
-    mobile: profile.mobile,
-    email: profile.email,
-    businessName: profile.businessName,
-    serviceCodes: profile.serviceCodes,
-    // Manual happy-client count. Do not add the live roster before save.
-    experienceYears: profile.experienceYears,
-    happyClientCount: profile.happyClientCount,
-    certificationCount: profile.certificationCount,
-    tagline: profile.tagline,
-    localLanguage: profile.localLanguage,
-    locality: profile.locality,
-    add_Line: profile.addLine,
-    city_Cd: profile.cityCd,
-    state_Cd: profile.stateCd,
-    pinCode: profile.pinCode,
-    country_Cd: profile.countryCd,
-    logo_Url: profile.logoUrl,
-    profile_Pic_Url: profile.profilePicUrl,
-    cover_Url: profile.coverUrl,
-    coachDesc: profile.coachDesc,
-    bmiReportTemplate: profile.bmiReportTemplate,
-    dietChartTemplate: profile.dietChartTemplate,
-    packages: overrides?.packages ?? profile.packages,
-    events: overrides?.events ?? profile.events,
-  };
+  await apiPost('/v{version}/Coach/save', params);
 }
 
 interface ChangePasswordParams {

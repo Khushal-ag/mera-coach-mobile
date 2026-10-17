@@ -17,6 +17,8 @@ import {
   type NativeScrollEvent,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import ShowcaseSections from '../../components/publicCoach/ShowcaseSections';
+import { getPublicShowcase, type Showcase } from '../../api/showcaseApi';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -75,7 +77,7 @@ import {
   sanitizeEmailInput,
 } from '../../utils/validation';
 import type { RootScreenProps } from '../../types/navigation';
-import type { Coach, CoachPackage } from '../../types/models';
+import type { Coach } from '../../types/models';
 import type { IoniconName } from '../../types/icons';
 
 interface EnquiryForm {
@@ -86,7 +88,7 @@ interface EnquiryForm {
 }
 
 const BLANK_FORM: EnquiryForm = { name: '', mobile: '', email: '', service: '' };
-const EMPTY_PACKAGES: CoachPackage[] = [];
+const EMPTY_SHOWCASE: Showcase = { packages: [], posts: [] };
 
 const STAT_ICONS: Record<string, IoniconName> = {
   clients: 'people-outline',
@@ -154,65 +156,6 @@ type ProfilePageProps = {
   coachCount: number;
   onShowCoach: (index: number) => void;
 };
-
-const SuccessStoryCard = React.memo(function SuccessStoryCard({
-  pkg,
-  onSelect,
-}: {
-  pkg: CoachPackage;
-  onSelect: (serviceName: string) => void;
-}) {
-  const imageUri = resolveMediaUrl(pkg.imageUrl);
-  const imageSource = useMemo(() => (imageUri ? { uri: imageUri } : null), [imageUri]);
-  const [imageFailed, setImageFailed] = useState(false);
-  const [trackedImage, setTrackedImage] = useState(pkg.imageUrl);
-  if (pkg.imageUrl !== trackedImage) {
-    setTrackedImage(pkg.imageUrl);
-    setImageFailed(false);
-  }
-  const showImage = Boolean(imageSource) && !imageFailed;
-
-  return (
-    <TouchableOpacity
-      style={styles.storyCard}
-      onPress={() => onSelect(pkg.name)}
-      activeOpacity={PressOpacity.soft}
-      accessibilityRole="button"
-      accessibilityLabel={`Enquire about ${pkg.name}`}
-    >
-      <View style={styles.storyCopy}>
-        <View style={styles.focusPill}>
-          <Ionicons name="checkmark-circle-outline" size={IconSize.sm} color={Colors.accentInk} />
-          <Text style={styles.focusPillText}>Focus</Text>
-        </View>
-        <Text style={styles.storyTitle} numberOfLines={2}>
-          {pkg.name}
-        </Text>
-        {pkg.description ? (
-          <Text style={styles.storyBody} numberOfLines={4}>
-            {pkg.description}
-          </Text>
-        ) : null}
-      </View>
-      {showImage && imageSource ? (
-        <Image
-          source={imageSource}
-          style={styles.storyImage}
-          resizeMode="cover"
-          onError={() => setImageFailed(true)}
-          onLoad={e => {
-            const { width, height } = e.nativeEvent.source;
-            if (isDegenerateImageSize(width, height)) setImageFailed(true);
-          }}
-        />
-      ) : (
-        <View style={styles.storyImagePlaceholder}>
-          <Ionicons name="image-outline" size={IconSize.xl} color={Colors.accentInk} />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-});
 
 type ProfileHeroProps = {
   contentWidth: number;
@@ -759,8 +702,13 @@ function CoachProfilePage({
     coach && coach.tags.length
       ? stripTrailingTagsFromBio(coach.bio, coach.tags)
       : (coach?.bio ?? '');
-  const packages = coach?.packages ?? EMPTY_PACKAGES;
-  const showSuccessStories = packages.length > 0;
+  const showcaseQuery = useQuery({
+    queryKey: queryKeys.publicShowcase(coachCode),
+    queryFn: () => getPublicShowcase(coachCode),
+    enabled: !!coachCode,
+  });
+  const showcase = showcaseQuery.data ?? EMPTY_SHOWCASE;
+  const packages = showcase.packages;
   const scrollRef = useRef<ScrollView>(null);
   const formSectionY = useRef(0);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
@@ -786,7 +734,7 @@ function CoachProfilePage({
   const smileHeight = Math.round(contentWidth / HERO_SMILE_MASK_ASPECT);
   const waBtnHeight = contentWidth / WHATSAPP_COACH_BUTTON_ASPECT;
   const serviceOptions = [
-    ...packages.map(p => p.name),
+    ...packages.map(p => p.packageName),
     ...(coach?.tags.length ? coach.tags.map(formatExpertiseLabel) : []),
     SERVICE_INQUIRY_FALLBACK,
   ];
@@ -964,23 +912,7 @@ function CoachProfilePage({
           </View>
         ) : null}
 
-        {showSuccessStories ? (
-          <View style={styles.section}>
-            <SectionTag
-              icon="trophy-outline"
-              label="Outcomes"
-              color={SECTION_PILL_INK}
-              style={styles.sectionPill}
-            />
-            <Text style={styles.sectionTitle}>Success Stories</Text>
-            <Text style={styles.sectionSubtitle}>From {coach.name}&apos;s public profile.</Text>
-            <View style={styles.storiesList}>
-              {packages.map(pkg => (
-                <SuccessStoryCard key={pkg.id} pkg={pkg} onSelect={selectPackageService} />
-              ))}
-            </View>
-          </View>
-        ) : null}
+        <ShowcaseSections showcase={showcase} onSelectPackage={selectPackageService} />
 
         {showRating ? (
           <View style={styles.section}>

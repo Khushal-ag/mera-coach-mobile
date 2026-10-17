@@ -67,6 +67,12 @@ export const queryKeys = {
   coachPremium: ['coachPremium'] as const,
   coachPremiumPlans: ['coachPremiumPlans'] as const,
   coachProfileFull: ['coachProfileFull'] as const,
+  myPackages: ['showcase', 'packages'] as const,
+  myPosts: ['showcase', 'posts'] as const,
+  publicShowcase: (coachCode: string) => ['showcase', 'public', coachCode] as const,
+  postCategories: ['master', 'postCategories'] as const,
+  productBrands: ['master', 'productBrands'] as const,
+  productItems: (brandCode: string) => ['master', 'productItems', brandCode] as const,
   coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,
   clientList: (coachCode?: string) => ['clientList', coachCode] as const,
   /** Server-side due list for Checkups tab / dashboard count. */
@@ -93,7 +99,6 @@ export const queryKeys = {
     ['progressPhotos', coachCode, clientCode] as const,
   clientProfilePhoto: (coachCode: string, clientCode: string) =>
     ['clientProfilePhoto', coachCode, clientCode] as const,
-  coachGallery: (coachCode: string) => ['coachGallery', coachCode] as const,
 };
 
 /** Shared invalidation after coach profile / packages / events saves. */
@@ -102,13 +107,9 @@ export function invalidateCoachProfileCaches(
     invalidateQueries: (filters: { queryKey: readonly unknown[] }) => Promise<unknown>;
   },
   coachCode: string,
-  options?: { gallery?: boolean },
 ): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileFull });
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachPublicListRoot });
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachProfileByCode(coachCode) });
-  if (options?.gallery) {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.coachGallery(coachCode) });
-  }
 }

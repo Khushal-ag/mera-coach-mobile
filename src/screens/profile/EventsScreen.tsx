@@ -19,6 +19,7 @@ import {
   ListCard,
   ListPortrait,
   PressOpacity,
+  Radius,
   ScreenPad,
   Shadow,
   Spacing,
@@ -30,159 +31,126 @@ import FormErrorBanner from '../../components/FormErrorBanner';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
-import {
-  buildSaveCoachProfileParams,
-  getCoachProfileFull,
-  saveCoachProfile,
-} from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
-import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
+import { queryKeys } from '../../api/queryKeys';
+import { deletePost, getMyPosts, getPostCategories, type CoachPost } from '../../api/showcaseApi';
 import { refreshControlTheme, useRefreshControl } from '../../hooks/useRefreshControl';
-import {
-  MAX_COACH_EVENTS,
-  serializeCoachEvents,
-  validateCoachEventsDraft,
-} from '../../utils/coachEvents';
+import { formatPostDate } from '../../utils/formatPostDate';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { EventsStackScreenProps } from '../../types/navigation';
-import type { CoachEvent } from '../../types/models';
 
 const CANVAS = '#F3FAF7';
 const PAGE_SIZE = 5;
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function formatDisplayDate(value: string): string | null {
-  const trimmed = value.trim();
-  const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (ymd) {
-    const y = Number(ymd[1]);
-    const m = Number(ymd[2]) - 1;
-    const d = Number(ymd[3]);
-    const dt = new Date(y, m, d);
-    if (dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d) {
-      return `${d} ${MONTHS[m]} ${y}`;
-    }
-  }
-  const dmy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
-  if (dmy) {
-    const d = Number(dmy[1]);
-    const m = Number(dmy[2]) - 1;
-    const y = Number(dmy[3]);
-    const dt = new Date(y, m, d);
-    if (dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d) {
-      return `${d} ${MONTHS[m]} ${y}`;
-    }
-  }
-  return null;
-}
+const ALL = 'ALL';
 
 export default function EventsScreen({ navigation }: EventsStackScreenProps<'EventsHome'>) {
   const queryClient = useQueryClient();
-  const profileQuery = useQuery({
-    queryKey: queryKeys.coachProfileFull,
-    queryFn: getCoachProfileFull,
+  const postsQuery = useQuery({ queryKey: queryKeys.myPosts, queryFn: getMyPosts });
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.postCategories,
+    queryFn: getPostCategories,
+    staleTime: 10 * 60_000,
   });
-  const refreshControl = useRefreshControl(profileQuery);
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const refreshControl = useRefreshControl(postsQuery);
+  const [filter, setFilter] = useState(ALL);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const errorMessage =
-    profileQuery.isError && !profileQuery.data
-      ? getErrorMessage(profileQuery.error, 'Could not load your events.')
+    postsQuery.isError && !postsQuery.data
+      ? getErrorMessage(postsQuery.error, 'Could not load your gallery and events.')
       : null;
 
-  const events = profileQuery.data?.events ?? [];
-  const atMax = events.length >= MAX_COACH_EVENTS;
-  const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
+  const all = postsQuery.data ?? [];
+  const posts = filter === ALL ? all : all.filter(p => p.categoryCode === filter);
+  const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageEvents = events.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pagePosts = posts.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const filters = [
+    { code: ALL, label: 'All' },
+    ...(categoriesQuery.data ?? []).map(c => ({ code: c.code, label: c.label })),
+  ];
 
-  const goAdd = () => {
-    if (atMax) {
-      setActionError(`You can add up to ${MAX_COACH_EVENTS} events.`);
-      return;
-    }
-    setActionError(null);
-    navigation.navigate('AddEvent');
-  };
-
-  const goEdit = (event: CoachEvent) => {
-    navigation.navigate('AddEvent', { eventId: event.id });
-  };
-
-  const persistRemove = async (id: string) => {
-    const profile = profileQuery.data;
-    if (!profile || removingId) return;
-    const next = (profile.events ?? []).filter(event => event.id !== id);
-    const eventsError = validateCoachEventsDraft(next);
-    if (eventsError) {
-      setActionError(eventsError);
-      return;
-    }
-    setRemovingId(id);
+  const persistRemove = async (post: CoachPost) => {
+    if (removingId) return;
+    setRemovingId(post.postId);
     setActionError(null);
     try {
-      const serialized = serializeCoachEvents(next);
-      const latest = await getCoachProfileFull();
-      await saveCoachProfile(
-        buildSaveCoachProfileParams(latest, {
-          events: serialized,
-        }),
-      );
-      invalidateCoachProfileCaches(queryClient, latest.coachCode);
+      await deletePost(post.postId);
+      void queryClient.invalidateQueries({ queryKey: ['showcase'] });
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Could not remove this event. Please try again.'));
+      setActionError(getErrorMessage(err, 'Could not remove this post. Please try again.'));
     } finally {
       setRemovingId(null);
     }
   };
 
-  const confirmRemove = (event: CoachEvent) => {
-    const label = event.title.trim() || 'this event';
-    Alert.alert('Remove event', `Remove ${label}?`, [
+  const confirmRemove = (post: CoachPost) => {
+    Alert.alert('Remove post', `Remove ${post.title || 'this post'}?`, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          void persistRemove(event.id);
-        },
-      },
+      { text: 'Remove', style: 'destructive', onPress: () => void persistRemove(post) },
     ]);
   };
 
   return (
     <View style={styles.container}>
       <WaveScreenHeader
-        title="Events"
+        title="Gallery & Events"
         showBack={false}
         onHome={() => navigateToDashboard(navigation)}
       />
       <View style={styles.addRow}>
         <AppButton
-          label="Add event"
+          label="Add post"
           size="compact"
           icon="add-outline"
           iconPosition="left"
-          onPress={goAdd}
-          accessibilityLabel="Add event"
+          onPress={() => navigation.navigate('AddEvent')}
+          accessibilityLabel="Add gallery or event post"
         />
       </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterRow}
+      >
+        {filters.map(item => {
+          const selected = filter === item.code;
+          return (
+            <TouchableOpacity
+              key={item.code}
+              style={[styles.filterChip, selected && styles.filterChipOn]}
+              onPress={() => {
+                setFilter(item.code);
+                setPage(1);
+              }}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+            >
+              <Text style={[styles.filterLabel, selected && styles.filterLabelOn]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
       <View style={styles.bannerPad}>
         <FormErrorBanner message={actionError} />
         <FormErrorBanner message={refreshControl.refreshError} />
       </View>
 
-      {profileQuery.isPending ? (
+      {postsQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={styles.pending} />
       ) : errorMessage ? (
         <ReloadState
-          title="Could not load events"
+          title="Could not load posts"
           message={errorMessage}
-          onRetry={() => void profileQuery.refetch()}
-          loading={profileQuery.isFetching}
+          onRetry={() => void postsQuery.refetch()}
+          loading={postsQuery.isFetching}
           showPullHint={false}
         />
       ) : (
@@ -198,56 +166,42 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
             />
           }
         >
-          {events.length === 0 ? (
+          {posts.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Ionicons name="calendar-outline" size={IconSize.xxl} color={Colors.accentInk} />
-              <Text style={styles.emptyTitle}>No events yet</Text>
+              <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.accentInk} />
+              <Text style={styles.emptyTitle}>Nothing here yet</Text>
               <Text style={styles.emptyMessage}>
-                Add a workshop, training session, or client success story for your public profile.
+                Share gallery photos, workshops and client success stories on your public profile.
               </Text>
             </View>
           ) : (
-            pageEvents.map((event, index) => {
-              const when = [formatDisplayDate(event.date) ?? event.date, event.time]
-                .filter(Boolean)
-                .join(' · ');
-              const where = event.location.trim();
-              const title = event.title.trim() || `Event ${(safePage - 1) * PAGE_SIZE + index + 1}`;
-              const removing = removingId === event.id;
-              const imageUri = resolveMediaUrl(event.imageUrl);
+            pagePosts.map(post => {
+              const removing = removingId === post.postId;
+              const imageUri = post.mediaType === 'image' ? resolveMediaUrl(post.mediaUrl) : null;
               return (
-                <View key={event.id} style={styles.card}>
+                <View key={post.postId} style={styles.card}>
                   <TouchableOpacity
                     style={styles.cardMain}
-                    onPress={() => goEdit(event)}
+                    onPress={() => navigation.navigate('AddEvent', { postId: post.postId })}
                     activeOpacity={PressOpacity.default}
                     accessibilityRole="button"
-                    accessibilityLabel={`Edit ${title}`}
+                    accessibilityLabel={`Edit ${post.title}`}
                   >
                     {imageUri ? (
                       <Image source={{ uri: imageUri }} style={styles.photo} resizeMode="cover" />
                     ) : (
-                      <View style={styles.photo} />
+                      <View style={[styles.photo, styles.videoPlate]}>
+                        <Ionicons name="videocam" size={IconSize.lg} color={Colors.accentInk} />
+                      </View>
                     )}
                     <View style={styles.cardBody}>
+                      <Text style={styles.category}>{post.categoryName}</Text>
                       <Text style={styles.cardTitle} numberOfLines={2}>
-                        {title}
+                        {post.title}
                       </Text>
-                      {when ? (
-                        <Text style={styles.cardMeta} numberOfLines={1}>
-                          {when}
-                        </Text>
-                      ) : null}
-                      {where ? (
-                        <Text style={styles.cardMeta} numberOfLines={1}>
-                          {where}
-                        </Text>
-                      ) : null}
-                      {!when && !where ? (
-                        <Text style={styles.cardMeta} numberOfLines={1}>
-                          Tap to edit details
-                        </Text>
-                      ) : null}
+                      <Text style={styles.cardMeta} numberOfLines={1}>
+                        {[formatPostDate(post.postDate), post.location].filter(Boolean).join(' · ')}
+                      </Text>
                     </View>
                     <Ionicons
                       name="chevron-forward-outline"
@@ -257,10 +211,10 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.removeBtn}
-                    onPress={() => confirmRemove(event)}
+                    onPress={() => confirmRemove(post)}
                     disabled={removing}
                     accessibilityRole="button"
-                    accessibilityLabel={`Remove ${title}`}
+                    accessibilityLabel={`Remove ${post.title}`}
                     activeOpacity={PressOpacity.default}
                   >
                     {removing ? (
@@ -277,7 +231,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
               );
             })
           )}
-          {events.length > PAGE_SIZE ? (
+          {posts.length > PAGE_SIZE ? (
             <ListPager
               page={safePage}
               totalPages={totalPages}
@@ -301,6 +255,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
   },
+  filterScroll: { flexGrow: 0 },
+  filterRow: {
+    paddingHorizontal: ScreenPad.horizontal,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    minHeight: 36,
+    justifyContent: 'center',
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterChipOn: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
+  filterLabel: { ...Typography.label, color: Colors.textDark },
+  filterLabelOn: { color: Colors.white, fontFamily: FontFamily.semibold },
   bannerPad: { paddingHorizontal: ScreenPad.horizontal },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
@@ -316,14 +288,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     ...Shadow.sm,
   },
-  emptyTitle: {
-    ...Typography.headline,
-  },
-  emptyMessage: {
-    ...Typography.body,
-    color: Colors.textLight,
-    textAlign: 'center',
-  },
+  emptyTitle: { ...Typography.headline },
+  emptyMessage: { ...Typography.body, color: Colors.textLight, textAlign: 'center' },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -350,15 +316,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexShrink: 0,
   },
+  videoPlate: { alignItems: 'center', justifyContent: 'center' },
   cardBody: { flex: 1, minWidth: 0 },
-  cardTitle: {
-    ...Typography.headline,
-  },
-  cardMeta: {
-    marginTop: 3,
-    ...Typography.label,
-    fontFamily: FontFamily.regular,
-  },
+  category: { ...Typography.label, color: Colors.secondary, fontFamily: FontFamily.semibold },
+  cardTitle: { ...Typography.headline },
+  cardMeta: { marginTop: 3, ...Typography.label, fontFamily: FontFamily.regular },
   removeBtn: {
     width: TouchTarget.icon,
     height: TouchTarget.icon,

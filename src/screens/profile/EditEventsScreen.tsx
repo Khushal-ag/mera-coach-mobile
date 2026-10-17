@@ -36,33 +36,34 @@ import {
 import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
-import {
-  buildSaveCoachProfileParams,
-  getCoachProfileFull,
-  saveCoachProfile,
-  type CoachProfileFull,
-} from '../../api/coachApi';
+import { getCoachProfileFull } from '../../api/coachApi';
 import { getClientDetail, getClientList } from '../../api/clientApi';
 import { getErrorMessage } from '../../api/client';
 import { uploadDocument } from '../../api/documentApi';
-import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
-import { COACH_EVENT_IMAGE_DOC_TYPE, COACH_GALLERY_REF_TYPE } from '../../config/appConfig';
-import { getDocumentSavedById } from '../../auth/session';
+import { queryKeys } from '../../api/queryKeys';
 import {
-  MAX_COACH_EVENTS,
-  createEmptyEvent,
-  serializeCoachEvents,
-  validateCoachEventsDraft,
-} from '../../utils/coachEvents';
-import { pickImageFromCameraOrLibrary } from '../../utils/imagePicker';
+  getMyPosts,
+  getPostCategories,
+  savePost,
+  POST_CATEGORY,
+  POST_DESCRIPTION_MAX,
+  POST_LOCATION_MAX,
+  POST_MEDIA_DOC_TYPE,
+  POST_MEDIA_MAX_BYTES,
+  POST_TITLE_MAX,
+  type CoachPost,
+  type PostCategoryOption,
+} from '../../api/showcaseApi';
+import { COACH_GALLERY_REF_TYPE } from '../../config/appConfig';
+import { getDocumentSavedById } from '../../auth/session';
+import { pickPostMedia } from '../../utils/postMediaPicker';
 import { formatLocalDate } from '../../utils/validation';
 import { isPendingLocalMediaUrl, resolveMediaUrl } from '../../utils/mediaUrl';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { EventsStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
-import type { ClientSummary, CoachEvent } from '../../types/models';
+import type { ClientSummary } from '../../types/models';
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const CANVAS = '#F3FAF7';
 const FIELD_MINT = '#E7F6EC';
 const UPLOAD_FILL = '#F6FCF8';
@@ -74,54 +75,39 @@ const FIELD_DISABLED_TEXT = '#B4BDB6';
 const CHIP_IDLE_BORDER = '#E4E7EC';
 const CHIP_IDLE_LABEL = '#5A635E';
 
-type EventCategoryId = 'training' | 'workshop' | 'success';
-
-const CATEGORIES: {
-  id: EventCategoryId;
-  label: string;
-  icon: IoniconName;
-  tint: string;
-  iconBg: string;
-  border: string;
-}[] = [
-  {
-    id: 'training',
-    label: 'Training Session',
+/** Look of each category chip; the list itself comes from the category master. */
+const CATEGORY_LOOK: Record<
+  string,
+  { icon: IoniconName; tint: string; iconBg: string; border: string }
+> = {
+  [POST_CATEGORY.gallery]: {
     icon: 'barbell',
     tint: '#E5F6EA',
     iconBg: Colors.accentInk,
     border: '#2E8A58',
   },
-  {
-    id: 'workshop',
-    label: 'Workshop & Event',
+  [POST_CATEGORY.event]: {
     icon: 'calendar',
     tint: '#F3EAFB',
     iconBg: '#8B63E0',
     border: '#C3A4F4',
   },
-  {
-    id: 'success',
-    label: 'Client Success',
+  [POST_CATEGORY.success]: {
     icon: 'people',
     tint: '#FDE8D4',
     iconBg: '#F08A2C',
     border: '#F0B27A',
   },
-];
-
-function approxBase64Bytes(b64: string): number {
-  const padding = b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0;
-  return Math.max(0, Math.floor((b64.length * 3) / 4) - padding);
-}
+};
+const DEFAULT_LOOK = CATEGORY_LOOK[POST_CATEGORY.gallery]!;
 
 function fileNameFromUri(uri: string): string {
   const clean = uri.split('?')[0] ?? '';
   try {
     const name = decodeURIComponent(clean.split('/').pop() ?? '');
-    return name || 'Selected photo';
+    return name || 'Selected media';
   } catch {
-    return clean.split('/').pop() || 'Selected photo';
+    return clean.split('/').pop() || 'Selected media';
   }
 }
 
@@ -138,52 +124,61 @@ export default function EditEventsScreen({
   navigation,
   route,
 }: EventsStackScreenProps<'AddEvent'>) {
-  const eventId = route.params?.eventId;
+  const postId = route.params?.postId;
   const profileQuery = useQuery({
     queryKey: queryKeys.coachProfileFull,
     queryFn: getCoachProfileFull,
   });
+  const postsQuery = useQuery({ queryKey: queryKeys.myPosts, queryFn: getMyPosts });
+  const categoriesQuery = useQuery({
+    queryKey: queryKeys.postCategories,
+    queryFn: getPostCategories,
+    staleTime: 10 * 60_000,
+  });
 
-  const errorMessage =
-    profileQuery.isError && !profileQuery.data
-      ? getErrorMessage(profileQuery.error, 'Could not load your events.')
-      : null;
-
-  const missingEvent =
-    !!eventId &&
-    !!profileQuery.data &&
-    !(profileQuery.data.events ?? []).some(event => event.id === eventId);
+  const loading =
+    profileQuery.isPending || categoriesQuery.isPending || (!!postId && postsQuery.isPending);
+  const failed = [profileQuery, categoriesQuery, ...(postId ? [postsQuery] : [])].find(
+    q => q.isError && !q.data,
+  );
+  const existing = postId ? (postsQuery.data ?? []).find(p => p.postId === postId) : undefined;
 
   return (
     <View style={styles.container}>
       <WaveScreenHeader
-        title="Add Event"
+        title={postId ? 'Edit Post' : 'Add Gallery / Event'}
         onBack={() => navigation.goBack()}
         onHome={() => navigateToDashboard(navigation)}
       />
 
-      {profileQuery.isPending ? (
+      {loading ? (
         <ActivityIndicator color={Colors.secondary} style={{ marginTop: 60 }} />
-      ) : errorMessage ? (
+      ) : failed ? (
         <ReloadState
-          title="Could not load events"
-          message={errorMessage}
-          onRetry={() => void profileQuery.refetch()}
-          loading={profileQuery.isFetching}
+          title="Could not load this screen"
+          message={getErrorMessage(failed.error, 'Please try again.')}
+          onRetry={() => {
+            void profileQuery.refetch();
+            void categoriesQuery.refetch();
+            void postsQuery.refetch();
+          }}
+          loading={failed.isFetching}
           showPullHint={false}
         />
-      ) : missingEvent ? (
+      ) : postId && !existing ? (
         <ReloadState
-          title="Event not found"
-          message="This event is no longer on your list."
+          title="Post not found"
+          message="This post is no longer on your list."
           onRetry={() => navigation.goBack()}
-          retryLabel="Back to events"
+          retryLabel="Back to gallery and events"
           showPullHint={false}
         />
       ) : (
-        <AddGalleryEventForm
-          profile={profileQuery.data!}
-          eventId={eventId}
+        <PostForm
+          key={postId ?? 'new'}
+          coachCode={profileQuery.data!.coachCode}
+          categories={categoriesQuery.data ?? []}
+          existing={existing}
           onDone={() => navigation.goBack()}
         />
       )}
@@ -191,37 +186,47 @@ export default function EditEventsScreen({
   );
 }
 
-function AddGalleryEventForm({
-  profile,
-  eventId,
+function PostForm({
+  coachCode,
+  categories,
+  existing,
   onDone,
 }: {
-  profile: CoachProfileFull;
-  eventId?: string;
+  coachCode: string;
+  categories: PostCategoryOption[];
+  existing?: CoachPost;
   onDone: () => void;
 }) {
-  const existing = eventId ? (profile.events ?? []).find(event => event.id === eventId) : undefined;
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const locationRef = useRef<TextInput>(null);
   const savingRef = useRef(false);
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<CoachEvent>(() =>
-    existing ? { ...existing, imageUrl: existing.imageUrl ?? '' } : createEmptyEvent(),
+  const [categoryCode, setCategoryCode] = useState(
+    existing?.categoryCode ?? categories[0]?.code ?? POST_CATEGORY.gallery,
   );
-  const editingId = existing?.id ?? null;
-  const [category, setCategory] = useState<EventCategoryId>('training');
-  const [clientCode, setClientCode] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [clientOpen, setClientOpen] = useState(false);
-  const [consent, setConsent] = useState(true);
-  const [dateOpen, setDateOpen] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState(existing?.mediaUrl ?? '');
+  const [isVideo, setIsVideo] = useState(existing?.mediaType === 'video');
   const [pickedName, setPickedName] = useState(() =>
-    existing?.imageUrl ? fileNameFromUri(existing.imageUrl) : '',
+    existing?.mediaUrl ? fileNameFromUri(existing.mediaUrl) : '',
   );
+  const [title, setTitle] = useState(existing?.title ?? '');
+  const [description, setDescription] = useState(existing?.description ?? '');
+  const [date, setDate] = useState(existing?.postDate || formatLocalDate(new Date()));
+  const [location, setLocation] = useState(existing?.location ?? '');
+  const [clientCode, setClientCode] = useState(existing?.clientCode ?? '');
+  const [clientName, setClientName] = useState(existing?.clientName ?? '');
+  const [clientOpen, setClientOpen] = useState(false);
+  const [consent, setConsent] = useState(existing?.consentAccepted ?? false);
+  const [dateOpen, setDateOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+
+  const category = categories.find(c => c.code === categoryCode);
+  const isGallery = categoryCode === POST_CATEGORY.gallery;
+  const clientEnabled = !!category?.requiresClient;
+  const consentRequired = !!category?.requiresConsent;
 
   const showBanner = useCallback((message: string) => {
     setBanner(message);
@@ -229,20 +234,20 @@ function AddGalleryEventForm({
   }, []);
 
   const clientsQuery = useQuery({
-    queryKey: queryKeys.clientList(profile.coachCode),
-    queryFn: () => getClientList({ coachCode: profile.coachCode }),
-    enabled: !!profile.coachCode,
+    queryKey: queryKeys.clientList(coachCode),
+    queryFn: () => getClientList({ coachCode }),
+    enabled: !!coachCode && clientEnabled,
   });
 
+  // Client Success: fill the location from the client's profile when it is still empty.
   useEffect(() => {
-    if (category !== 'success' || !clientCode) return;
+    if (!clientEnabled || !clientCode) return;
     let cancelled = false;
     void getClientDetail({ clientCode })
       .then(detail => {
         if (cancelled) return;
         const loc = detail.location?.trim() ?? '';
-        if (!loc) return;
-        setDraft(current => (current.location.trim() ? current : { ...current, location: loc }));
+        if (loc) setLocation(current => (current.trim() ? current : loc));
       })
       .catch(err => {
         if (cancelled) return;
@@ -253,43 +258,37 @@ function AddGalleryEventForm({
     return () => {
       cancelled = true;
     };
-  }, [category, clientCode, showBanner]);
+  }, [clientEnabled, clientCode, showBanner]);
 
-  const pickImage = async () => {
+  const pickMedia = async () => {
     if (uploading) return;
-    if (!profile.coachCode) {
-      showBanner('Your profile is still loading. Try the photo again in a moment.');
-      return;
-    }
-    const picked = await pickImageFromCameraOrLibrary({
-      allowsEditing: true,
-      aspect: [16, 10],
-      quality: 0.75,
-    });
+    const picked = await pickPostMedia();
     if (!picked) return;
-    if (approxBase64Bytes(picked.base64) > MAX_UPLOAD_BYTES) {
+    if (picked.bytes > POST_MEDIA_MAX_BYTES || !picked.base64) {
       showBanner('Photo or video must be 10MB or smaller.');
       return;
     }
 
-    const previousUrl = draft.imageUrl ?? '';
+    const previous = { url: mediaUrl, video: isVideo, name: pickedName };
     setPickedName(fileNameFromUri(picked.uri));
-    setDraft(current => ({ ...current, imageUrl: picked.uri }));
+    setIsVideo(picked.isVideo);
+    setMediaUrl(picked.uri);
     setUploading(true);
     try {
       const url = await uploadDocument({
         base64DataUrl: `data:${picked.mimeType};base64,${picked.base64}`,
-        coachCode: profile.coachCode,
-        refCode: profile.coachCode,
+        coachCode,
+        refCode: coachCode,
         refType: COACH_GALLERY_REF_TYPE,
-        docType: COACH_EVENT_IMAGE_DOC_TYPE,
+        docType: POST_MEDIA_DOC_TYPE,
         savedBy: getDocumentSavedById(),
       });
-      setDraft(current => ({ ...current, imageUrl: url }));
+      setMediaUrl(url);
     } catch (err) {
-      setDraft(current => ({ ...current, imageUrl: previousUrl }));
-      setPickedName(previousUrl ? fileNameFromUri(previousUrl) : '');
-      showBanner(getErrorMessage(err, 'Could not upload photo. Please try again.'));
+      setMediaUrl(previous.url);
+      setIsVideo(previous.video);
+      setPickedName(previous.name);
+      showBanner(getErrorMessage(err, 'Could not upload. Please try again.'));
     } finally {
       setUploading(false);
     }
@@ -297,71 +296,51 @@ function AddGalleryEventForm({
 
   const handleSave = async () => {
     if (savingRef.current || saving) return;
-    if (!draft.title.trim()) {
-      showBanner('Add a title before publishing.');
-      return;
+    if (!category) return showBanner('Choose a category.');
+    if (!mediaUrl || isPendingLocalMediaUrl(mediaUrl)) {
+      return showBanner(
+        uploading || mediaUrl
+          ? 'Please wait for the upload to finish.'
+          : 'Add a photo or video before publishing.',
+      );
     }
-    if (!consent) {
-      showBanner('Confirm you have the right to share this content.');
-      return;
-    }
-    if (category === 'success' && !clientCode) {
-      showBanner('Select a client for Client Success.');
-      return;
-    }
-    if (uploading || isPendingLocalMediaUrl(draft.imageUrl)) {
-      showBanner('Please wait for the photo upload to finish.');
-      return;
-    }
-
-    const source = profile.events ?? [];
-    const isEdit = editingId != null && source.some(event => event.id === editingId);
-    if (!isEdit && source.length >= MAX_COACH_EVENTS) {
-      showBanner(`You can add up to ${MAX_COACH_EVENTS} events.`);
-      return;
-    }
-
-    const next = isEdit
-      ? source.map(event => (event.id === editingId ? { ...draft } : event))
-      : [...source, { ...draft }];
-
-    const eventsError = validateCoachEventsDraft(next);
-    if (eventsError) {
-      showBanner(eventsError);
-      return;
-    }
-    if (next.some(event => isPendingLocalMediaUrl(event.imageUrl))) {
-      showBanner('Please wait for the photo upload to finish.');
-      return;
+    if (clientEnabled && !clientCode) return showBanner('Select a client for Client Success.');
+    if (!title.trim()) return showBanner('Add a title before publishing.');
+    if (consentRequired && !consent) {
+      return showBanner('Confirm you have the right to share this content.');
     }
 
     setBanner(null);
     savingRef.current = true;
     setSaving(true);
     try {
-      const serialized = serializeCoachEvents(next);
-      const latest = await getCoachProfileFull();
-      await saveCoachProfile(
-        buildSaveCoachProfileParams(latest, {
-          events: serialized,
-        }),
-      );
-      invalidateCoachProfileCaches(queryClient, latest.coachCode);
-      Alert.alert('Events saved', 'Your events have been updated.', [
+      await savePost({
+        postId: existing?.postId ?? 0,
+        categoryCode: category.code,
+        title: title.trim(),
+        description: description.trim(),
+        postDate: date,
+        location: location.trim(),
+        clientCode: clientEnabled ? clientCode : '',
+        mediaUrl,
+        consentAccepted: consentRequired ? consent : false,
+      });
+      void queryClient.invalidateQueries({ queryKey: ['showcase'] });
+      Alert.alert('Published', 'Your post is on your public profile.', [
         { text: 'OK', onPress: onDone },
       ]);
     } catch (err) {
+      showBanner(getErrorMessage(err, 'Could not publish. Please try again.'));
+    } finally {
       savingRef.current = false;
       setSaving(false);
-      showBanner(getErrorMessage(err, 'Could not save this event. Please try again.'));
     }
   };
 
-  const parsedDate = parseFlexibleDate(draft.date);
-  const dateLabel = parsedDate ? formatCalendarLabel(parsedDate) : draft.date.trim();
-  const previewUri = resolveMediaUrl(draft.imageUrl);
+  const parsedDate = parseFlexibleDate(date);
+  const dateLabel = parsedDate ? formatCalendarLabel(parsedDate) : date.trim();
+  const previewUri = resolveMediaUrl(mediaUrl);
   const publishDisabled = saving || uploading;
-  const clientEnabled = category === 'success';
   const clientLabel = clientEnabled && clientName ? clientName : 'Select Client';
 
   return (
@@ -377,20 +356,21 @@ function AddGalleryEventForm({
         <Text style={styles.cardTitle}>Category</Text>
         <View style={styles.underline} />
         <View style={styles.chipRow}>
-          {CATEGORIES.map(item => {
-            const selected = category === item.id;
+          {categories.map(item => {
+            const look = CATEGORY_LOOK[item.code] ?? DEFAULT_LOOK;
+            const selected = categoryCode === item.code;
             return (
               <TouchableOpacity
-                key={item.id}
+                key={item.code}
                 style={[
                   styles.chip,
                   selected
-                    ? { backgroundColor: item.tint, borderColor: item.border }
+                    ? { backgroundColor: look.tint, borderColor: look.border }
                     : styles.chipIdle,
                 ]}
                 onPress={() => {
-                  setCategory(item.id);
-                  if (item.id !== 'success') {
+                  setCategoryCode(item.code);
+                  if (!item.requiresClient) {
                     setClientCode('');
                     setClientName('');
                     setClientOpen(false);
@@ -401,8 +381,8 @@ function AddGalleryEventForm({
                 accessibilityState={{ selected }}
                 accessibilityLabel={item.label}
               >
-                <View style={[styles.chipIcon, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon} size={12} color={Colors.white} />
+                <View style={[styles.chipIcon, { backgroundColor: look.iconBg }]}>
+                  <Ionicons name={look.icon} size={12} color={Colors.white} />
                 </View>
                 <Text
                   style={[styles.chipLabel, selected && styles.chipLabelSelected]}
@@ -421,7 +401,7 @@ function AddGalleryEventForm({
         <View style={styles.underline} />
         <TouchableOpacity
           style={styles.uploadBox}
-          onPress={() => void pickImage()}
+          onPress={() => void pickMedia()}
           disabled={uploading}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
@@ -429,9 +409,15 @@ function AddGalleryEventForm({
         >
           {previewUri ? (
             <View style={styles.previewWrap}>
-              <Image source={{ uri: previewUri }} style={styles.preview} />
+              {isVideo ? (
+                <View style={[styles.preview, styles.videoPlate]}>
+                  <Ionicons name="videocam" size={IconSize.xxl} color={Colors.accentInk} />
+                </View>
+              ) : (
+                <Image source={{ uri: previewUri }} style={styles.preview} />
+              )}
               <Text style={styles.previewName} numberOfLines={1}>
-                {pickedName || fileNameFromUri(draft.imageUrl ?? '')}
+                {pickedName || fileNameFromUri(mediaUrl)}
               </Text>
               {uploading ? (
                 <ActivityIndicator color={Colors.accentInk} style={styles.previewSpinner} />
@@ -483,14 +469,35 @@ function AddGalleryEventForm({
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.fieldLabel}>Title</Text>
+        <Text style={styles.fieldLabel}>{isGallery ? 'Tag' : 'Title'}</Text>
         <View style={styles.field}>
           <TextInput
             style={styles.input}
-            value={draft.title}
-            onChangeText={title => setDraft(current => ({ ...current, title }))}
-            placeholder="Enter title here.."
+            value={title}
+            onChangeText={setTitle}
+            maxLength={POST_TITLE_MAX}
+            placeholder={
+              isGallery ? 'What is this photo for? e.g. Morning batch' : 'Enter title here..'
+            }
+            accessibilityLabel={isGallery ? 'Tag' : 'Title'}
             placeholderTextColor={Colors.textLight}
+          />
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.fieldLabel}>Description</Text>
+        <View style={[styles.field, styles.fieldTall]}>
+          <TextInput
+            style={[styles.input, styles.inputMultiline]}
+            value={description}
+            onChangeText={setDescription}
+            maxLength={POST_DESCRIPTION_MAX}
+            multiline
+            textAlignVertical="top"
+            placeholder="Tell clients about it"
+            placeholderTextColor={Colors.textLight}
+            accessibilityLabel="Description"
           />
         </View>
       </View>
@@ -520,8 +527,8 @@ function AddGalleryEventForm({
         visible={dateOpen}
         title="Date"
         value={parsedDate}
-        onConfirm={date => {
-          setDraft(current => ({ ...current, date: formatLocalDate(date) }));
+        onConfirm={picked => {
+          setDate(formatLocalDate(picked));
           setDateOpen(false);
         }}
         onClose={() => setDateOpen(false)}
@@ -549,8 +556,9 @@ function AddGalleryEventForm({
           <TextInput
             ref={locationRef}
             style={styles.input}
-            value={draft.location}
-            onChangeText={location => setDraft(current => ({ ...current, location }))}
+            value={location}
+            onChangeText={setLocation}
+            maxLength={POST_LOCATION_MAX}
             placeholder="Enter Location Here"
             placeholderTextColor={Colors.textLight}
           />
@@ -559,23 +567,25 @@ function AddGalleryEventForm({
           (You can auto populate the client location for success)
         </Text>
 
-        <TouchableOpacity
-          style={styles.consent}
-          onPress={() => setConsent(value => !value)}
-          activeOpacity={PressOpacity.default}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: consent }}
-          accessibilityLabel="By publishing, you confirm that you have the right to share this content."
-        >
-          <View style={[styles.check, !consent && styles.checkOff]}>
-            {consent ? (
-              <Ionicons name="checkmark-outline" size={IconSize.sm} color={Colors.white} />
-            ) : null}
-          </View>
-          <Text style={styles.consentText}>
-            By publishing, you confirm that you have the right to share this content.
-          </Text>
-        </TouchableOpacity>
+        {consentRequired ? (
+          <TouchableOpacity
+            style={styles.consent}
+            onPress={() => setConsent(value => !value)}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: consent }}
+            accessibilityLabel="By publishing, you confirm that you have the right to share this content."
+          >
+            <View style={[styles.check, !consent && styles.checkOff]}>
+              {consent ? (
+                <Ionicons name="checkmark-outline" size={IconSize.sm} color={Colors.white} />
+              ) : null}
+            </View>
+            <Text style={styles.consentText}>
+              By publishing, you confirm that you have the right to share this content.
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.publish, publishDisabled && styles.publishDisabled]}
@@ -823,6 +833,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: Colors.background,
   },
+  videoPlate: { alignItems: 'center', justifyContent: 'center', backgroundColor: FIELD_MINT },
+  fieldTall: { minHeight: 110, alignItems: 'flex-start', paddingTop: Spacing.sm },
+  inputMultiline: { minHeight: 90, width: '100%' },
   previewName: {
     alignSelf: 'stretch',
     fontFamily: FontFamily.medium,

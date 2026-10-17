@@ -10,7 +10,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.meracoach.app",
+      "bundleIdentifier": "com.henchsolutions.meracoach",
       "buildNumber": "1",
       "icon": "./assets/platform/icon.png",
       "config": {

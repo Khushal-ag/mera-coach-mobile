@@ -52,8 +52,6 @@ import { uploadDocument } from '../../api/documentApi';
 import { getErrorMessage } from '../../api/client';
 import { LOCAL_LANGUAGE_OPTIONS } from '../../data/localLanguages';
 import { sanitizePinInput, validateCoachProfileEdit } from '../../utils/validation';
-import { serializeCoachEvents } from '../../utils/coachEvents';
-import { serializeCoachPackages } from '../../utils/coachPackages';
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../../hooks/usePinLocationLookup';
@@ -333,8 +331,6 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       const addLineTrimmed = addLine.trim();
       const pinCodeTrimmed = pinCode.trim();
       const coachDescTrimmed = coachDesc.trim();
-      // Preserve packages/events from the latest profile so core save cannot wipe them.
-      const latest = await getCoachProfileFull();
       await saveCoachProfile({
         coachId: profile.coachId,
         coachName: coachName.trim(),
@@ -363,11 +359,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         coachDesc: coachDescTrimmed,
         bmiReportTemplate: bmiReportTemplate.trim(),
         dietChartTemplate: dietChartTemplate.trim(),
-        packages: serializeCoachPackages(latest.packages),
-        events: serializeCoachEvents(latest.events),
       });
       await updateSessionFullName(coachName.trim());
-      invalidateCoachProfileCaches(queryClient, profile.coachCode, { gallery: true });
+      invalidateCoachProfileCaches(queryClient, profile.coachCode);
       Alert.alert('Profile Updated', 'Your changes have been saved.', [
         { text: 'OK', onPress: onDone },
       ]);

@@ -31,13 +31,13 @@ Coaches manage clients, deliver assessments, and keep the public listing that br
 
 ## One place for the coaching journey
 
-|        | Journey            | What happens                                                                                      |
-| ------ | ------------------ | ------------------------------------------------------------------------------------------------- |
-| **01** | **Discover**       | Marketing hero, then explore — banner, categories, features, Check Your BMI — no sign-in required |
-| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number                             |
-| **03** | **Manage**         | Tabs: Dashboard, Packages, Events, Profile. Clients, leads, and due checkups sit under Dashboard  |
-| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS                       |
-| **05** | **Build presence** | Packages, Events, and Photo gallery each open a list; add or create is its own screen             |
+|        | Journey            | What happens                                                                                         |
+| ------ | ------------------ | ---------------------------------------------------------------------------------------------------- |
+| **01** | **Discover**       | Marketing hero, then explore — banner, categories, features, Check Your BMI — no sign-in required    |
+| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number                                |
+| **03** | **Manage**         | Tabs: Dashboard, Packages, Events, Profile. Clients, leads, and due checkups sit under Dashboard     |
+| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS                          |
+| **05** | **Build presence** | Packages and Gallery & Events (one screen, three categories) each open a list; add is its own screen |
 
 Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS later) · API via `EXPO_PUBLIC_API_BASE_URL` (photos & PDFs on the same host)
 
@@ -81,9 +81,9 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 ### Build presence
 
 <div align="center">
-  <img src="docs/screenshots/profile.png" width="360" alt="Profile — coach summary, with Photo gallery, Packages, and Events" />
+  <img src="docs/screenshots/profile.png" width="360" alt="Profile — coach summary, with Packages and Gallery & Events" />
   <br />
-  <sub><b>Profile</b><br />Account hub. Photo gallery, Packages, and Events each start as a list</sub>
+  <sub><b>Profile</b><br />Account hub. Packages and Gallery & Events each start as a list</sub>
 </div>
 
 <p align="center"><sub>iOS Simulator · light mode</sub></p>
@@ -97,19 +97,19 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 3. **Coach sign-in** — Register or log in. On return, unlock with MPIN. Land on Dashboard.
 4. **Run the practice** — Signed-in tabs are Dashboard, Packages, Events, and Profile. Dashboard tracks clients, enquiry leads, and due checkups. Add a client to start an assessment.
 5. **Assess & deliver** — Body stats → lifestyle → goals → BMI → multi-meal diet. Share BMI and diet PDFs. Ask for feedback via SMS (links to the site).
-6. **Shape the listing** — Packages, Events, and Photo gallery open a list first. Add or create (Package Creation, Add Event, Add Gallery) is a separate screen with a back button.
+6. **Shape the listing** — Packages and Gallery & Events open a list first. Adding is a separate screen with a back button. A package picks a product master and products from the database and the coach sets each price and the total. A post picks one of three categories from the database (Gallery, Workshop & Event, Client Success), adds a photo or video, and is saved to the API; Client Success also needs a client and consent. Gallery photos carry a short tag.
 
 ---
 
 ## Features
 
-| Area                      | What you get                                                                                                                             |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery**             | Two-page public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                 |
-| **Practice hub**          | Tabs: Dashboard, Packages, Events, Profile · clients, leads, checkups due                                                                |
-| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS                                 |
-| **Public presence**       | One coach photo, arrows through the browse list · gallery, packages, and events as lists · enquiry & BMI leads · WhatsApp when available |
-| **Account**               | Coach register / login · MPIN · password change · privacy & terms · support via `hello@mera-coach.com`                                   |
+| Area                      | What you get                                                                                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery**             | Two-page public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                                    |
+| **Practice hub**          | Tabs: Dashboard, Packages, Events (Gallery & Events), Profile · clients, leads, checkups due                                                                |
+| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS                                                    |
+| **Public presence**       | One coach photo, arrows through the browse list · packages, gallery, events and success stories as sections · enquiry & BMI leads · WhatsApp when available |
+| **Account**               | Coach register / login · MPIN · password change · privacy & terms · support via `hello@mera-coach.com`                                                      |
 
 ---
 
@@ -117,7 +117,7 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 
 - **Discovery and delivery share one product** — visitors browse; coaches work the same app after sign-in.
 - **Assessment that finishes the job** — body stats through BMI and diet, with PDFs coaches can share.
-- **A listing that brings work in** — Packages, Events, and Photo gallery are lists you add to; enquiries and WhatsApp close the loop.
+- **A listing that brings work in** — Packages and Gallery & Events are lists you add to; enquiries and WhatsApp close the loop.
 - **Thoughtful mobile UX** — Montserrat headings, Poppins body text, teal, terracotta, and mint, wave header on in-app screens (Dashboard uses its own header)
 
 ---
@@ -190,7 +190,7 @@ flowchart LR
   subgraph coaches [Coaches]
     Auth[Login / Register / MPIN] --> Tabs["Dashboard · Packages · Events · Profile"]
     Tabs --> Clients
-    Tabs --> Listing["Gallery · Packages · Events lists"]
+    Tabs --> Listing["Packages · Gallery & Events lists"]
     Clients --> Assess[Assessment · BMI · Diet · PDF]
   end
   App[Mera Coach app] --> API["REST API + /document"]
@@ -252,6 +252,19 @@ Never commit real `.env` values. Support: `hello@mera-coach.com`
 </details>
 
 ---
+
+### Native builds
+
+The app id is `com.henchsolutions.meracoach` on iOS and Android (`app.json`). `ios/` and `android/` are generated and git-ignored; regenerate with `npx expo prebuild --clean`.
+
+```bash
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo run:ios --device "<simulator name>"
+```
+
+- CocoaPods needs a UTF-8 locale, or `pod install` crashes.
+- `ios/.xcode.env.local` should use `NODE_BINARY=/opt/homebrew/bin/node`, not a versioned Cellar path that breaks when node is upgraded.
+- Expo SDK 57 apps do not use the UIScene lifecycle, so they crash on launch on an iOS 27 simulator. Use an iOS 26.x simulator until the project moves to Expo SDK 58.
+- Picking a video for a post needs a native build that includes `expo-file-system`.
 
 ## Releases
 

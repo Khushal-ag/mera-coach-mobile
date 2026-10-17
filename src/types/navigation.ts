@@ -43,19 +43,17 @@ export type CheckupsStackParamList = Pick<DashboardStackParamList, 'CheckupListH
 
 export type PackagesStackParamList = {
   PackagesHome: undefined;
-  EditPackages: { packageId?: string } | undefined;
+  EditPackages: { packageId?: number } | undefined;
 };
 
 export type EventsStackParamList = {
   EventsHome: undefined;
-  AddEvent: { eventId?: string } | undefined;
+  AddEvent: { postId?: number } | undefined;
 };
 
 export type ProfileStackParamList = {
   ProfileHome: undefined;
   EditProfile: undefined;
-  GalleryHome: undefined;
-  EditGallery: undefined;
   ChangePassword: undefined;
   ChangeMpin: undefined;
   Legal: undefined;

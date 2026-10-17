@@ -1,54 +1,18 @@
-import type { DietItem, DietPlan } from '../types/models';
+import type { DietPlan } from '../types/models';
 
 interface MealSlot {
   id: string;
   label: string;
-  defaults: DietItem[];
 }
 
+/** Meal slots of a day. Foods come from the food master (API), never from here. */
 export const MEAL_SLOTS: MealSlot[] = [
-  {
-    id: 'earlyMorning',
-    label: 'Early Morning',
-    defaults: [
-      { name: 'Warm water with lemon', qty: 1, kcal: 5 },
-      { name: 'Black coffee (1 cup)', qty: 1, kcal: 5 },
-    ],
-  },
-  {
-    id: 'breakfast',
-    label: 'Breakfast',
-    defaults: [{ name: 'Paratha with butter (1 pc)', qty: 1, kcal: 200 }],
-  },
-  {
-    id: 'midMorningSnack',
-    label: 'Mid-Morning Snack',
-    defaults: [{ name: 'Buttermilk / Chaas (1 glass)', qty: 1, kcal: 60 }],
-  },
-  {
-    id: 'lunch',
-    label: 'Lunch',
-    defaults: [
-      { name: 'Roti / Chapati (1 pc)', qty: 1, kcal: 80 },
-      { name: 'Dal makhani (1 katori)', qty: 1, kcal: 200 },
-      { name: 'Sabzi / Veg curry (1 katori)', qty: 1, kcal: 80 },
-      { name: 'Curd / Raita (1 katori)', qty: 1, kcal: 120 },
-    ],
-  },
-  {
-    id: 'eveningSnack',
-    label: 'Evening Snack',
-    defaults: [{ name: 'Chai with milk & sugar (1 cup)', qty: 1, kcal: 80 }],
-  },
-  {
-    id: 'dinner',
-    label: 'Dinner',
-    defaults: [
-      { name: 'Roti / Chapati (1 pc)', qty: 1, kcal: 80 },
-      { name: 'Sabzi / Veg curry (1 katori)', qty: 1, kcal: 80 },
-      { name: 'Mix veg curry (1 katori)', qty: 1, kcal: 120 },
-    ],
-  },
+  { id: 'earlyMorning', label: 'Early Morning' },
+  { id: 'breakfast', label: 'Breakfast' },
+  { id: 'midMorningSnack', label: 'Mid-Morning Snack' },
+  { id: 'lunch', label: 'Lunch' },
+  { id: 'eveningSnack', label: 'Evening Snack' },
+  { id: 'dinner', label: 'Dinner' },
 ];
 
 /** True when no meal slot has any food items. */

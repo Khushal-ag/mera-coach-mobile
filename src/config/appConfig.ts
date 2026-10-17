@@ -38,11 +38,5 @@ export function isSubscriptionRequired(): boolean {
   return raw === 'yes' || raw === 'true' || raw === '1';
 }
 
-/** Document/list + upload docType for coach public photo gallery. */
-export const COACH_GALLERY_DOC_TYPE = 'GALLERY';
+/** Owner type of a coach's own uploaded files (post photos and videos). */
 export const COACH_GALLERY_REF_TYPE = 'COACH';
-export const COACH_GALLERY_MAX_PHOTOS = 12;
-
-/** Document upload docTypes for package/event covers (refType COACH; segregated from CLIENT progress photos). */
-export const COACH_PACKAGE_IMAGE_DOC_TYPE = 'PACKAGE_IMAGE';
-export const COACH_EVENT_IMAGE_DOC_TYPE = 'EVENT_IMAGE';

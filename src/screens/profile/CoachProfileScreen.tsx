@@ -63,18 +63,13 @@ const publicProfileItems: MenuItem[] = [
     action: 'shareProfile',
   },
   {
-    icon: 'images-outline',
-    label: 'Photo gallery',
-    route: 'GalleryHome',
-  },
-  {
     icon: 'pricetags-outline',
     label: 'Packages',
     tab: 'Packages',
   },
   {
     icon: 'calendar-outline',
-    label: 'Events',
+    label: 'Gallery & Events',
     tab: 'Events',
   },
 ];

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -17,7 +16,6 @@ import {
   FontFamily,
   IconSize,
   ListCard,
-  ListPortrait,
   PressOpacity,
   ScreenPad,
   Shadow,
@@ -30,82 +28,57 @@ import FormErrorBanner from '../../components/FormErrorBanner';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
-import {
-  buildSaveCoachProfileParams,
-  getCoachProfileFull,
-  saveCoachProfile,
-} from '../../api/coachApi';
 import { getErrorMessage } from '../../api/client';
-import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
-import { refreshControlTheme, useRefreshControl } from '../../hooks/useRefreshControl';
+import { queryKeys } from '../../api/queryKeys';
 import {
-  MAX_COACH_PACKAGES,
-  serializeCoachPackages,
-  validateCoachPackagesDraft,
-} from '../../utils/coachPackages';
-import { resolveMediaUrl } from '../../utils/mediaUrl';
+  deletePackage,
+  getMyPackages,
+  MAX_PACKAGES,
+  type ShowcasePackage,
+} from '../../api/showcaseApi';
+import { refreshControlTheme, useRefreshControl } from '../../hooks/useRefreshControl';
+import { formatMoney } from '../../utils/formatMoney';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { PackagesStackScreenProps } from '../../types/navigation';
-import type { CoachPackage } from '../../types/models';
 
 const CANVAS = '#F3FAF7';
 const PAGE_SIZE = 5;
 
 export default function PackagesScreen({ navigation }: PackagesStackScreenProps<'PackagesHome'>) {
   const queryClient = useQueryClient();
-  const profileQuery = useQuery({
-    queryKey: queryKeys.coachProfileFull,
-    queryFn: getCoachProfileFull,
-  });
-  const refreshControl = useRefreshControl(profileQuery);
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const packagesQuery = useQuery({ queryKey: queryKeys.myPackages, queryFn: getMyPackages });
+  const refreshControl = useRefreshControl(packagesQuery);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const errorMessage =
-    profileQuery.isError && !profileQuery.data
-      ? getErrorMessage(profileQuery.error, 'Could not load your packages.')
+    packagesQuery.isError && !packagesQuery.data
+      ? getErrorMessage(packagesQuery.error, 'Could not load your packages.')
       : null;
 
-  const packages = profileQuery.data?.packages ?? [];
-  const atMax = packages.length >= MAX_COACH_PACKAGES;
+  const packages = packagesQuery.data ?? [];
+  const atMax = packages.length >= MAX_PACKAGES;
   const totalPages = Math.max(1, Math.ceil(packages.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagePackages = packages.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const goAdd = () => {
     if (atMax) {
-      setActionError(`You can add up to ${MAX_COACH_PACKAGES} packages.`);
+      setActionError(`You can add up to ${MAX_PACKAGES} packages.`);
       return;
     }
     setActionError(null);
     navigation.navigate('EditPackages');
   };
 
-  const goEdit = (pkg: CoachPackage) => {
-    navigation.navigate('EditPackages', { packageId: pkg.id });
-  };
-
-  const persistRemove = async (id: string) => {
-    const profile = profileQuery.data;
-    if (!profile || removingId) return;
-    const next = (profile.packages ?? []).filter(pkg => pkg.id !== id);
-    const packagesError = validateCoachPackagesDraft(next);
-    if (packagesError) {
-      setActionError(packagesError);
-      return;
-    }
-    setRemovingId(id);
+  const persistRemove = async (pkg: ShowcasePackage) => {
+    if (removingId) return;
+    setRemovingId(pkg.packageId);
     setActionError(null);
     try {
-      const serialized = serializeCoachPackages(next);
-      const latest = await getCoachProfileFull();
-      await saveCoachProfile(
-        buildSaveCoachProfileParams(latest, {
-          packages: serialized,
-        }),
-      );
-      invalidateCoachProfileCaches(queryClient, latest.coachCode);
+      await deletePackage(pkg.packageId);
+      void queryClient.invalidateQueries({ queryKey: ['showcase'] });
     } catch (err) {
       setActionError(getErrorMessage(err, 'Could not remove this package. Please try again.'));
     } finally {
@@ -113,17 +86,10 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
     }
   };
 
-  const confirmRemove = (pkg: CoachPackage) => {
-    const label = pkg.name.trim() || 'this package';
-    Alert.alert('Remove package', `Remove ${label}?`, [
+  const confirmRemove = (pkg: ShowcasePackage) => {
+    Alert.alert('Remove package', `Remove ${pkg.packageName || 'this package'}?`, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          void persistRemove(pkg.id);
-        },
-      },
+      { text: 'Remove', style: 'destructive', onPress: () => void persistRemove(pkg) },
     ]);
   };
 
@@ -149,14 +115,14 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
         <FormErrorBanner message={refreshControl.refreshError} />
       </View>
 
-      {profileQuery.isPending ? (
+      {packagesQuery.isPending ? (
         <ActivityIndicator color={Colors.secondary} style={styles.pending} />
       ) : errorMessage ? (
         <ReloadState
           title="Could not load packages"
           message={errorMessage}
-          onRetry={() => void profileQuery.refetch()}
-          loading={profileQuery.isFetching}
+          onRetry={() => void packagesQuery.refetch()}
+          loading={packagesQuery.isFetching}
           showPullHint={false}
         />
       ) : (
@@ -177,36 +143,33 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
               <Ionicons name="cube-outline" size={IconSize.xxl} color={Colors.accentInk} />
               <Text style={styles.emptyTitle}>No packages yet</Text>
               <Text style={styles.emptyMessage}>
-                Add a coaching package with a name and price for your public profile.
+                Bundle the products you recommend into a package with its own price. It shows on
+                your public profile.
               </Text>
             </View>
           ) : (
-            pagePackages.map((pkg, index) => {
-              const title = pkg.name.trim() || `Package ${(safePage - 1) * PAGE_SIZE + index + 1}`;
-              const price = pkg.price.trim();
-              const removing = removingId === pkg.id;
-              const imageUri = resolveMediaUrl(pkg.imageUrl);
+            pagePackages.map(pkg => {
+              const removing = removingId === pkg.packageId;
               return (
-                <View key={pkg.id} style={styles.card}>
+                <View key={pkg.packageId} style={styles.card}>
                   <TouchableOpacity
                     style={styles.cardMain}
-                    onPress={() => goEdit(pkg)}
+                    onPress={() =>
+                      navigation.navigate('EditPackages', { packageId: pkg.packageId })
+                    }
                     activeOpacity={PressOpacity.default}
                     accessibilityRole="button"
-                    accessibilityLabel={`Edit ${title}`}
+                    accessibilityLabel={`Edit ${pkg.packageName}`}
                   >
-                    {imageUri ? (
-                      <Image source={{ uri: imageUri }} style={styles.photo} resizeMode="cover" />
-                    ) : (
-                      <View style={styles.photo} />
-                    )}
                     <View style={styles.cardBody}>
+                      <Text style={styles.brand}>{pkg.brandName}</Text>
                       <Text style={styles.cardTitle} numberOfLines={2}>
-                        {title}
+                        {pkg.packageName}
                       </Text>
-                      <Text style={price ? styles.cardPrice : styles.cardMeta} numberOfLines={2}>
-                        {price || 'Tap to edit details'}
+                      <Text style={styles.cardMeta} numberOfLines={1}>
+                        {pkg.items.map(item => item.itemName).join(', ')}
                       </Text>
+                      <Text style={styles.cardPrice}>{formatMoney(pkg.totalAmount)}</Text>
                     </View>
                     <Ionicons
                       name="chevron-forward-outline"
@@ -219,7 +182,7 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
                     onPress={() => confirmRemove(pkg)}
                     disabled={removing}
                     accessibilityRole="button"
-                    accessibilityLabel={`Remove ${title}`}
+                    accessibilityLabel={`Remove ${pkg.packageName}`}
                     activeOpacity={PressOpacity.default}
                   >
                     {removing ? (
@@ -275,14 +238,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     ...Shadow.sm,
   },
-  emptyTitle: {
-    ...Typography.headline,
-  },
-  emptyMessage: {
-    ...Typography.body,
-    color: Colors.textLight,
-    textAlign: 'center',
-  },
+  emptyTitle: { ...Typography.headline },
+  emptyMessage: { ...Typography.body, color: Colors.textLight, textAlign: 'center' },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,7 +249,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: ListCard.borderWidth,
     borderColor: ListCard.borderColor,
-    padding: ListPortrait.contentPad,
+    padding: Spacing.sm,
   },
   cardMain: {
     flex: 1,
@@ -301,28 +258,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     minWidth: 0,
   },
-  photo: {
-    width: ListPortrait.width,
-    height: ListPortrait.height,
-    borderRadius: ListPortrait.radius,
-    backgroundColor: Colors.cardTintGreen,
-    overflow: 'hidden',
-    flexShrink: 0,
-  },
   cardBody: { flex: 1, minWidth: 0 },
-  cardTitle: {
-    ...Typography.headline,
-  },
-  cardPrice: {
-    marginTop: 3,
-    ...Typography.bodyStrong,
-    color: Colors.accentInk,
-  },
-  cardMeta: {
-    marginTop: 3,
-    ...Typography.label,
-    fontFamily: FontFamily.regular,
-  },
+  brand: { ...Typography.label, color: Colors.secondary, fontFamily: FontFamily.semibold },
+  cardTitle: { ...Typography.headline },
+  cardMeta: { marginTop: 2, ...Typography.label, fontFamily: FontFamily.regular },
+  cardPrice: { marginTop: 4, ...Typography.bodyStrong, color: Colors.accentInk },
   removeBtn: {
     width: TouchTarget.icon,
     height: TouchTarget.icon,

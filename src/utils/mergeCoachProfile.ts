@@ -23,8 +23,6 @@ export function mergeCoachProfile(
     logoUrl: api.logoUrl || list.logoUrl,
     coverUrl: api.coverUrl || list.coverUrl,
     mobile: api.mobile || list.mobile,
-    packages: api.packages?.length ? api.packages : list.packages,
-    events: api.events?.length ? api.events : list.events,
     // Numbers from profile-by-id: keep API zeros for clients (happyClientCount) / experience.
     // rating/reviews are not client reviews; keep list numbers only so directory data is not dropped.
     rating: api.rating > 0 ? api.rating : list.rating,

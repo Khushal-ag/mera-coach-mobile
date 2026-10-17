@@ -31,8 +31,6 @@ import ChangePasswordScreen from '../screens/auth/ChangePasswordScreen';
 import ChangeMpinScreen from '../screens/auth/ChangeMpinScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
-import GalleryScreen from '../screens/profile/GalleryScreen';
-import EditGalleryScreen from '../screens/profile/EditGalleryScreen';
 import PackagesScreen from '../screens/profile/PackagesScreen';
 import EditPackagesScreen from '../screens/profile/EditPackagesScreen';
 import EventsScreen from '../screens/profile/EventsScreen';
@@ -103,8 +101,6 @@ function ProfileStackNavigator() {
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStack.Screen name="ProfileHome" component={CoachProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
-      <ProfileStack.Screen name="GalleryHome" component={GalleryScreen} />
-      <ProfileStack.Screen name="EditGallery" component={EditGalleryScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <ProfileStack.Screen name="ChangeMpin" component={ChangeMpinScreen} />
       <ProfileStack.Screen name="Legal" component={LegalScreen} />
