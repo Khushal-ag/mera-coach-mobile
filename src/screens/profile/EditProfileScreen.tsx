@@ -17,6 +17,7 @@ import {
   FontFamily,
   FormControl,
   IconSize,
+  HitSlop,
   PressOpacity,
   Radius,
   ScreenPad,
@@ -413,7 +414,14 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         contentContainerStyle={styles.bodyContent}
         keyboardPadding={STICKY_FOOTER_KEYBOARD_PADDING}
       >
-        <StepIndicator step={step} />
+        <StepIndicator
+          step={step}
+          onSelect={next => {
+            if (next === step) return;
+            setStep(next);
+            scrollRef.current?.scrollTo({ y: 0, animated: false });
+          }}
+        />
 
         <FormErrorBanner message={formErrorBanner || pinLookup.error} />
 
@@ -852,30 +860,46 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   );
 }
 
-function StepIndicator({ step }: { step: 1 | 2 }) {
+function StepIndicator({ step, onSelect }: { step: 1 | 2; onSelect: (step: 1 | 2) => void }) {
+  const items: { id: 1 | 2; label: string }[] = [
+    { id: 1, label: 'Photo/ Identify' },
+    { id: 2, label: 'Professional & About/Description' },
+  ];
   return (
-    <View style={styles.stepRow} accessibilityRole="summary">
-      <View style={styles.stepItem}>
-        <View
-          style={[styles.stepCircle, step === 1 ? styles.stepCircleActive : styles.stepCircleIdle]}
-        >
-          <Text style={[styles.stepCircleText, step !== 1 && styles.stepCircleTextIdle]}>1</Text>
-        </View>
-        <Text style={[styles.stepLabel, step === 1 && styles.stepLabelActive]} numberOfLines={2}>
-          Photo/ Identify
-        </Text>
-      </View>
-      <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
-      <View style={styles.stepItem}>
-        <View
-          style={[styles.stepCircle, step === 2 ? styles.stepCircleActive : styles.stepCircleIdle]}
-        >
-          <Text style={[styles.stepCircleText, step !== 2 && styles.stepCircleTextIdle]}>2</Text>
-        </View>
-        <Text style={[styles.stepLabel, step === 2 && styles.stepLabelActive]} numberOfLines={2}>
-          Professional & About/Description
-        </Text>
-      </View>
+    <View style={styles.stepRow}>
+      {items.map((item, index) => {
+        const active = step === item.id;
+        return (
+          <React.Fragment key={item.id}>
+            {index > 0 ? (
+              <View style={[styles.stepLine, step === 2 && styles.stepLineActive]} />
+            ) : null}
+            <TouchableOpacity
+              style={styles.stepItem}
+              onPress={() => onSelect(item.id)}
+              activeOpacity={PressOpacity.default}
+              hitSlop={HitSlop.sm}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Step ${item.id}: ${item.label}`}
+            >
+              <View
+                style={[
+                  styles.stepCircle,
+                  active ? styles.stepCircleActive : styles.stepCircleIdle,
+                ]}
+              >
+                <Text style={[styles.stepCircleText, !active && styles.stepCircleTextIdle]}>
+                  {item.id}
+                </Text>
+              </View>
+              <Text style={[styles.stepLabel, active && styles.stepLabelActive]} numberOfLines={2}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 }

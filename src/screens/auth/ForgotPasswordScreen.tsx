@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, HitSlop, IconSize, PressOpacity, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  HitSlop,
+  IconSize,
+  PressOpacity,
+  Spacing,
+} from '../../constants/theme';
 import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';
 import AuthCtaButton from '../../components/auth/AuthCtaButton';
 import AuthFormHeader from '../../components/auth/AuthFormHeader';
@@ -33,10 +40,17 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [resendIn, setResendIn] = useState(0);
   const { errorFields, formErrorBanner, clearFieldError, clearAllErrors, setBanner } =
     useFormFieldErrors();
 
   const goToLogin = () => navigation.navigate('Login');
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn(n => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
 
   const handleSendReset = async () => {
     if (submittingRef.current) return;
@@ -52,8 +66,29 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
     try {
       await requestPasswordReset(trimmed);
       setStep('confirm');
+      setResendIn(30);
     } catch (err) {
       setBanner(toUserMessage(err, 'Password reset could not be started. Please try again.'));
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (submittingRef.current || resendIn > 0) return;
+    clearAllErrors();
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      await requestPasswordReset(email.trim());
+      setResendIn(30);
+      Alert.alert(
+        'Code sent',
+        'If the account has an email, a new reset code is on its way. Check spam too.',
+      );
+    } catch (err) {
+      setBanner(toUserMessage(err, 'Could not send the code again. Please try again.'));
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -163,7 +198,8 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
             <>
               <Text style={authFormStyles.title}>Set a new password</Text>
               <Text style={authFormStyles.sub}>
-                If a code arrived by email, enter it here. It expires in 30 minutes and works once.
+                Enter the code we emailed you. It expires in 30 minutes and works once. Check your
+                spam folder if it does not arrive.
               </Text>
 
               <View style={authFormStyles.inputWrap}>
@@ -259,6 +295,23 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
                 loading={submitting}
                 style={authFormStyles.ctaBtn}
               />
+
+              <TouchableOpacity
+                onPress={() => void handleResend()}
+                disabled={resendIn > 0 || submitting}
+                style={styles.resend}
+                hitSlop={HitSlop.sm}
+                activeOpacity={PressOpacity.default}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: resendIn > 0 || submitting }}
+                accessibilityLabel="Send the reset code again"
+              >
+                <Text style={[styles.resendText, resendIn > 0 && styles.resendTextOff]}>
+                  {resendIn > 0
+                    ? `Didn't get a code? Send again in ${resendIn}s`
+                    : "Didn't get a code? Send again"}
+                </Text>
+              </TouchableOpacity>
             </>
           )}
 
@@ -285,4 +338,12 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, width: '100%' },
   scrollContent: { alignItems: 'center', paddingBottom: Spacing.lg },
   flexInput: { flex: 1 },
+  resend: {
+    alignSelf: 'center',
+    paddingVertical: Spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  resendText: { fontSize: 13, fontFamily: FontFamily.bold, color: Colors.authCtaGradientStart },
+  resendTextOff: { color: Colors.textLight },
 });

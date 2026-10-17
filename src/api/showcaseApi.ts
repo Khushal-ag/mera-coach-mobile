@@ -13,6 +13,8 @@ export interface ShowcasePackage {
   brandName: string;
   packageName: string;
   totalAmount: number;
+  /** False when the coach has switched the package off (hidden from the public profile). */
+  isActive: boolean;
   items: PackageItem[];
 }
 
@@ -43,6 +45,8 @@ export interface SavePackageInput {
   brandCode: string;
   packageName: string;
   totalAmount: number;
+  /** Omit to keep the current setting (shown for a new package). */
+  isActive?: boolean;
   items: PackageItem[];
 }
 
@@ -69,6 +73,8 @@ export interface PostCategoryOption {
 export interface MasterChoice {
   code: string;
   label: string;
+  /** Suggested price from the product master (products only). The coach can change it. */
+  price?: number;
 }
 
 export const POST_CATEGORY = {
@@ -106,6 +112,7 @@ function mapPackage(raw: unknown): ShowcasePackage {
     brandName: text(r.brandName),
     packageName: text(r.packageName),
     totalAmount: num(r.totalAmount),
+    isActive: r.isActive !== false,
     items: items.map(item => {
       const i = (item ?? {}) as Record<string, unknown>;
       return {
@@ -155,7 +162,12 @@ export async function getProductBrands(): Promise<MasterChoice[]> {
 export async function getProductItems(brandCode: string): Promise<MasterChoice[]> {
   if (!brandCode) return [];
   const items = await fetchMasterItems({ ItemType: 'PRODUCTITEM', filterText: brandCode });
-  return items.map(item => ({ code: item.itemCode, label: item.itemName }));
+  // The master sends its suggested price in `description`.
+  return items.map(item => ({
+    code: item.itemCode,
+    label: item.itemName,
+    price: num(item.description),
+  }));
 }
 
 // Coach's own packages and posts
@@ -167,6 +179,10 @@ export async function getMyPackages(): Promise<ShowcasePackage[]> {
 
 export async function savePackage(input: SavePackageInput): Promise<ShowcasePackage> {
   return mapPackage(await apiPost<unknown>('/v{version}/Showcase/packages', input));
+}
+
+export async function setPackageActive(packageId: number, isActive: boolean): Promise<void> {
+  await apiPost(`/v{version}/Showcase/packages/${packageId}/active`, { isActive });
 }
 
 export async function deletePackage(packageId: number): Promise<void> {

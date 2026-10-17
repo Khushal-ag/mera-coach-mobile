@@ -304,6 +304,8 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   };
   const selectCategory = (value: string) => {
     setActiveCategory(value);
+    // Cities are listed per category, so a city picked earlier may not exist in the new one.
+    setCity(ALL_CITIES);
     setPage(1);
   };
   const selectSearch = (value: string) => {
@@ -331,18 +333,8 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
       getCoachPublicList({ sortBy: 'rating', page: 1, pageSize: TOP_RATED_LIMIT }, signal),
   });
 
-  // Server applies minRating/sortBy; re-apply client-side so older API builds still filter correctly.
-  const filtered = useMemo(() => {
-    let list = coachesQuery.data?.coaches ?? [];
-    if (ratingFilter === '4.0+') list = list.filter(c => c.rating >= 4);
-    else if (ratingFilter === '3.0+') list = list.filter(c => c.rating >= 3);
-
-    if (sort === 'Top Rated') list = [...list].sort((a, b) => b.rating - a.rating);
-    else if (sort === 'Most Reviewed') list = [...list].sort((a, b) => b.reviews - a.reviews);
-    else if (sort === 'Most Experience')
-      list = [...list].sort((a, b) => b.experience - a.experience);
-    return list;
-  }, [coachesQuery.data, sort, ratingFilter]);
+  // The server filters, sorts and counts, so the page shown always matches the total and the pager.
+  const filtered = useMemo(() => coachesQuery.data?.coaches ?? [], [coachesQuery.data]);
 
   const totalCount = coachesQuery.data?.totalCount ?? filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -429,7 +421,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     picker === 'city'
       ? 'Serving City'
       : picker === 'rating'
-        ? 'Coach Category'
+        ? 'Minimum rating'
         : picker === 'sort'
           ? 'Sort by'
           : picker === 'category'
@@ -505,6 +497,14 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
       <View style={styles.filterGrid}>
         <View style={filterCellStyle}>
           <FilterControl
+            icon="person"
+            label="Coach Category"
+            value={categoryLabel}
+            onPress={() => setPicker('category')}
+          />
+        </View>
+        <View style={filterCellStyle}>
+          <FilterControl
             icon="location"
             label="Serving City"
             value={resolvedCity}
@@ -513,15 +513,15 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         </View>
         <View style={filterCellStyle}>
           <FilterControl
-            icon="person"
-            label="Coach Category"
+            icon="star"
+            label="Rating"
             value={ratingFilter}
             onPress={() => setPicker('rating')}
           />
         </View>
         <View style={filterCellStyle}>
           <FilterControl
-            icon="star"
+            icon="swap-vertical"
             label="Sort by"
             value={sort}
             onPress={() => setPicker('sort')}
@@ -818,8 +818,8 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                 }}
               />
               <FilterControl
-                icon="person"
-                label="Coach Category"
+                icon="star"
+                label="Rating"
                 value={ratingFilter}
                 onPress={() => {
                   setCombineOpen(false);
@@ -827,7 +827,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
                 }}
               />
               <FilterControl
-                icon="star"
+                icon="swap-vertical"
                 label="Sort by"
                 value={sort}
                 onPress={() => {

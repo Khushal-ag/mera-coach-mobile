@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Switch,
+  type LayoutChangeEvent,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -108,6 +110,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
   const [sheet, setSheet] = useState<'brand' | 'product' | null>(null);
+  const [isActive, setIsActive] = useState(existing?.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
 
@@ -125,6 +128,19 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const brandLabel = brandsQuery.data?.find(b => b.code === brandCode)?.label ?? '';
   // One product master per package: it locks once items are added.
   const brandLocked = items.length > 0;
+
+  // Where each input sits in the scroll content, so the focused one can be lifted above the keyboard.
+  const fieldY = useRef<Record<string, number>>({});
+  const trackField = (key: string, e: LayoutChangeEvent) => {
+    fieldY.current[key] = e.nativeEvent.layout.y;
+  };
+  const revealField = (key: string) => {
+    // Wait for the keyboard to finish opening, then bring the field (and its label) near the top.
+    setTimeout(() => {
+      const y = fieldY.current[key];
+      if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - 110), animated: true });
+    }, 280);
+  };
 
   const showBanner = (message: string) => {
     setBanner(message);
@@ -173,6 +189,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         brandCode,
         packageName: name.trim(),
         totalAmount,
+        isActive,
         items,
       });
       void queryClient.invalidateQueries({ queryKey: ['showcase'] });
@@ -220,6 +237,8 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
 
         <Text style={styles.label}>Package name</Text>
         <TextInput
+          onLayout={e => trackField('name', e)}
+          onFocus={() => revealField('name')}
           style={[styles.field, styles.input]}
           value={name}
           onChangeText={setName}
@@ -246,8 +265,9 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         </TouchableOpacity>
 
         <Text style={styles.label}>Price</Text>
-        <View style={styles.priceRow}>
+        <View style={styles.priceRow} onLayout={e => trackField('price', e)}>
           <TextInput
+            onFocus={() => revealField('price')}
             style={[styles.field, styles.input, styles.priceInput]}
             value={price}
             onChangeText={setPrice}
@@ -291,6 +311,8 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
 
         <Text style={styles.label}>Total</Text>
         <TextInput
+          onLayout={e => trackField('total', e)}
+          onFocus={() => revealField('total')}
           style={[styles.field, styles.input]}
           value={total}
           onChangeText={value => {
@@ -305,6 +327,24 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         <Text style={styles.hint}>
           Set the price clients pay. It does not have to match the sum of the products.
         </Text>
+
+        <View style={styles.activeRow}>
+          <View style={styles.activeCopy}>
+            <Text style={styles.activeTitle}>{isActive ? 'Active' : 'Inactive'}</Text>
+            <Text style={styles.hint}>
+              {isActive
+                ? 'Shown on your public profile.'
+                : 'Hidden from your public profile. You can switch it on any time.'}
+            </Text>
+          </View>
+          <Switch
+            value={isActive}
+            onValueChange={setIsActive}
+            trackColor={{ false: '#C9C2BB', true: Colors.secondary }}
+            thumbColor={Colors.white}
+            accessibilityLabel="Show this package on your public profile"
+          />
+        </View>
 
         <TouchableOpacity
           style={[styles.publishBtn, saving && styles.publishDisabled]}
@@ -350,6 +390,8 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         onSelect={option => {
           setProductCode(option.code);
           setProductName(option.label);
+          const suggested = productsQuery.data?.find(p => p.code === option.code)?.price;
+          setPrice(suggested ? String(suggested) : '');
           setSheet(null);
         }}
       />
@@ -404,6 +446,17 @@ const styles = StyleSheet.create({
   },
   itemName: { ...Typography.body, flex: 1 },
   itemAmount: { ...Typography.bodyStrong },
+  activeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: Spacing.md,
+  },
+  activeCopy: { flex: 1 },
+  activeTitle: { ...Typography.bodyStrong },
   publishBtn: {
     marginTop: Spacing.lg,
     minHeight: 56,

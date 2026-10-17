@@ -97,7 +97,7 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 3. **Coach sign-in** — Register or log in. On return, unlock with MPIN. Land on Dashboard.
 4. **Run the practice** — Signed-in tabs are Dashboard, Packages, Events, and Profile. Dashboard tracks clients, enquiry leads, and due checkups. Add a client to start an assessment.
 5. **Assess & deliver** — Body stats → lifestyle → goals → BMI → multi-meal diet. Share BMI and diet PDFs. Ask for feedback via SMS (links to the site).
-6. **Shape the listing** — Packages and Gallery & Events open a list first. Adding is a separate screen with a back button. A package picks a product master and products from the database and the coach sets each price and the total. A post picks one of three categories from the database (Gallery, Workshop & Event, Client Success), adds a photo or video, and is saved to the API; Client Success also needs a client and consent. Gallery photos carry a short tag.
+6. **Shape the listing** — Packages and Gallery & Events open a list first. Adding is a separate screen with a back button. A package picks a product master and products from the database and the coach sets each price and the total. A switch on each package card shows or hides it on the public profile. A post picks one of three categories from the database (Gallery, Workshop & Event, Client Success), adds a photo or video, and is saved to the API; Client Success also needs a client and consent. Gallery photos carry a short tag.
 
 ---
 

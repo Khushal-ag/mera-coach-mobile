@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Switch,
   ActivityIndicator,
   Alert,
   RefreshControl,
@@ -34,6 +35,7 @@ import {
   deletePackage,
   getMyPackages,
   MAX_PACKAGES,
+  setPackageActive,
   type ShowcasePackage,
 } from '../../api/showcaseApi';
 import { refreshControlTheme, useRefreshControl } from '../../hooks/useRefreshControl';
@@ -83,6 +85,22 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
       setActionError(getErrorMessage(err, 'Could not remove this package. Please try again.'));
     } finally {
       setRemovingId(null);
+    }
+  };
+
+  const toggleVisible = async (pkg: ShowcasePackage, next: boolean) => {
+    setActionError(null);
+    queryClient.setQueryData<ShowcasePackage[]>(queryKeys.myPackages, old =>
+      (old ?? []).map(p => (p.packageId === pkg.packageId ? { ...p, isActive: next } : p)),
+    );
+    try {
+      await setPackageActive(pkg.packageId, next);
+      void queryClient.invalidateQueries({ queryKey: ['showcase'] });
+    } catch (err) {
+      queryClient.setQueryData<ShowcasePackage[]>(queryKeys.myPackages, old =>
+        (old ?? []).map(p => (p.packageId === pkg.packageId ? { ...p, isActive: !next } : p)),
+      );
+      setActionError(getErrorMessage(err, 'Could not update this package. Please try again.'));
     }
   };
 
@@ -170,6 +188,9 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
                         {pkg.items.map(item => item.itemName).join(', ')}
                       </Text>
                       <Text style={styles.cardPrice}>{formatMoney(pkg.totalAmount)}</Text>
+                      <Text style={pkg.isActive ? styles.shown : styles.hidden}>
+                        {pkg.isActive ? 'Shown on profile' : 'Hidden from profile'}
+                      </Text>
                     </View>
                     <Ionicons
                       name="chevron-forward-outline"
@@ -177,6 +198,13 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
                       color={Colors.accentInk}
                     />
                   </TouchableOpacity>
+                  <Switch
+                    value={pkg.isActive}
+                    onValueChange={next => void toggleVisible(pkg, next)}
+                    trackColor={{ false: '#C9C2BB', true: Colors.secondary }}
+                    thumbColor={Colors.white}
+                    accessibilityLabel={`Show ${pkg.packageName} on your public profile`}
+                  />
                   <TouchableOpacity
                     style={styles.removeBtn}
                     onPress={() => confirmRemove(pkg)}
@@ -263,6 +291,8 @@ const styles = StyleSheet.create({
   cardTitle: { ...Typography.headline },
   cardMeta: { marginTop: 2, ...Typography.label, fontFamily: FontFamily.regular },
   cardPrice: { marginTop: 4, ...Typography.bodyStrong, color: Colors.accentInk },
+  shown: { marginTop: 2, ...Typography.label, color: Colors.secondary },
+  hidden: { marginTop: 2, ...Typography.label, color: Colors.textLight },
   removeBtn: {
     width: TouchTarget.icon,
     height: TouchTarget.icon,

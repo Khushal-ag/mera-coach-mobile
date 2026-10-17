@@ -108,7 +108,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
 
   return (
     <>
-      <AuthAtmosphereLayout>
+      <AuthAtmosphereLayout scrollable>
         <AuthFormHeader
           onBack={() => navigation.navigate('Home')}
           backAccessibilityLabel="Back to home"

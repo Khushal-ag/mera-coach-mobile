@@ -4,6 +4,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -14,6 +15,8 @@ import { AUTH_BG_ASPECT, AUTH_PHOTO_BAND, BrandImages } from '../../constants/im
 
 type AuthAtmosphereLayoutProps = {
   children: ReactNode;
+  /** Scroll the content above the photo band when it is taller than the screen (long forms, error banners). */
+  scrollable?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -32,6 +35,7 @@ function authCoverMetrics(screenW: number, screenH: number) {
 
 export default function AuthAtmosphereLayout({
   children,
+  scrollable = false,
   contentContainerStyle,
 }: AuthAtmosphereLayoutProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -78,9 +82,25 @@ export default function AuthAtmosphereLayout({
         enabled={keyboardOpen}
         behavior={keyboardOpen && Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={[styles.content, { paddingBottom: photoClearance }, contentContainerStyle]}>
-          {children}
-        </View>
+        {scrollable ? (
+          // The photo band is reserved below the scroll area, so a long form (for example with an error banner)
+          // scrolls above the photo instead of running over it.
+          <View style={[styles.scrollArea, { paddingBottom: photoClearance }]}>
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {children}
+            </ScrollView>
+          </View>
+        ) : (
+          <View style={[styles.content, { paddingBottom: photoClearance }, contentContainerStyle]}>
+            {children}
+          </View>
+        )}
       </KeyboardAvoidingView>
     </View>
   );
@@ -99,6 +119,15 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     zIndex: 1,
+  },
+  scrollArea: { flex: 1, width: '100%' },
+  scroll: { flex: 1, width: '100%' },
+  scrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,

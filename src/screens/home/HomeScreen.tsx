@@ -114,8 +114,8 @@ function MarketingPage({
           </View>
           <View style={styles.ctaDivider} />
           <View style={styles.ctaLabelStack}>
-            <Text style={styles.ctaPrimaryTitle}>Get Started</Text>
-            <Text style={styles.ctaPrimarySub}>as a coach</Text>
+            <Text style={styles.ctaPrimaryTitle}>{signedIn ? 'Dashboard' : 'Get Started'}</Text>
+            {signedIn ? null : <Text style={styles.ctaPrimarySub}>as a coach</Text>}
           </View>
           <View style={styles.arrowCircle}>
             <Ionicons name="arrow-forward-outline" size={IconSize.sm} color={Colors.brandCoach} />

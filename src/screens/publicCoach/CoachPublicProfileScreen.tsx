@@ -17,6 +17,7 @@ import {
   type NativeScrollEvent,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import WhatsAppCoachButton from '../../components/publicCoach/WhatsAppCoachButton';
 import ShowcaseSections from '../../components/publicCoach/ShowcaseSections';
 import { getPublicShowcase, type Showcase } from '../../api/showcaseApi';
 import { Ionicons } from '@expo/vector-icons';
@@ -229,10 +230,6 @@ const ProfileHero = React.memo(function ProfileHero({
     () => ({ height: waBtnHeight, marginTop: -waOverlap }),
     [waBtnHeight, waOverlap],
   );
-  const waImageStyle = useMemo(
-    () => ({ width: contentWidth, height: waBtnHeight }),
-    [contentWidth, waBtnHeight],
-  );
   const photoNavStyle = useMemo(() => {
     const photoHeight = contentWidth / HERO_PHOTO_ASPECT;
     const visibleHeight = Math.max(
@@ -386,19 +383,12 @@ const ProfileHero = React.memo(function ProfileHero({
       </View>
 
       {whatsAppUrl ? (
-        <TouchableOpacity
-          style={[styles.waBtn, waBtnStyle]}
+        <WhatsAppCoachButton
+          width={contentWidth}
+          height={waBtnHeight}
           onPress={openWhatsApp}
-          activeOpacity={PressOpacity.default}
-          accessibilityRole="button"
-          accessibilityLabel="Chat with Coach on WhatsApp"
-        >
-          <Image
-            source={BrandImages.whatsappCoachButton}
-            style={waImageStyle}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
+          style={[styles.waBtn, waBtnStyle]}
+        />
       ) : null}
       <AppButton
         label="Share profile"
@@ -1179,10 +1169,10 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   coverStrip: {
-    borderTopLeftRadius: HERO_PHOTO_TOP_RADIUS,
-    borderTopRightRadius: HERO_PHOTO_TOP_RADIUS,
+    borderRadius: HERO_PHOTO_TOP_RADIUS,
     overflow: 'hidden',
-    marginBottom: -16,
+    // A clear gap: the cover banner and the portrait are two separate photos and must not overlap.
+    marginBottom: Spacing.sm,
     backgroundColor: Colors.headerGradientTop,
   },
   coverImage: {
