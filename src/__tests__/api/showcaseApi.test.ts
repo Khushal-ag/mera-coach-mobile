@@ -46,22 +46,34 @@ describe('masters', () => {
     expect(await getProductBrands()).toEqual([{ code: 'HERBALIFE', label: 'Herbalife' }]);
   });
 
-  it('asks for the products of one brand and parses the suggested price', async () => {
-    mMaster.mockResolvedValue([
-      { itemCode: 'A', itemName: 'Afresh', description: '500.00' },
-      { itemCode: 'B', itemName: 'No price', description: '' },
+  it('asks for the products of one brand with price, category and pack size', async () => {
+    mGet.mockResolvedValue([
+      {
+        itemCode: '082K',
+        itemName: 'Formula 1 - 500 Gms',
+        price: 2179,
+        category: 'WEIGHT MANAGEMENT PRODUCTS',
+        packSize: '500 Gms',
+      },
+      { itemCode: 'Y1', itemName: 'Vestige Shake - 500 g', price: 666 },
     ]);
     const items = await getProductItems('HERBALIFE');
-    expect(mMaster).toHaveBeenCalledWith({ ItemType: 'PRODUCTITEM', filterText: 'HERBALIFE' });
+    expect(mGet).toHaveBeenCalledWith('/v{version}/Showcase/products', { brandCode: 'HERBALIFE' });
     expect(items).toEqual([
-      { code: 'A', label: 'Afresh', price: 500 },
-      { code: 'B', label: 'No price', price: 0 },
+      {
+        code: '082K',
+        label: 'Formula 1 - 500 Gms',
+        price: 2179,
+        category: 'WEIGHT MANAGEMENT PRODUCTS',
+        packSize: '500 Gms',
+      },
+      { code: 'Y1', label: 'Vestige Shake - 500 g', price: 666, category: '', packSize: '' },
     ]);
   });
 
   it('does not call the API without a brand', async () => {
     expect(await getProductItems('')).toEqual([]);
-    expect(mMaster).not.toHaveBeenCalled();
+    expect(mGet).not.toHaveBeenCalled();
   });
 });
 

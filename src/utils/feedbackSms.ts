@@ -37,7 +37,8 @@ export function buildFeedbackSmsBody(params: {
  * include a country code.
  */
 export function normalizeSmsPhone(phone: string): string {
-  const digits = stripNonDigits(phone);
+  // A leading 0 or 00 is a dialling prefix (0 98765 43210, 0091 98765 43210), not part of the number.
+  const digits = stripNonDigits(phone).replace(/^0+/, '');
   if (!digits) return '';
   if (digits.length === 10) return `+91${digits}`;
   if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
@@ -68,6 +69,31 @@ export function buildSmsUrl(phone: string, body: string): string | null {
   }
 
   return `sms:${recipient}?body=${encodedBody}`;
+}
+
+/**
+ * Digits for a wa.me link: country code included, no + or leading zeros.
+ * 10-digit Indian mobiles get 91; 12 digits must already start with 91. Anything else is not sent to WhatsApp.
+ */
+export function whatsAppPhoneDigits(phone: string): string | null {
+  const digits = stripNonDigits(phone).replace(/^0+/, '');
+  if (digits.length === 10) return `91${digits}`;
+  if (digits.length === 12 && digits.startsWith('91')) return digits;
+  return null;
+}
+
+/** Opens a WhatsApp chat with the message ready to send. */
+export function buildFeedbackWhatsAppUrl(phone: string, body: string): string | null {
+  const digits = whatsAppPhoneDigits(phone);
+  return digits ? `https://wa.me/${digits}?text=${encodeURIComponent(body)}` : null;
+}
+
+export async function openFeedbackWhatsApp(params: { phone: string; body: string }): Promise<void> {
+  const url = buildFeedbackWhatsAppUrl(params.phone, params.body);
+  if (!url) {
+    throw new Error('A valid mobile number is required to send feedback on WhatsApp.');
+  }
+  await Linking.openURL(url);
 }
 
 export async function openFeedbackSms(params: { phone: string; body: string }): Promise<void> {

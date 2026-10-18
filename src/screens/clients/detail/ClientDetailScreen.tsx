@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +50,7 @@ import {
   buildFeedbackWebUrl,
   isValidSmsPhone,
   openFeedbackSms,
+  openFeedbackWhatsApp,
 } from '../../../utils/feedbackSms';
 import { toDisplayDob } from '../../../utils/validation';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
@@ -276,11 +278,23 @@ export default function ClientDetailScreen({
       feedbackUrl,
     });
     setActionError(null);
-    try {
-      await openFeedbackSms({ phone: mobile, body });
-    } catch (err) {
-      setActionError(getErrorMessage(err, 'Could not open SMS. Try again from a phone with SMS.'));
-    }
+    const send = (open: typeof openFeedbackSms, failure: string) => async () => {
+      try {
+        await open({ phone: mobile, body });
+      } catch (err) {
+        setActionError(getErrorMessage(err, failure));
+      }
+    };
+    // WhatsApp first: most clients are on it, and a plain SMS link can be caught by WhatsApp itself, which then
+    // asks "contact not on WhatsApp". Both options send the same message.
+    Alert.alert('Send feedback link', `How should we send it to ${displayName}?`, [
+      {
+        text: 'WhatsApp',
+        onPress: send(openFeedbackWhatsApp, 'Could not open WhatsApp. Try SMS instead.'),
+      },
+      { text: 'SMS', onPress: send(openFeedbackSms, 'Could not open SMS. Try WhatsApp instead.') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const actions: ActionItem[] = [

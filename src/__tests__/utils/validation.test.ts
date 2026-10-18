@@ -11,6 +11,7 @@ import {
   validateClientLifestyleProfile,
   validateLogin,
   validateCoachRegister,
+  passwordPolicyError,
   MANDATORY_FIELDS_BANNER,
 } from '../../utils/validation';
 import type { ClientProfile } from '../../types/models';
@@ -258,5 +259,16 @@ describe('validateLogin / validateCoachRegister', () => {
     });
     expect(same.ok).toBe(false);
     expect(same.errors.referralMobile).toMatch(/same as your mobile/i);
+  });
+});
+
+describe('password rule (reset and change password)', () => {
+  it('needs 8 characters with a letter and a number', () => {
+    expect(passwordPolicyError('Strong123')).toBeNull();
+    expect(passwordPolicyError('abc12345')).toBeNull();
+    expect(passwordPolicyError('short1')).toMatch(/at least 8/);
+    expect(passwordPolicyError('onlyletters')).toMatch(/letter and a number/);
+    expect(passwordPolicyError('12345678')).toMatch(/letter and a number/);
+    expect(passwordPolicyError('')).toMatch(/at least 8/);
   });
 });

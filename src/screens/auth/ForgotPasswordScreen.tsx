@@ -24,7 +24,7 @@ import { authFormStyles } from '../../components/auth/authFormStyles';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import { requestPasswordReset, resetPassword } from '../../api/authApi';
 import { toUserMessage } from '../../api/client';
-import { sanitizeEmailInput } from '../../utils/validation';
+import { passwordPolicyError, sanitizeEmailInput } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../../types/navigation';
 
@@ -102,8 +102,9 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
       setBanner('Enter the reset code from your email.');
       return;
     }
-    if (newPassword.length < 6) {
-      setBanner('New password must be at least 6 characters.');
+    const passwordError = passwordPolicyError(newPassword);
+    if (passwordError) {
+      setBanner(passwordError);
       return;
     }
     if (newPassword !== confirmPassword) {

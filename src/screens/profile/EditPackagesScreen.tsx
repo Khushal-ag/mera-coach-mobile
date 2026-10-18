@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -106,10 +106,11 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [items, setItems] = useState<PackageItem[]>(existing?.items ?? []);
   const [total, setTotal] = useState(existing ? String(existing.totalAmount) : '');
   const [totalEdited, setTotalEdited] = useState(!!existing);
+  const [category, setCategory] = useState('');
   const [productCode, setProductCode] = useState('');
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
-  const [sheet, setSheet] = useState<'brand' | 'product' | null>(null);
+  const [sheet, setSheet] = useState<'brand' | 'category' | 'product' | null>(null);
   const [isActive, setIsActive] = useState(existing?.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
@@ -125,6 +126,19 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     enabled: !!brandCode,
     staleTime: 10 * 60_000,
   });
+  const categories = useMemo(
+    () => [...new Set((productsQuery.data ?? []).map(p => p.category).filter(Boolean))].sort(),
+    [productsQuery.data],
+  ) as string[];
+  const shownProducts = useMemo(
+    () =>
+      (productsQuery.data ?? [])
+        .filter(
+          p => (!category || p.category === category) && !items.some(i => i.itemCode === p.code),
+        )
+        .map(p => ({ code: p.code, label: p.label, hint: category ? undefined : p.category })),
+    [productsQuery.data, category, items],
+  );
   const brandLabel = brandsQuery.data?.find(b => b.code === brandCode)?.label ?? '';
   // One product master per package: it locks once items are added.
   const brandLocked = items.length > 0;
@@ -223,7 +237,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           accessibilityLabel="Product master"
         >
           <Text style={brandLabel ? styles.value : styles.placeholder}>
-            {brandLabel || 'Select Herbalife, VeySlim...'}
+            {brandLabel || 'Select product master'}
           </Text>
           <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
         </TouchableOpacity>
@@ -247,6 +261,24 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           placeholderTextColor={Colors.textLight}
           accessibilityLabel="Package name"
         />
+
+        {categories.length > 0 ? (
+          <>
+            <Text style={styles.label}>Category</Text>
+            <TouchableOpacity
+              style={[styles.field, styles.selectField]}
+              onPress={() => setSheet('category')}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel="Category"
+            >
+              <Text style={category ? styles.value : styles.placeholder} numberOfLines={1}>
+                {category || 'All categories'}
+              </Text>
+              <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
+            </TouchableOpacity>
+          </>
+        ) : null}
 
         <Text style={styles.label}>Select product</Text>
         <TouchableOpacity
@@ -371,15 +403,33 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         onClose={() => setSheet(null)}
         onSelect={option => {
           setBrandCode(option.code);
+          setCategory('');
           setProductCode('');
           setProductName('');
           setSheet(null);
         }}
       />
       <OptionSheet
+        visible={sheet === 'category'}
+        title="Category"
+        options={[
+          { code: '', label: 'All categories' },
+          ...categories.map(name => ({ code: name, label: name })),
+        ]}
+        selectedCode={category}
+        onClose={() => setSheet(null)}
+        onSelect={option => {
+          setCategory(option.code);
+          setProductCode('');
+          setProductName('');
+          setPrice('');
+          setSheet(null);
+        }}
+      />
+      <OptionSheet
         visible={sheet === 'product'}
         title="Select product"
-        options={productsQuery.data ?? []}
+        options={shownProducts}
         selectedCode={productCode}
         emptyMessage={
           productsQuery.isPending

@@ -75,6 +75,9 @@ export interface MasterChoice {
   label: string;
   /** Suggested price from the product master (products only). The coach can change it. */
   price?: number;
+  /** Product group (products only), for example WEIGHT MANAGEMENT PRODUCTS. */
+  category?: string;
+  packSize?: string;
 }
 
 export const POST_CATEGORY = {
@@ -161,13 +164,17 @@ export async function getProductBrands(): Promise<MasterChoice[]> {
 
 export async function getProductItems(brandCode: string): Promise<MasterChoice[]> {
   if (!brandCode) return [];
-  const items = await fetchMasterItems({ ItemType: 'PRODUCTITEM', filterText: brandCode });
-  // The master sends its suggested price in `description`.
-  return items.map(item => ({
-    code: item.itemCode,
-    label: item.itemName,
-    price: num(item.description),
-  }));
+  const rows = await apiGet<unknown[] | null>('/v{version}/Showcase/products', { brandCode });
+  return (rows ?? []).map(raw => {
+    const r = (raw ?? {}) as Record<string, unknown>;
+    return {
+      code: text(r.itemCode),
+      label: text(r.itemName),
+      price: num(r.price),
+      category: text(r.category),
+      packSize: text(r.packSize),
+    };
+  });
 }
 
 // Coach's own packages and posts

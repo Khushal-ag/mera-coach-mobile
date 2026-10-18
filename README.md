@@ -97,7 +97,7 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 3. **Coach sign-in** — Register or log in. On return, unlock with MPIN. Land on Dashboard.
 4. **Run the practice** — Signed-in tabs are Dashboard, Packages, Events, and Profile. Dashboard tracks clients, enquiry leads, and due checkups. Add a client to start an assessment.
 5. **Assess & deliver** — Body stats → lifestyle → goals → BMI → multi-meal diet. Share BMI and diet PDFs. Ask for feedback via SMS (links to the site).
-6. **Shape the listing** — Packages and Gallery & Events open a list first. Adding is a separate screen with a back button. A package picks a product master and products from the database and the coach sets each price and the total. A switch on each package card shows or hides it on the public profile. A post picks one of three categories from the database (Gallery, Workshop & Event, Client Success), adds a photo or video, and is saved to the API; Client Success also needs a client and consent. Gallery photos carry a short tag.
+6. **Shape the listing** — Packages and Gallery & Events open a list first. Adding is a separate screen with a back button. A package picks a product master and products from the database and the coach sets each price and the total. The product picker can be filtered by category, and a product's suggested price pre-fills. A switch on each package card shows or hides it on the public profile. A post picks one of three categories from the database (Gallery, Workshop & Event, Client Success), adds a photo or video, and is saved to the API; Client Success also needs a client and consent. Gallery photos carry a short tag.
 
 ---
 
@@ -254,6 +254,8 @@ Never commit real `.env` values. Support: `hello@mera-coach.com`
 ---
 
 ### Native builds
+
+**Opening the app from a link.** `app.json` declares an Android App Link for `https://www.mera-coach.com/coach-login`, so the "Login to Mera Coach" button in the welcome email opens the app when it is installed and the website otherwise. It only works once the website serves `/.well-known/assetlinks.json` with the Play app-signing fingerprint (`ANDROID_APP_SHA256_FINGERPRINTS` on the website) and the app has been released with this change. iOS needs Universal Links, which need an Apple Developer account, so iOS is not set up yet.
 
 The app id is `com.henchsolutions.meracoach` on iOS and Android (`app.json`). `ios/` and `android/` are generated and git-ignored; regenerate with `npx expo prebuild --clean`.
 

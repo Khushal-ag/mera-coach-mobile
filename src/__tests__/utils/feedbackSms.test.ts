@@ -2,9 +2,11 @@ import { Platform } from 'react-native';
 import {
   buildFeedbackSmsBody,
   buildFeedbackWebUrl,
+  buildFeedbackWhatsAppUrl,
   buildSmsUrl,
   isValidSmsPhone,
   normalizeSmsPhone,
+  whatsAppPhoneDigits,
 } from '../../utils/feedbackSms';
 
 describe('feedbackSms', () => {
@@ -56,5 +58,23 @@ describe('feedbackSms', () => {
   it('builds Android sms:+E164?body= URL', () => {
     Platform.OS = 'android';
     expect(buildSmsUrl('9823456712', 'Hi Priya')).toBe('sms:+919823456712?body=Hi%20Priya');
+  });
+
+  it('drops a leading 0 or 00 dialling prefix', () => {
+    expect(normalizeSmsPhone('098765 43210')).toBe('+919876543210');
+    expect(normalizeSmsPhone('0091 98765 43210')).toBe('+919876543210');
+    expect(normalizeSmsPhone('+91 98765 43210')).toBe('+919876543210');
+    expect(normalizeSmsPhone('9876543210')).toBe('+919876543210');
+  });
+
+  it('builds a WhatsApp link with the country code and the message', () => {
+    expect(whatsAppPhoneDigits('98765 43210')).toBe('919876543210');
+    expect(whatsAppPhoneDigits('+91 98765-43210')).toBe('919876543210');
+    expect(whatsAppPhoneDigits('09876543210')).toBe('919876543210');
+    expect(whatsAppPhoneDigits('12345')).toBeNull();
+    expect(buildFeedbackWhatsAppUrl('9876543210', 'Hi there\nhttps://x.y/f?a=1&b=2')).toBe(
+      'https://wa.me/919876543210?text=Hi%20there%0Ahttps%3A%2F%2Fx.y%2Ff%3Fa%3D1%26b%3D2',
+    );
+    expect(buildFeedbackWhatsAppUrl('123', 'x')).toBeNull();
   });
 });

@@ -22,6 +22,7 @@ import WaveScreenHeader from '../../components/WaveScreenHeader';
 import StickyFooter from '../../components/StickyFooter';
 import { changePassword } from '../../api/coachApi';
 import { toUserMessage } from '../../api/client';
+import { passwordPolicyError } from '../../utils/validation';
 import type { ProfileStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/wizard';
 
@@ -103,7 +104,8 @@ export default function ChangePasswordScreen({
   const handleSubmit = async () => {
     if (submittingRef.current) return;
     if (!currentPassword) return setError('Current password is required.');
-    if (newPassword.length < 6) return setError('New password must be at least 6 characters.');
+    const passwordError = passwordPolicyError(newPassword);
+    if (passwordError) return setError(passwordError);
     if (newPassword !== confirmPassword) return setError('New passwords do not match.');
 
     setError('');

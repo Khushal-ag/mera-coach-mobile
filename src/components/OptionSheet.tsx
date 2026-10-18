@@ -7,6 +7,8 @@ import { Colors, IconSize, PressOpacity, ScreenPad, Spacing, Typography } from '
 export interface SheetOption {
   code: string;
   label: string;
+  /** Small second line, for example the product category. */
+  hint?: string;
 }
 
 interface OptionSheetProps {
@@ -47,7 +49,7 @@ export default function OptionSheet({
         </View>
         <FlatList
           data={options}
-          keyExtractor={item => item.code}
+          keyExtractor={item => item.code || '__all__'}
           ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
           renderItem={({ item }) => {
             const selected = item.code === selectedCode;
@@ -59,9 +61,12 @@ export default function OptionSheet({
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
               >
-                <Text style={[styles.rowLabel, selected && styles.rowLabelSelected]}>
-                  {item.label}
-                </Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowLabel, selected && styles.rowLabelSelected]}>
+                    {item.label}
+                  </Text>
+                  {item.hint ? <Text style={styles.rowHint}>{item.hint}</Text> : null}
+                </View>
                 {selected ? (
                   <Ionicons name="checkmark" size={IconSize.md} color={Colors.secondary} />
                 ) : null}
@@ -99,7 +104,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  rowLabel: { ...Typography.body, flex: 1 },
+  rowText: { flex: 1, paddingVertical: Spacing.xs },
+  rowLabel: { ...Typography.body },
+  rowHint: { ...Typography.label, color: Colors.textLight, marginTop: 2 },
   rowLabelSelected: { ...Typography.bodyStrong, color: Colors.secondary },
   empty: { ...Typography.body, color: Colors.textLight, paddingVertical: Spacing.lg },
 });

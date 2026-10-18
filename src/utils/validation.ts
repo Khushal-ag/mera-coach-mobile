@@ -305,6 +305,16 @@ function validateCoachContactFields(mobile: string, email: string): FormValidati
   return resultFromErrors(errors);
 }
 
+export const PASSWORD_RULE =
+  'Password must be at least 8 characters and include a letter and a number.';
+
+/** The rule for a password a coach chooses (same as the API). Null when it is fine. */
+export function passwordPolicyError(value: string): string | null {
+  if (value.length < 8) return PASSWORD_RULE;
+  if (value.length > 100) return 'Password is too long.';
+  return /[A-Za-z]/.test(value) && /\d/.test(value) ? null : PASSWORD_RULE;
+}
+
 export function validateCoachRegister(fields: {
   name: string;
   category: string;
