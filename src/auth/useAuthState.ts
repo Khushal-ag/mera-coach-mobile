@@ -59,7 +59,7 @@ function ensureAuthRestored(): Promise<void> {
         await restoreMpinState();
         await restoreSession();
         // Prefer session email; fall back to remembered login id from SecureStore.
-        await ensureMpinMatchesLogin(getCurrentEmail() ?? getLastLoginId());
+        await ensureMpinMatchesLogin(getCurrentEmail(), getLastLoginId());
       } catch {
         // SecureStore / parse failures must not leave splash on 'loading' forever.
         markMpinRestoreFailed();

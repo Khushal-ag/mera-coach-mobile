@@ -41,12 +41,33 @@ import {
   type PackageItem,
   type ShowcasePackage,
 } from '../../api/showcaseApi';
-import { formatMoney, parseAmount } from '../../utils/formatMoney';
+import { parseAmount } from '../../utils/formatMoney';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { PackagesStackScreenProps } from '../../types/navigation';
 
 const CANVAS = '#F3FAF7';
 const FIELD = '#E7F6EC';
+/** Blank category or pack size on a product. Not an extra API level. */
+const UNSPECIFIED = '\u241e';
+
+function levelKey(value: string | undefined): string {
+  const trimmed = value?.trim() ?? '';
+  return trimmed || UNSPECIFIED;
+}
+
+function levelLabel(value: string): string {
+  return value === UNSPECIFIED ? 'Not specified' : value;
+}
+
+function uniqueLevels(values: (string | undefined)[]): string[] {
+  const keys = [...new Set(values.map(levelKey))];
+  keys.sort((a, b) => {
+    if (a === UNSPECIFIED) return 1;
+    if (b === UNSPECIFIED) return -1;
+    return a.localeCompare(b);
+  });
+  return keys;
+}
 
 export default function EditPackagesScreen({
   navigation,
@@ -107,10 +128,10 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [total, setTotal] = useState(existing ? String(existing.totalAmount) : '');
   const [totalEdited, setTotalEdited] = useState(!!existing);
   const [category, setCategory] = useState('');
+  const [pack, setPack] = useState('');
   const [productCode, setProductCode] = useState('');
-  const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
-  const [sheet, setSheet] = useState<'brand' | 'category' | 'product' | null>(null);
+  const [sheet, setSheet] = useState<'brand' | 'category' | 'pack' | 'product' | null>(null);
   const [isActive, setIsActive] = useState(existing?.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
@@ -126,21 +147,41 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     enabled: !!brandCode,
     staleTime: 10 * 60_000,
   });
-  const categories = useMemo(
-    () => [...new Set((productsQuery.data ?? []).map(p => p.category).filter(Boolean))].sort(),
-    [productsQuery.data],
-  ) as string[];
-  const shownProducts = useMemo(
+  const available = useMemo(
     () =>
-      (productsQuery.data ?? [])
-        .filter(
-          p => (!category || p.category === category) && !items.some(i => i.itemCode === p.code),
-        )
-        .map(p => ({ code: p.code, label: p.label, hint: category ? undefined : p.category })),
-    [productsQuery.data, category, items],
+      (productsQuery.data ?? []).filter(
+        product => !items.some(item => item.itemCode === product.code),
+      ),
+    [productsQuery.data, items],
   );
-  const brandLabel = brandsQuery.data?.find(b => b.code === brandCode)?.label ?? '';
-  // One product master per package: it locks once items are added.
+  const categories = useMemo(
+    () => uniqueLevels(available.map(product => product.category)),
+    [available],
+  );
+  const categoryValue = categories.includes(category) ? category : '';
+  const packs = useMemo(() => {
+    if (!categoryValue) return [];
+    return uniqueLevels(
+      available
+        .filter(product => levelKey(product.category) === categoryValue)
+        .map(product => product.packSize),
+    );
+  }, [available, categoryValue]);
+  const packValue = packs.includes(pack) ? pack : '';
+  const shownProducts = useMemo(() => {
+    if (!categoryValue || !packValue) return [];
+    return available
+      .filter(
+        product =>
+          levelKey(product.category) === categoryValue && levelKey(product.packSize) === packValue,
+      )
+      .map(product => ({ code: product.code, label: product.label }));
+  }, [available, categoryValue, packValue]);
+  const selectedProduct = shownProducts.find(product => product.code === productCode) ?? null;
+  const brandLabel =
+    brandsQuery.data?.find(brand => brand.code === brandCode)?.label ||
+    (brandCode && existing?.brandCode === brandCode ? existing.brandName : '');
+  // One brand per package: it locks once items are added.
   const brandLocked = items.length > 0;
 
   // Where each input sits in the scroll content, so the focused one can be lifted above the keyboard.
@@ -161,6 +202,21 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const startEdit = (index: number) => {
+    setEditingIndex(index);
+    setEditAmount(String(items[index].amount));
+  };
+  const commitEdit = (index: number) => {
+    const amount = parseAmount(editAmount);
+    if (amount == null || amount <= 0) return showBanner('Enter a valid amount.');
+    if (amount > PACKAGE_MAX_AMOUNT) return showBanner('That price is too high.');
+    setBanner(null);
+    setEditingIndex(null);
+    applyItems(items.map((item, i) => (i === index ? { ...item, amount } : item)));
+  };
+
   const applyItems = (next: PackageItem[]) => {
     setItems(next);
     if (!totalEdited) {
@@ -169,28 +225,32 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   };
 
   const addItem = () => {
-    if (!brandCode) return showBanner('Choose a product master first.');
-    if (!productCode) return showBanner('Select a product to add.');
+    if (!brandCode) return showBanner('Choose a product brand.');
+    if (!categoryValue) return showBanner('Select a category.');
+    if (!packValue) return showBanner('Select a pack.');
+    if (!selectedProduct) return showBanner('Select a product to add.');
     const amount = parseAmount(price);
     if (amount == null || amount <= 0) return showBanner('Enter a price for this product.');
     if (amount > PACKAGE_MAX_AMOUNT) return showBanner('That price is too high.');
     if (items.length >= PACKAGE_MAX_ITEMS) {
       return showBanner(`A package can hold up to ${PACKAGE_MAX_ITEMS} products.`);
     }
-    if (items.some(item => item.itemCode === productCode)) {
-      return showBanner(`${productName} is already in this package.`);
+    if (items.some(item => item.itemCode === selectedProduct.code)) {
+      return showBanner(`${selectedProduct.label} is already in this package.`);
     }
     setBanner(null);
-    applyItems([...items, { itemCode: productCode, itemName: productName, amount }]);
+    applyItems([
+      ...items,
+      { itemCode: selectedProduct.code, itemName: selectedProduct.label, amount },
+    ]);
     setProductCode('');
-    setProductName('');
     setPrice('');
   };
 
   const handleSave = async () => {
     if (saving) return;
     const totalAmount = parseAmount(total);
-    if (!brandCode) return showBanner('Choose a product master.');
+    if (!brandCode) return showBanner('Choose a product brand.');
     if (!name.trim()) return showBanner('Enter a package name.');
     if (!items.length) return showBanner('Add at least one product.');
     if (totalAmount == null || totalAmount <= 0) return showBanner('Enter the package total.');
@@ -227,26 +287,29 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
       >
         <FormErrorBanner message={banner} />
 
-        <Text style={styles.label}>Product master</Text>
+        <Text style={styles.label}>Product brand</Text>
         <TouchableOpacity
           style={[styles.field, styles.selectField, brandLocked && styles.locked]}
-          disabled={brandLocked}
+          disabled={brandLocked || brandsQuery.isPending || !brandsQuery.data?.length}
           onPress={() => setSheet('brand')}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
-          accessibilityLabel="Product master"
+          accessibilityLabel="Product brand"
+          accessibilityState={{ disabled: brandLocked }}
         >
-          <Text style={brandLabel ? styles.value : styles.placeholder}>
-            {brandLabel || 'Select product master'}
+          <Text style={brandLabel ? styles.value : styles.placeholder} numberOfLines={1}>
+            {brandLabel || (brandsQuery.isPending ? 'Loading...' : 'Select a brand')}
           </Text>
           <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
         </TouchableOpacity>
-        {brandsQuery.data?.length === 0 ? (
+        {brandsQuery.isError && !brandsQuery.data?.length ? (
+          <Text style={styles.hint}>Could not load product brands.</Text>
+        ) : brandsQuery.data?.length === 0 ? (
           <Text style={styles.hint}>
-            No product masters are available yet. They will appear here once added.
+            No product brands are available yet. They will appear here once added.
           </Text>
         ) : brandLocked ? (
-          <Text style={styles.hint}>Remove all products to change the master.</Text>
+          <Text style={styles.hint}>Remove all products to change the brand.</Text>
         ) : null}
 
         <Text style={styles.label}>Package name</Text>
@@ -262,39 +325,75 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           accessibilityLabel="Package name"
         />
 
-        {categories.length > 0 ? (
-          <>
-            <Text style={styles.label}>Category</Text>
-            <TouchableOpacity
-              style={[styles.field, styles.selectField]}
-              onPress={() => setSheet('category')}
-              activeOpacity={PressOpacity.default}
-              accessibilityRole="button"
-              accessibilityLabel="Category"
-            >
-              <Text style={category ? styles.value : styles.placeholder} numberOfLines={1}>
-                {category || 'All categories'}
-              </Text>
-              <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
-            </TouchableOpacity>
-          </>
-        ) : null}
-
-        <Text style={styles.label}>Select product</Text>
+        <Text style={styles.label}>Category</Text>
         <TouchableOpacity
-          style={[styles.field, styles.selectField]}
-          onPress={() =>
-            brandCode ? setSheet('product') : showBanner('Choose a product master first.')
+          style={[styles.field, styles.selectField, !categoryValue && styles.locked]}
+          disabled={
+            !brandCode ||
+            productsQuery.isPending ||
+            productsQuery.isError ||
+            categories.length === 0
           }
+          onPress={() => setSheet('category')}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
-          accessibilityLabel="Select product"
+          accessibilityLabel="Category"
         >
-          <Text style={productName ? styles.value : styles.placeholder}>
-            {productName || 'Choose from the product list'}
+          <Text style={categoryValue ? styles.value : styles.placeholder} numberOfLines={1}>
+            {categoryValue
+              ? levelLabel(categoryValue)
+              : !brandCode
+                ? 'Select a brand first'
+                : productsQuery.isPending
+                  ? 'Loading...'
+                  : 'Select a category'}
           </Text>
           <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
         </TouchableOpacity>
+        {brandCode && productsQuery.isError ? (
+          <Text style={styles.hint}>Could not load products.</Text>
+        ) : brandCode && !productsQuery.isPending && (productsQuery.data?.length ?? 0) === 0 ? (
+          <Text style={styles.hint}>No products are available for this brand yet.</Text>
+        ) : brandCode && !productsQuery.isPending && available.length === 0 ? (
+          <Text style={styles.hint}>Every product from this brand is already in the package.</Text>
+        ) : null}
+
+        <Text style={styles.label}>Pack</Text>
+        <TouchableOpacity
+          style={[styles.field, styles.selectField, !packValue && styles.locked]}
+          disabled={!categoryValue || packs.length === 0}
+          onPress={() => setSheet('pack')}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel="Pack"
+        >
+          <Text style={packValue ? styles.value : styles.placeholder} numberOfLines={1}>
+            {packValue
+              ? levelLabel(packValue)
+              : categoryValue
+                ? 'Select a pack'
+                : 'Select a category first'}
+          </Text>
+          <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
+        </TouchableOpacity>
+
+        <Text style={styles.label}>Product</Text>
+        <TouchableOpacity
+          style={[styles.field, styles.selectField, !selectedProduct && styles.locked]}
+          disabled={!packValue || shownProducts.length === 0}
+          onPress={() => setSheet('product')}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel="Product"
+        >
+          <Text style={selectedProduct ? styles.value : styles.placeholder} numberOfLines={1}>
+            {selectedProduct?.label || (packValue ? 'Select a product' : 'Select a pack first')}
+          </Text>
+          <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
+        </TouchableOpacity>
+        {packValue && shownProducts.length === 0 && available.length > 0 ? (
+          <Text style={styles.hint}>No products are left for this pack.</Text>
+        ) : null}
 
         <Text style={styles.label}>Price</Text>
         <View style={styles.priceRow} onLayout={e => trackField('price', e)}>
@@ -320,45 +419,87 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           </TouchableOpacity>
         </View>
 
-        {items.length > 0 ? (
-          <View style={styles.itemsCard}>
-            {items.map((item, index) => (
+        <Text style={styles.sectionTitle}>Package Items</Text>
+        <View style={styles.sectionUnderline} />
+        <View style={styles.itemsCard}>
+          <View style={styles.tableHead}>
+            <Text style={[styles.headText, styles.colName]}>Items Name</Text>
+            <Text style={[styles.headText, styles.colAmount]}>Amount</Text>
+            <View style={styles.colActions} />
+          </View>
+          {items.length === 0 ? (
+            <Text style={styles.emptyItems}>No products added yet.</Text>
+          ) : null}
+          {items.map((item, index) => {
+            const editing = editingIndex === index;
+            return (
               <View key={`${item.itemCode}-${index}`} style={styles.itemRow}>
-                <Text style={styles.itemName} numberOfLines={2}>
+                <Text style={[styles.itemName, styles.colName]} numberOfLines={2}>
                   {item.itemName}
                 </Text>
-                <Text style={styles.itemAmount}>{formatMoney(item.amount)}</Text>
-                <TouchableOpacity
-                  onPress={() => applyItems(items.filter((_, i) => i !== index))}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${item.itemName}`}
-                  hitSlop={8}
-                >
-                  <Ionicons name="close-circle" size={IconSize.lg} color={Colors.destructive} />
-                </TouchableOpacity>
+                {editing ? (
+                  <TextInput
+                    style={[styles.itemAmount, styles.colAmount, styles.itemAmountInput]}
+                    value={editAmount}
+                    onChangeText={setEditAmount}
+                    keyboardType="decimal-pad"
+                    autoFocus
+                    accessibilityLabel={`Amount for ${item.itemName}`}
+                  />
+                ) : (
+                  <Text style={[styles.itemAmount, styles.colAmount]}>{item.amount}</Text>
+                )}
+                <View style={styles.colActions}>
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => (editing ? commitEdit(index) : startEdit(index))}
+                    accessibilityRole="button"
+                    accessibilityLabel={editing ? 'Save amount' : `Edit ${item.itemName}`}
+                  >
+                    <Ionicons
+                      name={editing ? 'checkmark' : 'pencil-outline'}
+                      size={IconSize.md}
+                      color={Colors.secondary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingIndex(null);
+                      applyItems(items.filter((_, i) => i !== index));
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${item.itemName}`}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="close-circle" size={IconSize.lg} color={Colors.destructive} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            ))}
+            );
+          })}
+          <View style={styles.totalRow}>
+            <View style={styles.totalPill} onLayout={e => trackField('total', e)}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <TextInput
+                onFocus={() => revealField('total')}
+                style={styles.totalInput}
+                value={total}
+                onChangeText={value => {
+                  setTotal(value);
+                  setTotalEdited(true);
+                }}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={Colors.textLight}
+                accessibilityLabel="Total"
+              />
+            </View>
           </View>
-        ) : null}
-
-        <Text style={styles.label}>Total</Text>
-        <TextInput
-          onLayout={e => trackField('total', e)}
-          onFocus={() => revealField('total')}
-          style={[styles.field, styles.input]}
-          value={total}
-          onChangeText={value => {
-            setTotal(value);
-            setTotalEdited(true);
-          }}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={Colors.textLight}
-          accessibilityLabel="Total"
-        />
-        <Text style={styles.hint}>
-          Set the price clients pay. It does not have to match the sum of the products.
-        </Text>
+          <View style={styles.noteRow}>
+            <Ionicons name="information-circle-outline" size={14} color={Colors.textLight} />
+            <Text style={styles.noteText}>Editable- no need to match with the breakup</Text>
+          </View>
+        </View>
 
         <View style={styles.activeRow}>
           <View style={styles.activeCopy}>
@@ -397,50 +538,70 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
 
       <OptionSheet
         visible={sheet === 'brand'}
-        title="Product master"
+        title="Product brand"
         options={brandsQuery.data ?? []}
         selectedCode={brandCode}
         onClose={() => setSheet(null)}
         onSelect={option => {
+          if (option.code === brandCode) {
+            setSheet(null);
+            return;
+          }
           setBrandCode(option.code);
           setCategory('');
+          setPack('');
           setProductCode('');
-          setProductName('');
+          setPrice('');
           setSheet(null);
         }}
       />
       <OptionSheet
         visible={sheet === 'category'}
         title="Category"
-        options={[
-          { code: '', label: 'All categories' },
-          ...categories.map(name => ({ code: name, label: name })),
-        ]}
-        selectedCode={category}
+        options={categories.map(key => ({ code: key, label: levelLabel(key) }))}
+        selectedCode={categoryValue}
         onClose={() => setSheet(null)}
         onSelect={option => {
+          if (option.code === category) {
+            setSheet(null);
+            return;
+          }
           setCategory(option.code);
+          setPack('');
           setProductCode('');
-          setProductName('');
+          setPrice('');
+          setSheet(null);
+        }}
+      />
+      <OptionSheet
+        visible={sheet === 'pack'}
+        title="Pack"
+        options={packs.map(key => ({ code: key, label: levelLabel(key) }))}
+        selectedCode={packValue}
+        onClose={() => setSheet(null)}
+        onSelect={option => {
+          if (option.code === pack) {
+            setSheet(null);
+            return;
+          }
+          setPack(option.code);
+          setProductCode('');
           setPrice('');
           setSheet(null);
         }}
       />
       <OptionSheet
         visible={sheet === 'product'}
-        title="Select product"
+        title="Product"
         options={shownProducts}
-        selectedCode={productCode}
-        emptyMessage={
-          productsQuery.isPending
-            ? 'Loading products...'
-            : 'No products are available for this master yet.'
-        }
+        selectedCode={selectedProduct?.code}
+        emptyMessage="No products are left for this pack."
         onClose={() => setSheet(null)}
         onSelect={option => {
           setProductCode(option.code);
-          setProductName(option.label);
-          const suggested = productsQuery.data?.find(p => p.code === option.code)?.price;
+          const suggested = productsQuery.data?.find(
+            product => product.code === option.code,
+          )?.price;
           setPrice(suggested ? String(suggested) : '');
           setSheet(null);
         }}
@@ -480,22 +641,100 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addLabel: { color: Colors.white, fontFamily: FontFamily.semibold, fontSize: 15 },
+  sectionTitle: { ...Typography.bodyStrong, marginTop: Spacing.lg },
+  sectionUnderline: {
+    width: 44,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 4,
+    marginBottom: Spacing.sm,
+  },
   itemsCard: {
-    marginTop: Spacing.md,
     backgroundColor: Colors.white,
     borderRadius: 18,
-    paddingHorizontal: Spacing.md,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
   },
+  tableHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: FIELD,
+    paddingHorizontal: Spacing.md,
+    minHeight: 40,
+  },
+  headText: { ...Typography.label, color: Colors.textLight },
+  colName: { flex: 1 },
+  colAmount: { width: 72 },
+  colActions: {
+    width: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+  },
+  emptyItems: { ...Typography.label, color: Colors.textLight, padding: Spacing.md },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    minHeight: 48,
+    minHeight: 52,
+    paddingHorizontal: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  itemName: { ...Typography.body, flex: 1 },
-  itemAmount: { ...Typography.bodyStrong },
+  itemName: { ...Typography.body, paddingVertical: Spacing.sm },
+  itemAmount: { ...Typography.body },
+  itemAmountInput: { padding: 0, borderBottomWidth: 1, borderBottomColor: Colors.secondary },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: FIELD,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  totalPill: {
+    flex: 1,
+    maxWidth: 220,
+    minHeight: 48,
+    borderRadius: Radius.pill,
+    backgroundColor: FIELD,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  totalLabel: { ...Typography.bodyStrong, lineHeight: 24 },
+  totalInput: {
+    ...Typography.bodyStrong,
+    color: Colors.secondary,
+    fontSize: 18,
+    lineHeight: 24,
+    height: 24,
+    minWidth: 60,
+    textAlign: 'right',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    padding: 0,
+  },
+
+  noteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  noteText: { ...Typography.label, color: Colors.textLight },
   activeRow: {
     flexDirection: 'row',
     alignItems: 'center',

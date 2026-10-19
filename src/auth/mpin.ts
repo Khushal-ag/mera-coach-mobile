@@ -104,13 +104,16 @@ export function markMpinRestoreFailed(): void {
  * Prevents a desynced verifier from unlocking another coach's JWT.
  */
 export async function ensureMpinMatchesLogin(
-  expectedLoginId: string | null | undefined,
+  ...expectedLoginIds: (string | null | undefined)[]
 ): Promise<void> {
-  const expected = expectedLoginId?.trim();
-  if (!expected || !configured) return;
+  // Login accepts email or mobile, so the session email may differ from the typed id the MPIN was saved under.
+  const expected = expectedLoginIds
+    .map(id => id?.trim().toLowerCase())
+    .filter((id): id is string => !!id);
+  if (!expected.length || !configured) return;
   const stored = await readStoredMpin();
   if (!stored) return;
-  if (stored.loginId.toLowerCase() !== expected.toLowerCase()) {
+  if (!expected.includes(stored.loginId.toLowerCase())) {
     await clearMpin();
   }
 }
