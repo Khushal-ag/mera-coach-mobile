@@ -94,6 +94,7 @@
       "bundler": "metro"
     },
     "plugins": [
+      "./plugins/withAndroidPlayCompliance.js",
       "expo-secure-store",
       [
         "expo-image-picker",
