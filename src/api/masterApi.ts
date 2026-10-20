@@ -55,7 +55,7 @@ export interface FoodMasterItem {
   id: string;
   name: string;
   cal: number;
-  cat: 'veg' | 'nonveg' | 'vegan';
+  cat: 'veg' | 'nonveg' | 'vegan' | 'egg';
 }
 
 // Keyed by the exact meal-slot label strings in mealSlotLabels.ts (e.g. 'Early Morning').

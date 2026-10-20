@@ -56,7 +56,8 @@ export function isValidSmsPhone(phone: string): boolean {
  * Native SMS composer URL.
  * iOS: `sms:/open?addresses=` so To: is set; encode `+` as `%2B` (raw `+` is
  * treated as a space and drops the recipient while still filling body).
- * Android: `sms:+E164?body=`.
+ * Android: `smsto:+E164?body=`. The `smsto:` type goes to the messages app; on some phones WhatsApp claims plain
+ * `sms:` links and shows its own "not on WhatsApp" dialog instead.
  */
 export function buildSmsUrl(phone: string, body: string): string | null {
   if (!isValidSmsPhone(phone)) return null;
@@ -68,7 +69,7 @@ export function buildSmsUrl(phone: string, body: string): string | null {
     return `sms:/open?addresses=${encodeURIComponent(recipient)}&body=${encodedBody}`;
   }
 
-  return `sms:${recipient}?body=${encodedBody}`;
+  return `smsto:${recipient}?body=${encodedBody}`;
 }
 
 /**

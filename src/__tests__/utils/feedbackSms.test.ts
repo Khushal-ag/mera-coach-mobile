@@ -55,9 +55,9 @@ describe('feedbackSms', () => {
     );
   });
 
-  it('builds Android sms:+E164?body= URL', () => {
+  it('builds Android smsto:+E164?body= URL', () => {
     Platform.OS = 'android';
-    expect(buildSmsUrl('9823456712', 'Hi Priya')).toBe('sms:+919823456712?body=Hi%20Priya');
+    expect(buildSmsUrl('9823456712', 'Hi Priya')).toBe('smsto:+919823456712?body=Hi%20Priya');
   });
 
   it('drops a leading 0 or 00 dialling prefix', () => {
