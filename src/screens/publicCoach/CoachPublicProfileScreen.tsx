@@ -41,11 +41,11 @@ import {
   HERO_SMILE_MASK_ASPECT,
   WHATSAPP_COACH_BUTTON_ASPECT,
 } from '../../constants/images';
-import AppButton from '../../components/AppButton';
 import PersonAvatar from '../../components/PersonAvatar';
 import PhoneTextInput from '../../components/PhoneTextInput';
 import DropdownField from '../../components/DropdownField';
 import EmptyState from '../../components/EmptyState';
+import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
 import PublicHomeHeader from '../../components/home/PublicHomeHeader';
@@ -100,11 +100,16 @@ const STAT_ICONS: Record<string, IoniconName> = {
   rating: 'star-outline',
 };
 
-const HERO_PHOTO_ASPECT = 1.28;
-/** Wide public banner above the portrait card. Width / height. */
-const HERO_PHOTO_FOCUS = 1.32;
+/** Width / height of the portrait frame. */
+const HERO_PHOTO_ASPECT = 1.2;
+/** The WhatsApp button is this share of the content width, which leaves more room for the photo. */
+const WHATSAPP_BTN_WIDTH_SHARE = 0.76;
 const HERO_CURVE_LIP_RATIO = 19 / 226;
 const HERO_PHOTO_TOP_RADIUS = 28;
+/** Lines of the description shown in the green card before "Read more". */
+const BIO_PREVIEW_LINES = 4;
+/** Descriptions longer than this are cut off at BIO_PREVIEW_LINES (about four lines of text). */
+const BIO_PREVIEW_CHARS = 170;
 const HERO_PHOTO_NAV_SIZE = 38;
 const HERO_PHOTO_NAV_INSET = 14;
 const HERO_PHOTO_NAV_ICON = 18;
@@ -125,14 +130,13 @@ function heroPhotoImageLayout(frameWidth: number, sourceAspect: number | null) {
   const widthMatched = heightAtFrameWidth >= frameHeight;
   const coverWidth = widthMatched ? frameWidth : frameHeight * aspect;
   const coverHeight = widthMatched ? heightAtFrameWidth : frameHeight;
-  const width = coverWidth * HERO_PHOTO_FOCUS;
-  const height = coverHeight * HERO_PHOTO_FOCUS;
+  // Fill the frame without zooming in. Anchored to the top so heads stay in view.
   return {
     position: 'absolute' as const,
     top: 0,
-    left: (frameWidth - width) / 2,
-    width,
-    height,
+    left: (frameWidth - coverWidth) / 2,
+    width: coverWidth,
+    height: coverHeight,
   };
 }
 
@@ -162,6 +166,7 @@ type ProfilePageProps = {
 type ProfileHeroProps = {
   contentWidth: number;
   smileHeight: number;
+  waBtnWidth: number;
   waBtnHeight: number;
   activePhoto: string | null;
   coachCode: string;
@@ -178,6 +183,7 @@ type ProfileHeroProps = {
 const ProfileHero = React.memo(function ProfileHero({
   contentWidth,
   smileHeight,
+  waBtnWidth,
   waBtnHeight,
   activePhoto,
   coachCode,
@@ -193,6 +199,7 @@ const ProfileHero = React.memo(function ProfileHero({
   const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [bioOpen, setBioOpen] = useState(false);
   const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
   const [trackedCoachCode, setTrackedCoachCode] = useState(coachCode);
   if (activePhoto !== trackedPhoto) {
@@ -202,6 +209,7 @@ const ProfileHero = React.memo(function ProfileHero({
   if (coachCode !== trackedCoachCode) {
     setTrackedCoachCode(coachCode);
     setActionError(null);
+    setBioOpen(false);
   }
   const photoImageStyle = useMemo(
     () => heroPhotoImageLayout(contentWidth, sourceAspect),
@@ -322,7 +330,26 @@ const ProfileHero = React.memo(function ProfileHero({
                   </Text>
                 </View>
               ) : null}
-              {bio ? <Text style={styles.bio}>{bio}</Text> : null}
+              {bio ? (
+                // A long description would stretch this card and push the photo off screen, so it is
+                // capped at a few lines until the visitor asks for the rest.
+                <>
+                  <Text style={styles.bio} numberOfLines={bioOpen ? undefined : BIO_PREVIEW_LINES}>
+                    {bioOpen ? bio.trim() : bio.replace(/\s+/g, ' ').trim()}
+                  </Text>
+                  {bio.replace(/\s+/g, ' ').trim().length > BIO_PREVIEW_CHARS ? (
+                    <TouchableOpacity
+                      onPress={() => setBioOpen(open => !open)}
+                      hitSlop={HitSlop.sm}
+                      accessibilityRole="button"
+                      accessibilityLabel={bioOpen ? 'Show less' : 'Read more'}
+                      activeOpacity={PressOpacity.soft}
+                    >
+                      <Text style={styles.bioToggle}>{bioOpen ? 'Show less' : 'Read more'}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              ) : null}
             </View>
           </View>
         </View>
@@ -330,7 +357,7 @@ const ProfileHero = React.memo(function ProfileHero({
 
       {whatsAppUrl ? (
         <WhatsAppCoachButton
-          width={contentWidth}
+          width={waBtnWidth}
           height={waBtnHeight}
           onPress={openWhatsApp}
           style={[styles.waBtn, waBtnStyle]}
@@ -669,7 +696,8 @@ function CoachProfilePage({
     Math.floor((contentWidth - Spacing.xs * (EXPERTISE_COLUMNS - 1)) / EXPERTISE_COLUMNS),
   );
   const smileHeight = Math.round(contentWidth / HERO_SMILE_MASK_ASPECT);
-  const waBtnHeight = contentWidth / WHATSAPP_COACH_BUTTON_ASPECT;
+  const waBtnWidth = contentWidth * WHATSAPP_BTN_WIDTH_SHARE;
+  const waBtnHeight = waBtnWidth / WHATSAPP_COACH_BUTTON_ASPECT;
   const serviceOptions = [
     ...packages.map(p => p.packageName),
     ...(coach?.tags.length ? coach.tags.map(formatExpertiseLabel) : []),
@@ -759,6 +787,7 @@ function CoachProfilePage({
         <ProfileHero
           contentWidth={contentWidth}
           smileHeight={smileHeight}
+          waBtnWidth={waBtnWidth}
           waBtnHeight={waBtnHeight}
           activePhoto={activePhoto}
           coachCode={coach.id}
@@ -1152,8 +1181,15 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     lineHeight: 21,
   },
+  bioToggle: {
+    color: Colors.white,
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    textDecorationLine: 'underline',
+    marginTop: Spacing.xs,
+  },
   waBtn: {
-    alignSelf: 'stretch',
+    alignSelf: 'center',
     zIndex: 4,
   },
   shareBtn: {

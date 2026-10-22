@@ -23,7 +23,7 @@ type Step = 'create' | 'confirm';
 
 /**
  * Shown after password login when no MPIN is stored yet.
- * Confirm step hides the forgot-password escape hatch.
+ * The create step can be skipped; the confirm step cannot.
  */
 export default function MpinSetupScreen() {
   const insets = useSafeAreaInsets();
@@ -108,11 +108,11 @@ export default function MpinSetupScreen() {
               disabled={saving}
               activeOpacity={PressOpacity.soft}
               accessibilityRole="button"
-              accessibilityLabel="Forgot MPIN, use password instead"
+              accessibilityLabel="Skip MPIN setup for now"
               hitSlop={HitSlop.sm}
               style={styles.forgotHit}
             >
-              <Text style={styles.forgot}>Forgot MPIN? Use password</Text>
+              <Text style={styles.forgot}>Skip for now</Text>
             </TouchableOpacity>
           ) : null}
         </View>

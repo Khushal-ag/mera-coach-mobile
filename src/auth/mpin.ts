@@ -4,6 +4,10 @@ import { secureStorage } from './secureStorage';
 const MPIN_KEY = 'meracoach_mpin';
 const LOGIN_ID_KEY = 'meracoach_last_login_id';
 const DEFERRED_KEY = 'meracoach_mpin_deferred';
+const ATTEMPTS_KEY = 'meracoach_mpin_attempts';
+
+/** Wrong MPINs allowed before the MPIN is cleared and the coach must sign in with the password. */
+export const MAX_MPIN_ATTEMPTS = 5;
 
 interface StoredMpin {
   salt: string;
@@ -147,6 +151,7 @@ export async function setMpin(mpin: string, loginId?: string): Promise<void> {
   await secureStorage.setItem(MPIN_KEY, JSON.stringify(payload));
   await secureStorage.setItem(LOGIN_ID_KEY, owner);
   await secureStorage.deleteItem(DEFERRED_KEY);
+  await secureStorage.deleteItem(ATTEMPTS_KEY);
   configured = true;
   setupDeferred = false;
   lastLoginId = owner;
@@ -154,10 +159,41 @@ export async function setMpin(mpin: string, loginId?: string): Promise<void> {
   notify();
 }
 
-export async function verifyStoredMpin(mpin: string): Promise<boolean> {
+async function verifyStoredMpin(mpin: string): Promise<boolean> {
   const stored = await readStoredMpin();
   if (!stored) return false;
   return verifyMpin(mpin, stored.salt, stored.hash);
+}
+
+async function readFailedAttempts(): Promise<number> {
+  const n = Number.parseInt((await secureStorage.getItem(ATTEMPTS_KEY)) ?? '0', 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+type MpinAttempt =
+  | { status: 'ok' }
+  | { status: 'wrong'; remaining: number }
+  /** Too many wrong tries: the MPIN was cleared. The caller signs the coach out. */
+  | { status: 'locked' };
+
+/**
+ * Checks an MPIN and counts wrong tries on the device, so closing and reopening the app does not
+ * reset the limit. A correct MPIN resets the count. After MAX_MPIN_ATTEMPTS wrong tries the MPIN is
+ * cleared and the coach has to sign in with the password.
+ */
+export async function attemptMpin(mpin: string): Promise<MpinAttempt> {
+  if (await verifyStoredMpin(mpin)) {
+    await secureStorage.deleteItem(ATTEMPTS_KEY);
+    return { status: 'ok' };
+  }
+  const failed = (await readFailedAttempts()) + 1;
+  if (failed >= MAX_MPIN_ATTEMPTS) {
+    await clearMpin();
+    await clearMpinSetupDeferred();
+    return { status: 'locked' };
+  }
+  await secureStorage.setItem(ATTEMPTS_KEY, String(failed));
+  return { status: 'wrong', remaining: MAX_MPIN_ATTEMPTS - failed };
 }
 
 export async function deferMpinSetup(): Promise<void> {
@@ -175,6 +211,7 @@ export async function clearMpinSetupDeferred(): Promise<void> {
 
 async function clearMpinOnly(): Promise<void> {
   await secureStorage.deleteItem(MPIN_KEY);
+  await secureStorage.deleteItem(ATTEMPTS_KEY);
   configured = false;
 }
 

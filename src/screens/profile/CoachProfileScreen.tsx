@@ -340,14 +340,16 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
                   <Text style={styles.name}>{profile?.name || 'Unable to load profile'}</Text>
                   <Text style={styles.role}>{profile?.category || ''}</Text>
                   {profile?.city ? (
-                    <Text style={styles.location}>
+                    <View style={styles.locationRow}>
                       <Ionicons
                         name="location-outline"
                         size={IconSize.sm}
                         color={Colors.accentInk}
-                      />{' '}
-                      {profile.city}
-                    </Text>
+                      />
+                      <Text style={styles.location} numberOfLines={1}>
+                        {profile.city}
+                      </Text>
+                    </View>
                   ) : null}
 
                   <View style={styles.statsRow}>
@@ -519,10 +521,18 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginTop: Spacing.xxs,
   },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 6,
+    maxWidth: '100%',
+  },
   location: {
     ...Typography.caption,
     fontFamily: FontFamily.regular,
-    marginTop: 6,
+    flexShrink: 1,
   },
   statsRow: {
     flexDirection: 'row',

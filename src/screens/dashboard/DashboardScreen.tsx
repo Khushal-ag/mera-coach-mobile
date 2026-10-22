@@ -411,8 +411,10 @@ export default function DashboardScreen({
               <Ionicons name="person-add" size={IconSize.xl} color={Colors.white} />
             </View>
             <View style={styles.primaryCtaCopy}>
-              <Text style={styles.primaryCtaTitle}>Add Client</Text>
-              <Text style={styles.primaryCtaSub}>
+              <Text style={styles.primaryCtaTitle} numberOfLines={1}>
+                Add Client
+              </Text>
+              <Text style={styles.primaryCtaSub} numberOfLines={1}>
                 {checkingSubscription ? 'Checking your subscription' : 'Start a new assessment'}
               </Text>
             </View>
@@ -639,9 +641,11 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.md,
     overflow: 'hidden',
   },
+  // Decorative circle behind the arrow. Placed by percentage of the card width, not from the right edge,
+  // so its edge never cuts through the title or subtitle on any screen width.
   primaryCtaCurve: {
     position: 'absolute',
-    right: -56,
+    left: '80%',
     top: -118,
     width: 280,
     height: 280,

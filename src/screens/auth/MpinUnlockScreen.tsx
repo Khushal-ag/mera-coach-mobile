@@ -15,15 +15,8 @@ import {
 import { BrandImages } from '../../constants/images';
 import BrandLogo from '../../components/BrandLogo';
 import MpinKeypad from '../../components/auth/MpinKeypad';
-import {
-  clearMpin,
-  clearMpinSetupDeferred,
-  markMpinUnlocked,
-  verifyStoredMpin,
-} from '../../auth/mpin';
+import { attemptMpin, clearMpin, clearMpinSetupDeferred, markMpinUnlocked } from '../../auth/mpin';
 import { logoutLocal } from '../../auth/logout';
-
-const MAX_ATTEMPTS = 5;
 
 /**
  * Cold-start gate when a valid JWT and MPIN are present.
@@ -34,7 +27,6 @@ export default function MpinUnlockScreen() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [attempts, setAttempts] = useState(0);
 
   const onComplete = useCallback(
     async (value: string) => {
@@ -42,27 +34,25 @@ export default function MpinUnlockScreen() {
       setBusy(true);
       setError(null);
       try {
-        const ok = await verifyStoredMpin(value);
-        if (ok) {
+        const result = await attemptMpin(value);
+        if (result.status === 'ok') {
           markMpinUnlocked();
           return;
         }
-        const nextAttempts = attempts + 1;
-        setAttempts(nextAttempts);
         setPin('');
-        if (nextAttempts >= MAX_ATTEMPTS) {
+        if (result.status === 'locked') {
           setError('Too many attempts. Sign in with your password.');
-          await clearMpin();
-          await clearMpinSetupDeferred();
           await logoutLocal();
           return;
         }
-        setError('Incorrect MPIN. Try again.');
+        setError(
+          `Incorrect MPIN. ${result.remaining} ${result.remaining === 1 ? 'try' : 'tries'} left.`,
+        );
       } finally {
         setBusy(false);
       }
     },
-    [attempts, busy],
+    [busy],
   );
 
   const onForgot = () => {

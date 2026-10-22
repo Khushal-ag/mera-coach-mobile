@@ -13,8 +13,8 @@ import {
   TARGET_TIMELINES,
   MEDICAL_CONDITIONS,
   FOOD_ALLERGIES,
-  ensureNoneOfTheAboveFirst,
-  coerceNoneOfTheAboveValues,
+  ensureNoneFirst,
+  coerceNoneValues,
 } from '../data/lifestyleOptions';
 import type { ClientProfile } from '../types/models';
 
@@ -48,10 +48,10 @@ interface LifestyleParamBundle {
 
 function useHealthGoalParamBundle(): HealthGoalParamBundle {
   return {
-    medicalOptions: ensureNoneOfTheAboveFirst(
+    medicalOptions: ensureNoneFirst(
       useParamMasterOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS),
     ),
-    allergyOptions: ensureNoneOfTheAboveFirst(
+    allergyOptions: ensureNoneFirst(
       useParamMasterOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES),
     ),
     goalOptions: useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS),
@@ -92,7 +92,7 @@ function useNormalizeScalarAndListFields(
       if (!options.length) return;
       const current = form[key];
       if (!current.length) return;
-      const codes = coerceNoneOfTheAboveValues(resolveMasterCodes(current, options), options);
+      const codes = coerceNoneValues(resolveMasterCodes(current, options), options);
       const same = codes.length === current.length && codes.every((c, i) => c === current[i]);
       if (!same) update(key, codes);
     });

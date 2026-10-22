@@ -60,9 +60,10 @@ describe('shouldShowPublicClientCount', () => {
 });
 
 describe('shouldShowPublicRating', () => {
-  it('does not present a formula rating or client total as reviews', () => {
+  it('shows a rating only when real client reviews back it', () => {
     expect(shouldShowPublicRating(3.5, 0)).toBe(false);
-    expect(shouldShowPublicRating(4.8, 42)).toBe(false);
+    expect(shouldShowPublicRating(0, 4)).toBe(false);
+    expect(shouldShowPublicRating(4.8, 42)).toBe(true);
   });
 });
 
@@ -94,7 +95,7 @@ describe('buildPublicProfileStats', () => {
     ]);
   });
 
-  it('includes clients, experience, and services without a review rating', () => {
+  it('includes clients, experience, services and the rating when reviews exist', () => {
     expect(
       buildPublicProfileStats({
         clientCount: 5,
@@ -107,6 +108,19 @@ describe('buildPublicProfileStats', () => {
       { key: 'clients', value: '5', label: 'Happy Clients' },
       { key: 'experience', value: '4', label: 'Years Exp.' },
       { key: 'services', value: '2', label: 'Services' },
+      { key: 'rating', value: '4.8', label: 'Rating' },
     ]);
+  });
+
+  it('leaves the rating out when there are no reviews', () => {
+    expect(
+      buildPublicProfileStats({
+        clientCount: 5,
+        experience: 0,
+        servicesCount: 0,
+        rating: 4.8,
+        reviews: 0,
+      }),
+    ).toEqual([{ key: 'clients', value: '5', label: 'Happy Clients' }]);
   });
 });

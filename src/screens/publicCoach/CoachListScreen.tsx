@@ -66,6 +66,8 @@ const PAGE_SIZE = 5;
 /** Profile arrows load matching coaches in pages of this size, up to MAX_PROFILE_PAGES pages. */
 const PROFILE_NAV_PAGE_SIZE = 100;
 const MAX_PROFILE_PAGES = 5;
+/** Pixels of the "Showing N coaches" line kept in view when View All jumps to the list. */
+const VIEW_ALL_SCROLL_OFFSET = 40;
 const TOP_RATED_LIMIT = 6;
 
 type PickerKind = 'city' | 'rating' | 'sort' | 'category' | null;
@@ -442,10 +444,18 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     navigation.navigate('Register');
   };
 
+  // Top Rated sits above the coach list, so "View All" clears the filters, ranks by rating, and jumps down to
+  // the full list. Scrolling to the top would do nothing here.
   const onViewAllTopRated = () => {
     clearFilters();
-    setSort('Top Rated');
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setTimeout(() => {
+      if (filtered.length === 0) return;
+      listRef.current?.scrollToIndex({
+        index: 0,
+        animated: true,
+        viewOffset: VIEW_ALL_SCROLL_OFFSET,
+      });
+    }, 0);
   };
 
   const closePicker = () => setPicker(null);
@@ -721,6 +731,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
       <FlatList
         ref={listRef}
         style={styles.body}
+        onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         data={coachesQuery.isPending && !coachesQuery.data ? [] : showLoadError ? [] : filtered}
         keyExtractor={keyExtractor}
         renderItem={renderCoachItem}

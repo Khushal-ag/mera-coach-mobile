@@ -23,7 +23,7 @@ import {
   buttonStyles,
   headingFont,
 } from '../constants/theme';
-import { isNoneOfTheAboveValue } from '../data/lifestyleOptions';
+import { isNoneValue } from '../data/lifestyleOptions';
 import FormFieldLabel from './FormFieldLabel';
 import type { MasterOption } from '../api/masterApi';
 
@@ -49,8 +49,8 @@ function pinExclusiveNoneFirst(
 
 function isSelected(value: string[], opt: MasterOption, exclusiveNoneCode?: string): boolean {
   if (value.includes(opt.code) || value.includes(opt.label)) return true;
-  // Legacy "None of the below" (and synthetic code) should light up the exclusive-none row.
-  return !!exclusiveNoneCode && opt.code === exclusiveNoneCode && value.some(isNoneOfTheAboveValue);
+  // Legacy "None of the above" (and synthetic code) should light up the exclusive-none row.
+  return !!exclusiveNoneCode && opt.code === exclusiveNoneCode && value.some(isNoneValue);
 }
 
 interface MultiSelectFieldProps {
@@ -65,7 +65,7 @@ interface MultiSelectFieldProps {
   labelStyle?: StyleProp<TextStyle>;
   /**
    * When set, selecting this option clears all others; selecting any other option
-   * clears this one (e.g. "None of the above"). Always rendered first in the list.
+   * clears this one (e.g. "None of the below"). Always rendered first in the list.
    */
   exclusiveNoneCode?: string;
   tone?: 'default' | 'mint';
@@ -99,7 +99,7 @@ export default function MultiSelectField({
   const withoutExclusiveNone = (vals: string[]) => {
     if (!exclusiveNoneCode) return vals;
     return vals.filter(
-      v => v !== exclusiveNoneCode && v !== exclusiveNone?.label && !isNoneOfTheAboveValue(v),
+      v => v !== exclusiveNoneCode && v !== exclusiveNone?.label && !isNoneValue(v),
     );
   };
 

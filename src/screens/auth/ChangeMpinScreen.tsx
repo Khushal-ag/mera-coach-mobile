@@ -7,13 +7,14 @@ import KeyboardSafeScroll from '../../components/KeyboardSafeScroll';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import MpinKeypad from '../../components/auth/MpinKeypad';
 import {
+  attemptMpin,
   clearMpin,
   deferMpinSetup,
   getLastLoginId,
   isMpinConfigured,
   setMpin,
-  verifyStoredMpin,
 } from '../../auth/mpin';
+import { logoutLocal } from '../../auth/logout';
 import { isValidMpinFormat } from '../../utils/mpinCrypto';
 import { toUserMessage } from '../../api/client';
 import type { ProfileStackScreenProps } from '../../types/navigation';
@@ -27,6 +28,8 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** The current MPIN was entered correctly. Removing the MPIN needs this. */
+  const [verified, setVerified] = useState(false);
 
   const title =
     step === 'current' ? 'Current MPIN' : step === 'create' ? 'New MPIN' : 'Confirm new MPIN';
@@ -52,14 +55,21 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
       if (step === 'current') {
         setBusy(true);
         try {
-          const ok = await verifyStoredMpin(value);
-          if (!ok) {
-            setError('Incorrect MPIN.');
+          const result = await attemptMpin(value);
+          if (result.status === 'locked') {
+            await logoutLocal();
+            return;
+          }
+          if (result.status === 'wrong') {
+            setError(
+              `Incorrect MPIN. ${result.remaining} ${result.remaining === 1 ? 'try' : 'tries'} left.`,
+            );
             setPin('');
             return;
           }
           setPin('');
           setError(null);
+          setVerified(true);
           setStep('create');
         } finally {
           setBusy(false);
@@ -103,20 +113,24 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
   );
 
   const onRemove = () => {
-    Alert.alert('Remove MPIN?', 'You will use your password to sign in after the next logout.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            await clearMpin();
-            await deferMpinSetup();
-            navigation.goBack();
-          })();
+    Alert.alert(
+      'Remove MPIN?',
+      'The app will stop asking for an MPIN when you open it. You can set one again from Profile.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              await clearMpin();
+              await deferMpinSetup();
+              navigation.goBack();
+            })();
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   return (
@@ -142,7 +156,7 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
             disabled={busy}
           />
 
-          {hasExisting ? (
+          {hasExisting && verified ? (
             <AppButton
               label="Remove MPIN"
               variant="ghost"

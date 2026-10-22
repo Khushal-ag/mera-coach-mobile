@@ -58,11 +58,13 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
       const session = await login({ userName: trimmed, password });
       await rememberLoginId(trimmed);
       clearAppQueryCache();
+      // Unlock first: signing in with the password already proves identity, and saving the session
+      // would otherwise flash the MPIN screen for a moment.
+      markMpinUnlocked();
       await saveSession({
         ...session,
         email: session.email?.trim() || trimmed,
       });
-      markMpinUnlocked();
     } catch (err) {
       setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {

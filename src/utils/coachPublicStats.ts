@@ -1,7 +1,8 @@
 /**
  * Public "Happy Clients" is the manually entered count.
  * The live roster is a separate number on the coach's own profile screen.
- * Rating is a formula and reviewCount is not a review total — do not show either as reviews.
+ * Rating is the average of the clients' latest feedback and reviewCount is the number of those
+ * reviews, so a rating is shown only when at least one review exists.
  */
 
 type PublicStatItem = {
@@ -25,9 +26,9 @@ export function shouldShowPublicClientCount(count: number | null | undefined): b
   return count != null && count > 0;
 }
 
-/** Formula ratings and client totals are not client reviews. */
-export function shouldShowPublicRating(_rating: number, _reviews: number): boolean {
-  return false;
+/** A rating needs at least one client review behind it. */
+export function shouldShowPublicRating(rating: number, reviews: number): boolean {
+  return reviews > 0 && rating > 0;
 }
 
 export function buildPublicProfileStats(opts: {
