@@ -11,15 +11,11 @@ import {
   type ListRenderItem,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
-  IconSize,
-  HitSlop,
   ListCard,
   PressOpacity,
-  Radius,
   ScreenPad,
   Spacing,
   headingFont,
@@ -66,7 +62,13 @@ const ClientRow = React.memo(function ClientRow({
 }) {
   const mobile = (item.mobileNo ?? '').trim();
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onOpen(item)}
+      activeOpacity={PressOpacity.strong}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${item.name}`}
+    >
       <ClientAvatar
         clientCode={item.clientCode}
         width={CLIENT_PORTRAIT.width}
@@ -76,47 +78,21 @@ const ClientRow = React.memo(function ClientRow({
         onUploadError={onUploadError}
         style={styles.avatar}
       />
-      <View style={styles.middle}>
-        <View style={styles.textRow}>
-          <TouchableOpacity
-            style={styles.info}
-            onPress={() => onOpen(item)}
-            activeOpacity={PressOpacity.strong}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${item.name}`}
-          >
-            <Text style={styles.name} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              Age: {item.age != null ? item.age : '-'}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              {mobile || '-'}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              {checkupLine(item)}
-            </Text>
-          </TouchableOpacity>
-          <Ionicons
-            name="chevron-forward-outline"
-            size={IconSize.md}
-            color={Colors.textDark}
-            style={styles.chevron}
-          />
-        </View>
-        <TouchableOpacity
-          style={styles.selectBtn}
-          onPress={() => onOpen(item)}
-          activeOpacity={PressOpacity.default}
-          accessibilityRole="button"
-          accessibilityLabel={`Select ${item.name}`}
-          hitSlop={HitSlop.sm}
-        >
-          <Text style={styles.selectBtnText}>Select</Text>
-        </TouchableOpacity>
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          Age: {item.age != null ? item.age : '-'}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {mobile || '-'}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {checkupLine(item)}
+        </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
@@ -331,17 +307,7 @@ const styles = StyleSheet.create({
   avatar: {
     marginRight: Spacing.sm,
   },
-  middle: {
-    flex: 1,
-    minWidth: 0,
-  },
-  textRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 0,
-  },
-  info: { flex: 1, minWidth: 0, paddingRight: Spacing.xs },
-  chevron: { marginLeft: Spacing.xxs },
+  info: { flex: 1, minWidth: 0 },
   name: {
     fontSize: 18,
     fontFamily: headingFont.bold,
@@ -354,22 +320,5 @@ const styles = StyleSheet.create({
     color: Colors.textDark,
     marginTop: 3,
     lineHeight: 18,
-  },
-  selectBtn: {
-    alignSelf: 'flex-start',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
-    width: 174,
-    maxWidth: '100%',
-    minHeight: 28,
-    marginTop: 6,
-  },
-  selectBtnText: {
-    color: Colors.white,
-    fontSize: 12,
-    lineHeight: 14,
-    fontFamily: FontFamily.bold,
   },
 });

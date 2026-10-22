@@ -29,6 +29,8 @@ import WaveScreenHeader from '../../../components/WaveScreenHeader';
 import FormErrorBanner from '../../../components/FormErrorBanner';
 import ClientAvatar from '../../../components/ClientAvatar';
 import ProgressPhotos, { type ProgressPhotosHandle } from '../../../components/ProgressPhotos';
+import ReviewsList from '../../../components/reviews/ReviewsList';
+import { useMyReviews } from '../../../hooks/useReviews';
 import EmptyState from '../../../components/EmptyState';
 import ReloadState from '../../../components/ReloadState';
 import { getClientDetail } from '../../../api/clientApi';
@@ -106,6 +108,8 @@ interface DetailRow {
   iconColor: string;
   icon: ProfileMark;
   value: string;
+  /** Checkup section that edits this row. */
+  phaseId: string;
 }
 
 interface ActionItem {
@@ -170,6 +174,9 @@ export default function ClientDetailScreen({
     enabled: !!client.clientCode,
   });
   const refreshControl = useRefreshControl(detailQuery);
+  // The client's current review, read-only. The coach cannot edit or remove it.
+  const reviewQuery = useMyReviews(client.clientCode, !!client.clientCode);
+  const hasReview = (reviewQuery.data?.pages[0]?.items.length ?? 0) > 0;
 
   const errorMessage =
     detailQuery.isError && !detailQuery.data
@@ -236,6 +243,7 @@ export default function ClientDetailScreen({
         well: Tone.goalWell,
         iconColor: Tone.goalIcon,
         icon: 'flag-outline',
+        phaseId: 'lifestyle',
         value: resolveMasterLabel(detail.primaryGoal, goalOptions),
       },
       {
@@ -243,6 +251,7 @@ export default function ClientDetailScreen({
         well: Tone.dietWell,
         iconColor: Tone.dietIcon,
         icon: 'restaurant-outline',
+        phaseId: 'lifestyle',
         value: resolveMasterLabel(detail.foodPreference, dietOptions),
       },
       {
@@ -250,11 +259,24 @@ export default function ClientDetailScreen({
         well: Tone.activityWell,
         iconColor: Tone.activityIcon,
         icon: 'walk-outline',
+        phaseId: 'lifestyle',
         value: resolveMasterLabel(detail.physicalActivity, activityOptions),
       },
     ];
     return rows.map(row => ({ ...row, value: row.value || '-' }));
   }, [detail, goalOptions, dietOptions, activityOptions]);
+
+  // The first checkup section that still lacks details. Null when the profile is complete.
+  const resume = useMemo(() => {
+    if (!detail) return null;
+    const hasBody =
+      !!detail.height && !!detail.weight && !!detail.gender && (!!detail.age || !!detail.dob);
+    if (!hasBody) return { phaseId: 'personal', missing: 'body stats' };
+    const hasLifestyle =
+      !!detail.primaryGoal && !!detail.foodPreference && !!detail.physicalActivity;
+    if (!hasLifestyle) return { phaseId: 'lifestyle', missing: 'goal, diet type and activity' };
+    return null;
+  }, [detail]);
 
   const askForFeedback = async () => {
     if (!isValidSmsPhone(mobile)) {
@@ -436,20 +458,26 @@ export default function ClientDetailScreen({
               ) : null}
 
               {detailRows.map((row, index) => (
-                <View
+                <TouchableOpacity
                   key={row.label}
                   style={[
                     styles.detailRow,
                     index === 0 && metrics.length > 0 && styles.detailRowAfterTiles,
                     index > 0 && styles.detailRowBorder,
                   ]}
+                  onPress={() =>
+                    navigation.navigate('ClientBmi', { client, initialPhaseId: row.phaseId })
+                  }
+                  activeOpacity={PressOpacity.default}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${row.label}`}
                 >
                   <IconWell backgroundColor={row.well} size={36}>
                     <Ionicons name={row.icon} size={IconSize.md} color={row.iconColor} />
                   </IconWell>
                   <Text style={styles.detailLabel}>{row.label}</Text>
                   <Text style={styles.detailValue} numberOfLines={2}>
-                    {row.value}
+                    {row.value === '-' ? 'Tap to add' : row.value}
                   </Text>
                   <Ionicons
                     name="chevron-forward-outline"
@@ -458,11 +486,34 @@ export default function ClientDetailScreen({
                     accessibilityElementsHidden
                     importantForAccessibility="no"
                   />
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
+
+        {resume ? (
+          <TouchableOpacity
+            style={styles.resumeCard}
+            onPress={() =>
+              navigation.navigate('ClientBmi', { client, initialPhaseId: resume.phaseId })
+            }
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel="Complete details"
+          >
+            <IconWell backgroundColor={Tone.checkupWell} size={36}>
+              <Ionicons name="create-outline" size={IconSize.md} color={Colors.white} />
+            </IconWell>
+            <View style={styles.resumeCopy}>
+              <Text style={styles.resumeTitle}>Complete details</Text>
+              <Text style={styles.resumeText}>
+                Still missing: {resume.missing}. Tap to continue.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward-outline" size={IconSize.md} color={Tone.chevron} />
+          </TouchableOpacity>
+        ) : null}
 
         <View style={styles.section}>
           <View style={styles.sectionHead}>
@@ -470,25 +521,6 @@ export default function ClientDetailScreen({
               <Text style={styles.sectionTitle}>Actions</Text>
               <View style={styles.sectionUnderline} />
             </View>
-            {client.clientCode ? (
-              <TouchableOpacity
-                style={[styles.addPill, photoUploading && styles.addPillDisabled]}
-                onPress={addProgressPhoto}
-                disabled={photoUploading}
-                activeOpacity={PressOpacity.strong}
-                accessibilityRole="button"
-                accessibilityLabel="Add progress photo"
-              >
-                {photoUploading ? (
-                  <ActivityIndicator color={Colors.white} size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="camera-outline" size={IconSize.sm} color={Colors.white} />
-                    <Text style={styles.addPillText}>Add</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ) : null}
           </View>
           <View style={styles.actionGrid}>
             {[0, 1].map(rowIndex => (
@@ -520,12 +552,43 @@ export default function ClientDetailScreen({
           </View>
         </View>
 
+        {hasReview ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Client review</Text>
+            <Text style={styles.sectionHint}>What this client said about your coaching</Text>
+            <ReviewsList query={reviewQuery} showSummary={false} />
+          </View>
+        ) : null}
+
         {client.clientCode ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Progress Photo</Text>
-            <Text style={styles.sectionHint}>
-              Add dated Progress photos to track how your client is doing
-            </Text>
+            <View style={styles.sectionHead}>
+              <View style={styles.photoHeadCopy}>
+                <Text style={styles.sectionTitle}>Progress Photo</Text>
+                <Text style={styles.sectionHint}>
+                  Add dated Progress photos to track how your client is doing
+                </Text>
+              </View>
+              {client.clientCode ? (
+                <TouchableOpacity
+                  style={[styles.addPill, photoUploading && styles.addPillDisabled]}
+                  onPress={addProgressPhoto}
+                  disabled={photoUploading}
+                  activeOpacity={PressOpacity.strong}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add progress photo"
+                >
+                  {photoUploading ? (
+                    <ActivityIndicator color={Colors.white} size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="camera-outline" size={IconSize.sm} color={Colors.white} />
+                      <Text style={styles.addPillText}>Add</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+            </View>
             <ProgressPhotos
               ref={photosRef}
               clientCode={client.clientCode}
@@ -677,6 +740,20 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     maxWidth: '42%',
   },
+  photoHeadCopy: { flex: 1, minWidth: 0 },
+  resumeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: ScreenPad.horizontal,
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
+    backgroundColor: Tone.checkupTile,
+  },
+  resumeCopy: { flex: 1, minWidth: 0 },
+  resumeTitle: { fontFamily: headingFont.bold, fontSize: 14, color: Tone.ink },
+  resumeText: { fontFamily: bodyFont.regular, fontSize: 12, lineHeight: 16, color: Tone.meta },
   sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',

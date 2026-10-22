@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import AssessmentWizardFlow from './AssessmentWizardFlow';
+import AssessmentComplete from '../../components/addClient/AssessmentComplete';
 import type { AssessmentCompleteResult } from './AssessmentWizardFlow';
 import { createBlankProfile } from '../../data/clientProfiles';
 import { queryKeys } from '../../api/queryKeys';
@@ -23,6 +24,7 @@ export default function AddClientScreen({
   const returnTo = route.params?.returnTo;
   const [allowed, setAllowed] = useState(() => !isSubscriptionRequired());
   const [gateError, setGateError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<AssessmentCompleteResult | null>(null);
 
   useEffect(() => {
     if (!isSubscriptionRequired()) return;
@@ -53,24 +55,7 @@ export default function AddClientScreen({
       queryClient.invalidateQueries({ queryKey: queryKeys.clientList(coachCode) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.recheckupList(coachCode) }),
     ]);
-    const clientCode = result?.ids?.clientCode;
-    const assessmentCode = result?.ids?.assessmentCode;
-    const buttons = [{ text: 'Done', onPress: () => navigateBack(navigation, returnTo) }];
-    if (clientCode) {
-      buttons.unshift({
-        text: 'Open Diet Plan',
-        onPress: () =>
-          navigation.navigate('ClientDietPlan', {
-            client: {
-              name: 'Client',
-              clientCode,
-              assessmentCode,
-            },
-            returnTo,
-          }),
-      });
-    }
-    Alert.alert('Client saved', 'The client assessment was saved successfully.', buttons);
+    setSaved(result ?? {});
   };
 
   if (!allowed) {
@@ -85,6 +70,24 @@ export default function AddClientScreen({
           <ActivityIndicator color={Colors.secondary} style={styles.gateSpinner} />
         )}
       </View>
+    );
+  }
+
+  if (saved) {
+    const clientCode = saved.ids?.clientCode;
+    const assessmentCode = saved.ids?.assessmentCode;
+    const client = { name: 'Client', clientCode, assessmentCode };
+    return (
+      <AssessmentComplete
+        headerTitle="Add Client"
+        title="Client saved"
+        message="The client assessment was saved. You can share the report now or come back to it later."
+        clientCode={clientCode}
+        assessmentCode={assessmentCode}
+        onViewReport={() => navigation.navigate('ClientBmiReport', { client, returnTo })}
+        onOpenDietPlan={() => navigation.navigate('ClientDietPlan', { client, returnTo })}
+        onDone={() => navigateBack(navigation, returnTo)}
+      />
     );
   }
 

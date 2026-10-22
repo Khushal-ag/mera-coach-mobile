@@ -35,6 +35,7 @@ import PackagesScreen from '../screens/profile/PackagesScreen';
 import EditPackagesScreen from '../screens/profile/EditPackagesScreen';
 import EventsScreen from '../screens/profile/EventsScreen';
 import EditEventsScreen from '../screens/profile/EditEventsScreen';
+import ReviewsScreen from '../screens/profile/ReviewsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -46,14 +47,14 @@ const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 const TAB_ICONS: Record<keyof MainTabParamList, IoniconName> = {
   Dashboard: 'grid-outline',
   Packages: 'cube-outline',
-  Events: 'calendar-outline',
+  Events: 'images-outline',
   Profile: 'person-outline',
 };
 
 const TAB_LABELS: Record<keyof MainTabParamList, string> = {
   Dashboard: 'Dashboard',
   Packages: 'Packages',
-  Events: 'Events',
+  Events: 'Posts',
   Profile: 'Profile',
 };
 
@@ -105,6 +106,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="ChangeMpin" component={ChangeMpinScreen} />
       <ProfileStack.Screen name="Legal" component={LegalScreen} />
       <ProfileStack.Screen name="Leads" component={MyLeadsScreen} />
+      <ProfileStack.Screen name="Reviews" component={ReviewsScreen} />
     </ProfileStack.Navigator>
   );
 }

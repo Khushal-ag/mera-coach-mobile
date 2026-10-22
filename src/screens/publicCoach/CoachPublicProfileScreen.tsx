@@ -19,6 +19,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import WhatsAppCoachButton from '../../components/publicCoach/WhatsAppCoachButton';
 import ShowcaseSections from '../../components/publicCoach/ShowcaseSections';
+import ReviewsList from '../../components/reviews/ReviewsList';
+import { useCoachReviews } from '../../hooks/useReviews';
 import { getPublicShowcase, type Showcase } from '../../api/showcaseApi';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -69,7 +71,7 @@ import {
 } from '../../utils/coachPublicStats';
 import { formatExpertiseLabel, stripTrailingTagsFromBio } from '../../utils/coachDisplay';
 import { mergeCoachProfile } from '../../utils/mergeCoachProfile';
-import { isDegenerateImageSize, resolveCoachPhotoUrl, resolveMediaUrl } from '../../utils/mediaUrl';
+import { isDegenerateImageSize, resolveCoachPhotoUrl } from '../../utils/mediaUrl';
 import { shareCoachPublicProfile } from '../../utils/sharePublicProfile';
 import {
   validateMobile,
@@ -100,7 +102,6 @@ const STAT_ICONS: Record<string, IoniconName> = {
 
 const HERO_PHOTO_ASPECT = 1.28;
 /** Wide public banner above the portrait card. Width / height. */
-const COVER_STRIP_ASPECT = 2.35;
 const HERO_PHOTO_FOCUS = 1.32;
 const HERO_CURVE_LIP_RATIO = 19 / 226;
 const HERO_PHOTO_TOP_RADIUS = 28;
@@ -163,15 +164,12 @@ type ProfileHeroProps = {
   smileHeight: number;
   waBtnHeight: number;
   activePhoto: string | null;
-  coverUri: string | null;
   coachCode: string;
   name: string;
   category?: string;
   bio: string;
   whatsAppUrl: string | null;
   showCoachNav: boolean;
-  coachPosition: number;
-  coachCount: number;
   onPrevCoach: () => void;
   onNextCoach: () => void;
   onMarkPhotoFailed: (uri: string) => void;
@@ -182,29 +180,17 @@ const ProfileHero = React.memo(function ProfileHero({
   smileHeight,
   waBtnHeight,
   activePhoto,
-  coverUri,
   coachCode,
   name,
   category,
   bio,
   whatsAppUrl,
   showCoachNav,
-  coachPosition,
-  coachCount,
   onPrevCoach,
   onNextCoach,
   onMarkPhotoFailed,
 }: ProfileHeroProps) {
   const photoSource = useMemo(() => (activePhoto ? { uri: activePhoto } : null), [activePhoto]);
-  const coverSource = useMemo(() => (coverUri ? { uri: coverUri } : null), [coverUri]);
-  const [coverFailed, setCoverFailed] = useState(false);
-  const [trackedCover, setTrackedCover] = useState(coverUri);
-  if (coverUri !== trackedCover) {
-    setTrackedCover(coverUri);
-    setCoverFailed(false);
-  }
-  const showCover = Boolean(coverSource) && !coverFailed;
-  const coverHeight = Math.round(contentWidth / COVER_STRIP_ASPECT);
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
@@ -259,22 +245,7 @@ const ProfileHero = React.memo(function ProfileHero({
 
   return (
     <View style={styles.heroBlock}>
-      {showCover && coverSource ? (
-        <View style={[styles.coverStrip, { height: coverHeight }]}>
-          <Image
-            source={coverSource}
-            style={styles.coverImage}
-            resizeMode="cover"
-            accessible={false}
-            onError={() => setCoverFailed(true)}
-            onLoad={e => {
-              const { width, height } = e.nativeEvent.source;
-              if (isDegenerateImageSize(width, height)) setCoverFailed(true);
-            }}
-          />
-        </View>
-      ) : null}
-      <View style={[styles.photoCard, showCover && styles.photoCardOnCover]}>
+      <View style={styles.photoCard}>
         <View style={styles.photoFrame}>
           {photoSource ? (
             <Image
@@ -352,31 +323,6 @@ const ProfileHero = React.memo(function ProfileHero({
                 </View>
               ) : null}
               {bio ? <Text style={styles.bio}>{bio}</Text> : null}
-              {showCoachNav ? (
-                <View style={styles.coachIndexPill}>
-                  <TouchableOpacity
-                    onPress={onPrevCoach}
-                    hitSlop={HitSlop.sm}
-                    accessibilityRole="button"
-                    accessibilityLabel="Previous coach"
-                    activeOpacity={PressOpacity.soft}
-                  >
-                    <Ionicons name="chevron-back" size={IconSize.sm} color={Colors.white} />
-                  </TouchableOpacity>
-                  <Text style={styles.coachIndexLabel}>
-                    {coachPosition} / {coachCount}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={onNextCoach}
-                    hitSlop={HitSlop.sm}
-                    accessibilityRole="button"
-                    accessibilityLabel="Next coach"
-                    activeOpacity={PressOpacity.soft}
-                  >
-                    <Ionicons name="chevron-forward" size={IconSize.sm} color={Colors.white} />
-                  </TouchableOpacity>
-                </View>
-              ) : null}
             </View>
           </View>
         </View>
@@ -698,6 +644,8 @@ function CoachProfilePage({
     enabled: !!coachCode,
   });
   const showcase = showcaseQuery.data ?? EMPTY_SHOWCASE;
+  const reviewsQuery = useCoachReviews(coachCode);
+  const hasReviews = (reviewsQuery.data?.pages[0]?.items.length ?? 0) > 0;
   const packages = showcase.packages;
   const scrollRef = useRef<ScrollView>(null);
   const formSectionY = useRef(0);
@@ -712,7 +660,6 @@ function CoachProfilePage({
   }
 
   const heroPhoto = coach ? resolveCoachPhotoUrl(coach) : '';
-  const coverUri = coach ? resolveMediaUrl(coach.coverUrl) : '';
   const whatsAppUrl = coach ? whatsAppUrlFromMobile(coach.mobile) : null;
   const activePhoto = heroPhoto && heroPhoto !== failedPhotoUri ? heroPhoto : null;
   const showCoachNav = coachCount > 1;
@@ -814,15 +761,12 @@ function CoachProfilePage({
           smileHeight={smileHeight}
           waBtnHeight={waBtnHeight}
           activePhoto={activePhoto}
-          coverUri={coverUri || null}
           coachCode={coach.id}
           name={coach.name}
           category={coach.category}
           bio={heroBio}
           whatsAppUrl={whatsAppUrl}
           showCoachNav={showCoachNav}
-          coachPosition={logicalIndex + 1}
-          coachCount={coachCount}
           onPrevCoach={goPrevCoach}
           onNextCoach={goNextCoach}
           onMarkPhotoFailed={markPhotoFailed}
@@ -904,51 +848,15 @@ function CoachProfilePage({
 
         <ShowcaseSections showcase={showcase} onSelectPackage={selectPackageService} />
 
-        {showRating ? (
+        {showRating && (hasReviews || reviewsQuery.isLoading) ? (
           <View style={styles.section}>
             <SectionTag
               icon="star-outline"
-              label="Review"
+              label="Reviews"
               color={SECTION_PILL_INK}
               style={styles.sectionPill}
             />
-            <View style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
-                <View style={styles.reviewHeaderCopy}>
-                  <Text style={styles.reviewTitle}>Client ratings</Text>
-                  <Text style={styles.reviewSubtitle}>Ratings from clients on Mera Coach.</Text>
-                </View>
-                <View style={styles.reviewShield}>
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={IconSize.lg}
-                    color={Colors.accentInk}
-                  />
-                </View>
-              </View>
-              <View style={styles.reviewDivider} />
-              <View style={styles.reviewScoreRow}>
-                <View style={styles.reviewScoreCopy}>
-                  <Text style={styles.reviewScore}>
-                    {coach.rating.toFixed(1)}
-                    <Text style={styles.reviewScoreOutOf}> / 5</Text>
-                  </Text>
-                  <Text style={styles.reviewCount}>
-                    {coach.reviews} {coach.reviews === 1 ? 'review' : 'reviews'}
-                  </Text>
-                </View>
-                <View style={styles.reviewStarsRow}>
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <Ionicons
-                      key={i}
-                      name="star-outline"
-                      size={IconSize.lg}
-                      color={Colors.accent}
-                    />
-                  ))}
-                </View>
-              </View>
-            </View>
+            <ReviewsList query={reviewsQuery} />
           </View>
         ) : null}
 
@@ -1168,24 +1076,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     overflow: 'visible',
   },
-  coverStrip: {
-    borderRadius: HERO_PHOTO_TOP_RADIUS,
-    overflow: 'hidden',
-    // A clear gap: the cover banner and the portrait are two separate photos and must not overlap.
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.headerGradientTop,
-  },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
   photoCard: {
     borderTopLeftRadius: HERO_PHOTO_TOP_RADIUS,
     borderTopRightRadius: HERO_PHOTO_TOP_RADIUS,
     overflow: 'visible',
-  },
-  photoCardOnCover: {
-    zIndex: 1,
   },
   photoFrame: {
     width: '100%',
@@ -1257,25 +1151,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.regular,
     lineHeight: 21,
-  },
-  coachIndexPill: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: Spacing.md,
-    backgroundColor: '#3E6658',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  coachIndexLabel: {
-    color: Colors.white,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: FontFamily.medium,
-    minWidth: 44,
-    textAlign: 'center',
   },
   waBtn: {
     alignSelf: 'stretch',
@@ -1381,127 +1256,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
-  storiesList: { gap: Spacing.sm },
-  storyCard: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    ...Shadow.sm,
-  },
-  storyCopy: { flex: 1, minWidth: 0 },
-  focusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.secondaryLight,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: Spacing.xs,
-  },
-  focusPillText: {
-    color: Colors.accentInk,
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-  },
-  storyTitle: {
-    fontSize: 16,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-    marginBottom: 4,
-  },
-  storyBody: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    lineHeight: 18,
-  },
-  storyImage: {
-    width: 96,
-    height: 96,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.backgroundTan,
-  },
-  storyImagePlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.secondaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reviewCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
-    ...Shadow.sm,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  reviewHeaderCopy: { flex: 1, minWidth: 0 },
-  reviewTitle: {
-    fontSize: 18,
-    fontFamily: headingFont.extraBold,
-    color: Colors.textDark,
-  },
-  reviewSubtitle: {
-    marginTop: 4,
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    lineHeight: 17,
-  },
-  reviewShield: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.secondaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  reviewDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.md,
-  },
-  reviewScoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-  },
-  reviewScoreCopy: { flexShrink: 1, minWidth: 0 },
-  reviewScore: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-  },
-  reviewScoreOutOf: {
-    fontSize: 16,
-    fontFamily: FontFamily.semibold,
-    color: Colors.textLight,
-  },
-  reviewCount: {
-    marginTop: 2,
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-  },
-  reviewStarsRow: { flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 0 },
   bookingSection: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.xl,

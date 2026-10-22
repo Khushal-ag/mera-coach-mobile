@@ -21,7 +21,8 @@ export type DashboardStackParamList = {
   AddClient: { returnTo?: NavigationReturnTo } | undefined;
   /** `paid: '1'` from `meracoach://premium?paid=1` after web checkout. */
   Premium: { returnTo?: NavigationReturnTo; paid?: string } | undefined;
-  ClientBmi: WithReturnTo<{ client?: ClientSummary }> | undefined;
+  /** `initialPhaseId` opens the checkup on that section (personal, lifestyle or diet). */
+  ClientBmi: WithReturnTo<{ client?: ClientSummary; initialPhaseId?: string }> | undefined;
   ClientBmiReport: WithReturnTo<{ client?: ClientSummary }> | undefined;
   ClientDietPlan: WithReturnTo<{ client?: ClientSummary }> | undefined;
   CheckupListHome: undefined;
@@ -58,6 +59,7 @@ export type ProfileStackParamList = {
   ChangeMpin: undefined;
   Legal: undefined;
   Leads: undefined;
+  Reviews: undefined;
 };
 
 export type MainTabParamList = {

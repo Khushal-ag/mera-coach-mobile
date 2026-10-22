@@ -27,7 +27,6 @@ import {
   formFieldStyles,
   headingFont,
 } from '../../constants/theme';
-import PhoneTextInput from '../../components/PhoneTextInput';
 import DropdownField from '../../components/DropdownField';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
@@ -130,12 +129,6 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const [step, setStep] = useState<1 | 2>(1);
   const [coachName, setCoachName] = useState(profile.coachName);
-  // Empty until categories load or user picks; display falls back to profile type label.
-  const [categoryLabel, setCategoryLabel] = useState(
-    categories.find(c => c.code === profile.coachTypeCode)?.label ?? '',
-  );
-  const [mobile] = useState(profile.mobile);
-  const [email] = useState(profile.email);
   const [businessName, setBusinessName] = useState(profile.businessName);
   const [experienceYears, setExperienceYears] = useState(String(profile.experienceYears ?? ''));
   const [happyClientCount, setHappyClientCount] = useState(String(profile.happyClientCount ?? ''));
@@ -144,6 +137,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   );
   const [tagline, setTagline] = useState(profile.tagline);
   const [localLanguage, setLocalLanguage] = useState(profile.localLanguage);
+  const [recheckupDays, setRecheckupDays] = useState(String(profile.recheckupDays));
   const [bmiReportTemplate, setBmiReportTemplate] = useState(profile.bmiReportTemplate);
   const [dietChartTemplate, setDietChartTemplate] = useState(profile.dietChartTemplate);
   const [coachDesc, setCoachDesc] = useState(profile.coachDesc);
@@ -158,7 +152,6 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   );
   // null = not edited yet => derive from profile; [] = user cleared all services.
   const [serviceLabels, setServiceLabels] = useState<string[] | null>(null);
-  const [servicesForCategory, setServicesForCategory] = useState(profile.coachTypeCode);
   // Auto-select all services when category has none saved yet.
   const [autoSelectServices, setAutoSelectServices] = useState(
     () => !!profile.coachTypeCode && profile.serviceCodes.length === 0,
@@ -180,17 +173,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   } = useFormFieldErrors();
   const queryClient = useQueryClient();
 
-  const resolvedCategoryLabel =
-    categoryLabel || categories.find(c => c.code === profile.coachTypeCode)?.label || '';
-  const categoryCode =
-    categories.find(c => c.label === resolvedCategoryLabel)?.code ?? profile.coachTypeCode;
-
-  // Reset service selection when category changes (setState during render).
-  if (servicesForCategory !== categoryCode) {
-    setServicesForCategory(categoryCode);
-    setServiceLabels(null);
-    setAutoSelectServices(true);
-  }
+  // Category, mobile and email are fixed at registration and cannot be edited here.
+  const categoryCode = profile.coachTypeCode;
+  const resolvedCategoryLabel = categories.find(c => c.code === categoryCode)?.label ?? '';
 
   const servicesQuery = useQuery({
     queryKey: queryKeys.servicesForCategory(categoryCode),
@@ -302,19 +287,17 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     }
     const validation = validateCoachProfileEdit({
       coachName,
-      categoryCode,
-      mobile,
-      email,
       pinCode,
       experienceYears,
       happyClientCount,
       certificationCount,
+      recheckupDays,
       coachDesc,
       addLine,
     });
     if (applyValidation(validation)) {
       if (!validation.ok) {
-        const step1Keys = ['coachName', 'category', 'mobile', 'email'];
+        const step1Keys = ['coachName'];
         if (step1Keys.some(k => validation.errors[k])) {
           setStep(1);
         }
@@ -336,8 +319,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         coachId: profile.coachId,
         coachName: coachName.trim(),
         coachTypeCode: categoryCode,
-        mobile: mobile.trim(),
-        email: email.trim(),
+        mobile: profile.mobile.trim(),
+        email: profile.email.trim(),
         businessName: businessName.trim(),
         serviceCodes: resolvedServiceLabels
           .map(label => serviceOptions.find(s => s.label === label)?.code)
@@ -348,6 +331,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         certificationCount: parseInt(certificationCount, 10) || 0,
         tagline: tagline.trim(),
         localLanguage: localLanguage.trim(),
+        recheckupDays: parseInt(recheckupDays, 10),
         locality: locality.trim(),
         add_Line: addLineTrimmed,
         city_Cd: cityCd.trim(),
@@ -439,8 +423,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           <>
             <FormSection
               icon="person-outline"
-              title="Identify"
-              hint="Name and category appear on your public card"
+              title="Your name"
+              hint="Your name appears on your public card"
             >
               <Field
                 label="Coach Name"
@@ -452,62 +436,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 required
                 hasError={!!errorFields.coachName}
               />
-              <DropdownField
-                label="Category"
-                value={resolvedCategoryLabel}
-                options={categories.map(c => c.label)}
-                onChange={v => {
-                  setCategoryLabel(v);
-                  clearFieldError('category');
-                }}
-                placeholder="Select category"
-                required
-                hasError={!!errorFields.category}
-                labelStyle={styles.fieldLabel}
-              />
-              <View style={styles.field}>
-                <FormFieldLabel required style={styles.fieldLabel}>
-                  Mobile
-                </FormFieldLabel>
-                <View style={[styles.inputWrap, styles.inputReadOnly]}>
-                  <PhoneTextInput
-                    style={styles.input}
-                    value={mobile}
-                    onChangeText={() => {}}
-                    editable={false}
-                    placeholderTextColor={Colors.textLight}
-                  />
-                </View>
-                <Text style={styles.fieldHintInline}>Mobile number cannot be changed.</Text>
-              </View>
-              <View style={styles.field}>
-                <FormFieldLabel required style={styles.fieldLabel}>
-                  Email
-                </FormFieldLabel>
-                <View
-                  style={[
-                    styles.inputWrap,
-                    styles.inputReadOnly,
-                    errorFields.email && styles.inputError,
-                  ]}
-                >
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    editable={false}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor={Colors.textLight}
-                  />
-                </View>
-                <Text style={styles.fieldHintInline}>Email ID cannot be changed.</Text>
-              </View>
             </FormSection>
 
             <FormSection
               icon="camera-outline"
               title="Photo"
-              hint="A clear photo helps clients recognize you. The cover is the banner on your public page."
+              hint="A profile photo is needed for your public profile. The cover is the banner on your public page."
             >
               <TouchableOpacity
                 style={styles.coverTile}
@@ -532,7 +466,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               </TouchableOpacity>
               <View style={styles.imagesDash}>
                 <ImagePickerTile
-                  label="Profile Photo"
+                  label="Profile Photo *"
                   uri={resolveMediaUrl(profilePicUrl)}
                   uploading={uploadingPhoto}
                   onPress={() => pickImage('photo')}
@@ -551,8 +485,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
           <>
             <FormSection
               icon="briefcase-outline"
-              title="Professional"
-              hint="These fields power your find a coach listing"
+              title="Professional details"
+              hint="Fields marked * are needed to appear on Find a Coach"
             >
               <Field label="Business Name" value={businessName} onChangeText={setBusinessName} />
               <View style={styles.row}>
@@ -571,7 +505,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 </View>
                 <View style={styles.half}>
                   <Field
-                    label="Happy Client(yrs)"
+                    label="Happy Clients"
                     value={happyClientCount}
                     onChangeText={v => {
                       setHappyClientCount(v);
@@ -584,8 +518,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 </View>
               </View>
               <Text style={styles.fieldHint}>
-                Shown as Clients on your public card. Update it for the number others see, not your
-                live roster count.
+                Shown as Clients on your public card. Enter how many clients you have helped, as a
+                number.
               </Text>
               <View style={styles.row}>
                 <View style={styles.half}>
@@ -601,7 +535,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                   />
                 </View>
                 <View style={styles.half}>
-                  <Field label="Tagline (optional)" value={tagline} onChangeText={setTagline} />
+                  <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
                 </View>
               </View>
 
@@ -655,6 +589,47 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                   ))}
                 </View>
               </View>
+            </FormSection>
+
+            <FormSection
+              icon="calendar-outline"
+              title="Assessment period"
+              hint="How many days after an assessment a client is due for the next one. Clients past this period show as due on your checkup list."
+            >
+              <View style={styles.periodRow}>
+                {[7, 14, 30].map(days => {
+                  const active = recheckupDays === String(days);
+                  return (
+                    <TouchableOpacity
+                      key={days}
+                      style={[styles.periodChip, active && styles.periodChipActive]}
+                      onPress={() => {
+                        setRecheckupDays(String(days));
+                        clearFieldError('recheckupDays');
+                      }}
+                      activeOpacity={PressOpacity.default}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={`${days} days`}
+                    >
+                      <Text style={[styles.periodChipText, active && styles.periodChipTextActive]}>
+                        {days} days
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Field
+                label="Days between assessments"
+                value={recheckupDays}
+                onChangeText={v => {
+                  setRecheckupDays(v.replace(/\D/g, '').slice(0, 3));
+                  clearFieldError('recheckupDays');
+                }}
+                keyboardType="numeric"
+                required
+                hasError={!!errorFields.recheckupDays}
+              />
             </FormSection>
 
             <FormSection
@@ -862,8 +837,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
 
 function StepIndicator({ step, onSelect }: { step: 1 | 2; onSelect: (step: 1 | 2) => void }) {
   const items: { id: 1 | 2; label: string }[] = [
-    { id: 1, label: 'Photo/ Identify' },
-    { id: 2, label: 'Professional & About/Description' },
+    { id: 1, label: 'Name & photo' },
+    { id: 2, label: 'Professional details' },
   ];
   return (
     <View style={styles.stepRow}>
@@ -1015,6 +990,20 @@ function ImagePickerTile({
 }
 
 const styles = StyleSheet.create({
+  periodRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs },
+  periodChip: {
+    flex: 1,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  periodChipActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
+  periodChipText: { fontFamily: FontFamily.semibold, fontSize: 13, color: Colors.textDark },
+  periodChipTextActive: { color: Colors.white },
   container: { flex: 1, backgroundColor: Colors.background },
   formRoot: { flex: 1 },
   body: { flex: 1 },
@@ -1193,13 +1182,6 @@ const styles = StyleSheet.create({
   },
   input: formFieldStyles.input,
   inputError: formFieldStyles.wrapError,
-  inputReadOnly: formFieldStyles.wrapDisabled,
-  fieldHintInline: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
   suggestLabel: {
     fontSize: 11,
     fontFamily: headingFont.semibold,

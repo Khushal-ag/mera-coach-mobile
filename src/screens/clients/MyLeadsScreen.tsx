@@ -32,7 +32,6 @@ import EmptyState from '../../components/EmptyState';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import ListPager from '../../components/ListPager';
 import ReloadState from '../../components/ReloadState';
-import PersonAvatar from '../../components/PersonAvatar';
 import SearchField from '../../components/SearchField';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import { getEnquiryLeads, updateEnquiryLead, type EnquiryLead } from '../../api/clientApi';
@@ -91,7 +90,6 @@ const LeadRow = React.memo(function LeadRow({
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <PersonAvatar width={82} height={91} borderRadius={12} style={styles.avatar} />
         <View style={styles.info}>
           <View style={styles.nameRow}>
             <Text style={styles.name} numberOfLines={1}>
@@ -371,9 +369,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.md,
-  },
-  avatar: {
-    flexShrink: 0,
   },
   info: { flex: 1, minWidth: 0 },
   nameRow: {

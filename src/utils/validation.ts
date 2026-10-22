@@ -298,13 +298,6 @@ export function validateClientLifestyleProfile(form: ClientProfile): FormValidat
   return resultFromErrors(errors);
 }
 
-function validateCoachContactFields(mobile: string, email: string): FormValidationResult {
-  const errors: FieldErrorMap = {};
-  putError(errors, 'mobile', validateMobile(mobile));
-  putError(errors, 'email', validateEmail(email));
-  return resultFromErrors(errors);
-}
-
 export const PASSWORD_RULE =
   'Password must be at least 8 characters and include a letter and a number.';
 
@@ -349,22 +342,19 @@ export function validateLogin(fields: { email: string; password: string }): Form
   return resultFromErrors(errors);
 }
 
+/** Edit Profile. Category, mobile and email are fixed at sign up and are not checked here. */
 export function validateCoachProfileEdit(fields: {
   coachName: string;
-  categoryCode: string;
-  mobile: string;
-  email: string;
   pinCode: string;
   experienceYears: string;
   happyClientCount: string;
   coachDesc: string;
   addLine: string;
   certificationCount?: string;
+  recheckupDays?: string;
 }): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'coachName', validateRequired(fields.coachName, 'Coach name'));
-  if (!fields.categoryCode.trim()) errors.category = 'Coach category is required.';
-  Object.assign(errors, validateCoachContactFields(fields.mobile, fields.email).errors);
   putError(errors, 'pinCode', validatePinCode(fields.pinCode, true));
   putError(
     errors,
@@ -383,5 +373,11 @@ export function validateCoachProfileEdit(fields: {
     'certificationCount',
     validateNonNegativeInt(fields.certificationCount ?? '', 'Certifications'),
   );
+  if (fields.recheckupDays !== undefined) {
+    const days = Number(fields.recheckupDays);
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      errors.recheckupDays = 'Enter a whole number of days between 1 and 365.';
+    }
+  }
   return resultFromErrors(errors);
 }

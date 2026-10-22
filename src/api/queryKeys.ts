@@ -69,6 +69,8 @@ export const queryKeys = {
   coachProfileFull: ['coachProfileFull'] as const,
   myPackages: ['showcase', 'packages'] as const,
   myPosts: ['showcase', 'posts'] as const,
+  coachReviews: (coachCode: string) => ['reviews', 'public', coachCode] as const,
+  myReviews: (clientCode?: string) => ['reviews', 'mine', clientCode ?? 'all'] as const,
   publicShowcase: (coachCode: string) => ['showcase', 'public', coachCode] as const,
   postCategories: ['master', 'postCategories'] as const,
   productBrands: ['master', 'productBrands'] as const,

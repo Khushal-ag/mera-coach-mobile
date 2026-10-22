@@ -97,7 +97,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
   return (
     <View style={styles.container}>
       <WaveScreenHeader
-        title="Gallery & Events"
+        title="Posts"
         showBack={false}
         onHome={() => navigateToDashboard(navigation)}
       />
@@ -108,7 +108,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
           icon="add-outline"
           iconPosition="left"
           onPress={() => navigation.navigate('AddEvent')}
-          accessibilityLabel="Add gallery or event post"
+          accessibilityLabel="Add post"
         />
       </View>
       <ScrollView
@@ -171,7 +171,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
               <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.accentInk} />
               <Text style={styles.emptyTitle}>Nothing here yet</Text>
               <Text style={styles.emptyMessage}>
-                Share gallery photos, workshops and client success stories on your public profile.
+                Share photos, workshops and client success stories on your public profile.
               </Text>
             </View>
           ) : (

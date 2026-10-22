@@ -2,6 +2,8 @@ export type ProfileCompletionItem = {
   key: string;
   label: string;
   done: boolean;
+  /** Where to fill it in on Edit Profile. */
+  where: string;
 };
 
 export type ProfileCompletionInput = {
@@ -54,29 +56,62 @@ export function getProfileCompletion(profile: ProfileCompletionInput): ProfileCo
   const services = profile.serviceCodes ?? [];
 
   const items: ProfileCompletionItem[] = [
-    { key: 'photo', label: 'Profile photo', done: hasText(profile.profilePicUrl) },
-    { key: 'name', label: 'Coach name', done: hasText(profile.coachName) },
-    { key: 'category', label: 'Coach category', done: hasText(profile.coachTypeCode) },
+    {
+      key: 'photo',
+      label: 'Profile photo',
+      done: hasText(profile.profilePicUrl),
+      where: 'Name & photo',
+    },
+    { key: 'name', label: 'Coach name', done: hasText(profile.coachName), where: 'Name & photo' },
+    {
+      key: 'category',
+      label: 'Coach category',
+      done: hasText(profile.coachTypeCode),
+      where: 'Set at sign up',
+    },
     {
       key: 'city',
       label: 'City',
       done: hasText(profile.cityCd ?? profile.city_Cd),
+      where: 'Address (filled from pincode)',
     },
-    { key: 'tagline', label: 'Tagline', done: hasText(profile.tagline) },
-    { key: 'description', label: 'About / description', done: hasText(profile.coachDesc) },
-    { key: 'services', label: 'Services', done: services.some(code => hasText(code)) },
+    {
+      key: 'tagline',
+      label: 'Tagline',
+      done: hasText(profile.tagline),
+      where: 'Professional details',
+    },
+    {
+      key: 'description',
+      label: 'About / description',
+      done: hasText(profile.coachDesc),
+      where: 'Professional details',
+    },
+    {
+      key: 'services',
+      label: 'Services',
+      done: services.some(code => hasText(code)),
+      where: 'Professional details',
+    },
     {
       key: 'experience',
       label: 'Years of experience',
       done: enteredNumber(profile.experienceYears),
+      where: 'Professional details',
     },
     {
       key: 'clients',
       label: 'Happy clients count',
       done: enteredNumber(profile.happyClientCount),
+      where: 'Professional details',
     },
-    { key: 'pincode', label: 'Pincode', done: hasText(profile.pinCode) },
-    { key: 'location', label: 'Locality or address', done: !!locality || !!addLine },
+    { key: 'pincode', label: 'Pincode', done: hasText(profile.pinCode), where: 'Address' },
+    {
+      key: 'location',
+      label: 'Locality or address',
+      done: !!locality || !!addLine,
+      where: 'Address',
+    },
   ];
 
   if (Array.isArray(profile.missingPublicFields)) {

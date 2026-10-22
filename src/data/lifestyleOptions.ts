@@ -123,11 +123,11 @@ export function coerceNoneOfTheAboveValues(
 }
 
 /**
- * Ensure "None of the above" exists and is always the last row.
- * Live PARAMLIST may omit it, or include it mid-list (any known code/label) — pin to bottom.
+ * Ensure "None of the above" exists and is always the first row.
+ * Live PARAMLIST may omit it, or include it anywhere in the list (any known code/label), so pin it to the top.
  * Existing server codes are preserved; display label is normalized to "None of the above".
  */
-export function ensureNoneOfTheAboveAtBottom<T extends { code: string; label: string }>(
+export function ensureNoneOfTheAboveFirst<T extends { code: string; label: string }>(
   options: T[],
 ): T[] {
   const existing = options.find(isNoneOfTheAboveOption);
@@ -136,7 +136,7 @@ export function ensureNoneOfTheAboveAtBottom<T extends { code: string; label: st
     ...(existing ?? { code: NONE_OF_THE_ABOVE.code }),
     label: NONE_OF_THE_ABOVE.label,
   } as T;
-  return [...rest, none];
+  return [none, ...rest];
 }
 
 export const PRIMARY_GOALS = [

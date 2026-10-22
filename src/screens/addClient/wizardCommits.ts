@@ -19,7 +19,7 @@ export type PersonalCommitResult = {
   photoUploadError: string | null;
 };
 
-/** Save personal details, then upload any pending client photos once clientCode exists. */
+/** Save personal details, then upload the optional client photo once clientCode exists. */
 export async function commitPersonal(
   profile: ClientProfile,
   ids: AssessmentIds,
@@ -33,26 +33,26 @@ export async function commitPersonal(
   }
 
   let photoUploadError: string | null = null;
-  const pending = (profile.photos ?? []).filter(p => p.dataUrl?.trim());
-  if (pending.length && nextIds.clientCode) {
+  // One optional client photo: the profile picture, and also the client's first progress photo.
+  const photo = (profile.photos ?? []).find(p => p.dataUrl?.trim());
+  if (photo && nextIds.clientCode) {
     const coachCode = getCurrentCoachCode() ?? '';
     const savedBy = getDocumentSavedById();
-    // Photos are optional — a failed upload must not roll back the client, but it must be told.
-    for (const photo of pending) {
+    // The photo is optional: a failed upload must not roll back the client, but it must be told.
+    for (const docType of ['PROFILE_PIC', 'PROGRESS_PHOTO']) {
       try {
-        const dataUrl = photo.dataUrl!.trim();
         await uploadDocument({
-          base64DataUrl: dataUrl,
+          base64DataUrl: photo.dataUrl!.trim(),
           coachCode,
           refCode: nextIds.clientCode,
           refType: 'CLIENT',
-          docType: 'PROGRESS_PHOTO',
+          docType,
           savedBy,
         });
       } catch (err) {
         photoUploadError = getErrorMessage(
           err,
-          'A progress photo could not be uploaded. You can add it from the client profile.',
+          'The client photo could not be uploaded. You can add it from the client profile.',
         );
       }
     }

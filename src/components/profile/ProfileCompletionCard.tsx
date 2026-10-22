@@ -50,12 +50,12 @@ export default function ProfileCompletionCard({
         </View>
         <View style={styles.copy}>
           <Text style={styles.title}>
-            {completion.isPublicReady ? 'Add remaining details' : 'Complete profile to go public'}
+            {completion.isPublicReady ? 'Add remaining details' : 'Required to go public'}
           </Text>
           <Text style={styles.subtitle}>
             {completion.isPublicReady
               ? 'Add a photo and remaining details so clients trust your listing.'
-              : 'Finish the required fields to appear on Find a Coach.'}
+              : 'All of these are needed before your profile shows on Find a Coach.'}
           </Text>
         </View>
         <Text style={styles.percent}>{completion.percent}%</Text>
@@ -74,7 +74,10 @@ export default function ProfileCompletionCard({
                 size={IconSize.md}
                 color={item.done ? Colors.secondary : Colors.textLight}
               />
-              <Text style={[styles.checkLabel, item.done && styles.checkDone]}>{item.label}</Text>
+              <Text style={[styles.checkLabel, item.done && styles.checkDone]}>
+                {item.label}
+                {item.done ? '' : ` (${item.where})`}
+              </Text>
             </View>
           ))}
         </View>

@@ -1,5 +1,10 @@
-const { AndroidConfig, withAndroidManifest, withAndroidStyles, withAppBuildGradle, withGradleProperties } =
-  require('expo/config-plugins');
+const {
+  AndroidConfig,
+  withAndroidManifest,
+  withAndroidStyles,
+  withAppBuildGradle,
+  withGradleProperties,
+} = require('expo/config-plugins');
 
 /**
  * Google Play release fixes for the generated android/ project (gitignored; EAS prebuild).
@@ -41,7 +46,7 @@ function stripScreenOrientation(nodes) {
 }
 
 function withReleaseMinify(config) {
-  config = withGradleProperties(config, (config) => {
+  config = withGradleProperties(config, config => {
     config.modResults = AndroidConfig.BuildProperties.updateAndroidBuildProperty(
       config.modResults,
       'android.enableMinifyInReleaseBuilds',
@@ -62,7 +67,7 @@ function withReleaseMinify(config) {
     return config;
   });
 
-  return withAppBuildGradle(config, (config) => {
+  return withAppBuildGradle(config, config => {
     const contents = config.modResults.contents;
     if (contents.includes('-dontobfuscate') && !contents.includes('# -dontobfuscate')) {
       throw new Error('android/app/build.gradle disables R8 obfuscation with -dontobfuscate');
@@ -80,7 +85,7 @@ function withReleaseMinify(config) {
 }
 
 function withLargeScreens(config) {
-  return withAndroidManifest(config, (config) => {
+  return withAndroidManifest(config, config => {
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
     if (application.$['android:resizeableActivity'] !== 'true') {
       application.$['android:resizeableActivity'] = 'true';
@@ -92,13 +97,13 @@ function withLargeScreens(config) {
 }
 
 function withEdgeToEdgeStyles(config) {
-  return withAndroidStyles(config, (config) => {
+  return withAndroidStyles(config, config => {
     const styles = config.modResults.resources?.style ?? [];
     for (const style of styles) {
       if (!Array.isArray(style.item)) {
         continue;
       }
-      style.item = style.item.filter((item) => !DEPRECATED_STYLE_ITEMS.includes(item.$?.name));
+      style.item = style.item.filter(item => !DEPRECATED_STYLE_ITEMS.includes(item.$?.name));
     }
     return config;
   });

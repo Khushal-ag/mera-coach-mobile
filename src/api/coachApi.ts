@@ -266,6 +266,7 @@ interface RawCoachProfileFull {
   certificationCount?: number;
   tagline?: string;
   localLanguage?: string;
+  recheckupDays?: number;
   locality?: string;
   add_Line?: string;
   city_Cd?: string;
@@ -299,6 +300,8 @@ export interface CoachProfileFull {
   certificationCount: number;
   tagline: string;
   localLanguage: string;
+  /** Days between client assessments. */
+  recheckupDays: number;
   locality: string;
   addLine: string;
   cityCd: string;
@@ -341,6 +344,7 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     certificationCount: raw.certificationCount ?? 0,
     tagline: raw.tagline ?? '',
     localLanguage: raw.localLanguage ?? '',
+    recheckupDays: raw.recheckupDays && raw.recheckupDays > 0 ? raw.recheckupDays : 7,
     locality: raw.locality ?? '',
     addLine: raw.add_Line ?? '',
     cityCd: raw.city_Cd ?? '',
@@ -425,6 +429,8 @@ interface SaveCoachProfileParams {
   certificationCount?: number;
   tagline?: string;
   localLanguage?: string;
+  /** Days between client assessments, 1 to 365. */
+  recheckupDays?: number;
   locality?: string;
   add_Line?: string;
   city_Cd?: string;

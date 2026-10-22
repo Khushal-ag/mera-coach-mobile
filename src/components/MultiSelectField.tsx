@@ -35,13 +35,16 @@ function normalizeOptions(options: MultiSelectOption[]): MasterOption[] {
   );
 }
 
-/** Keep exclusive "none" sentinel last so it stays at the bottom of the sheet. */
-function pinExclusiveNoneLast(options: MasterOption[], exclusiveNoneCode?: string): MasterOption[] {
+/** Keep the exclusive "none" sentinel first so it stays at the top of the sheet. */
+function pinExclusiveNoneFirst(
+  options: MasterOption[],
+  exclusiveNoneCode?: string,
+): MasterOption[] {
   if (!exclusiveNoneCode) return options;
-  if (options[options.length - 1]?.code === exclusiveNoneCode) return options;
+  if (options[0]?.code === exclusiveNoneCode) return options;
   const none = options.find(o => o.code === exclusiveNoneCode);
   if (!none) return options;
-  return [...options.filter(o => o.code !== exclusiveNoneCode), none];
+  return [none, ...options.filter(o => o.code !== exclusiveNoneCode)];
 }
 
 function isSelected(value: string[], opt: MasterOption, exclusiveNoneCode?: string): boolean {
@@ -62,7 +65,7 @@ interface MultiSelectFieldProps {
   labelStyle?: StyleProp<TextStyle>;
   /**
    * When set, selecting this option clears all others; selecting any other option
-   * clears this one (e.g. "None of the above"). Always rendered last in the list.
+   * clears this one (e.g. "None of the above"). Always rendered first in the list.
    */
   exclusiveNoneCode?: string;
   tone?: 'default' | 'mint';
@@ -83,7 +86,7 @@ export default function MultiSelectField({
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const normalized = useMemo(
-    () => pinExclusiveNoneLast(normalizeOptions(options), exclusiveNoneCode),
+    () => pinExclusiveNoneFirst(normalizeOptions(options), exclusiveNoneCode),
     [options, exclusiveNoneCode],
   );
 

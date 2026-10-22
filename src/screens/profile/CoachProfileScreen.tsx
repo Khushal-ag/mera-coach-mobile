@@ -68,9 +68,14 @@ const publicProfileItems: MenuItem[] = [
     tab: 'Packages',
   },
   {
-    icon: 'calendar-outline',
-    label: 'Gallery & Events',
+    icon: 'images-outline',
+    label: 'Posts',
     tab: 'Events',
+  },
+  {
+    icon: 'chatbubble-ellipses-outline',
+    label: 'Reviews',
+    route: 'Reviews',
   },
 ];
 

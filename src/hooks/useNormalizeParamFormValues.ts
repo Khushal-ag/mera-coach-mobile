@@ -13,7 +13,7 @@ import {
   TARGET_TIMELINES,
   MEDICAL_CONDITIONS,
   FOOD_ALLERGIES,
-  ensureNoneOfTheAboveAtBottom,
+  ensureNoneOfTheAboveFirst,
   coerceNoneOfTheAboveValues,
 } from '../data/lifestyleOptions';
 import type { ClientProfile } from '../types/models';
@@ -48,10 +48,10 @@ interface LifestyleParamBundle {
 
 function useHealthGoalParamBundle(): HealthGoalParamBundle {
   return {
-    medicalOptions: ensureNoneOfTheAboveAtBottom(
+    medicalOptions: ensureNoneOfTheAboveFirst(
       useParamMasterOptions(PARAM_CODES.medicalConditions, MEDICAL_CONDITIONS),
     ),
-    allergyOptions: ensureNoneOfTheAboveAtBottom(
+    allergyOptions: ensureNoneOfTheAboveFirst(
       useParamMasterOptions(PARAM_CODES.foodAllergies, FOOD_ALLERGIES),
     ),
     goalOptions: useParamMasterOptions(PARAM_CODES.primaryGoal, PRIMARY_GOALS),

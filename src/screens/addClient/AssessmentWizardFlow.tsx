@@ -231,6 +231,12 @@ export default function AssessmentWizardFlow({
             void queryClient.invalidateQueries({
               queryKey: queryKeys.progressPhotos(getCurrentCoachCode() ?? '', nextIds.clientCode),
             });
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.clientProfilePhoto(
+                getCurrentCoachCode() ?? '',
+                nextIds.clientCode,
+              ),
+            });
           }
           setForm(f => ({
             ...f,

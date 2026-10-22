@@ -94,13 +94,12 @@ export default function ClientDietPlanScreen({
     }
     await Promise.all(tasks);
 
+    // Stay on the plan so the coach can save or share the PDF right away.
     const message = becameComplete
-      ? 'Diet plan saved. Assessment status: Complete.'
-      : 'Diet plan saved successfully.';
+      ? 'Diet plan saved. Assessment status: Complete. Use Share PDF to save or send it.'
+      : 'Diet plan saved. Use Share PDF to save or send it.';
 
-    Alert.alert('Diet plan saved', message, [
-      { text: 'OK', onPress: () => navigateBack(navigation, returnTo) },
-    ]);
+    Alert.alert('Diet plan saved', message);
   };
 
   const planSettled = !ids.assessmentCode || planQuery.isFetched || planQuery.isError;

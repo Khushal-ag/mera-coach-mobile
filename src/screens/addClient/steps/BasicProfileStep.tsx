@@ -33,8 +33,6 @@ type HeightUnit = 'cm' | 'ftin';
 
 type ErrorFields = Record<string, boolean>;
 
-/** Cap local picks before personal commit (matches ProgressPhotos multi-select spirit). */
-const MAX_CLIENT_PHOTOS = 10;
 const PHOTO_THUMB = 88;
 
 interface FieldProps {
@@ -261,107 +259,58 @@ function newPhotoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** One optional client photo. It becomes the profile picture and the first progress photo. */
 function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
-  const photos = form.photos ?? [];
-  const remaining = MAX_CLIENT_PHOTOS - photos.length;
-  const canAdd = remaining > 0;
+  const photo = (form.photos ?? [])[0];
   const [photoError, setPhotoError] = useState<string | null>(null);
 
-  const setPhotos = (next: PendingClientPhoto[]) => {
-    update('photos', next);
-  };
-
-  const pickPhotos = async () => {
-    if (!canAdd) {
-      setPhotoError(`You can add up to ${MAX_CLIENT_PHOTOS} photos.`);
-      return;
-    }
+  const pickPhoto = async () => {
     setPhotoError(null);
-    const assets = await pickImagesFromCameraOrLibrary({
-      quality: 0.7,
-      selectionLimit: remaining,
-    });
-    if (!assets.length) return;
-
-    const added: PendingClientPhoto[] = [];
-    for (const asset of assets) {
-      if (added.length >= remaining) break;
-      added.push({
-        id: newPhotoId(),
-        uri: asset.uri,
-        dataUrl: `data:${asset.mimeType};base64,${asset.base64}`,
-      });
-    }
-    if (!added.length) return;
-    setPhotos([...photos, ...added]);
-  };
-
-  const removePhoto = (id: string) => {
-    setPhotos(photos.filter(p => p.id !== id));
+    const assets = await pickImagesFromCameraOrLibrary({ quality: 0.7, selectionLimit: 1 });
+    const asset = assets[0];
+    if (!asset) return;
+    const next: PendingClientPhoto = {
+      id: newPhotoId(),
+      uri: asset.uri,
+      dataUrl: `data:${asset.mimeType};base64,${asset.base64}`,
+    };
+    update('photos', [next]);
   };
 
   return (
     <View style={styles.photoField}>
-      <View style={styles.photoHeader}>
-        <FormFieldLabel style={{ marginBottom: 0 }}>Client Photos (optional)</FormFieldLabel>
-        {canAdd ? (
-          <TouchableOpacity
-            style={styles.photoActionBtn}
-            onPress={pickPhotos}
-            activeOpacity={PressOpacity.strong}
-            accessibilityRole="button"
-            accessibilityLabel="Add client photos"
-          >
-            <Ionicons name="camera-outline" size={IconSize.sm} color="#F08A2C" />
-            <Text style={styles.photoActionText}>{photos.length ? 'Add more' : 'Add photos'}</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      <FormFieldLabel style={{ marginBottom: 6 }}>Client Photo (optional)</FormFieldLabel>
       <Text style={styles.photoHint}>
-        Uploaded after client details are saved. Up to {MAX_CLIENT_PHOTOS} photos.
+        Saved as the client&apos;s profile picture and as their first progress photo. Add more
+        progress photos later from the client profile.
       </Text>
       <FormErrorBanner message={photoError} />
-
-      {photos.length === 0 ? (
+      {photo ? (
+        <View style={styles.photoThumbWrap}>
+          <Image source={{ uri: photo.uri }} style={styles.photoThumb} />
+          <TouchableOpacity
+            style={styles.photoRemoveBtn}
+            onPress={() => update('photos', [])}
+            accessibilityRole="button"
+            accessibilityLabel="Remove photo"
+            activeOpacity={PressOpacity.default}
+            hitSlop={HitSlop.sm}
+          >
+            <View style={styles.photoRemoveIcon}>
+              <Ionicons name="close-outline" size={IconSize.sm} color={Colors.destructive} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      ) : (
         <TouchableOpacity
           style={styles.photoEmpty}
-          onPress={pickPhotos}
+          onPress={pickPhoto}
           accessibilityRole="button"
-          accessibilityLabel="Add client photos"
+          accessibilityLabel="Add client photo"
         >
-          <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.accentInk} />
-          <Text style={styles.photoEmptyText}>Tap to select photos</Text>
+          <Ionicons name="camera-outline" size={IconSize.xxl} color={Colors.accentInk} />
+          <Text style={styles.photoEmptyText}>Tap to add a photo</Text>
         </TouchableOpacity>
-      ) : (
-        <View style={styles.photoGrid}>
-          {photos.map(photo => (
-            <View key={photo.id} style={styles.photoThumbWrap}>
-              <Image source={{ uri: photo.uri }} style={styles.photoThumb} />
-              <TouchableOpacity
-                style={styles.photoRemoveBtn}
-                onPress={() => removePhoto(photo.id)}
-                accessibilityRole="button"
-                accessibilityLabel="Remove photo"
-                activeOpacity={PressOpacity.default}
-                hitSlop={HitSlop.sm}
-              >
-                <View style={styles.photoRemoveIcon}>
-                  <Ionicons name="close-outline" size={IconSize.sm} color={Colors.destructive} />
-                </View>
-              </TouchableOpacity>
-            </View>
-          ))}
-          {canAdd ? (
-            <TouchableOpacity
-              style={styles.photoAddTile}
-              onPress={pickPhotos}
-              accessibilityRole="button"
-              accessibilityLabel="Add more photos"
-            >
-              <Ionicons name="add-outline" size={IconSize.xxl} color={Colors.accentInk} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
       )}
     </View>
   );
@@ -509,25 +458,18 @@ const styles = StyleSheet.create({
   },
   field: { marginBottom: Spacing.md },
   photoField: { marginBottom: Spacing.lg - Spacing.xxs },
-  photoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  photoActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 7,
-  },
-  photoActionText: { ...Typography.label, color: '#F08A2C' },
   photoHint: {
     ...Typography.micro,
     fontFamily: FontFamily.regular,
     lineHeight: 15,
     marginBottom: 10,
+  },
+  photoThumbWrap: { width: PHOTO_THUMB, position: 'relative' },
+  photoThumb: {
+    width: PHOTO_THUMB,
+    height: PHOTO_THUMB,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.background,
   },
   photoEmpty: {
     alignItems: 'center',
@@ -541,25 +483,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   photoEmptyText: { ...Typography.label, color: Colors.textLight },
-  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  photoThumbWrap: { width: PHOTO_THUMB, position: 'relative' },
-  photoThumb: {
-    width: PHOTO_THUMB,
-    height: PHOTO_THUMB,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.background,
-  },
-  photoAddTile: {
-    width: PHOTO_THUMB,
-    height: PHOTO_THUMB,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   photoRemoveBtn: {
     position: 'absolute',
     top: 0,

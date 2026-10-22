@@ -146,7 +146,7 @@ export default function EditEventsScreen({
   return (
     <View style={styles.container}>
       <WaveScreenHeader
-        title={postId ? 'Edit Post' : 'Add Gallery / Event'}
+        title={postId ? 'Edit Post' : 'Add Post'}
         onBack={() => navigation.goBack()}
         onHome={() => navigateToDashboard(navigation)}
       />
@@ -465,7 +465,7 @@ function PostForm({
             style={styles.fieldChevron}
           />
         </TouchableOpacity>
-        <Text style={styles.hint}>(only for client Success)</Text>
+        <Text style={styles.hint}>Only for Client Success posts.</Text>
       </View>
 
       <View style={styles.card}>
@@ -563,9 +563,11 @@ function PostForm({
             placeholderTextColor={Colors.textLight}
           />
         </View>
-        <Text style={[styles.hint, styles.hintBlue]}>
-          (You can auto populate the client location for success)
-        </Text>
+        {clientEnabled ? (
+          <Text style={[styles.hint, styles.hintBlue]}>
+            Choosing a client fills in their location. You can change it.
+          </Text>
+        ) : null}
 
         {consentRequired ? (
           <TouchableOpacity

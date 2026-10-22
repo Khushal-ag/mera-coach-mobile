@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
   type ListRenderItem,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -63,6 +63,9 @@ import type { IoniconName } from '../../types/icons';
 
 const ALL_CITIES = 'All Cities';
 const PAGE_SIZE = 5;
+/** Profile arrows load matching coaches in pages of this size, up to MAX_PROFILE_PAGES pages. */
+const PROFILE_NAV_PAGE_SIZE = 100;
+const MAX_PROFILE_PAGES = 5;
 const TOP_RATED_LIMIT = 6;
 
 type PickerKind = 'city' | 'rating' | 'sort' | 'category' | null;
@@ -253,6 +256,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const signedIn = useAuthState() === 'signedIn';
+  const queryClient = useQueryClient();
   const listRef = useRef<FlatList<Coach>>(null);
 
   const [search, setSearch] = useState('');
@@ -390,6 +394,46 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     [navigation],
   );
 
+  // The profile's previous/next arrows walk every coach that matches the filters, not just this page.
+  const openFromList = useCallback(
+    async (coach: Coach, clientCount: number, pageCodes: string[], pageCoaches: Coach[]) => {
+      let all = pageCoaches;
+      try {
+        const { page: _page, pageSize: _pageSize, ...filters } = listParams;
+        const loaded: Coach[] = [];
+        for (let next = 1; next <= MAX_PROFILE_PAGES; next += 1) {
+          const params = { ...filters, page: next, pageSize: PROFILE_NAV_PAGE_SIZE };
+          const result = await queryClient.fetchQuery({
+            queryKey: queryKeys.coachPublicList(params),
+            queryFn: ({ signal }) => getCoachPublicList(params, signal),
+            staleTime: 60_000,
+          });
+          loaded.push(...result.coaches);
+          if (loaded.length >= result.totalCount || result.coaches.length === 0) break;
+        }
+        if (loaded.some(c => c.id === coach.id)) all = loaded;
+      } catch {
+        // Fall back to the coaches on this page.
+      }
+      openCoachProfile(
+        coach,
+        clientCount,
+        all.map(c => c.id),
+        all,
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listParams is rebuilt every render
+    [
+      queryClient,
+      openCoachProfile,
+      activeCategory,
+      debouncedSearch,
+      resolvedCity,
+      minRating,
+      sortBy,
+    ],
+  );
+
   const onGetStarted = () => {
     if (signedIn) {
       navigation.navigate('Main');
@@ -482,11 +526,11 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           clientCount={coach.clients}
           coachCodes={coachCodes}
           coaches={filtered}
-          onViewProfile={openCoachProfile}
+          onViewProfile={(c, n, codes, list) => void openFromList(c, n, codes, list)}
         />
       );
     },
-    [coachCodes, filtered, openCoachProfile],
+    [coachCodes, filtered, openFromList],
   );
 
   const keyExtractor = useCallback((item: Coach) => item.id, []);
@@ -555,36 +599,6 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
         </TouchableOpacity>
       ) : null}
 
-      {coachesQuery.isPending && !coachesQuery.data ? (
-        <ActivityIndicator color={Colors.secondary} style={styles.loader} />
-      ) : showLoadError ? (
-        <ReloadState
-          title="Could not load coaches"
-          message={errorMessage!}
-          onRetry={() => void coachesQuery.refetch()}
-          loading={coachesQuery.isFetching}
-        />
-      ) : (
-        <Text style={styles.resultText}>
-          Showing <Text style={styles.resultBold}>{resultCount}</Text>{' '}
-          {pluralizeCoaches(resultCount)}
-        </Text>
-      )}
-    </>
-  );
-
-  const listFooter = (
-    <>
-      {!coachesQuery.isPending && !showLoadError && showPager ? (
-        <ListPager
-          page={safePage}
-          totalPages={totalPages}
-          onChangePage={setPage}
-          variant="circle"
-          alwaysShow
-        />
-      ) : null}
-
       <View style={styles.topRatedHeader}>
         <View style={styles.topRatedTitleRow}>
           <Ionicons name="star-outline" size={IconSize.md} color={Colors.accent} />
@@ -627,6 +641,36 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
           style={styles.topRatedEmpty}
         />
       )}
+
+      {coachesQuery.isPending && !coachesQuery.data ? (
+        <ActivityIndicator color={Colors.secondary} style={styles.loader} />
+      ) : showLoadError ? (
+        <ReloadState
+          title="Could not load coaches"
+          message={errorMessage!}
+          onRetry={() => void coachesQuery.refetch()}
+          loading={coachesQuery.isFetching}
+        />
+      ) : (
+        <Text style={styles.resultText}>
+          Showing <Text style={styles.resultBold}>{resultCount}</Text>{' '}
+          {pluralizeCoaches(resultCount)}
+        </Text>
+      )}
+    </>
+  );
+
+  const listFooter = (
+    <>
+      {!coachesQuery.isPending && !showLoadError && showPager ? (
+        <ListPager
+          page={safePage}
+          totalPages={totalPages}
+          onChangePage={setPage}
+          variant="circle"
+          alwaysShow
+        />
+      ) : null}
 
       <View style={styles.ctaBanner}>
         <View style={styles.ctaIcon}>

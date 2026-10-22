@@ -1,56 +1,56 @@
 import {
   NONE_OF_THE_ABOVE,
   coerceNoneOfTheAboveValues,
-  ensureNoneOfTheAboveAtBottom,
+  ensureNoneOfTheAboveFirst,
   resolveNoneOfTheAboveCode,
 } from '../../data/lifestyleOptions';
 
-describe('ensureNoneOfTheAboveAtBottom', () => {
-  it('appends a synthetic none option when missing', () => {
-    const result = ensureNoneOfTheAboveAtBottom([
+describe('ensureNoneOfTheAboveFirst', () => {
+  it('adds a synthetic none option at the top when missing', () => {
+    const result = ensureNoneOfTheAboveFirst([
       { code: 'LI1', label: 'Diabetes' },
       { code: 'LI2', label: 'Thyroid' },
     ]);
     expect(result).toEqual([
+      { code: NONE_OF_THE_ABOVE.code, label: NONE_OF_THE_ABOVE.label },
       { code: 'LI1', label: 'Diabetes' },
       { code: 'LI2', label: 'Thyroid' },
-      { code: NONE_OF_THE_ABOVE.code, label: NONE_OF_THE_ABOVE.label },
     ]);
   });
 
-  it('moves an existing none option from the top to the bottom', () => {
-    const result = ensureNoneOfTheAboveAtBottom([
-      { code: 'LI0', label: 'None of the below' },
+  it('moves an existing none option from the bottom to the top', () => {
+    const result = ensureNoneOfTheAboveFirst([
       { code: 'LI1', label: 'Dairy' },
       { code: 'LI2', label: 'Nuts' },
+      { code: 'LI0', label: 'None of the below' },
     ]);
-    expect(result.map(o => o.code)).toEqual(['LI1', 'LI2', 'LI0']);
-    expect(result[result.length - 1].label).toBe('None of the above');
+    expect(result.map(o => o.code)).toEqual(['LI0', 'LI1', 'LI2']);
+    expect(result[0].label).toBe('None of the above');
     expect(resolveNoneOfTheAboveCode(result)).toBe('LI0');
   });
 
   it('pins and normalizes a server "None of the above" label', () => {
-    const result = ensureNoneOfTheAboveAtBottom([
-      { code: 'LI0', label: 'None of the above' },
+    const result = ensureNoneOfTheAboveFirst([
       { code: 'LI1', label: 'Eggs' },
+      { code: 'LI0', label: 'None of the below' },
     ]);
     expect(result).toEqual([
-      { code: 'LI1', label: 'Eggs' },
       { code: 'LI0', label: 'None of the above' },
+      { code: 'LI1', label: 'Eggs' },
     ]);
   });
 
-  it('keeps an already-last none option in place', () => {
+  it('keeps an already-first none option in place', () => {
     const options = [
-      { code: 'LI1', label: 'Eggs' },
       { code: NONE_OF_THE_ABOVE.code, label: NONE_OF_THE_ABOVE.label },
+      { code: 'LI1', label: 'Eggs' },
     ];
-    expect(ensureNoneOfTheAboveAtBottom(options)).toEqual(options);
+    expect(ensureNoneOfTheAboveFirst(options)).toEqual(options);
   });
 });
 
 describe('coerceNoneOfTheAboveValues', () => {
-  const options = ensureNoneOfTheAboveAtBottom([
+  const options = ensureNoneOfTheAboveFirst([
     { code: 'LI1', label: 'Dairy' },
     { code: 'LI0', label: 'None of the below' },
   ]);
