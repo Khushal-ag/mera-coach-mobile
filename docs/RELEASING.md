@@ -25,6 +25,32 @@ Use **semver**:
 - **MINOR** — new features (backward compatible)
 - **PATCH** — fixes and small polish
 
+## One command to Play (internal testing)
+
+```bash
+bun run ship:android            # build and send the current version
+bun run ship:android 1.0.2      # bump package.json + app.json to 1.0.2 first
+```
+
+This runs `eas build --platform android --profile production --auto-submit`. EAS builds the bundle, raises the Android `versionCode` itself (`autoIncrement`), and uploads it to the track in `eas.json` (`submit.production.android.track`, set to `internal`). Nothing is downloaded or uploaded by hand. Commit the version bump afterwards.
+
+The track is fixed to `internal` in `eas.json`, so this command cannot reach production by accident. To promote a tested build, use **Promote release** in Play Console, or run a one-off `eas submit --platform android --profile production --track production`.
+
+### One-time setup: Google Play service account key
+
+EAS needs permission to upload on your behalf. This is how it knows which Play account to use.
+
+1. Google Cloud Console: create or pick a project, enable **Google Play Android Developer API**.
+2. IAM & Admin, Service accounts: create a service account, then Keys, Add key, JSON. Download the file.
+3. Play Console, **Users and permissions**, invite the service account email. Give it access to Mera Coach with the **Release to testing tracks** permission (plus **Release apps to production** only if you later want to automate that). Play can take up to a day to activate it.
+4. Upload the key to EAS once, so it never lives in the repo: `bunx eas-cli credentials`, then Android, production, **Google Service Account**, **Manage your Google Service Account Key for Play Store Submissions**, upload the JSON. Delete the local copy afterwards.
+
+Run `bun run ship:android` once Play has activated the account. If the first run says the service account has no access, wait and retry.
+
+Play must already have an upload of this app (it does). The first-ever upload of a new app cannot be automated.
+
+The GitHub Release APK flow below is separate. A sideloaded APK does not get the in-app update prompt.
+
 ## EAS profiles (`eas.json`)
 
 | Profile          | Purpose                                                                |
@@ -112,3 +138,22 @@ iOS submit (`eas submit --platform ios`) is deferred until an Apple Developer ac
 ## Release notes
 
 The workflow writes a structured body (version table, Android download notes, recent commits). For a custom blurb, edit the GitHub Release after publish, or start from `.github/release-template.md`.
+
+## In-app update prompt
+
+Profile shows an "Update available" card (and a dot on the Profile tab) when the store has a newer version. It uses `expo-in-app-updates`:
+
+- **Android:** Google Play in-app updates. Only answers for installs that came from Google Play. A sideloaded APK from GitHub Releases never sees a prompt, because Play does not know about it.
+- **iOS:** looks the app up in the App Store. Set `ios.infoPlist.AppStoreID` in `app.json` once the listing exists (optional, saves a lookup).
+- Publishing a new version to the store is all that is needed. There is nothing to configure in the API.
+- The card also shows "Update ready, Restart now" when an over-the-air JavaScript update has been downloaded (`expo-updates`, production channel).
+
+`expo-in-app-updates` is a **native module**. The first build that contains it must be a new store build with a bumped version (for example 1.0.1). Because `runtimeVersion` follows `appVersion`, do not publish an OTA update from this code to installs of 1.0.0. The app loads the module defensively, so an older build without it keeps working and just never shows the card.
+
+To test on Android:
+
+1. Release a build that contains the module to Internal testing (for example `1.0.1`, versionCode 15) and install it on a phone **from the Play Store link**, signed in with a tester account.
+2. Upload a newer build (for example `1.0.2`, versionCode 16) to the same track.
+3. Open the installed app and go to Profile. The card and the Profile tab dot appear once Play has the new version. Play can take from a few minutes to a few hours to tell the phone; opening the Play Store app and pulling to refresh can speed it up.
+
+The update flow is Play's own overlay. It will not appear on emulators without Google Play, on sideloaded APKs, or on the same version code that is already installed.

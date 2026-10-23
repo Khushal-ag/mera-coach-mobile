@@ -15,7 +15,11 @@ import { AUTH_BG_ASPECT, AUTH_PHOTO_BAND, BrandImages } from '../../constants/im
 
 type AuthAtmosphereLayoutProps = {
   children: ReactNode;
-  /** Scroll the content above the photo band when it is taller than the screen (long forms, error banners). */
+  /**
+   * Let the content scroll when it is taller than the screen (long forms, error banners, the keyboard).
+   * The content may run over the top of the photo, so on a short phone everything, including the link at
+   * the bottom, is visible without scrolling. Scrolling is only the fallback.
+   */
   scrollable?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
@@ -40,10 +44,12 @@ export default function AuthAtmosphereLayout({
 }: AuthAtmosphereLayoutProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
   const { coverWidth, coverHeight, photoClearance, offsetX, offsetY } = useMemo(
     () => authCoverMetrics(screenW, screenH),
     [screenW, screenH],
   );
+  const overlapsPhoto = scrollable && contentHeight > screenH - photoClearance;
   const atmosphereStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -51,8 +57,10 @@ export default function AuthAtmosphereLayout({
       height: coverHeight,
       left: offsetX,
       top: offsetY,
+      // When the form runs over the photo (a short phone), the photo is faded so form text stays readable.
+      opacity: overlapsPhoto ? 0.4 : 1,
     }),
-    [coverWidth, coverHeight, offsetX, offsetY],
+    [coverWidth, coverHeight, offsetX, offsetY, overlapsPhoto],
   );
 
   useEffect(() => {
@@ -83,9 +91,9 @@ export default function AuthAtmosphereLayout({
         behavior={keyboardOpen && Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {scrollable ? (
-          // The photo band is reserved below the scroll area, so a long form (for example with an error banner)
-          // scrolls above the photo instead of running over it.
-          <View style={[styles.scrollArea, { paddingBottom: photoClearance }]}>
+          // No space is reserved for the photo here: reserving it clipped the form on shorter phones and
+          // hid the bottom link until the visitor scrolled. The photo is decorative and sits behind.
+          <View style={styles.scrollArea}>
             <ScrollView
               style={styles.scroll}
               contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
@@ -93,7 +101,13 @@ export default function AuthAtmosphereLayout({
               showsVerticalScrollIndicator={false}
               bounces={false}
             >
-              {children}
+              {/* The scroll content stretches to the screen, so the form's own height is measured here. */}
+              <View
+                style={styles.measure}
+                onLayout={e => setContentHeight(e.nativeEvent.layout.height)}
+              >
+                {children}
+              </View>
             </ScrollView>
           </View>
         ) : (
@@ -121,6 +135,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   scrollArea: { flex: 1, width: '100%' },
+  measure: { width: '100%', alignItems: 'center' },
   scroll: { flex: 1, width: '100%' },
   scrollContent: {
     flexGrow: 1,
@@ -128,6 +143,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     backgroundColor: 'transparent',
+    paddingBottom: 16,
   },
   content: {
     flex: 1,

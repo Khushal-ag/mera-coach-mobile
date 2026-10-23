@@ -351,12 +351,17 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     marginTop: 2,
   },
+  // A soft white backing keeps the link readable when it sits over the photo on a short phone.
   loginRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
     minHeight: TouchTarget.min,
     marginTop: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.82)',
   },
   loginHit: {
     justifyContent: 'center',

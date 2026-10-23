@@ -20,6 +20,7 @@
         "expo-file-system": "~57.0.7",
         "expo-font": "~57.0.4",
         "expo-image-picker": "~57.0.20",
+        "expo-in-app-updates": "0.12.0",
         "expo-secure-store": "~57.0.4",
         "expo-sharing": "~57.0.23",
         "expo-splash-screen": "~57.0.10",
@@ -911,6 +912,8 @@
     "expo-image-loader": ["expo-image-loader@57.0.1", "", { "peerDependencies": { "expo": "*" } }, "sha512-uhrZKLT/cTl2mXyR28kPpVkS5O+PK9N1QA/07IFM4f5T4g0lTW1JHT3NEWwEEsGFldPmVX4j7LwUVVZxE+woug=="],
 
     "expo-image-picker": ["expo-image-picker@57.0.20", "", { "dependencies": { "expo-image-loader": "~57.0.1" }, "peerDependencies": { "expo": "*" } }, "sha512-plgcGuMZMWqDchjXQW6S/WepYLB5KqfbZOzwC6xe0+j5IhY4ipvVuRZcXeP/0NgKgU0Jiu/XoTK4Bi8crtZ+sQ=="],
+
+    "expo-in-app-updates": ["expo-in-app-updates@0.12.0", "", { "peerDependencies": { "expo": "*" } }, "sha512-RqqT0KEqZNbOk5Zxq+JQ7ph7mH/ZNfKOowPyZI8K2YnYBjjNIOyt5PlSZz5/JtmPsBGe6/oKiu1QY+4rGfY+Eg=="],
 
     "expo-json-utils": ["expo-json-utils@57.0.2", "", {}, "sha512-9kYZECLKE3pYZQs+kt3+ggY83Lfryog9/UEo3HJKGcHUZeKKtlFBIPFjI4LzREubsvjP7AsvG0FdEX9EquIoAQ=="],
 

@@ -30,6 +30,7 @@ import WaveScreenHeader from '../../components/WaveScreenHeader';
 import ProfileCompletionCard from '../../components/profile/ProfileCompletionCard';
 import SubscriptionStatusCard from '../../components/profile/SubscriptionStatusCard';
 import { APP_DISPLAY_NAME, isSubscriptionRequired } from '../../config/appConfig';
+import { APP_VERSION } from '../../config/appVersion';
 import { openAccountDeletionEmail, openSupportEmail } from '../../utils/support';
 import { formatExperienceDisplay } from '../../utils/experience';
 import { isDegenerateImageSize, resolveMediaUrl } from '../../utils/mediaUrl';
@@ -46,6 +47,7 @@ import { subscriptionCheckErrorMessage } from '../../utils/premiumOffer';
 import type { ProfileStackParamList, ProfileStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
 import { navigateToDashboard } from '../../utils/navigationBack';
+import AppUpdateCard from '../../components/profile/AppUpdateCard';
 
 interface MenuItem {
   icon: IoniconName;
@@ -300,6 +302,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
           <FormErrorBanner message={actionError} />
           <FormErrorBanner message={refreshError} />
         </View>
+        <AppUpdateCard />
         {profileQuery.isPending ? (
           <ActivityIndicator color={Colors.secondary} style={{ marginTop: 40 }} />
         ) : errorMessage ? (
@@ -444,7 +447,10 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
         </View>
 
         <View style={styles.brandLockup}>
-          <Text style={styles.version}>{APP_DISPLAY_NAME} v1.0.0</Text>
+          <Text style={styles.version}>
+            {APP_DISPLAY_NAME}
+            {APP_VERSION ? ` v${APP_VERSION}` : ''}
+          </Text>
         </View>
       </ScrollView>
     </View>

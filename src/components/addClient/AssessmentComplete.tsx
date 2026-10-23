@@ -78,7 +78,7 @@ export default function AssessmentComplete({
         {clientCode ? (
           <View style={styles.actions}>
             <AppButton
-              label="Save or share BMI report PDF"
+              label="Save or share PDF"
               icon="share-outline"
               onPress={() => void sharePdf()}
               loading={preparingPdf}

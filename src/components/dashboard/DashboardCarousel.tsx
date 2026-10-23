@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -14,9 +14,6 @@ import {
 } from '../../constants/theme';
 import { BrandImages, TIPS_COACH_ASPECT } from '../../constants/images';
 
-const CARD_WIDTH = Dimensions.get('window').width - ScreenPad.horizontal * 2;
-const CARD_HEIGHT = Math.round(CARD_WIDTH / TIPS_COACH_ASPECT);
-
 interface DashboardCarouselProps {
   onStartNow?: () => void;
   onViewAll?: () => void;
@@ -24,6 +21,10 @@ interface DashboardCarouselProps {
 
 export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCarouselProps) {
   const openTip = onStartNow ?? onViewAll;
+  // Sized from the live window so rotation, split-screen and foldables do not leave a stale card.
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = screenWidth - ScreenPad.horizontal * 2;
+  const cardHeight = Math.round(cardWidth / TIPS_COACH_ASPECT);
 
   return (
     <View style={styles.wrap}>
@@ -50,8 +51,12 @@ export default function DashboardCarousel({ onStartNow, onViewAll }: DashboardCa
       </View>
 
       <View style={styles.cardShell}>
-        <View style={styles.card}>
-          <Image source={BrandImages.tipsCoach} style={styles.hero} resizeMode="cover" />
+        <View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
+          <Image
+            source={BrandImages.tipsCoach}
+            style={{ width: cardWidth, height: cardHeight }}
+            resizeMode="cover"
+          />
           {openTip ? (
             <>
               <TouchableOpacity
@@ -119,15 +124,9 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
     borderRadius: Radius.md,
     overflow: 'hidden',
     backgroundColor: Colors.tipsPanel,
-  },
-  hero: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
   },
   startHit: {
     position: 'absolute',

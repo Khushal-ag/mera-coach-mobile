@@ -9,6 +9,7 @@ import {
   Animated,
   AccessibilityInfo,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,10 +72,15 @@ interface QuickAction {
   onPress: () => void;
 }
 
+/** Below this width the three quick-action tiles use a smaller label so it is not cut off. */
+const COMPACT_WIDTH = 360;
+
 export default function DashboardScreen({
   navigation,
 }: DashboardStackScreenProps<'DashboardHome'>) {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const compact = screenWidth < COMPACT_WIDTH;
   const coachCode = getCurrentCoachCode();
   const { openAddClient, checkingSubscription, subscriptionError } = useOpenAddClient();
   const [heroFade] = useState(() => new Animated.Value(0));
@@ -441,10 +447,15 @@ export default function DashboardScreen({
               <View style={[styles.secondaryIcon, { backgroundColor: action.iconColor }]}>
                 <Ionicons name={action.icon} size={IconSize.md} color={Colors.white} />
               </View>
-              <Text style={styles.secondaryLabel} numberOfLines={1}>
+              <Text
+                style={[styles.secondaryLabel, compact && styles.secondaryLabelCompact]}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
                 {action.label}
               </Text>
-              <Text style={styles.secondarySub} numberOfLines={2}>
+              <Text style={styles.secondarySub} numberOfLines={3}>
                 {action.sub}
               </Text>
             </TouchableOpacity>
@@ -707,6 +718,10 @@ const styles = StyleSheet.create({
   secondaryLabel: {
     ...Typography.section,
     maxWidth: '100%',
+  },
+  secondaryLabelCompact: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   secondarySub: {
     ...Typography.caption,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -19,6 +19,11 @@ import type { IoniconName } from '../../types/icons';
 
 const CANVAS = '#F3FAF7';
 const UNDERLINE = '#F08A2C';
+const ART_WIDTH = 220;
+const ART_HEIGHT = 132;
+/** Below this screen height the picture shrinks so the Continue button stays on screen. */
+const SHORT_SCREEN_HEIGHT = 700;
+const SHORT_ART_SCALE = 0.7;
 
 interface PhaseTransitionProps {
   fromLabel?: string;
@@ -39,9 +44,18 @@ export default function PhaseTransition({
   onContinue,
 }: PhaseTransitionProps) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const artScale = height < SHORT_SCREEN_HEIGHT ? SHORT_ART_SCALE : 1;
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={[
+        styles.container,
+        { paddingBottom: Math.max(insets.bottom, Spacing.md) },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.card}>
         {fromLabel ? (
           <View style={styles.doneRow}>
@@ -50,7 +64,11 @@ export default function PhaseTransition({
           </View>
         ) : null}
 
-        <Image source={BrandImages.phasePath} style={styles.phaseArt} resizeMode="cover" />
+        <Image
+          source={BrandImages.phasePath}
+          style={[styles.phaseArt, { width: ART_WIDTH * artScale, height: ART_HEIGHT * artScale }]}
+          resizeMode="cover"
+        />
 
         <Ionicons name={outlineIcon(toIcon)} size={32} color={Colors.accentInk} />
         <Text style={styles.upNext}>Up next</Text>
@@ -58,14 +76,15 @@ export default function PhaseTransition({
         <View style={styles.underline} />
       </View>
 
-      <GreenSubmitButton label="Continue" onPress={onContinue} />
-    </View>
+      <GreenSubmitButton label="Continue" onPress={onContinue} style={styles.continueBtn} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1, backgroundColor: CANVAS },
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: CANVAS,
     justifyContent: 'space-between',
     paddingHorizontal: ScreenPad.horizontal,
@@ -88,9 +107,8 @@ const styles = StyleSheet.create({
     ...Typography.bodyStrong,
     color: Colors.accentInk,
   },
+  continueBtn: { marginTop: Spacing.md },
   phaseArt: {
-    width: 220,
-    height: 132,
     borderRadius: Radius.md,
     marginBottom: Spacing.md,
   },

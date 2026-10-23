@@ -143,7 +143,7 @@ export default function ChangePasswordScreen({
             onChangeText={setCurrentPassword}
             visible={showCurrent}
             onToggleVisible={() => setShowCurrent(v => !v)}
-            placeholder="Enter your current password"
+            placeholder="Current password"
           />
           <PasswordField
             label="New Password"
@@ -152,7 +152,7 @@ export default function ChangePasswordScreen({
             onChangeText={setNewPassword}
             visible={showNew}
             onToggleVisible={() => setShowNew(v => !v)}
-            placeholder="At least 6 characters"
+            placeholder="6+ characters"
             onFocus={scrollLowerFieldsIntoView}
           />
           <PasswordField
@@ -162,7 +162,7 @@ export default function ChangePasswordScreen({
             onChangeText={setConfirmPassword}
             visible={showConfirm}
             onToggleVisible={() => setShowConfirm(v => !v)}
-            placeholder="Re-enter your new password"
+            placeholder="Same password"
             onFocus={scrollLowerFieldsIntoView}
           />
         </View>

@@ -434,7 +434,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
             const editing = editingIndex === index;
             return (
               <View key={`${item.itemCode}-${index}`} style={styles.itemRow}>
-                <Text style={[styles.itemName, styles.colName]} numberOfLines={2}>
+                <Text style={[styles.itemName, styles.colName]} numberOfLines={3}>
                   {item.itemName}
                 </Text>
                 {editing ? (

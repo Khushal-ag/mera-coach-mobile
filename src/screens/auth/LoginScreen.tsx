@@ -227,12 +227,17 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     color: Colors.authCtaGradientStart,
   },
+  // A soft white backing keeps the link readable when it sits over the photo on a short phone.
   registerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
     minHeight: TouchTarget.min,
     marginBottom: AuthLayout.buttonGap,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.82)',
   },
   linkHit: {
     justifyContent: 'center',

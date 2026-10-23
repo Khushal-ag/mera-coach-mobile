@@ -1,5 +1,13 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ImageBackground,
+  TouchableOpacity,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
@@ -25,8 +33,14 @@ type Step = 'create' | 'confirm';
  * Shown after password login when no MPIN is stored yet.
  * The create step can be skipped; the confirm step cannot.
  */
+/** Below this screen height the logo shrinks so everything fits without scrolling. */
+const COMPACT_SCREEN_HEIGHT = 640;
+
 export default function MpinSetupScreen() {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
+  // A shorter logo keeps the keypad and the link below it on screen on small phones.
+  const logoSize = screenHeight < COMPACT_SCREEN_HEIGHT ? 72 : 100;
   const [step, setStep] = useState<Step>('create');
   const [draft, setDraft] = useState('');
   const [pin, setPin] = useState('');
@@ -79,13 +93,15 @@ export default function MpinSetupScreen() {
 
   return (
     <ImageBackground source={BrandImages.mpinAtmosphere} style={styles.bg} resizeMode="cover">
-      <View
-        style={[
+      <ScrollView
+        contentContainerStyle={[
           styles.inner,
           { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg },
         ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <BrandLogo size={100} style={styles.logo} />
+        <BrandLogo size={logoSize} style={styles.logo} />
 
         <View style={styles.card}>
           <Text style={styles.title}>{step === 'create' ? 'Enter MPIN' : 'Confirm MPIN'}</Text>
@@ -116,7 +132,7 @@ export default function MpinSetupScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
-      </View>
+      </ScrollView>
     </ImageBackground>
   );
 }
@@ -124,7 +140,7 @@ export default function MpinSetupScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.background },
   inner: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
   },

@@ -14,9 +14,13 @@ import {
   Typography,
 } from '../constants/theme';
 import type { IoniconName } from '../types/icons';
+import ScreenStatusBar from './ScreenStatusBar';
 
 /** Extra logical pixels so rounding cannot open a seam at the screen edge. */
 const WAVE_EDGE_BLEED = 1;
+/** Below this width the title steps down so a short title still fits beside the two buttons. */
+const COMPACT_TITLE_WIDTH = 360;
+const COMPACT_TITLE_FONT_SIZE = 18;
 
 function ChromeCircleButton({
   icon,
@@ -76,6 +80,8 @@ export default function WaveScreenHeader({
 
   return (
     <View style={[styles.wrap, { width: screenWidth, height: headerHeight }]}>
+      {/* The wave is dark green behind the status bar, so its icons must be light. */}
+      <ScreenStatusBar style="light" />
       <Image
         source={BrandImages.waveHeader}
         style={[
@@ -101,7 +107,12 @@ export default function WaveScreenHeader({
             />
           ) : null}
           <View style={[styles.titleBlock, showBack ? styles.titleAfterBack : null]}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text
+              style={[styles.title, screenWidth < COMPACT_TITLE_WIDTH ? styles.titleCompact : null]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
               {title}
             </Text>
           </View>
@@ -156,6 +167,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'left',
     color: Colors.white,
+  },
+  titleCompact: {
+    fontSize: COMPACT_TITLE_FONT_SIZE,
+    lineHeight: 24,
   },
   rightCluster: {
     flexDirection: 'row',

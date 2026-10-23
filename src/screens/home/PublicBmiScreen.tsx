@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.9)',
   },
-  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   row: { flexDirection: 'row', gap: Spacing.sm },
   col: { flex: 1 },
   input: {

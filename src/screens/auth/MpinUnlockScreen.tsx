@@ -1,5 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ImageBackground,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Colors,
@@ -22,8 +31,14 @@ import { logoutLocal } from '../../auth/logout';
  * Cold-start gate when a valid JWT and MPIN are present.
  * Forgot MPIN clears the verifier and session so the user can password-login and set a new MPIN.
  */
+/** Below this screen height the logo shrinks so everything fits without scrolling. */
+const COMPACT_SCREEN_HEIGHT = 640;
+
 export default function MpinUnlockScreen() {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
+  // A shorter logo keeps the keypad and the link below it on screen on small phones.
+  const logoSize = screenHeight < COMPACT_SCREEN_HEIGHT ? 72 : 100;
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,13 +93,15 @@ export default function MpinUnlockScreen() {
 
   return (
     <ImageBackground source={BrandImages.mpinAtmosphere} style={styles.bg} resizeMode="cover">
-      <View
-        style={[
+      <ScrollView
+        contentContainerStyle={[
           styles.inner,
           { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.lg },
         ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <BrandLogo size={100} style={styles.logo} />
+        <BrandLogo size={logoSize} style={styles.logo} />
 
         <View style={styles.card}>
           <Text style={styles.title}>Enter MPIN</Text>
@@ -112,7 +129,7 @@ export default function MpinUnlockScreen() {
             <Text style={styles.forgot}>Forgot MPIN? Use password</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </ImageBackground>
   );
 }
@@ -120,7 +137,7 @@ export default function MpinUnlockScreen() {
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.background },
   inner: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
   },

@@ -405,11 +405,15 @@ export default function BasicProfileStep({
 
       <View style={styles.field}>
         <FormFieldLabel required>Gender</FormFieldLabel>
-        <View style={[styles.pickerRow, err('gender') && styles.pickerRowError]}>
+        <View style={styles.pickerRow}>
           {GENDER_OPTIONS.map(opt => (
             <TouchableOpacity
               key={opt.value}
-              style={[styles.pill, form.gender === opt.value && styles.pillActive]}
+              style={[
+                styles.pill,
+                form.gender === opt.value && styles.pillActive,
+                err('gender') && styles.pillError,
+              ]}
               onPress={() => update('gender', opt.value)}
               accessibilityRole="button"
               accessibilityState={{ selected: form.gender === opt.value }}
@@ -527,11 +531,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.sm },
   half: { flex: 1, minWidth: 0 },
   pickerRow: wizardPillStyles.row,
-  pickerRowError: {
-    borderWidth: 1.5,
+  // The error outlines each pill instead of boxing the whole row.
+  pillError: {
     borderColor: Colors.destructive,
-    borderRadius: Radius.sm,
-    padding: Spacing.xxs,
+    borderWidth: 1.5,
   },
   pill: wizardPillStyles.pill,
   pillActive: wizardPillStyles.pillActive,

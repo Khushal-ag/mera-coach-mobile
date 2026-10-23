@@ -108,12 +108,15 @@ const HERO_CURVE_LIP_RATIO = 19 / 226;
 const HERO_PHOTO_TOP_RADIUS = 28;
 /** Lines of the description shown in the green card before "Read more". */
 const BIO_PREVIEW_LINES = 4;
-/** Descriptions longer than this are cut off at BIO_PREVIEW_LINES (about four lines of text). */
-const BIO_PREVIEW_CHARS = 170;
+/** Average glyph width of the description, used to guess its line count before it is laid out. */
+const BIO_CHAR_WIDTH = 7;
 const HERO_PHOTO_NAV_SIZE = 38;
 const HERO_PHOTO_NAV_INSET = 14;
 const HERO_PHOTO_NAV_ICON = 18;
 const EXPERTISE_COLUMNS = 3;
+/** Below this content width three chips per row are too narrow for their labels, so use two. */
+const EXPERTISE_COMPACT_CONTENT_WIDTH = 312;
+const EXPERTISE_COMPACT_COLUMNS = 2;
 const EXPERTISE_CHIP_HEIGHT = 42;
 const EXPERTISE_LABEL_FONT_SIZE = 12;
 const EXPERTISE_LABEL_MIN_SCALE = 0.6;
@@ -200,6 +203,7 @@ const ProfileHero = React.memo(function ProfileHero({
   const [sourceAspect, setSourceAspect] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [bioOpen, setBioOpen] = useState(false);
+  const [bioClamped, setBioClamped] = useState(false);
   const [trackedPhoto, setTrackedPhoto] = useState(activePhoto);
   const [trackedCoachCode, setTrackedCoachCode] = useState(coachCode);
   if (activePhoto !== trackedPhoto) {
@@ -211,6 +215,10 @@ const ProfileHero = React.memo(function ProfileHero({
     setActionError(null);
     setBioOpen(false);
   }
+  // How many characters fit in the preview at this width. It backs up the measured line count.
+  const bioPreview = bio.replace(/\s+/g, ' ').trim();
+  const bioCharLimit =
+    Math.floor((contentWidth - Spacing.md * 2) / BIO_CHAR_WIDTH) * BIO_PREVIEW_LINES;
   const photoImageStyle = useMemo(
     () => heroPhotoImageLayout(contentWidth, sourceAspect),
     [contentWidth, sourceAspect],
@@ -334,10 +342,16 @@ const ProfileHero = React.memo(function ProfileHero({
                 // A long description would stretch this card and push the photo off screen, so it is
                 // capped at a few lines until the visitor asks for the rest.
                 <>
-                  <Text style={styles.bio} numberOfLines={bioOpen ? undefined : BIO_PREVIEW_LINES}>
-                    {bioOpen ? bio.trim() : bio.replace(/\s+/g, ' ').trim()}
+                  <Text
+                    style={styles.bio}
+                    numberOfLines={bioOpen ? undefined : BIO_PREVIEW_LINES}
+                    onTextLayout={e => {
+                      if (!bioOpen) setBioClamped(e.nativeEvent.lines.length > BIO_PREVIEW_LINES);
+                    }}
+                  >
+                    {bioOpen ? bio.trim() : bioPreview}
                   </Text>
-                  {bio.replace(/\s+/g, ' ').trim().length > BIO_PREVIEW_CHARS ? (
+                  {bioOpen || bioClamped || bioPreview.length > bioCharLimit ? (
                     <TouchableOpacity
                       onPress={() => setBioOpen(open => !open)}
                       hitSlop={HitSlop.sm}
@@ -691,9 +705,11 @@ function CoachProfilePage({
   const activePhoto = heroPhoto && heroPhoto !== failedPhotoUri ? heroPhoto : null;
   const showCoachNav = coachCount > 1;
   const contentWidth = Math.max(0, pageWidth - Spacing.md * 2);
+  const expertiseColumns =
+    contentWidth < EXPERTISE_COMPACT_CONTENT_WIDTH ? EXPERTISE_COMPACT_COLUMNS : EXPERTISE_COLUMNS;
   const expertiseChipWidth = Math.max(
     0,
-    Math.floor((contentWidth - Spacing.xs * (EXPERTISE_COLUMNS - 1)) / EXPERTISE_COLUMNS),
+    Math.floor((contentWidth - Spacing.xs * (expertiseColumns - 1)) / expertiseColumns),
   );
   const smileHeight = Math.round(contentWidth / HERO_SMILE_MASK_ASPECT);
   const waBtnWidth = contentWidth * WHATSAPP_BTN_WIDTH_SHARE;
@@ -815,7 +831,7 @@ function CoachProfilePage({
                   <Text style={styles.statValue} numberOfLines={1}>
                     {formatStatValue(stat.key, stat.value)}
                   </Text>
-                  <Text style={styles.statLabel} numberOfLines={1}>
+                  <Text style={styles.statLabel} numberOfLines={2}>
                     {stat.label}
                   </Text>
                 </View>
@@ -840,11 +856,11 @@ function CoachProfilePage({
               accessibilityLabel={`Expertise: ${coach.tags.map(formatExpertiseLabel).join(', ')}`}
             >
               {Array.from(
-                { length: Math.ceil(coach.tags.length / EXPERTISE_COLUMNS) },
+                { length: Math.ceil(coach.tags.length / expertiseColumns) },
                 (_, rowIndex) => {
                   const rowTags = coach.tags.slice(
-                    rowIndex * EXPERTISE_COLUMNS,
-                    rowIndex * EXPERTISE_COLUMNS + EXPERTISE_COLUMNS,
+                    rowIndex * expertiseColumns,
+                    rowIndex * expertiseColumns + expertiseColumns,
                   );
                   return (
                     <View key={rowTags.join('\0')} style={styles.expertiseRow}>
@@ -1201,7 +1217,7 @@ const styles = StyleSheet.create({
   },
   statsStrip: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: Colors.white,
     marginHorizontal: Spacing.md,
     marginTop: Spacing.xs,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dimensions, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useAppUpdate } from '../hooks/useAppUpdate';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -112,9 +113,11 @@ function ProfileStackNavigator() {
 }
 
 export default function MainTabNavigator() {
-  const tabWidth = Dimensions.get('window').width / TAB_COUNT;
+  const tabWidth = useWindowDimensions().width / TAB_COUNT;
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 6);
+  // A dot on the Profile tab points coaches to the update card there.
+  const updateAvailable = useAppUpdate().available;
 
   return (
     <Tab.Navigator
@@ -134,7 +137,12 @@ export default function MainTabNavigator() {
         tabBarItemStyle: { width: tabWidth, paddingHorizontal: 0, minHeight: TouchTarget.min },
         tabBarIconStyle: { marginBottom: -2 },
         tabBarIcon: ({ color }) => (
-          <Ionicons name={TAB_ICONS[route.name]} size={IconSize.xl} color={color} />
+          <View style={styles.iconWrap}>
+            <Ionicons name={TAB_ICONS[route.name]} size={IconSize.xl} color={color} />
+            {route.name === 'Profile' && updateAvailable ? (
+              <View style={styles.updateDot} accessibilityLabel="App update available" />
+            ) : null}
+          </View>
         ),
         tabBarLabel: ({ color }) => (
           <Text
@@ -156,3 +164,19 @@ export default function MainTabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  // Shrink-wraps the icon so the update dot can sit on its corner without moving the icon.
+  iconWrap: { alignSelf: 'center' },
+  updateDot: {
+    position: 'absolute',
+    top: -1,
+    right: -3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.accent,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+  },
+});

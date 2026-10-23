@@ -110,7 +110,7 @@ export default function App() {
         <ErrorBoundary>
           <QueryClientProvider client={queryClient}>
             <NavigationContainer linking={linking}>
-              <StatusBar style="light" />
+              <StatusBar style="dark" />
               <AppNavigator />
             </NavigationContainer>
           </QueryClientProvider>

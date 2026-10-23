@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,8 +44,12 @@ import type { EventsStackScreenProps } from '../../types/navigation';
 const CANVAS = '#F3FAF7';
 const PAGE_SIZE = 5;
 const ALL = 'ALL';
+/** Below this width the card photo shrinks and the chevron goes, so the title gets room. */
+const COMPACT_WIDTH = 360;
+const COMPACT_PHOTO = { width: 80, height: 88 } as const;
 
 export default function EventsScreen({ navigation }: EventsStackScreenProps<'EventsHome'>) {
+  const compact = useWindowDimensions().width < COMPACT_WIDTH;
   const queryClient = useQueryClient();
   const postsQuery = useQuery({ queryKey: queryKeys.myPosts, queryFn: getMyPosts });
   const categoriesQuery = useQuery({
@@ -188,9 +193,13 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
                     accessibilityLabel={`Edit ${post.title}`}
                   >
                     {imageUri ? (
-                      <Image source={{ uri: imageUri }} style={styles.photo} resizeMode="cover" />
+                      <Image
+                        source={{ uri: imageUri }}
+                        style={[styles.photo, compact && COMPACT_PHOTO]}
+                        resizeMode="cover"
+                      />
                     ) : (
-                      <View style={[styles.photo, styles.videoPlate]}>
+                      <View style={[styles.photo, styles.videoPlate, compact && COMPACT_PHOTO]}>
                         <Ionicons name="videocam" size={IconSize.lg} color={Colors.accentInk} />
                       </View>
                     )}
@@ -203,11 +212,13 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
                         {[formatPostDate(post.postDate), post.location].filter(Boolean).join(' · ')}
                       </Text>
                     </View>
-                    <Ionicons
-                      name="chevron-forward-outline"
-                      size={IconSize.md}
-                      color={Colors.accentInk}
-                    />
+                    {compact ? null : (
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={IconSize.md}
+                        color={Colors.accentInk}
+                      />
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.removeBtn}

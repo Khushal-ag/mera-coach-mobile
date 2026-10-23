@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +65,9 @@ import { buildCoachDescriptionSuggestions } from '../../utils/coachDescriptionSu
 import type { ProfileStackScreenProps } from '../../types/navigation';
 import type { CoachProfileFull } from '../../api/coachApi';
 import type { CoachCategory } from '../../types/models';
+
+/** Below this width the Previous / Save buttons drop their icon circles so the labels fit. */
+const COMPACT_WIDTH = 360;
 
 export default function EditProfileScreen({ navigation }: ProfileStackScreenProps<'EditProfile'>) {
   const profileQuery = useQuery({
@@ -124,6 +128,7 @@ interface EditProfileFormProps {
 }
 
 function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
+  const compact = useWindowDimensions().width < COMPACT_WIDTH;
   const scrollRef = useRef<ScrollView>(null);
   const savingRef = useRef(false);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
@@ -521,23 +526,18 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 Shown as Clients on your public card. Enter how many clients you have helped, as a
                 number.
               </Text>
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <Field
-                    label="Certifications"
-                    value={certificationCount}
-                    onChangeText={v => {
-                      setCertificationCount(v);
-                      clearFieldError('certificationCount');
-                    }}
-                    keyboardType="numeric"
-                    hasError={!!errorFields.certificationCount}
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
-                </View>
-              </View>
+              <Field
+                label="Certifications"
+                value={certificationCount}
+                onChangeText={v => {
+                  setCertificationCount(v);
+                  clearFieldError('certificationCount');
+                }}
+                keyboardType="numeric"
+                hasError={!!errorFields.certificationCount}
+              />
+              {/* Full width: a tagline is a sentence and does not fit in half a phone screen. */}
+              <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
 
               <MultiSelectField
                 label="Services"
@@ -707,7 +707,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                     value={countryLabel}
                     options={countries.map(c => c.label)}
                     onChange={setCountryLabel}
-                    placeholder="Select country"
+                    placeholder="Select"
                     labelStyle={styles.fieldLabel}
                   />
                 </View>
@@ -771,9 +771,11 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
             <Text style={styles.prevBtnText} numberOfLines={1}>
               Previous
             </Text>
-            <View style={styles.prevIconCircle}>
-              <Ionicons name="chevron-back-outline" size={IconSize.sm} color={Colors.white} />
-            </View>
+            {compact ? null : (
+              <View style={styles.prevIconCircle}>
+                <Ionicons name="chevron-back-outline" size={IconSize.sm} color={Colors.white} />
+              </View>
+            )}
           </TouchableOpacity>
 
           {step === 1 ? (
@@ -790,13 +792,15 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               <Text style={styles.nextBtnText} numberOfLines={1}>
                 Next
               </Text>
-              <View style={styles.nextIconCircle}>
-                <Ionicons
-                  name="chevron-forward-outline"
-                  size={IconSize.sm}
-                  color={Colors.accentInk}
-                />
-              </View>
+              {compact ? null : (
+                <View style={styles.nextIconCircle}>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={IconSize.sm}
+                    color={Colors.accentInk}
+                  />
+                </View>
+              )}
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -818,13 +822,15 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                   <Text style={styles.nextBtnText} numberOfLines={1}>
                     Save Changes
                   </Text>
-                  <View style={styles.saveIconCircle}>
-                    <Ionicons
-                      name="checkmark-outline"
-                      size={IconSize.sm}
-                      color={Colors.accentInk}
-                    />
-                  </View>
+                  {compact ? null : (
+                    <View style={styles.saveIconCircle}>
+                      <Ionicons
+                        name="checkmark-outline"
+                        size={IconSize.sm}
+                        color={Colors.accentInk}
+                      />
+                    </View>
+                  )}
                 </>
               )}
             </TouchableOpacity>
@@ -1267,8 +1273,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  // Wider than Previous so "Save Changes" is not cut off on a narrow phone.
   nextBtn: {
-    flex: 1,
+    flex: 1.4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

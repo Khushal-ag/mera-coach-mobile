@@ -349,6 +349,9 @@ function HistoryCard({
   );
 }
 
+/** Below this width the decorative body art is dropped from the header card. */
+const COMPACT_WIDTH = 360;
+
 export default function ClientBmiReportScreen({
   navigation,
   route,
@@ -506,20 +509,23 @@ export default function ClientBmiReportScreen({
                 ) : null}
                 {assessed ? (
                   <View style={styles.assessedRow}>
-                    <Text style={styles.assessedText} numberOfLines={1}>
+                    <Text style={styles.assessedText} numberOfLines={2}>
                       ASSESSED {assessed}
                     </Text>
                     <View style={styles.assessedDot} />
                   </View>
                 ) : null}
               </View>
-              <Image
-                source={BrandImages.clientProfileBody}
-                style={styles.bodyArt}
-                resizeMode="contain"
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
+              {/* Decorative only; dropped on narrow phones to give the name and date more room. */}
+              {screenWidth < COMPACT_WIDTH ? null : (
+                <Image
+                  source={BrandImages.clientProfileBody}
+                  style={styles.bodyArt}
+                  resizeMode="contain"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+              )}
             </View>
 
             <View style={styles.section}>

@@ -79,7 +79,7 @@ const ClientRow = React.memo(function ClientRow({
         style={styles.avatar}
       />
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {item.name}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -88,7 +88,7 @@ const ClientRow = React.memo(function ClientRow({
         <Text style={styles.meta} numberOfLines={1}>
           {mobile || '-'}
         </Text>
-        <Text style={styles.meta} numberOfLines={1}>
+        <Text style={styles.meta} numberOfLines={2}>
           {checkupLine(item)}
         </Text>
       </View>

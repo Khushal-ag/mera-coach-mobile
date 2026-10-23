@@ -134,7 +134,7 @@ export default function ReCheckupListScreen({
             <Text style={styles.name} numberOfLines={2}>
               {item.name}
             </Text>
-            <Text style={styles.subMeta} numberOfLines={1}>
+            <Text style={styles.subMeta} numberOfLines={2}>
               {describeLast(item)}
             </Text>
             {item.dueDate ? (
@@ -148,7 +148,7 @@ export default function ReCheckupListScreen({
             )}
             <View style={styles.overduePill}>
               <Ionicons name="time-outline" size={IconSize.sm} color={Colors.secondary} />
-              <Text style={styles.overdueText} numberOfLines={1}>
+              <Text style={styles.overdueText} numberOfLines={2}>
                 {statusLabel}
               </Text>
             </View>
@@ -160,7 +160,9 @@ export default function ReCheckupListScreen({
               accessibilityLabel={`Re-checkup for ${item.name}`}
             >
               <Ionicons name="clipboard-outline" size={IconSize.sm} color={Colors.white} />
-              <Text style={styles.recheckText}>Re-Checkup</Text>
+              <Text style={styles.recheckText} numberOfLines={1}>
+                Re-Checkup
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -331,7 +333,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs + 2,
     backgroundColor: Colors.primary,
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md + 2,
+    paddingHorizontal: Spacing.sm + 2,
     paddingVertical: Spacing.xs,
     marginTop: Spacing.sm,
     minHeight: 36,

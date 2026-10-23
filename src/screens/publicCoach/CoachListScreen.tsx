@@ -69,6 +69,7 @@ const MAX_PROFILE_PAGES = 5;
 /** Pixels of the "Showing N coaches" line kept in view when View All jumps to the list. */
 const VIEW_ALL_SCROLL_OFFSET = 40;
 const TOP_RATED_LIMIT = 6;
+const COMPACT_FILTER_WIDTH = 360;
 
 type PickerKind = 'city' | 'rating' | 'sort' | 'category' | null;
 
@@ -83,6 +84,9 @@ function FilterControl({
   value: string;
   onPress: () => void;
 }) {
+  const { width } = useWindowDimensions();
+  // The leading icon is dropped on narrow phones so the value is not cut to a few letters.
+  const showIcon = width >= COMPACT_FILTER_WIDTH;
   return (
     <TouchableOpacity
       style={styles.filterControl}
@@ -91,7 +95,7 @@ function FilterControl({
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}`}
     >
-      <Ionicons name={icon} size={IconSize.md} color={Colors.secondary} />
+      {showIcon ? <Ionicons name={icon} size={IconSize.md} color={Colors.secondary} /> : null}
       <View style={styles.filterControlText}>
         <Text style={styles.filterLabel}>{label}</Text>
         <Text style={styles.filterValue} numberOfLines={1}>
@@ -219,7 +223,7 @@ const TopRatedCompactCard = React.memo(function TopRatedCompactCard({
     >
       <PersonAvatar uri={photoUri} size={48} />
       <View style={styles.topRatedInfo}>
-        <Text style={styles.topRatedName} numberOfLines={1}>
+        <Text style={styles.topRatedName} numberOfLines={2}>
           {coach.name}
         </Text>
         {showRating ? (
@@ -1094,7 +1098,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   topRatedCard: {
-    width: 200,
+    width: 224,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,

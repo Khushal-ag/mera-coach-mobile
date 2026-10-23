@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -151,12 +152,16 @@ function IconWell({
   );
 }
 
+/** Below this width the action tiles drop their chevron and shrink the label so it is not cut off. */
+const COMPACT_WIDTH = 360;
+
 export default function ClientDetailScreen({
   navigation,
   route,
 }: ClientsStackScreenProps<'ClientDetail'>) {
   const client = route.params?.client || { name: 'Client' };
   const returnTo = route.params?.returnTo;
+  const compact = useWindowDimensions().width < COMPACT_WIDTH;
   const photosRef = useRef<ProgressPhotosHandle>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -389,8 +394,8 @@ export default function ClientDetailScreen({
               {displayName}
             </Text>
             {checkupDate ? (
-              <Text style={styles.metaLine} numberOfLines={1}>
-                Last checkup-up {checkupDate}
+              <Text style={styles.metaLine} numberOfLines={2}>
+                Last check-up {checkupDate}
               </Text>
             ) : null}
             {mobile ? (
@@ -407,13 +412,16 @@ export default function ClientDetailScreen({
               </View>
             ) : null}
           </View>
-          <Image
-            source={BrandImages.clientProfileBody}
-            style={styles.bodyArt}
-            resizeMode="contain"
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
+          {/* Decorative only; dropped on narrow phones to give the name and BMI more room. */}
+          {compact ? null : (
+            <Image
+              source={BrandImages.clientProfileBody}
+              style={styles.bodyArt}
+              resizeMode="contain"
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+          )}
         </View>
 
         <View style={styles.section}>
@@ -476,7 +484,7 @@ export default function ClientDetailScreen({
                     <Ionicons name={row.icon} size={IconSize.md} color={row.iconColor} />
                   </IconWell>
                   <Text style={styles.detailLabel}>{row.label}</Text>
-                  <Text style={styles.detailValue} numberOfLines={2}>
+                  <Text style={styles.detailValue} numberOfLines={3}>
                     {row.value === '-' ? 'Tap to add' : row.value}
                   </Text>
                   <Ionicons
@@ -537,14 +545,19 @@ export default function ClientDetailScreen({
                     <IconWell backgroundColor={action.well} size={34}>
                       <Ionicons name={action.icon} size={IconSize.md} color={Colors.white} />
                     </IconWell>
-                    <Text style={styles.actionText} numberOfLines={2}>
+                    <Text
+                      style={[styles.actionText, compact && styles.actionTextCompact]}
+                      numberOfLines={2}
+                    >
                       {action.label}
                     </Text>
-                    <Ionicons
-                      name="chevron-forward-outline"
-                      size={IconSize.md}
-                      color={Tone.chevron}
-                    />
+                    {compact ? null : (
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={IconSize.md}
+                        color={Tone.chevron}
+                      />
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -799,6 +812,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs + 2,
+  },
+  actionTextCompact: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   actionText: {
     flex: 1,
