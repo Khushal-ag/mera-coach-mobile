@@ -22,6 +22,15 @@ const {
  * - StatusBarModule still reads and writes statusBarColor
  * - Theme.FullScreenDialog in React Native resources sets android:statusBarColor
  * react-native-screens 4.26 no longer calls those Window APIs (setters are no-ops).
+ *
+ * Play Console also lists these, all inside libraries and none fixable from this app (checked with
+ * Material 1.13.0, the newest, and expo-image-picker 57.0.20, the newest for SDK 57):
+ * - com.google.android.material.datepicker (Material's own date picker code)
+ * - expo.modules.imagepicker.ExpoCropImageActivity (the crop screen behind allowsEditing: true)
+ * - obfuscated AndroidX / React Native frames (V4.k.j, P.b.*, j3.b.runGuarded)
+ * Play reads them statically from the bundle, so they show even when never executed. It is an
+ * advisory under "For your next release", not a publishing blocker. Re-check after upgrading
+ * Expo SDK / React Native; do not add -dontobfuscate or similar to hide it.
  */
 
 const DEPRECATED_STYLE_ITEMS = [
