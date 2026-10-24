@@ -55,24 +55,19 @@ function greetingFor(date = new Date()): string {
   return 'Good Evening';
 }
 
-interface MetricCard {
-  label: string;
-  value: string;
-  pending: boolean;
-  tint: string;
-  iconBg: string;
-}
-
-interface QuickAction {
+/** A tappable summary tile: the count and the shortcut to its list in one card. */
+interface SummaryTile {
   label: string;
   sub: string;
   icon: IoniconName;
+  value: string;
+  pending: boolean;
   cardBg: string;
   iconColor: string;
   onPress: () => void;
 }
 
-/** Below this width the three quick-action tiles use a smaller label so it is not cut off. */
+/** Below this width the three summary tiles use a smaller label so it is not cut off. */
 const COMPACT_WIDTH = 360;
 
 export default function DashboardScreen({
@@ -180,51 +175,33 @@ export default function DashboardScreen({
     return leadsQuery.data.filter(l => !l.isContacted).length;
   }, [leadsQuery.data]);
 
-  const metrics: MetricCard[] = [
+  const summaryTiles: SummaryTile[] = [
     {
       label: 'Clients',
+      sub: 'View all',
+      icon: 'people',
       value: clients ? String(clients.length) : '-',
       pending: clientsQuery.isPending && !clients,
-      tint: Colors.cardIconGreen,
-      iconBg: Colors.metricClientsBg,
-    },
-    {
-      label: 'Leads',
-      value: activeLeadsCount != null ? String(activeLeadsCount) : '-',
-      pending: leadsQuery.isPending && leadsQuery.data == null,
-      tint: Colors.accent,
-      iconBg: Colors.metricLeadsBg,
-    },
-    {
-      label: 'Due',
-      value: dueCount != null ? String(dueCount) : '-',
-      pending: recheckupQuery.isPending && recheckupQuery.data == null,
-      tint: Colors.metricDueIcon,
-      iconBg: Colors.metricDueBg,
-    },
-  ];
-
-  const secondaryActions: QuickAction[] = [
-    {
-      label: 'My Clients',
-      sub: 'View & manage your clients',
-      icon: 'people',
       cardBg: Colors.cardTintGreen,
       iconColor: Colors.cardIconGreen,
       onPress: () => navigation.navigate('ClientListHome'),
     },
     {
       label: 'Leads',
-      sub: 'Track & convert Leads',
+      sub: 'Follow up',
       icon: 'funnel',
+      value: activeLeadsCount != null ? String(activeLeadsCount) : '-',
+      pending: leadsQuery.isPending && leadsQuery.data == null,
       cardBg: Colors.cardTintBlue,
       iconColor: Colors.cardIconBlue,
       onPress: () => navigation.navigate('Leads'),
     },
     {
       label: 'Checkups',
-      sub: 'View upcoming checkups',
+      sub: 'Due soon',
       icon: 'clipboard',
+      value: dueCount != null ? String(dueCount) : '-',
+      pending: recheckupQuery.isPending && recheckupQuery.data == null,
       cardBg: Colors.cardTintPurple,
       iconColor: Colors.cardIconPurple,
       onPress: () => navigation.navigate('CheckupListHome'),
@@ -234,12 +211,6 @@ export default function DashboardScreen({
   function goAddClient() {
     void openAddClient({ returnTo: RETURN_TO_DASHBOARD });
   }
-
-  const metricIcons: Record<string, IoniconName> = {
-    Clients: 'people',
-    Leads: 'funnel',
-    Due: 'calendar',
-  };
 
   return (
     <ScrollView
@@ -358,34 +329,58 @@ export default function DashboardScreen({
       >
         <FormErrorBanner message={refreshError} />
         {statsError ? <Text style={styles.statsError}>{statsError}</Text> : null}
-        <View style={styles.metricsStrip}>
-          {metrics.map((metric, i) => (
-            <React.Fragment key={metric.label}>
-              {i > 0 ? <View style={styles.metricDivider} /> : null}
-              <View
-                style={styles.metricItem}
-                accessibilityRole="text"
-                accessibilityLabel={`${metric.label}: ${metric.pending ? 'Loading' : metric.value}`}
-              >
-                <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
-                  <Ionicons
-                    name={metricIcons[metric.label] ?? 'ellipse'}
-                    size={IconSize.md}
-                    color={metric.tint}
-                  />
+        <View style={styles.summaryRow}>
+          {summaryTiles.map(tile => (
+            <TouchableOpacity
+              key={tile.label}
+              style={[
+                styles.summaryTile,
+                compact && styles.summaryTileCompact,
+                // 26 = about 15% alpha on the 6-digit hex icon colour.
+                { backgroundColor: tile.cardBg, borderColor: `${tile.iconColor}26` },
+              ]}
+              onPress={tile.onPress}
+              activeOpacity={PressOpacity.strong}
+              accessibilityRole="button"
+              accessibilityLabel={`${tile.label}: ${tile.pending ? 'Loading' : tile.value}. ${tile.sub}`}
+            >
+              <View style={styles.summaryTop}>
+                <View style={styles.summaryCount}>
+                  {tile.pending ? (
+                    <ActivityIndicator
+                      color={tile.iconColor}
+                      size="small"
+                      style={styles.summaryPending}
+                    />
+                  ) : (
+                    <Text
+                      style={[styles.summaryValue, compact && styles.summaryValueCompact]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                    >
+                      {tile.value}
+                    </Text>
+                  )}
                 </View>
-                {metric.pending ? (
-                  <ActivityIndicator color={Colors.secondary} size="small" />
-                ) : (
-                  <Text style={styles.metricValue} numberOfLines={1}>
-                    {metric.value}
-                  </Text>
+                {compact ? null : (
+                  <View style={styles.summaryIcon}>
+                    <Ionicons name={tile.icon} size={IconSize.md} color={tile.iconColor} />
+                  </View>
                 )}
-                <Text style={styles.metricLabel} numberOfLines={1}>
-                  {metric.label}
-                </Text>
               </View>
-            </React.Fragment>
+              <Text
+                style={[styles.summaryLabel, compact && styles.summaryLabelCompact]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
+                {tile.label}
+              </Text>
+              <Text style={styles.summarySub} numberOfLines={1}>
+                {tile.sub}
+              </Text>
+            </TouchableOpacity>
           ))}
         </View>
       </Animated.View>
@@ -433,34 +428,6 @@ export default function DashboardScreen({
             </View>
           </View>
         </TouchableOpacity>
-
-        <View style={styles.secondaryRow}>
-          {secondaryActions.map(action => (
-            <TouchableOpacity
-              key={action.label}
-              style={[styles.secondaryChip, { backgroundColor: action.cardBg }]}
-              onPress={action.onPress}
-              activeOpacity={PressOpacity.strong}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-            >
-              <View style={[styles.secondaryIcon, { backgroundColor: action.iconColor }]}>
-                <Ionicons name={action.icon} size={IconSize.md} color={Colors.white} />
-              </View>
-              <Text
-                style={[styles.secondaryLabel, compact && styles.secondaryLabelCompact]}
-                numberOfLines={2}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-              >
-                {action.label}
-              </Text>
-              <Text style={styles.secondarySub} numberOfLines={3}>
-                {action.sub}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       <View style={styles.carouselSection}>
@@ -578,51 +545,6 @@ const styles = StyleSheet.create({
     marginHorizontal: ScreenPad.horizontal,
     zIndex: 2,
   },
-  metricsStrip: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    minHeight: 85,
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.xs,
-    ...Shadow.sm,
-  },
-  metricItem: {
-    flex: 1,
-    minWidth: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-    gap: 2,
-  },
-  metricIconWrap: {
-    width: 29,
-    height: 29,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  metricDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginVertical: 10,
-  },
-  metricValue: {
-    fontFamily: headingFont.bold,
-    fontSize: 15,
-    lineHeight: 18,
-    color: Colors.textDark,
-    maxWidth: '100%',
-  },
-  metricLabel: {
-    fontSize: 13,
-    lineHeight: 16,
-    fontFamily: FontFamily.regular,
-    color: Colors.textDark,
-    maxWidth: '100%',
-  },
   statsError: {
     ...Typography.caption,
     color: Colors.accent,
@@ -689,41 +611,66 @@ const styles = StyleSheet.create({
     color: Colors.white,
     marginTop: Spacing.xxs,
   },
-  secondaryRow: {
+  summaryRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: Spacing.sm,
-    marginTop: Spacing.lg,
   },
-  secondaryChip: {
+  summaryTile: {
     flex: 1,
     minWidth: 0,
-    alignItems: 'flex-start',
-    gap: Spacing.xxs,
-    borderRadius: Radius.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-    minHeight: 115,
-    ...Shadow.sm,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: Spacing.sm,
   },
-  secondaryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  // Narrow phones: the tile is only ~64px wide inside, so drop the icon chip and tighten the padding.
+  summaryTileCompact: {
+    paddingHorizontal: Spacing.xs,
+  },
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.xxs,
+  },
+  summaryCount: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    minHeight: 32,
+  },
+  summaryValue: {
+    fontFamily: headingFont.extraBold,
+    fontSize: 26,
+    lineHeight: 32,
+    color: Colors.textDark,
+    fontVariant: ['tabular-nums'],
+  },
+  summaryValueCompact: {
+    fontSize: 24,
+    lineHeight: 28,
+  },
+  summaryPending: {
+    alignSelf: 'flex-start',
+  },
+  summaryIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    backgroundColor: Colors.white,
   },
-  secondaryLabel: {
+  summaryLabel: {
     ...Typography.section,
+    marginTop: 6,
     maxWidth: '100%',
   },
-  secondaryLabelCompact: {
+  summaryLabelCompact: {
     fontSize: 13,
     lineHeight: 18,
   },
-  secondarySub: {
+  summarySub: {
     ...Typography.caption,
     maxWidth: '100%',
   },

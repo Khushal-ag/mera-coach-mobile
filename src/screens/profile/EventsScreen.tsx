@@ -65,7 +65,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
 
   const errorMessage =
     postsQuery.isError && !postsQuery.data
-      ? getErrorMessage(postsQuery.error, 'Could not load your gallery and events.')
+      ? getErrorMessage(postsQuery.error, 'Could not load your posts.')
       : null;
 
   const all = postsQuery.data ?? [];
@@ -176,7 +176,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
               <Ionicons name="images-outline" size={IconSize.xxl} color={Colors.accentInk} />
               <Text style={styles.emptyTitle}>Nothing here yet</Text>
               <Text style={styles.emptyMessage}>
-                Share photos, workshops and client success stories on your public profile.
+                Share photos, videos and client success stories on your public profile.
               </Text>
             </View>
           ) : (

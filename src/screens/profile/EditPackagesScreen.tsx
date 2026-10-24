@@ -47,7 +47,7 @@ import type { PackagesStackScreenProps } from '../../types/navigation';
 
 const CANVAS = '#F3FAF7';
 const FIELD = '#E7F6EC';
-/** Blank category or pack size on a product. Not an extra API level. */
+/** Blank category on a product. Not an extra API level. */
 const UNSPECIFIED = '\u241e';
 
 function levelKey(value: string | undefined): string {
@@ -128,10 +128,9 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [total, setTotal] = useState(existing ? String(existing.totalAmount) : '');
   const [totalEdited, setTotalEdited] = useState(!!existing);
   const [category, setCategory] = useState('');
-  const [pack, setPack] = useState('');
   const [productCode, setProductCode] = useState('');
   const [price, setPrice] = useState('');
-  const [sheet, setSheet] = useState<'brand' | 'category' | 'pack' | 'product' | null>(null);
+  const [sheet, setSheet] = useState<'brand' | 'category' | 'product' | null>(null);
   const [isActive, setIsActive] = useState(existing?.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
@@ -159,24 +158,12 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     [available],
   );
   const categoryValue = categories.includes(category) ? category : '';
-  const packs = useMemo(() => {
-    if (!categoryValue) return [];
-    return uniqueLevels(
-      available
-        .filter(product => levelKey(product.category) === categoryValue)
-        .map(product => product.packSize),
-    );
-  }, [available, categoryValue]);
-  const packValue = packs.includes(pack) ? pack : '';
   const shownProducts = useMemo(() => {
-    if (!categoryValue || !packValue) return [];
+    if (!categoryValue) return [];
     return available
-      .filter(
-        product =>
-          levelKey(product.category) === categoryValue && levelKey(product.packSize) === packValue,
-      )
+      .filter(product => levelKey(product.category) === categoryValue)
       .map(product => ({ code: product.code, label: product.label }));
-  }, [available, categoryValue, packValue]);
+  }, [available, categoryValue]);
   const selectedProduct = shownProducts.find(product => product.code === productCode) ?? null;
   const brandLabel =
     brandsQuery.data?.find(brand => brand.code === brandCode)?.label ||
@@ -227,7 +214,6 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const addItem = () => {
     if (!brandCode) return showBanner('Choose a product brand.');
     if (!categoryValue) return showBanner('Select a category.');
-    if (!packValue) return showBanner('Select a pack.');
     if (!selectedProduct) return showBanner('Select a product to add.');
     const amount = parseAmount(price);
     if (amount == null || amount <= 0) return showBanner('Enter a price for this product.');
@@ -358,43 +344,21 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           <Text style={styles.hint}>Every product from this brand is already in the package.</Text>
         ) : null}
 
-        <Text style={styles.label}>Pack</Text>
-        <TouchableOpacity
-          style={[styles.field, styles.selectField, !packValue && styles.locked]}
-          disabled={!categoryValue || packs.length === 0}
-          onPress={() => setSheet('pack')}
-          activeOpacity={PressOpacity.default}
-          accessibilityRole="button"
-          accessibilityLabel="Pack"
-        >
-          <Text style={packValue ? styles.value : styles.placeholder} numberOfLines={1}>
-            {packValue
-              ? levelLabel(packValue)
-              : categoryValue
-                ? 'Select a pack'
-                : 'Select a category first'}
-          </Text>
-          <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
-        </TouchableOpacity>
-
         <Text style={styles.label}>Product</Text>
         <TouchableOpacity
           style={[styles.field, styles.selectField, !selectedProduct && styles.locked]}
-          disabled={!packValue || shownProducts.length === 0}
+          disabled={!categoryValue || shownProducts.length === 0}
           onPress={() => setSheet('product')}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
           accessibilityLabel="Product"
         >
           <Text style={selectedProduct ? styles.value : styles.placeholder} numberOfLines={1}>
-            {selectedProduct?.label || (packValue ? 'Select a product' : 'Select a pack first')}
+            {selectedProduct?.label ||
+              (categoryValue ? 'Select a product' : 'Select a category first')}
           </Text>
           <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
         </TouchableOpacity>
-        {packValue && shownProducts.length === 0 && available.length > 0 ? (
-          <Text style={styles.hint}>No products are left for this pack.</Text>
-        ) : null}
-
         <Text style={styles.label}>Price</Text>
         <View style={styles.priceRow} onLayout={e => trackField('price', e)}>
           <TextInput
@@ -549,7 +513,6 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           }
           setBrandCode(option.code);
           setCategory('');
-          setPack('');
           setProductCode('');
           setPrice('');
           setSheet(null);
@@ -567,24 +530,6 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
             return;
           }
           setCategory(option.code);
-          setPack('');
-          setProductCode('');
-          setPrice('');
-          setSheet(null);
-        }}
-      />
-      <OptionSheet
-        visible={sheet === 'pack'}
-        title="Pack"
-        options={packs.map(key => ({ code: key, label: levelLabel(key) }))}
-        selectedCode={packValue}
-        onClose={() => setSheet(null)}
-        onSelect={option => {
-          if (option.code === pack) {
-            setSheet(null);
-            return;
-          }
-          setPack(option.code);
           setProductCode('');
           setPrice('');
           setSheet(null);
@@ -595,7 +540,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         title="Product"
         options={shownProducts}
         selectedCode={selectedProduct?.code}
-        emptyMessage="No products are left for this pack."
+        emptyMessage="No products are left in this category."
         onClose={() => setSheet(null)}
         onSelect={option => {
           setProductCode(option.code);

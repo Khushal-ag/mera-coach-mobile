@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -8,16 +8,25 @@ import {
   PressOpacity,
   Radius,
   Spacing,
+  TouchTarget,
   headingFont,
 } from '../../constants/theme';
 import SectionTag from '../SectionTag';
-import { POST_CATEGORY, type CoachPost, type Showcase } from '../../api/showcaseApi';
+import { whatsAppUrlWithText } from '../../api/coachApi';
+import {
+  POST_CATEGORY,
+  type CoachPost,
+  type Showcase,
+  type ShowcasePackage,
+} from '../../api/showcaseApi';
 import { formatMoney } from '../../utils/formatMoney';
 import { formatPostDate } from '../../utils/formatPostDate';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { splitPackDetail } from '../../utils/packDetail';
 
 const PILL_BG = '#E8F7F2';
 const PILL_INK = '#04705D';
+const WHATSAPP_GREEN = '#1FA855';
 
 function PostMedia({ post, style }: { post: CoachPost; style: object }) {
   const uri = post.mediaType === 'image' ? resolveMediaUrl(post.mediaUrl) : null;
@@ -68,13 +77,88 @@ function PostCard({ post, wide }: { post: CoachPost; wide?: boolean }) {
   );
 }
 
+function PackageCard({
+  pkg,
+  coachName,
+  whatsAppUrl,
+  onSelect,
+}: {
+  pkg: ShowcasePackage;
+  coachName: string;
+  /** The coach's WhatsApp chat link, or null when they have no usable number. */
+  whatsAppUrl: string | null;
+  onSelect: () => void;
+}) {
+  const enquireOnWhatsApp = () => {
+    if (!whatsAppUrl) return;
+    const message = `Hi ${coachName}, I would like to enquire about the "${pkg.packageName}" package (${formatMoney(pkg.totalAmount)}).`;
+    Linking.openURL(whatsAppUrlWithText(whatsAppUrl, message)).catch(() =>
+      Alert.alert('Could not open WhatsApp', 'Please check that WhatsApp is installed.'),
+    );
+  };
+
+  return (
+    <View style={styles.packageCard}>
+      <TouchableOpacity
+        onPress={onSelect}
+        activeOpacity={PressOpacity.soft}
+        accessibilityRole="button"
+        accessibilityLabel={`Enquire about ${pkg.packageName}`}
+      >
+        <View style={styles.packageHead}>
+          <View style={styles.packageTitleBlock}>
+            <Text style={styles.brand}>{pkg.brandName}</Text>
+            <Text style={styles.packageName}>{pkg.packageName}</Text>
+          </View>
+          <Text
+            style={styles.totalAmount}
+            accessibilityLabel={`Total ${formatMoney(pkg.totalAmount)}`}
+          >
+            {formatMoney(pkg.totalAmount)}
+          </Text>
+        </View>
+        {pkg.items.map((item, index) => {
+          const { name, pack } = splitPackDetail(item.itemName);
+          return (
+            <View key={`${item.itemName}-${index}`} style={styles.itemRow}>
+              <Text style={styles.itemName} numberOfLines={3}>
+                {name}
+              </Text>
+              {pack ? <Text style={styles.itemPack}>{pack}</Text> : null}
+            </View>
+          );
+        })}
+      </TouchableOpacity>
+      {whatsAppUrl ? (
+        <TouchableOpacity
+          style={styles.whatsAppBtn}
+          onPress={enquireOnWhatsApp}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel={`Enquire about ${pkg.packageName} on WhatsApp`}
+        >
+          <Ionicons name="logo-whatsapp" size={IconSize.md} color={Colors.white} />
+          <Text style={styles.whatsAppLabel}>Enquire on WhatsApp</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
 interface ShowcaseSectionsProps {
   showcase: Showcase;
+  coachName: string;
+  whatsAppUrl: string | null;
   onSelectPackage: (packageName: string) => void;
 }
 
-/** Packages, gallery, events and success stories on a coach's public profile. */
-export default function ShowcaseSections({ showcase, onSelectPackage }: ShowcaseSectionsProps) {
+/** Packages, gallery, posts and success stories on a coach's public profile. */
+export default function ShowcaseSections({
+  showcase,
+  coachName,
+  whatsAppUrl,
+  onSelectPackage,
+}: ShowcaseSectionsProps) {
   const { packages, posts } = showcase;
   const gallery = posts.filter(p => p.categoryCode === POST_CATEGORY.gallery);
   const events = posts.filter(p => p.categoryCode === POST_CATEGORY.event);
@@ -87,29 +171,13 @@ export default function ShowcaseSections({ showcase, onSelectPackage }: Showcase
           <SectionHeader icon="pricetags-outline" tag="Packages" title="Packages" />
           <View style={styles.list}>
             {packages.map(pkg => (
-              <TouchableOpacity
+              <PackageCard
                 key={pkg.packageId}
-                style={styles.packageCard}
-                onPress={() => onSelectPackage(pkg.packageName)}
-                activeOpacity={PressOpacity.soft}
-                accessibilityRole="button"
-                accessibilityLabel={`Enquire about ${pkg.packageName}`}
-              >
-                <Text style={styles.brand}>{pkg.brandName}</Text>
-                <Text style={styles.packageName}>{pkg.packageName}</Text>
-                {pkg.items.map((item, index) => (
-                  <View key={`${item.itemName}-${index}`} style={styles.itemRow}>
-                    <Text style={styles.itemName} numberOfLines={2}>
-                      {item.itemName}
-                    </Text>
-                    <Text style={styles.itemAmount}>{formatMoney(item.amount)}</Text>
-                  </View>
-                ))}
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalAmount}>{formatMoney(pkg.totalAmount)}</Text>
-                </View>
-              </TouchableOpacity>
+                pkg={pkg}
+                coachName={coachName}
+                whatsAppUrl={whatsAppUrl}
+                onSelect={() => onSelectPackage(pkg.packageName)}
+              />
             ))}
           </View>
         </View>
@@ -135,7 +203,7 @@ export default function ShowcaseSections({ showcase, onSelectPackage }: Showcase
 
       {events.length > 0 ? (
         <View style={styles.section}>
-          <SectionHeader icon="calendar-outline" tag="Events" title="Workshops and events" />
+          <SectionHeader icon="calendar-outline" tag="Posts" title="Posts" />
           <View style={styles.list}>
             {events.map(post => (
               <PostCard key={post.postId} post={post} wide />
@@ -176,31 +244,53 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: Spacing.md,
   },
+  packageHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    paddingBottom: Spacing.xs,
+  },
+  packageTitleBlock: { flex: 1, minWidth: 0 },
   brand: { fontSize: 12, fontFamily: FontFamily.semibold, color: PILL_INK },
   packageName: {
     fontSize: 18,
     fontFamily: headingFont.extraBold,
     color: Colors.textDark,
-    marginBottom: Spacing.xs,
+  },
+  totalAmount: {
+    flexShrink: 0,
+    fontSize: 20,
+    lineHeight: 26,
+    fontFamily: headingFont.extraBold,
+    color: Colors.textDark,
   },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: Spacing.sm,
     paddingVertical: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
   },
   itemName: { flex: 1, fontSize: 14, fontFamily: FontFamily.regular, color: Colors.textDark },
-  itemAmount: { fontSize: 14, fontFamily: FontFamily.semibold, color: Colors.textLight },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    paddingTop: Spacing.sm,
+  itemPack: {
+    flexShrink: 0,
+    fontSize: 13,
+    fontFamily: FontFamily.semibold,
+    color: Colors.textLight,
   },
-  totalLabel: { fontSize: 14, fontFamily: FontFamily.semibold, color: Colors.textLight },
-  totalAmount: { fontSize: 20, fontFamily: headingFont.extraBold, color: Colors.textDark },
+  whatsAppBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    minHeight: TouchTarget.min,
+    borderRadius: Radius.pill,
+    backgroundColor: WHATSAPP_GREEN,
+  },
+  whatsAppLabel: { fontSize: 14, fontFamily: FontFamily.bold, color: Colors.white },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   gridItem: { width: '31.5%' },
   gridMedia: { width: '100%', aspectRatio: 1, borderRadius: Radius.md, overflow: 'hidden' },

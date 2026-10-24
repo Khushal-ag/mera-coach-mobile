@@ -8,14 +8,6 @@ import type { Review, ReviewSummary } from '../../api/reviewsApi';
 const STAR = '#D4862B';
 const STAR_OFF = '#CFCAC3';
 
-const REVIEW_PARAMETERS: { key: keyof Review & keyof ReviewSummary; label: string }[] = [
-  { key: 'knowledge', label: 'Knowledge' },
-  { key: 'communication', label: 'Communication' },
-  { key: 'personalAttention', label: 'Personal Attention' },
-  { key: 'guidanceResponse', label: 'Guidance & Response' },
-  { key: 'resultsProgress', label: 'Results & Progress' },
-];
-
 /** Five stars, filled up to the rounded value. */
 function StarRow({ value, size = 16 }: { value: number; size?: number }) {
   const filled = Math.round(value);
@@ -45,7 +37,7 @@ function Bar({ ratio }: { ratio: number }) {
   );
 }
 
-/** Average, per-parameter averages and the star breakdown, like a product review summary. */
+/** Average and the star breakdown, like a product review summary. */
 export function ReviewSummaryCard({ summary }: { summary: ReviewSummary }) {
   if (summary.reviewCount === 0) return null;
   return (
@@ -70,15 +62,6 @@ export function ReviewSummaryCard({ summary }: { summary: ReviewSummary }) {
           </View>
         );
       })}
-
-      <View style={styles.divider} />
-      {REVIEW_PARAMETERS.map(p => (
-        <View key={p.key} style={styles.paramLine}>
-          <Text style={styles.paramLabel}>{p.label}</Text>
-          <Bar ratio={summary[p.key] / 5} />
-          <Text style={styles.paramValue}>{summary[p.key].toFixed(1)}</Text>
-        </View>
-      ))}
     </View>
   );
 }
@@ -105,15 +88,6 @@ export function ReviewCard({ review }: { review: Review }) {
       </View>
       <StarRow value={review.overall} />
       {review.comments ? <Text style={styles.comment}>{review.comments}</Text> : null}
-      <View style={styles.chips}>
-        {REVIEW_PARAMETERS.map(p => (
-          <View key={p.key} style={styles.chip}>
-            <Text style={styles.chipText}>
-              {p.label} {review[p.key]}/5
-            </Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
@@ -153,20 +127,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   barFill: { height: 8, borderRadius: 4, backgroundColor: STAR },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginVertical: Spacing.xs,
-  },
-  paramLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  paramLabel: { width: 128, fontSize: 12, fontFamily: FontFamily.medium, color: Colors.textDark },
-  paramValue: {
-    width: 26,
-    textAlign: 'right',
-    fontSize: 12,
-    fontFamily: FontFamily.semibold,
-    color: Colors.textDark,
-  },
   reviewHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   avatar: {
     width: 38,
@@ -183,12 +143,4 @@ const styles = StyleSheet.create({
   overall: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   overallValue: { fontFamily: headingFont.bold, fontSize: 15, color: Colors.textDark },
   comment: { fontSize: 14, lineHeight: 20, fontFamily: FontFamily.regular, color: Colors.textDark },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
-  chip: {
-    backgroundColor: '#F4EFE7',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  chipText: { fontSize: 11, fontFamily: FontFamily.medium, color: Colors.textLight },
 });

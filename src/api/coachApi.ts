@@ -251,6 +251,11 @@ export function whatsAppUrlFromMobile(mobile?: string): string | null {
   return null;
 }
 
+/** Opens the WhatsApp chat with this message already typed in. */
+export function whatsAppUrlWithText(chatUrl: string, text: string): string {
+  return `${chatUrl}?text=${encodeURIComponent(text)}`;
+}
+
 // Full profile GET fields not mapped into the public Coach model.
 interface RawCoachProfileFull {
   coachId?: number;

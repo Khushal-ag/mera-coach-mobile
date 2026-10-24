@@ -417,7 +417,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
           <Text style={styles.sectionTitle}>Public profile</Text>
           <View style={styles.underline} />
           <Text style={styles.sectionHint}>
-            Photos, packages, and events show on your public page for prospective clients.
+            Photos, packages, and posts show on your public page for prospective clients.
           </Text>
           <View style={styles.menuCard}>
             {publicProfileItems.map((item, i) => (

@@ -71,7 +71,6 @@ const UPLOAD_DASH = '#6FCBAA';
 const UNDERLINE_ORANGE = '#F08A2C';
 const HINT_BLUE = '#5B6CC4';
 const ICON_MUTED = '#8E97A8';
-const FIELD_DISABLED_TEXT = '#B4BDB6';
 const CHIP_IDLE_BORDER = '#E4E7EC';
 const CHIP_IDLE_LABEL = '#5A635E';
 
@@ -170,7 +169,7 @@ export default function EditEventsScreen({
           title="Post not found"
           message="This post is no longer on your list."
           onRetry={() => navigation.goBack()}
-          retryLabel="Back to gallery and events"
+          retryLabel="Back to posts"
           showPullHint={false}
         />
       ) : (
@@ -341,7 +340,7 @@ function PostForm({
   const dateLabel = parsedDate ? formatCalendarLabel(parsedDate) : date.trim();
   const previewUri = resolveMediaUrl(mediaUrl);
   const publishDisabled = saving || uploading;
-  const clientLabel = clientEnabled && clientName ? clientName : 'Select Client';
+  const clientLabel = clientName || 'Select Client';
 
   return (
     <KeyboardSafeScroll
@@ -433,40 +432,31 @@ function PostForm({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.fieldLabel}>Client</Text>
-        <TouchableOpacity
-          style={styles.field}
-          onPress={() => {
-            if (!clientEnabled) return;
-            setClientOpen(true);
-          }}
-          disabled={!clientEnabled}
-          activeOpacity={PressOpacity.default}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !clientEnabled }}
-          accessibilityLabel={
-            clientEnabled && clientName ? `Client: ${clientName}` : 'Select Client'
-          }
-        >
-          <Text
-            style={[
-              clientEnabled && clientName ? styles.fieldValue : styles.fieldPlaceholder,
-              !clientEnabled && styles.fieldTextDisabled,
-            ]}
-            numberOfLines={1}
+      {clientEnabled ? (
+        <View style={styles.card}>
+          <Text style={styles.fieldLabel}>Client</Text>
+          <TouchableOpacity
+            style={styles.field}
+            onPress={() => setClientOpen(true)}
+            activeOpacity={PressOpacity.default}
+            accessibilityRole="button"
+            accessibilityLabel={clientName ? `Client: ${clientName}` : 'Select Client'}
           >
-            {clientLabel}
-          </Text>
-          <Ionicons
-            name="chevron-down-outline"
-            size={IconSize.sm}
-            color={clientEnabled ? ICON_MUTED : FIELD_DISABLED_TEXT}
-            style={styles.fieldChevron}
-          />
-        </TouchableOpacity>
-        <Text style={styles.hint}>Only for Client Success posts.</Text>
-      </View>
+            <Text
+              style={clientName ? styles.fieldValue : styles.fieldPlaceholder}
+              numberOfLines={1}
+            >
+              {clientLabel}
+            </Text>
+            <Ionicons
+              name="chevron-down-outline"
+              size={IconSize.sm}
+              color={ICON_MUTED}
+              style={styles.fieldChevron}
+            />
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.fieldLabel}>{isGallery ? 'Tag' : 'Title'}</Text>
@@ -876,9 +866,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: Colors.textLight,
-  },
-  fieldTextDisabled: {
-    color: FIELD_DISABLED_TEXT,
   },
   fieldChevron: {
     marginLeft: Spacing.xs,

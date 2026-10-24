@@ -891,7 +891,12 @@ function CoachProfilePage({
           </View>
         ) : null}
 
-        <ShowcaseSections showcase={showcase} onSelectPackage={selectPackageService} />
+        <ShowcaseSections
+          showcase={showcase}
+          coachName={coach.name}
+          whatsAppUrl={whatsAppUrl}
+          onSelectPackage={selectPackageService}
+        />
 
         {showRating && (hasReviews || reviewsQuery.isLoading) ? (
           <View style={styles.section}>
