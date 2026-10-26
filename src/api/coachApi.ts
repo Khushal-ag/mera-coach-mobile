@@ -4,8 +4,10 @@ import { readCoachMediaFields } from '../utils/coachMediaFields';
 import { pickCoachCreatedAt } from '../utils/experience';
 import { fontAwesomeToIonicon } from '../utils/fontAwesomeToIonicon';
 import {
+  mapPaymentHistory,
   mapPremiumCatalog,
   mapPremiumOffer,
+  type PaymentHistoryItem,
   type PremiumCatalog,
   type PremiumOffer,
 } from '../utils/premiumOffer';
@@ -466,4 +468,21 @@ export async function changePassword(params: ChangePasswordParams): Promise<void
     currentPassword: params.currentPassword,
     newPassword: params.newPassword,
   });
+}
+
+/** The signed-in coach's paid orders, newest first. */
+export async function getCoachPaymentHistory(signal?: AbortSignal): Promise<PaymentHistoryItem[]> {
+  const raw = await apiFetch<unknown>('/v{version}/Coach/premium-history', { signal });
+  return mapPaymentHistory(raw);
+}
+
+/** Cancel the plan lined up next (one that has not started). The payment is refunded in full. */
+export async function cancelUpcomingPlan(): Promise<{ planName: string; refundAmount: number }> {
+  const raw = await apiPost<unknown>('/v{version}/Coach/premium-cancel-upcoming');
+  const bag = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const amount = Number(bag.refundAmount ?? bag.RefundAmount);
+  return {
+    planName: String(bag.planName ?? bag.PlanName ?? ''),
+    refundAmount: Number.isFinite(amount) && amount > 0 ? amount : 0,
+  };
 }

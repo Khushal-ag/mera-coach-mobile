@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import AppButton from '../AppButton';
+import { externalPaymentsAllowed } from '../../config/appConfig';
 import FormErrorBanner from '../FormErrorBanner';
 import {
   Colors,
@@ -17,6 +18,7 @@ import type { IoniconName } from '../../types/icons';
 import {
   formatInr,
   formatSubscriptionDate,
+  isRenewalWindow,
   subscriptionDaysLeft,
   subscriptionDaysLeftLabel,
   subscriptionPeriodLabel,
@@ -54,9 +56,10 @@ function headline(subscription: CoachSubscription, period: string): string {
   return subscription.status === 'expired' ? 'Subscription ended' : 'Active subscription';
 }
 
-function actionLabel(status: SubscriptionStatus): string {
+function actionLabel(status: SubscriptionStatus, renewSoon = false, canBuy = true): string {
+  if (!canBuy) return status === 'active' ? 'Manage' : 'Details';
   if (status === 'expired') return 'Renew';
-  if (status === 'active') return 'Manage';
+  if (status === 'active') return renewSoon ? 'Renew' : 'Manage';
   return 'View plans';
 }
 
@@ -112,6 +115,15 @@ export default function SubscriptionStatusCard({
     rows.push({
       label: subscription.status === 'expired' ? 'Expired on' : 'Expires on',
       value: ends,
+    });
+  }
+  if (subscription.next) {
+    const nextStarts = formatSubscriptionDate(subscription.next.startsOn);
+    const nextName =
+      subscription.next.planName || subscriptionPeriodLabel(subscription.next.durationMonths);
+    rows.push({
+      label: 'Up next',
+      value: nextStarts ? `${nextName} from ${nextStarts}` : nextName,
     });
   }
 
@@ -179,11 +191,19 @@ export default function SubscriptionStatusCard({
       {daysLabel ? <Text style={styles.days}>{daysLabel}</Text> : null}
 
       {showBilling ? (
-        <Text style={styles.billing}>Billing is completed on the secure payment page.</Text>
+        <Text style={styles.billing}>
+          {subscription.status === 'active'
+            ? 'Does not renew automatically. Plan changes start after this plan ends.'
+            : 'Billing is completed on the secure payment page.'}
+        </Text>
       ) : null}
 
       <AppButton
-        label={actionLabel(subscription.status)}
+        label={actionLabel(
+          subscription.status,
+          isRenewalWindow(subscription),
+          externalPaymentsAllowed(),
+        )}
         size="compact"
         icon="arrow-forward-outline"
         onPress={onManage}
@@ -191,7 +211,11 @@ export default function SubscriptionStatusCard({
         accessibilityLabel={
           subscription.status === 'none'
             ? 'View subscription plans'
-            : actionLabel(subscription.status)
+            : actionLabel(
+                subscription.status,
+                isRenewalWindow(subscription),
+                externalPaymentsAllowed(),
+              )
         }
       />
     </View>

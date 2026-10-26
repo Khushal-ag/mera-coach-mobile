@@ -54,6 +54,7 @@ function onAppStateChange(status: AppStateStatus): void {
   if (status === 'active') {
     void queryClient.invalidateQueries({ queryKey: queryKeys.coachPremium });
     void queryClient.invalidateQueries({ queryKey: queryKeys.coachPremiumPlans });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.coachPremiumHistory });
   }
 }
 AppState.addEventListener('change', onAppStateChange);

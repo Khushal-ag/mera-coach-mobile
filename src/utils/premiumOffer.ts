@@ -1,5 +1,6 @@
 import { FRIENDLY_NOT_FOUND, toUserMessage } from '../api/clientErrors';
 import { getPaymentPageUrl } from '../config/appConfig';
+import { VALIDITY_WARN_DAYS } from './validity';
 
 /** Shown when the premium check fails, including a generic not-found response. */
 export const SUBSCRIPTION_STATUS_UNAVAILABLE =
@@ -74,8 +75,50 @@ export interface CoachSubscription {
   amount: number;
   durationMonths: number;
   startedOn: string | null;
+  /** When access ends (the coach's ValidUpto), including any plan already lined up. */
   expiresOn: string | null;
+  // The fields below come from newer APIs and are absent from older ones.
+  planId?: number | null;
+  /** When the plan running now ends. Earlier than expiresOn when another plan follows it. */
+  periodEndsOn?: string | null;
+  /** A plan already paid for that starts when the current one ends. */
+  next?: NextSubscription | null;
+  /** From this date the current plan can be renewed and any plan bought. */
+  renewalOpensOn?: string | null;
+  /** A plan the API will not sell again yet. */
+  blockedPlanId?: number | null;
+  /** A plan is already lined up, so nothing more can be bought until renewalOpensOn. */
+  hasUpcomingPlan?: boolean;
+  /** The plan lined up next can be cancelled and refunded in the app. */
+  canCancelUpcomingPlan?: boolean;
 }
+
+export interface NextSubscription {
+  planName: string;
+  amount: number;
+  durationMonths: number;
+  startsOn: string | null;
+  endsOn: string | null;
+}
+
+/** One paid order from GET Coach/premium-history. */
+export interface PaymentHistoryItem {
+  orderId: string;
+  planName: string;
+  durationMonths: number;
+  amount: number;
+  promoCode: string | null;
+  /** When the order was created; the payment follows within minutes. */
+  orderedOn: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  /** Masked, so the coach can quote it to support. */
+  paymentReference: string | null;
+  /** Paid, or a refund that is still settling or finished. */
+  status: PaymentStatus;
+}
+
+export type PaymentStatus = 'paid' | 'refunding' | 'refunded';
 
 export interface PremiumOffer {
   isPaid: boolean;
@@ -300,6 +343,82 @@ export function subscriptionDaysLeftLabel(days: number | null): string | null {
   return `${days} days left`;
 }
 
+/** Fingerprint of a subscription period, used to notice that a payment has changed it. */
+export function subscriptionFingerprint(
+  subscription: CoachSubscription | null | undefined,
+): string {
+  if (!subscription) return 'none';
+  return [
+    subscription.status,
+    subscription.planName,
+    subscription.startedOn ?? '',
+    subscription.expiresOn ?? '',
+  ].join('|');
+}
+
+/** Share (0 to 1) of the paid period already used. Null when a date is missing or the period has no length. */
+export function subscriptionElapsedFraction(
+  startedOn: string | null | undefined,
+  expiresOn: string | null | undefined,
+  today = new Date(),
+): number | null {
+  const start = parseSubscriptionDate(startedOn);
+  const end = parseSubscriptionDate(expiresOn);
+  if (!start || !end || end.getTime() <= start.getTime()) return null;
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const fraction = (now - start.getTime()) / (end.getTime() - start.getTime());
+  return Math.min(1, Math.max(0, fraction));
+}
+
+/** Days before the end when an active coach may renew the plan they already have (the same window as the validity warning). */
+const RENEWAL_WINDOW_DAYS = VALIDITY_WARN_DAYS;
+
+/** True once an active plan may be renewed: the API's renewal date when it sends one, otherwise the last 15 days. */
+export function isRenewalWindow(
+  subscription: CoachSubscription | null,
+  today = new Date(),
+): boolean {
+  if (!subscription || subscription.status !== 'active') return false;
+  const opens = parseSubscriptionDate(subscription.renewalOpensOn);
+  if (opens) {
+    return (
+      new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() >= opens.getTime()
+    );
+  }
+  const days = subscriptionDaysLeft(subscription.expiresOn, today);
+  return days != null && days <= RENEWAL_WINDOW_DAYS;
+}
+
+/**
+ * The plans an active coach may buy right now. The API refuses the rest, so listing them would only lead to an error:
+ * nothing while a plan is already lined up, otherwise everything except the plan it will not sell again yet.
+ * Older APIs send neither field, so the plan in use is hidden until the renewal window.
+ */
+export function purchasablePlans(
+  plans: PremiumPlan[],
+  subscription: CoachSubscription | null,
+  today = new Date(),
+): PremiumPlan[] {
+  if (!subscription || subscription.status !== 'active') return plans;
+  if (subscription.hasUpcomingPlan) return [];
+  if (subscription.blockedPlanId != null) {
+    return plans.filter(plan => plan.planId !== subscription.blockedPlanId);
+  }
+  if (isRenewalWindow(subscription, today)) return plans;
+  return plans.filter(plan => !isCurrentPlan(plan, subscription));
+}
+
+/** True when this catalog plan is the one the coach is paying for right now. */
+export function isCurrentPlan(plan: PremiumPlan, subscription: CoachSubscription | null): boolean {
+  if (!subscription || subscription.status !== 'active') return false;
+  if (plan.planId != null && subscription.planId != null)
+    return plan.planId === subscription.planId;
+  if (subscription.durationMonths > 0)
+    return planMinimumMonths(plan) === subscription.durationMonths;
+  const current = subscription.planName.trim().toLowerCase();
+  return current !== '' && plan.planName.trim().toLowerCase() === current;
+}
+
 function mapCoachSubscription(value: unknown, paidFlag: boolean): CoachSubscription {
   const raw = asRecord(value);
   if (!raw) return emptySubscription(paidFlag ? 'active' : 'none');
@@ -312,7 +431,68 @@ function mapCoachSubscription(value: unknown, paidFlag: boolean): CoachSubscript
     durationMonths: durationMonths > 0 ? Math.round(durationMonths) : 0,
     startedOn: readDateText(raw.startedOn ?? raw.StartedOn ?? raw.periodStart ?? raw.PeriodStart),
     expiresOn: readDateText(raw.expiresOn ?? raw.ExpiresOn ?? raw.periodEnd ?? raw.PeriodEnd),
+    planId: readOptionalId(raw.planId ?? raw.PlanId),
+    periodEndsOn: readDateText(raw.periodEndsOn ?? raw.PeriodEndsOn),
+    next: mapNextSubscription(raw),
+    renewalOpensOn: readDateText(raw.renewalOpensOn ?? raw.RenewalOpensOn),
+    blockedPlanId: readOptionalId(raw.blockedPlanId ?? raw.BlockedPlanId),
+    hasUpcomingPlan: readFlag(raw.hasUpcomingPlan ?? raw.HasUpcomingPlan),
+    canCancelUpcomingPlan: readFlag(raw.canCancelUpcomingPlan ?? raw.CanCancelUpcomingPlan),
   };
+}
+
+function readOptionalId(value: unknown): number | null {
+  const id = readNumber(value);
+  return id > 0 ? Math.round(id) : null;
+}
+
+function mapNextSubscription(raw: Record<string, unknown>): NextSubscription | null {
+  const planName = readText(raw.nextPlanName ?? raw.NextPlanName);
+  const startsOn = readDateText(raw.nextStartsOn ?? raw.NextStartsOn);
+  if (!planName && !startsOn) return null;
+  const months = readNumber(raw.nextDurationMonths ?? raw.NextDurationMonths);
+  const amount = readNumber(raw.nextAmount ?? raw.NextAmount);
+  return {
+    planName,
+    amount: amount > 0 ? amount : 0,
+    durationMonths: months > 0 ? Math.round(months) : 0,
+    startsOn,
+    endsOn: readDateText(raw.nextEndsOn ?? raw.NextEndsOn),
+  };
+}
+
+function readPaymentStatus(value: unknown): PaymentStatus {
+  const text = readText(value).toLowerCase();
+  return text === 'refunding' || text === 'refunded' ? text : 'paid';
+}
+
+/** Accepts the unwrapped responseObj of GET Coach/premium-history. */
+export function mapPaymentHistory(raw: unknown): PaymentHistoryItem[] {
+  const bag = asRecord(raw);
+  const list = bag?.payments ?? bag?.Payments;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap(entry => {
+    const row = asRecord(entry);
+    if (!row) return [];
+    const orderId = readText(row.orderId ?? row.OrderId);
+    if (!orderId) return [];
+    const amount = readNumber(row.amount ?? row.Amount);
+    const months = readNumber(row.durationMonths ?? row.DurationMonths);
+    return [
+      {
+        orderId,
+        planName: readText(row.planName ?? row.PlanName),
+        durationMonths: months > 0 ? Math.round(months) : 0,
+        amount: amount > 0 ? amount : 0,
+        promoCode: readText(row.promoCode ?? row.PromoCode) || null,
+        orderedOn: readDateText(row.orderedOn ?? row.OrderedOn),
+        periodStart: readDateText(row.periodStart ?? row.PeriodStart),
+        periodEnd: readDateText(row.periodEnd ?? row.PeriodEnd),
+        paymentReference: readText(row.paymentReference ?? row.PaymentReference) || null,
+        status: readPaymentStatus(row.status ?? row.Status),
+      },
+    ];
+  });
 }
 
 /** Accepts the unwrapped responseObj (camelCase or PascalCase). */
@@ -449,6 +629,8 @@ export function planDiscountOffPercent(plan: PremiumPlan): number | null {
 export function buildCoachPaymentUrl(coach: {
   coachId?: string | number | null;
   coachCode?: string | null;
+  /** Plan chosen in the app, so checkout opens on it. */
+  planId?: number | null;
 }): string {
   const base = getPaymentPageUrl();
   const params = new URLSearchParams();
@@ -456,6 +638,7 @@ export function buildCoachPaymentUrl(coach: {
   if (id && id !== '0') params.set('coachId', id);
   const code = coach.coachCode?.trim();
   if (code) params.set('coachCode', code);
+  if (coach.planId != null && coach.planId > 0) params.set('planId', String(coach.planId));
   const qs = params.toString();
   if (!qs) return base;
   return base.includes('?') ? `${base}&${qs}` : `${base}?${qs}`;

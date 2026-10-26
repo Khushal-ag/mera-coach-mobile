@@ -66,6 +66,7 @@ export const queryKeys = {
   coachProfile: ['coachProfile'] as const,
   coachPremium: ['coachPremium'] as const,
   coachPremiumPlans: ['coachPremiumPlans'] as const,
+  coachPremiumHistory: ['coachPremiumHistory'] as const,
   coachProfileFull: ['coachProfileFull'] as const,
   storeUpdate: ['storeUpdate'] as const,
   myPackages: ['showcase', 'packages'] as const,

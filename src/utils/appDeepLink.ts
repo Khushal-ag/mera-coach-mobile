@@ -22,6 +22,7 @@ export function urlSignalsPaidReturn(url: string | null | undefined): boolean {
 export function refreshPremiumAfterPayment(): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachPremium });
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachPremiumPlans });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.coachPremiumHistory });
   // The dashboard validity pill reads ValidUpto from the profile.
   void queryClient.invalidateQueries({ queryKey: queryKeys.coachProfile });
 }

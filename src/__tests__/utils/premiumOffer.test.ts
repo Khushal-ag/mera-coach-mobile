@@ -2,6 +2,10 @@ import {
   buildCoachPaymentUrl,
   formatInr,
   formatSubscriptionDate,
+  isCurrentPlan,
+  isRenewalWindow,
+  mapPaymentHistory,
+  purchasablePlans,
   defaultPremiumPlan,
   mapPremiumCatalog,
   mapPremiumOffer,
@@ -21,6 +25,8 @@ import {
   subscriptionCheckErrorMessage,
   subscriptionDaysLeft,
   subscriptionDaysLeftLabel,
+  subscriptionElapsedFraction,
+  subscriptionFingerprint,
   subscriptionMonthLabel,
   subscriptionPeriodLabel,
 } from '../../utils/premiumOffer';
@@ -535,5 +541,309 @@ describe('premiumPlansErrorMessage', () => {
     expect(premiumPlansRefreshMessage('Could not refresh. Please try again.')).toBe(
       'Could not refresh. Please try again.',
     );
+  });
+});
+
+describe('subscriptionFingerprint', () => {
+  const base = {
+    status: 'active' as const,
+    planName: 'Monthly',
+    amount: 399,
+    durationMonths: 1,
+    startedOn: '2026-10-26',
+    expiresOn: '2026-11-26',
+  };
+
+  it('changes when a payment moves the period or the plan', () => {
+    const before = subscriptionFingerprint(base);
+    expect(subscriptionFingerprint({ ...base })).toBe(before);
+    expect(subscriptionFingerprint({ ...base, expiresOn: '2026-12-26' })).not.toBe(before);
+    expect(subscriptionFingerprint({ ...base, planName: 'Yearly' })).not.toBe(before);
+    expect(subscriptionFingerprint({ ...base, status: 'expired' })).not.toBe(before);
+    expect(subscriptionFingerprint(null)).toBe('none');
+  });
+});
+
+describe('subscriptionElapsedFraction', () => {
+  it('is the share of the period used so far, clamped to 0..1', () => {
+    expect(subscriptionElapsedFraction('2026-10-01', '2026-10-31', new Date(2026, 9, 16))).toBe(
+      0.5,
+    );
+    expect(subscriptionElapsedFraction('2026-10-01', '2026-10-31', new Date(2026, 8, 1))).toBe(0);
+    expect(subscriptionElapsedFraction('2026-10-01', '2026-10-31', new Date(2027, 0, 1))).toBe(1);
+  });
+
+  it('is null without a usable period', () => {
+    expect(subscriptionElapsedFraction(null, '2026-10-31')).toBeNull();
+    expect(subscriptionElapsedFraction('2026-10-31', '2026-10-01')).toBeNull();
+  });
+});
+
+describe('isCurrentPlan', () => {
+  const monthly = {
+    planId: 1,
+    planName: 'Monthly',
+    durationMonths: 1,
+    basePrice: 499,
+    discountPercent: 0,
+    finalPrice: 499,
+  };
+  const yearly = {
+    planId: 4,
+    planName: 'Yearly',
+    durationMonths: 12,
+    basePrice: 4800,
+    discountPercent: 30,
+    finalPrice: 4188,
+  };
+  const sub = (overrides = {}) => ({
+    status: 'active' as const,
+    planName: 'Monthly',
+    amount: 499,
+    durationMonths: 1,
+    startedOn: '2026-10-26',
+    expiresOn: '2026-11-26',
+    ...overrides,
+  });
+
+  it('matches the plan with the same term while the subscription is active', () => {
+    expect(isCurrentPlan(monthly, sub())).toBe(true);
+    expect(isCurrentPlan(yearly, sub())).toBe(false);
+  });
+
+  it('falls back to the plan name when the term is unknown', () => {
+    expect(isCurrentPlan(monthly, sub({ durationMonths: 0 }))).toBe(true);
+    expect(isCurrentPlan(yearly, sub({ durationMonths: 0 }))).toBe(false);
+  });
+
+  it('is never current when the coach is not active', () => {
+    expect(isCurrentPlan(monthly, sub({ status: 'expired' }))).toBe(false);
+    expect(isCurrentPlan(monthly, null)).toBe(false);
+  });
+});
+
+describe('buildCoachPaymentUrl with a chosen plan', () => {
+  it('adds the plan id so checkout opens on it', () => {
+    process.env.EXPO_PUBLIC_PAYMENT_URL = 'https://example.com/premium';
+    expect(buildCoachPaymentUrl({ coachId: 7, planId: 4 })).toBe(
+      'https://example.com/premium?coachId=7&planId=4',
+    );
+    expect(buildCoachPaymentUrl({ coachId: 7, planId: 0 })).toBe(
+      'https://example.com/premium?coachId=7',
+    );
+  });
+});
+
+describe('isRenewalWindow', () => {
+  const sub = (expiresOn: string, status: 'active' | 'expired' | 'none' = 'active') => ({
+    status,
+    planName: 'Monthly',
+    amount: 499,
+    durationMonths: 1,
+    startedOn: '2026-10-01',
+    expiresOn,
+  });
+  const today = new Date(2026, 9, 26);
+
+  it('opens in the last 15 days of an active plan', () => {
+    expect(isRenewalWindow(sub('2026-11-10'), today)).toBe(true);
+    expect(isRenewalWindow(sub('2026-10-26'), today)).toBe(true);
+  });
+
+  it('stays closed earlier, and when there is nothing active to renew', () => {
+    expect(isRenewalWindow(sub('2026-11-26'), today)).toBe(false);
+    expect(isRenewalWindow(sub('2026-11-10', 'expired'), today)).toBe(false);
+    expect(isRenewalWindow(sub('2026-11-10', 'none'), today)).toBe(false);
+    expect(isRenewalWindow(null, today)).toBe(false);
+  });
+});
+
+describe('subscription fields from a newer API', () => {
+  const offer = mapPremiumOffer({
+    isPaid: true,
+    subscription: {
+      status: 'active',
+      planName: 'Monthly',
+      amount: 399.2,
+      durationMonths: 1,
+      startedOn: '2026-10-26T10:00:00',
+      expiresOn: '2027-11-26T00:00:00',
+      planId: 1,
+      periodEndsOn: '2026-11-26T00:00:00',
+      nextPlanName: 'Yearly',
+      nextAmount: 4188,
+      nextDurationMonths: 12,
+      nextStartsOn: '2026-11-26T00:00:00',
+      nextEndsOn: '2027-11-26T00:00:00',
+      renewalOpensOn: '2027-11-11T00:00:00',
+      blockedPlanId: null,
+      hasUpcomingPlan: true,
+    },
+  });
+
+  it('reads the plan lined up next and the purchase hints', () => {
+    const sub = offer.subscription;
+    expect(sub.planId).toBe(1);
+    expect(sub.periodEndsOn).toBe('2026-11-26T00:00:00');
+    expect(sub.next).toEqual({
+      planName: 'Yearly',
+      amount: 4188,
+      durationMonths: 12,
+      startsOn: '2026-11-26T00:00:00',
+      endsOn: '2027-11-26T00:00:00',
+    });
+    expect(sub.hasUpcomingPlan).toBe(true);
+    expect(sub.blockedPlanId).toBeNull();
+  });
+
+  it('still reads an older API that sends none of them', () => {
+    const old = mapPremiumOffer({
+      isPaid: true,
+      subscription: {
+        status: 'active',
+        planName: 'Monthly',
+        durationMonths: 1,
+        expiresOn: '2026-11-26',
+      },
+    });
+    expect(old.subscription.next).toBeNull();
+    expect(old.subscription.hasUpcomingPlan).toBe(false);
+    expect(old.subscription.blockedPlanId).toBeNull();
+    expect(old.subscription.planId).toBeNull();
+  });
+});
+
+describe('purchasablePlans', () => {
+  const plan = (planId: number, durationMonths: number) => ({
+    planId,
+    planName: `P${planId}`,
+    durationMonths,
+    basePrice: 100,
+    discountPercent: 0,
+    finalPrice: 100,
+  });
+  const plans = [plan(1, 1), plan(2, 3), plan(4, 12)];
+  const sub = (overrides = {}) => ({
+    status: 'active' as const,
+    planName: 'P1',
+    amount: 100,
+    durationMonths: 1,
+    startedOn: '2026-10-26',
+    expiresOn: '2027-01-26',
+    ...overrides,
+  });
+  const today = new Date(2026, 9, 26);
+
+  it('offers everything to a coach who is not active', () => {
+    expect(purchasablePlans(plans, null, today)).toEqual(plans);
+    expect(purchasablePlans(plans, sub({ status: 'expired' }), today)).toEqual(plans);
+  });
+
+  it('offers nothing while a plan is already lined up', () => {
+    expect(purchasablePlans(plans, sub({ hasUpcomingPlan: true }), today)).toEqual([]);
+  });
+
+  it('leaves out the plan the API will not sell again', () => {
+    const offered = purchasablePlans(
+      plans,
+      sub({ blockedPlanId: 1, renewalOpensOn: '2027-01-11' }),
+      today,
+    );
+    expect(offered.map(item => item.planId)).toEqual([2, 4]);
+  });
+
+  it('offers everything once the renewal date has come', () => {
+    expect(purchasablePlans(plans, sub({ renewalOpensOn: '2026-10-26' }), today)).toEqual(plans);
+  });
+
+  it('falls back to hiding the current plan on an older API', () => {
+    const offered = purchasablePlans(plans, sub({ planId: 1 }), today);
+    expect(offered.map(item => item.planId)).toEqual([2, 4]);
+  });
+});
+
+describe('mapPaymentHistory', () => {
+  it('reads paid orders and skips rows without an order id', () => {
+    const items = mapPaymentHistory({
+      payments: [
+        {
+          orderId: 'abc',
+          planName: 'Monthly',
+          durationMonths: 1,
+          amount: 399.2,
+          promoCode: 'MERACOACH20',
+          orderedOn: '2026-10-26T10:00:00',
+          periodStart: '2026-10-26T10:00:00',
+          periodEnd: '2026-11-26T10:00:00',
+          paymentReference: '…Xyz789',
+        },
+        { planName: 'No id' },
+      ],
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ orderId: 'abc', amount: 399.2, promoCode: 'MERACOACH20' });
+  });
+
+  it('is empty for anything else', () => {
+    expect(mapPaymentHistory(null)).toEqual([]);
+    expect(mapPaymentHistory({ payments: 'nope' })).toEqual([]);
+  });
+});
+
+describe('renewal and current plan by id', () => {
+  it('uses the API renewal date when it sends one', () => {
+    const sub = {
+      status: 'active' as const,
+      planName: 'Monthly',
+      amount: 1,
+      durationMonths: 1,
+      startedOn: '2026-10-01',
+      expiresOn: '2026-12-31',
+      renewalOpensOn: '2026-12-16',
+    };
+    expect(isRenewalWindow(sub, new Date(2026, 11, 15))).toBe(false);
+    expect(isRenewalWindow(sub, new Date(2026, 11, 16))).toBe(true);
+  });
+
+  it('matches the current plan by id before term', () => {
+    const plan = {
+      planId: 9,
+      planName: 'X',
+      durationMonths: 1,
+      basePrice: 1,
+      discountPercent: 0,
+      finalPrice: 1,
+    };
+    const sub = {
+      status: 'active' as const,
+      planName: 'Monthly',
+      amount: 1,
+      durationMonths: 1,
+      startedOn: null,
+      expiresOn: null,
+    };
+    expect(isCurrentPlan(plan, { ...sub, planId: 9 })).toBe(true);
+    expect(isCurrentPlan(plan, { ...sub, planId: 2 })).toBe(false);
+  });
+});
+
+describe('refund fields', () => {
+  it('reads whether the next plan can be cancelled', () => {
+    const on = mapPremiumOffer({ subscription: { status: 'active', canCancelUpcomingPlan: true } });
+    const off = mapPremiumOffer({ subscription: { status: 'active' } });
+    expect(on.subscription.canCancelUpcomingPlan).toBe(true);
+    expect(off.subscription.canCancelUpcomingPlan).toBe(false);
+  });
+
+  it('reads a payment status, and treats anything unknown as paid', () => {
+    const items = mapPaymentHistory({
+      payments: [
+        { orderId: 'a', status: 'Refunded' },
+        { orderId: 'b', status: 'Refunding' },
+        { orderId: 'c', status: 'Paid' },
+        { orderId: 'd' },
+      ],
+    });
+    expect(items.map(item => item.status)).toEqual(['refunded', 'refunding', 'paid', 'paid']);
   });
 });
