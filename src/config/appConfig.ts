@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const APP_DISPLAY_NAME = 'Mera Coach';
 
 /** Matches web Contact page — used for support and account deletion requests. */
@@ -47,3 +49,27 @@ export const COACH_GALLERY_REF_TYPE = 'COACH';
  * Settings > Channel > Advanced settings.
  */
 export const YOUTUBE_CHANNEL_ID = process.env.EXPO_PUBLIC_YOUTUBE_CHANNEL_ID?.trim() ?? '';
+
+const DEFAULT_PAYMENT_PLATFORMS = 'android';
+
+/** "ios, Android" becomes ['ios', 'android']. "none" (or nothing usable) becomes []. */
+export function parsePaymentPlatforms(raw: string | undefined): string[] {
+  const text = raw?.trim() ? raw : DEFAULT_PAYMENT_PLATFORMS;
+  return text
+    .split(',')
+    .map(part => part.trim().toLowerCase())
+    .filter(part => part === 'ios' || part === 'android');
+}
+
+/**
+ * Whether this app may send a coach to the website to buy or renew a plan. App Store rules do not allow an in-app link to
+ * an outside payment page for a digital subscription (outside a few regions), and Google Play has similar billing rules,
+ * so the platforms are chosen by EXPO_PUBLIC_EXTERNAL_PAYMENT_PLATFORMS: "ios", "android", "ios,android" or "none".
+ * Unset means Android only. Where it is off, the app only shows the subscription status, with no prices or payment link.
+ */
+export function externalPaymentsAllowed(
+  os: string = Platform.OS,
+  raw: string | undefined = process.env.EXPO_PUBLIC_EXTERNAL_PAYMENT_PLATFORMS,
+): boolean {
+  return parsePaymentPlatforms(raw).includes(os);
+}
