@@ -12,8 +12,9 @@ import CoachPublicProfileScreen from '../screens/publicCoach/CoachPublicProfileS
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
-import MpinSetupScreen from '../screens/auth/MpinSetupScreen';
-import MpinUnlockScreen from '../screens/auth/MpinUnlockScreen';
+// MPIN flow commented out - login will happen using login id and pass only
+// import MpinSetupScreen from '../screens/auth/MpinSetupScreen';
+// import MpinUnlockScreen from '../screens/auth/MpinUnlockScreen';
 import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -40,6 +41,7 @@ export default function AppNavigator() {
     return <SplashScreen />;
   }
 
+  /* MPIN flow commented out - login will happen using login id and password only
   if (authStatus === 'needsMpinUnlock') {
     return (
       <Stack.Navigator key="mpin-unlock" screenOptions={{ headerShown: false }}>
@@ -55,6 +57,7 @@ export default function AppNavigator() {
       </Stack.Navigator>
     );
   }
+  */
 
   return (
     <Stack.Navigator key={authStatus} screenOptions={{ headerShown: false }}>

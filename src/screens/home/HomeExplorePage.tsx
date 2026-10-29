@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -121,11 +122,26 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
   });
 
   const categories = categoriesQuery.data ?? [];
-  const categoriesLoading = categoriesQuery.isPending && !categoriesQuery.data;
+  const categoriesLoading = categoriesQuery.isPending && !categories.length;
   const categoriesError =
-    categoriesQuery.isError && !categoriesQuery.data
+    categoriesQuery.isError && !categories.length
       ? getErrorMessage(categoriesQuery.error, 'Could not load categories. Please try again.')
       : null;
+
+  useEffect(() => {
+    if (
+      categoriesQuery.isPending &&
+      categoriesQuery.fetchStatus === 'idle' &&
+      !categoriesQuery.data
+    ) {
+      void categoriesQuery.refetch();
+    }
+  }, [
+    categoriesQuery.isPending,
+    categoriesQuery.fetchStatus,
+    categoriesQuery.data,
+    categoriesQuery.refetch,
+  ]);
 
   const categoryGap = Spacing.sm;
   const sidePad = Spacing.md;
@@ -166,7 +182,15 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
           },
         ]}
         showsVerticalScrollIndicator={false}
-        bounces={false}
+        bounces={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={categoriesQuery.isRefetching}
+            onRefresh={() => void categoriesQuery.refetch()}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
         keyboardShouldPersistTaps="handled"
       >
         <PublicHomeHeader onHomePress={onGoHome} />
@@ -189,27 +213,29 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
 
         <View style={styles.panel}>
           <Text style={[styles.sectionTitle, styles.sectionTitleFirst]}>Coach Category</Text>
-          {categoriesLoading ? (
-            <View style={styles.categoryLoader}>
-              <ActivityIndicator color={Colors.secondary} />
-            </View>
-          ) : categoriesError ? (
-            <ReloadState
-              title="Could not load categories"
-              message={categoriesError}
-              onRetry={() => void categoriesQuery.refetch()}
-              loading={categoriesQuery.isFetching}
-              showPullHint={false}
-              style={styles.categoryState}
-            />
-          ) : categories.length === 0 ? (
-            <EmptyState
-              illustration={BrandImages.emptyLeads}
-              icon="grid-outline"
-              title="Categories coming soon"
-              message="Coach categories will appear here once they are available."
-              style={styles.categoryState}
-            />
+          {categories.length === 0 ? (
+            categoriesLoading ? (
+              <View style={styles.categoryLoader}>
+                <ActivityIndicator color={Colors.secondary} />
+              </View>
+            ) : categoriesError ? (
+              <ReloadState
+                title="Could not load categories"
+                message={categoriesError}
+                onRetry={() => void categoriesQuery.refetch()}
+                loading={categoriesQuery.isFetching}
+                showPullHint={false}
+                style={styles.categoryState}
+              />
+            ) : (
+              <EmptyState
+                illustration={BrandImages.emptyLeads}
+                icon="grid-outline"
+                title="Categories coming soon"
+                message="Coach categories will appear here once they are available."
+                style={styles.categoryState}
+              />
+            )
           ) : (
             <ScrollView
               horizontal

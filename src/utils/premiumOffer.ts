@@ -629,6 +629,7 @@ export function planDiscountOffPercent(plan: PremiumPlan): number | null {
 export function buildCoachPaymentUrl(coach: {
   coachId?: string | number | null;
   coachCode?: string | null;
+  coachName?: string | null;
   /** Plan chosen in the app, so checkout opens on it. */
   planId?: number | null;
 }): string {
@@ -638,6 +639,8 @@ export function buildCoachPaymentUrl(coach: {
   if (id && id !== '0') params.set('coachId', id);
   const code = coach.coachCode?.trim();
   if (code) params.set('coachCode', code);
+  const name = coach.coachName?.trim();
+  if (name) params.set('coachName', name);
   if (coach.planId != null && coach.planId > 0) params.set('planId', String(coach.planId));
   const qs = params.toString();
   if (!qs) return base;

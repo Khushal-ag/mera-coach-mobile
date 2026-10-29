@@ -137,7 +137,11 @@ export default function DashboardScreen({
   const validity = describeValidity(profileQuery.data?.validUpto);
   const renew = () =>
     void openPaymentUrl(
-      buildCoachPaymentUrl({ coachId: getCurrentCoachId(), coachCode: getCurrentCoachCode() }),
+      buildCoachPaymentUrl({
+        coachId: getCurrentCoachId(),
+        coachCode: getCurrentCoachCode(),
+        coachName: getCurrentCoachName(),
+      }),
     );
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),

@@ -242,6 +242,9 @@ function validateNonNegativeInt(
 /** Add Client step 1 validation (mirrors web). */
 export function validateClientPersonalProfile(form: ClientProfile): FormValidationResult {
   const errors: FieldErrorMap = {};
+  if (!form.photos || form.photos.length === 0) {
+    errors.photos = 'Client photo is required.';
+  }
   putError(errors, 'name', validateRequired(form.name, 'Full name'));
   // Client mobile: digits only, up to 10 (enforced as the coach types). No format rule.
   putError(errors, 'phone', validateRequired(form.phone, 'Mobile number'));

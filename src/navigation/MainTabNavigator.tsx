@@ -29,7 +29,8 @@ import ClientBmiScreen from '../screens/clients/detail/ClientBmiScreen';
 import ClientBmiReportScreen from '../screens/clients/detail/ClientBmiReportScreen';
 import ClientDietPlanScreen from '../screens/clients/detail/ClientDietPlanScreen';
 import ChangePasswordScreen from '../screens/auth/ChangePasswordScreen';
-import ChangeMpinScreen from '../screens/auth/ChangeMpinScreen';
+// MPIN flow commented out - login will happen using login id and password only
+// import ChangeMpinScreen from '../screens/auth/ChangeMpinScreen';
 import LegalScreen from '../screens/profile/LegalScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import PackagesScreen from '../screens/profile/PackagesScreen';
@@ -104,7 +105,9 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="ProfileHome" component={CoachProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      {/* MPIN flow commented out
       <ProfileStack.Screen name="ChangeMpin" component={ChangeMpinScreen} />
+      */}
       <ProfileStack.Screen name="Legal" component={LegalScreen} />
       <ProfileStack.Screen name="Leads" component={MyLeadsScreen} />
       <ProfileStack.Screen name="Reviews" component={ReviewsScreen} />

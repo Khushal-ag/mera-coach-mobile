@@ -2,10 +2,10 @@ import { useEffect, useSyncExternalStore } from 'react';
 import {
   ensureMpinMatchesLogin,
   getLastLoginId,
-  isMpinConfigured,
-  isMpinInitialized,
-  isMpinSetupDeferred,
-  isMpinUnlocked,
+  // isMpinConfigured,
+  // isMpinInitialized,
+  // isMpinSetupDeferred,
+  // isMpinUnlocked,
   markMpinRestoreFailed,
   restoreMpinState,
   subscribeToMpinState,
@@ -21,18 +21,19 @@ import {
 
 /**
  * Drives AppNavigator screen trees.
- * - needsMpinUnlock: valid JWT + MPIN set, cold start / locked
- * - needsMpinSetup: valid JWT, no MPIN yet, setup not deferred
- * - signedIn: JWT valid and (unlocked or no MPIN gate)
+ * - needsMpinUnlock: valid JWT + MPIN set, cold start / locked (Commented out)
+ * - needsMpinSetup: valid JWT, no MPIN yet, setup not deferred (Commented out)
+ * - signedIn: JWT valid (direct login via ID and password)
  */
 export type AuthStatus =
   'loading' | 'signedOut' | 'needsMpinUnlock' | 'needsMpinSetup' | 'signedIn';
 
 function getSnapshot(): AuthStatus {
-  if (!isAuthInitialized() || !isMpinInitialized()) return 'loading';
+  if (!isAuthInitialized()) return 'loading';
   if (!isAuthenticated()) return 'signedOut';
-  if (isMpinConfigured() && !isMpinUnlocked()) return 'needsMpinUnlock';
-  if (!isMpinConfigured() && !isMpinSetupDeferred()) return 'needsMpinSetup';
+  // MPIN flow commented out - login will happen using login id and password only
+  // if (isMpinConfigured() && !isMpinUnlocked()) return 'needsMpinUnlock';
+  // if (!isMpinConfigured() && !isMpinSetupDeferred()) return 'needsMpinSetup';
   return 'signedIn';
 }
 

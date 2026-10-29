@@ -23,7 +23,7 @@ import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { externalPaymentsAllowed } from '../../config/appConfig';
 import { refreshPremiumAfterPayment } from '../../utils/appDeepLink';
-import { getCurrentCoachCode, getCurrentCoachId } from '../../auth/session';
+import { getCurrentCoachCode, getCurrentCoachId, getCurrentCoachName } from '../../auth/session';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import ReloadState from '../../components/ReloadState';
 import FormErrorBanner from '../../components/FormErrorBanner';
@@ -374,6 +374,7 @@ export default function PremiumScreen({ navigation, route }: DashboardStackScree
     const url = buildCoachPaymentUrl({
       coachId: getCurrentCoachId(),
       coachCode: getCurrentCoachCode(),
+      coachName: getCurrentCoachName(),
       planId: selected?.planId,
     });
     payment.watch(subscription);

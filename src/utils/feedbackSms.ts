@@ -1,5 +1,6 @@
 import { Linking, Platform } from 'react-native';
 import { WEB_BASE_URL } from '../config/appConfig';
+import { encodeFeedbackToken } from './feedbackCrypto';
 import { stripNonDigits } from './validation';
 
 export function buildFeedbackWebUrl(params: {
@@ -11,10 +12,9 @@ export function buildFeedbackWebUrl(params: {
   const clientCode = params.clientCode.trim();
   if (!base || !coachCode || !clientCode) return null;
 
-  const qs = new URLSearchParams({
-    coachCode,
-    clientCode,
-  });
+  const token = encodeFeedbackToken(coachCode, clientCode);
+  if (!token) return null;
+  const qs = new URLSearchParams({ ref: token });
   return `${base}/feedback?${qs.toString()}`;
 }
 

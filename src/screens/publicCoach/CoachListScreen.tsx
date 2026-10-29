@@ -27,7 +27,6 @@ import {
   Typography,
   headingFont,
 } from '../../constants/theme';
-import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../../data/homeContent';
 import {
   RATING_FILTER_OPTIONS,
   SORT_OPTIONS,
@@ -280,7 +279,7 @@ export default function CoachListScreen({ navigation, route }: RootScreenProps<'
     queryFn: getCoachCategories,
     staleTime: MASTER_STALE_MS,
   });
-  const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
+  const categories = categoriesQuery.data ?? [];
 
   const citiesQuery = useQuery({
     queryKey: queryKeys.coachPublicCities({

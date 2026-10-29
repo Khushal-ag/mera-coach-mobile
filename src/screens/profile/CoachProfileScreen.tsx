@@ -92,11 +92,12 @@ const settingsItems: MenuItem[] = [
     label: 'Change Password',
     route: 'ChangePassword',
   },
-  {
-    icon: 'keypad-outline',
-    label: 'MPIN',
-    route: 'ChangeMpin',
-  },
+  // MPIN flow commented out - login will happen using login id and password only
+  // {
+  //   icon: 'keypad-outline',
+  //   label: 'MPIN',
+  //   route: 'ChangeMpin',
+  // },
   {
     icon: 'help-circle-outline',
     label: 'Help & Support',
@@ -164,11 +165,13 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     queryKey: queryKeys.clientList(getCurrentCoachCode()),
     queryFn: () => getClientList(),
   });
+  const premiumRequired = isSubscriptionRequired();
   const premiumQuery = useQuery({
     queryKey: queryKeys.coachPremium,
     queryFn: ({ signal }) => getCoachPremiumOffer(signal),
     staleTime: 0,
     refetchOnWindowFocus: true,
+    enabled: premiumRequired,
   });
   const profile = profileQuery.data;
   const profileCompletion = useMemo(
@@ -180,7 +183,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     profileQuery,
     profileFullQuery,
     clientsQuery,
-    premiumQuery,
+    ...(premiumRequired ? [premiumQuery] : []),
   ]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
@@ -399,19 +402,21 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
           </>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Subscription</Text>
-          <View style={styles.underline} />
-          <SubscriptionStatusCard
-            subscription={premiumQuery.data?.subscription ?? null}
-            loading={premiumQuery.isPending}
-            errorMessage={subscriptionError}
-            retrying={premiumQuery.isFetching}
-            onRetry={() => void premiumQuery.refetch()}
-            subscriptionRequired={isSubscriptionRequired()}
-            onManage={openSubscription}
-          />
-        </View>
+        {premiumRequired ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Subscription</Text>
+            <View style={styles.underline} />
+            <SubscriptionStatusCard
+              subscription={premiumQuery.data?.subscription ?? null}
+              loading={premiumQuery.isPending}
+              errorMessage={subscriptionError}
+              retrying={premiumQuery.isFetching}
+              onRetry={() => void premiumQuery.refetch()}
+              subscriptionRequired={premiumRequired}
+              onManage={openSubscription}
+            />
+          </View>
+        ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Public profile</Text>

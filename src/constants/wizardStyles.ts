@@ -54,12 +54,19 @@ export const wizardPillStyles = {
     backgroundColor: Colors.white,
     borderWidth: 1.5,
     borderColor: Colors.border,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   pillActive: { backgroundColor: WIZARD_FIELD_MINT, borderColor: Colors.accentInk },
+  pillError: {
+    borderColor: Colors.destructive,
+    borderWidth: 1.5,
+  },
   pillText: {
     fontSize: 13,
     color: Colors.textLight,
     fontFamily: FontFamily.semibold,
+    textAlign: 'center' as const,
   },
   pillActiveText: { color: Colors.accentInk },
   unitPill: {
@@ -69,12 +76,15 @@ export const wizardPillStyles = {
     backgroundColor: Colors.white,
     borderWidth: 1.5,
     borderColor: Colors.border,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   unitPillActive: { backgroundColor: WIZARD_FIELD_MINT, borderColor: Colors.accentInk },
   unitPillText: {
     fontSize: 12,
     color: Colors.textLight,
     fontFamily: FontFamily.semibold,
+    textAlign: 'center' as const,
   },
   unitPillTextActive: { color: Colors.accentInk },
 } satisfies Record<string, ViewStyle | TextStyle>;

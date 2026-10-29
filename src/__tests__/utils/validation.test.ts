@@ -105,7 +105,7 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     expect(result.ok).toBe(false);
     expect(result.banner).toBe(MANDATORY_FIELDS_BANNER);
     expect(Object.keys(result.errors).sort()).toEqual(
-      ['age', 'gender', 'height', 'location', 'name', 'phone', 'weight'].sort(),
+      ['age', 'gender', 'height', 'location', 'name', 'phone', 'photos', 'weight'].sort(),
     );
   });
 
@@ -120,6 +120,7 @@ describe('validateClientPersonalProfile (aggregate)', () => {
         gender: 'F',
         height: '165',
         weight: '60',
+        photos: [{ id: '1', uri: 'photo.jpg' }],
       }),
     );
     expect(result.ok).toBe(true);
@@ -134,7 +135,16 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     gender: 'F',
     height: '165',
     weight: '60',
+    photos: [{ id: '1', uri: 'photo.jpg' }],
   };
+
+  it('requires at least one client photo', () => {
+    const withoutPhoto = validateClientPersonalProfile(
+      emptyProfile({ ...base, age: '30', photos: [] }),
+    );
+    expect(withoutPhoto.ok).toBe(false);
+    expect(withoutPhoto.errors.photos).toBe('Client photo is required.');
+  });
 
   it('requires age but not date of birth', () => {
     expect(validateClientPersonalProfile(emptyProfile({ ...base, age: '30' })).ok).toBe(true);

@@ -126,6 +126,7 @@ export const Radius = {
   md: 16,
   lg: 24,
   pill: 50,
+  full: 9999,
 } as const;
 
 export const Spacing = {

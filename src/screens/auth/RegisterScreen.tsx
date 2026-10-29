@@ -1,17 +1,11 @@
 import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
+import { clearSession } from '../../auth/session';
+import { registerCoach, getCoachCategories } from '../../api/coachApi';
+import { queryKeys } from '../../api/queryKeys';
 import {
   Colors,
   FontFamily,
@@ -19,24 +13,17 @@ import {
   IconSize,
   PressOpacity,
   Radius,
-  Shadow,
   Spacing,
   TouchTarget,
-  headingFont,
+  Typography,
 } from '../../constants/theme';
-import { AuthLayout } from '../../constants/authLayout';
+import { authFormStyles } from '../../components/auth/authFormStyles';
 import AuthAtmosphereLayout from '../../components/auth/AuthAtmosphereLayout';
 import AuthCtaButton from '../../components/auth/AuthCtaButton';
 import AuthFormHeader from '../../components/auth/AuthFormHeader';
-import { authFormStyles } from '../../components/auth/authFormStyles';
-import PhoneTextInput from '../../components/PhoneTextInput';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import FormFieldLabel from '../../components/FormFieldLabel';
-import { COACH_CATEGORIES as FALLBACK_CATEGORIES } from '../../data/homeContent';
-import { getCoachCategories, registerCoach } from '../../api/coachApi';
-import { MASTER_STALE_MS } from '../../api/queryClient';
-import { queryKeys } from '../../api/queryKeys';
-import { clearSession } from '../../auth/session';
+import PhoneTextInput from '../../components/PhoneTextInput';
 import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateCoachRegister } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
@@ -48,8 +35,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   const [category, setCategory] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
-  /** Optional API field; hidden from the Create Account UI. */
-  const [referralMobile] = useState('');
+  const [referralMobile, setReferralMobile] = useState('');
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -67,7 +53,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
     queryFn: getCoachCategories,
     staleTime: MASTER_STALE_MS,
   });
-  const categories = categoriesQuery.data?.length ? categoriesQuery.data : FALLBACK_CATEGORIES;
+  const categories = categoriesQuery.data ?? [];
   const categoriesLoading = categoriesQuery.isPending;
   const selectedCategory = categories.find(c => c.label === category || c.code === category);
 
@@ -99,7 +85,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
         [{ text: 'OK', onPress: () => navigation.replace('Login') }],
       );
     } catch (err) {
-      setBanner(toUserMessage(err, 'Something went wrong. Please try again.'));
+      setBanner(toUserMessage(err, 'Registration failed. Please try again.'));
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -137,7 +123,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
                 color={Colors.authCtaGradientStart}
                 style={authFormStyles.inputIcon}
               />
-              <TextInput
+              <PhoneTextInput
                 style={authFormStyles.input}
                 placeholder="Your full name"
                 placeholderTextColor={Colors.textLight}
@@ -158,12 +144,13 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
               style={[
                 authFormStyles.inputWrap,
                 styles.inputNoMargin,
+                styles.pickerTrigger,
                 errorFields.category && authFormStyles.inputWrapError,
               ]}
               onPress={() => setCategoryOpen(true)}
               activeOpacity={PressOpacity.default}
               accessibilityRole="button"
-              accessibilityLabel={`Coach Category: ${selectedCategory?.label || 'Select a category'}`}
+              accessibilityLabel="Select coach category"
             >
               <Ionicons
                 name="grid-outline"
@@ -174,14 +161,21 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
               <Text
                 style={[
                   authFormStyles.input,
-                  selectedCategory ? styles.valueText : styles.placeholderText,
+                  styles.pickerText,
+                  !selectedCategory && styles.placeholderText,
                 ]}
                 numberOfLines={1}
               >
-                {selectedCategory?.label ||
-                  (categoriesLoading ? 'Loading categories...' : 'Select a category')}
+                {categoriesLoading
+                  ? 'Loading categories...'
+                  : selectedCategory?.label || 'Select coach category'}
               </Text>
-              <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
+              <Ionicons
+                name="chevron-down-outline"
+                size={IconSize.sm}
+                color={Colors.textLight}
+                style={styles.pickerChevron}
+              />
             </TouchableOpacity>
           </View>
 
@@ -219,7 +213,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
             <Text style={styles.hint}>Password will be sent to this email</Text>
           </View>
 
-          <View style={styles.fieldLast}>
+          <View style={styles.field}>
             <FormFieldLabel required style={styles.fieldLabel}>
               Mobile Number
             </FormFieldLabel>
@@ -247,6 +241,35 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
                 }}
               />
             </View>
+          </View>
+
+          <View style={styles.fieldLast}>
+            <FormFieldLabel style={styles.fieldLabel}>Referred by (mobile)</FormFieldLabel>
+            <View
+              style={[
+                authFormStyles.inputWrap,
+                styles.inputNoMargin,
+                errorFields.referralMobile && authFormStyles.inputWrapError,
+              ]}
+            >
+              <Ionicons
+                name="people-outline"
+                size={IconSize.md}
+                color={Colors.authCtaGradientStart}
+                style={authFormStyles.inputIcon}
+              />
+              <PhoneTextInput
+                style={authFormStyles.input}
+                placeholder="Optional 10-digit mobile"
+                placeholderTextColor={Colors.textLight}
+                value={referralMobile}
+                onChangeText={v => {
+                  setReferralMobile(v);
+                  clearFieldError('referralMobile');
+                }}
+              />
+            </View>
+            <Text style={styles.hint}>If someone recommended Mera Coach, enter their mobile</Text>
           </View>
 
           <AuthCtaButton
@@ -299,28 +322,35 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
               {categories.length === 0 ? (
                 <Text style={styles.emptyText}>No options available</Text>
               ) : (
-                categories.map(opt => {
-                  const active = opt.code === category || opt.label === category;
+                categories.map(c => {
+                  const isSelected = selectedCategory?.code === c.code;
                   return (
                     <TouchableOpacity
-                      key={opt.code}
-                      style={styles.option}
+                      key={c.code}
+                      style={[styles.optionRow, isSelected && styles.optionRowSelected]}
                       onPress={() => {
-                        setCategory(opt.label);
+                        setCategory(c.label);
                         clearFieldError('category');
                         setCategoryOpen(false);
                       }}
+                      activeOpacity={PressOpacity.default}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
                     >
-                      <Text style={[styles.optionText, active && styles.optionTextActive]}>
-                        {opt.label}
+                      <Text
+                        style={[styles.optionText, isSelected && styles.optionTextSelected]}
+                        numberOfLines={1}
+                      >
+                        {c.label}
                       </Text>
-                      {active ? (
+                      {isSelected && (
                         <Ionicons
-                          name="checkmark-outline"
+                          name="checkmark"
                           size={IconSize.md}
-                          color={Colors.secondary}
+                          color={Colors.primary}
+                          style={styles.optionCheck}
                         />
-                      ) : null}
+                      )}
                     </TouchableOpacity>
                   );
                 })
@@ -333,99 +363,118 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
   );
 }
 
+const MASTER_STALE_MS = 60 * 60 * 1000;
+
 const styles = StyleSheet.create({
-  field: { marginBottom: AuthLayout.fieldGap },
-  fieldLast: { marginBottom: AuthLayout.buttonGap },
+  field: {
+    marginBottom: Spacing.md,
+  },
+  fieldLast: {
+    marginBottom: Spacing.lg,
+  },
   fieldLabel: {
-    fontFamily: headingFont.semibold,
-    fontSize: 13,
-    color: Colors.textDark,
-    marginBottom: AuthLayout.labelGap,
+    marginBottom: Spacing.xs,
   },
-  inputNoMargin: { marginBottom: 0 },
-  valueText: { color: Colors.textDark },
-  placeholderText: { color: Colors.textLight },
-  hint: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    color: Colors.textLight,
-    marginTop: 2,
+  inputNoMargin: {
+    marginBottom: 0,
   },
-  // A soft white backing keeps the link readable when it sits over the photo on a short phone.
-  loginRow: {
+  pickerTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    minHeight: TouchTarget.min,
-    marginTop: Spacing.xxs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.82)',
   },
-  loginHit: {
+  pickerText: {
+    flex: 1,
+    paddingVertical: 0,
+  },
+  placeholderText: {
+    color: Colors.textLight,
+  },
+  pickerChevron: {
+    marginLeft: Spacing.xs,
+  },
+  hint: {
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginTop: Spacing.xs,
+  },
+  loginRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.md,
     minHeight: TouchTarget.min,
   },
   loginPrompt: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
+    ...Typography.body,
     color: Colors.textLight,
   },
-  loginLink: {
-    fontSize: 13,
-    fontFamily: FontFamily.bold,
-    color: Colors.authCtaGradientStart,
+  loginHit: {
+    minHeight: TouchTarget.min,
+    justifyContent: 'center',
   },
-  backdrop: { flex: 1, backgroundColor: Colors.scrim, justifyContent: 'flex-end' },
+  loginLink: {
+    ...Typography.body,
+    fontFamily: FontFamily.semibold,
+    color: Colors.primary,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: Colors.scrim,
+    justifyContent: 'flex-end',
+  },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
+    paddingTop: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
     maxHeight: '70%',
-    ...Shadow.lg,
   },
   handle: {
-    alignSelf: 'center',
     width: 36,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radius.full,
     backgroundColor: Colors.border,
-    marginBottom: Spacing.sm,
+    alignSelf: 'center',
+    marginBottom: Spacing.md,
   },
   sheetTitle: {
-    fontSize: 16,
-    fontFamily: headingFont.bold,
-    color: Colors.textDark,
-    marginBottom: Spacing.sm,
+    ...Typography.headline,
+    marginBottom: Spacing.md,
   },
-  optionList: { maxHeight: 360 },
-  optionListContent: { paddingBottom: Spacing.xs },
+  optionList: {
+    flexGrow: 0,
+  },
+  optionListContent: {
+    paddingBottom: Spacing.sm,
+  },
   emptyText: {
-    fontSize: 14,
-    fontFamily: FontFamily.regular,
+    ...Typography.body,
     color: Colors.textLight,
     textAlign: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
-  option: {
+  optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    minHeight: 48,
+    paddingVertical: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
+    minHeight: TouchTarget.min,
+  },
+  optionRowSelected: {
+    borderBottomColor: Colors.primaryLight,
   },
   optionText: {
+    ...Typography.body,
     flex: 1,
-    marginRight: Spacing.sm,
-    fontSize: 14,
-    fontFamily: FontFamily.regular,
-    color: Colors.textDark,
-    textAlign: 'left',
   },
-  optionTextActive: { color: Colors.secondary, fontFamily: FontFamily.bold },
+  optionTextSelected: {
+    color: Colors.primary,
+    fontFamily: FontFamily.semibold,
+  },
+  optionCheck: {
+    marginLeft: Spacing.sm,
+  },
 });

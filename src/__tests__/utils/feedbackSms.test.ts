@@ -8,6 +8,7 @@ import {
   normalizeSmsPhone,
   whatsAppPhoneDigits,
 } from '../../utils/feedbackSms';
+import { decodeFeedbackToken } from '../../utils/feedbackCrypto';
 
 describe('feedbackSms', () => {
   const originalOS = Platform.OS;
@@ -16,11 +17,14 @@ describe('feedbackSms', () => {
     Platform.OS = originalOS;
   });
 
-  it('builds feedback URL with coach and client codes', () => {
+  it('builds feedback URL with encrypted token containing coach and client codes', () => {
     const url = buildFeedbackWebUrl({ coachCode: 'C1', clientCode: 'CL9' });
-    expect(url).toContain('/feedback?');
-    expect(url).toContain('coachCode=C1');
-    expect(url).toContain('clientCode=CL9');
+    expect(url).toContain('/feedback?ref=');
+    expect(url).not.toContain('coachCode=C1');
+    expect(url).not.toContain('clientCode=CL9');
+    const token = new URL(url!).searchParams.get('ref');
+    expect(token).toBeTruthy();
+    expect(decodeFeedbackToken(token!)).toEqual({ coachCode: 'C1', clientCode: 'CL9' });
   });
 
   it('builds short SMS body', () => {

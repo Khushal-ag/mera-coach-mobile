@@ -259,8 +259,8 @@ function newPhotoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/** One optional client photo. It becomes the profile picture and the first progress photo. */
-function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
+/** One mandatory client photo. It becomes the profile picture and the first progress photo. */
+function ClientPhotoField({ form, update, error }: StepProps<ClientProfile> & { error?: string }) {
   const photo = (form.photos ?? [])[0];
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -277,14 +277,18 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
     update('photos', [next]);
   };
 
+  const hasErr = Boolean(photoError || error);
+
   return (
     <View style={styles.photoField}>
-      <FormFieldLabel style={{ marginBottom: 6 }}>Client Photo (optional)</FormFieldLabel>
+      <FormFieldLabel style={{ marginBottom: 6 }} required>
+        Client Photo
+      </FormFieldLabel>
       <Text style={styles.photoHint}>
         Saved as the client&apos;s profile picture and as their first progress photo. Add more
         progress photos later from the client profile.
       </Text>
-      <FormErrorBanner message={photoError} />
+      <FormErrorBanner message={photoError || error} />
       {photo ? (
         <View style={styles.photoThumbWrap}>
           <Image source={{ uri: photo.uri }} style={styles.photoThumb} />
@@ -303,13 +307,19 @@ function ClientPhotoField({ form, update }: StepProps<ClientProfile>) {
         </View>
       ) : (
         <TouchableOpacity
-          style={styles.photoEmpty}
+          style={[styles.photoEmpty, hasErr && styles.photoEmptyError]}
           onPress={pickPhoto}
           accessibilityRole="button"
           accessibilityLabel="Add client photo"
         >
-          <Ionicons name="camera-outline" size={IconSize.xxl} color={Colors.accentInk} />
-          <Text style={styles.photoEmptyText}>Tap to add a photo</Text>
+          <Ionicons
+            name="camera-outline"
+            size={IconSize.xxl}
+            color={hasErr ? Colors.destructive : Colors.accentInk}
+          />
+          <Text style={[styles.photoEmptyText, hasErr && styles.photoEmptyTextError]}>
+            Tap to add a photo *
+          </Text>
         </TouchableOpacity>
       )}
     </View>
@@ -342,7 +352,11 @@ export default function BasicProfileStep({
       {clientCode ? (
         <ProgressPhotos clientCode={clientCode} />
       ) : (
-        <ClientPhotoField form={form} update={update} />
+        <ClientPhotoField
+          form={form}
+          update={update}
+          error={err('photos') ? 'Client photo is required.' : undefined}
+        />
       )}
       <Field
         label="Full Name"
@@ -486,7 +500,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.md,
   },
+  photoEmptyError: {
+    borderColor: Colors.destructive,
+    backgroundColor: '#FDF2F2',
+  },
   photoEmptyText: { ...Typography.label, color: Colors.textLight },
+  photoEmptyTextError: {
+    color: Colors.destructive,
+  },
   photoRemoveBtn: {
     position: 'absolute',
     top: 0,
@@ -528,32 +549,50 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   hint: { ...Typography.micro, fontFamily: FontFamily.regular, marginTop: 6 },
-  row: { flexDirection: 'row', gap: Spacing.sm },
-  half: { flex: 1, minWidth: 0 },
-  pickerRow: wizardPillStyles.row,
-  // The error outlines each pill instead of boxing the whole row.
-  pillError: {
-    borderColor: Colors.destructive,
-    borderWidth: 1.5,
+  pickerRow: { flexDirection: 'row', gap: Spacing.sm },
+  pill: {
+    ...wizardPillStyles.pill,
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pill: wizardPillStyles.pill,
   pillActive: wizardPillStyles.pillActive,
-  pillText: wizardPillStyles.pillText,
+  pillError: wizardPillStyles.pillError,
+  pillText: {
+    ...wizardPillStyles.pillText,
+    textAlign: 'center',
+  },
   pillActiveText: wizardPillStyles.pillActiveText,
   heightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: Spacing.xs,
   },
-  unitToggle: { flexDirection: 'row', gap: 6 },
-  unitPill: wizardPillStyles.unitPill,
-  unitPillActive: wizardPillStyles.unitPillActive,
-  unitPillText: wizardPillStyles.unitPillText,
-  unitPillTextActive: wizardPillStyles.unitPillTextActive,
+  unitToggle: {
+    flexDirection: 'row',
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 2,
+    backgroundColor: Colors.white,
+  },
+  unitPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unitPillActive: { backgroundColor: Colors.secondary },
+  unitPillText: { ...Typography.caption, color: Colors.textLight, textAlign: 'center' },
+  unitPillTextActive: { color: Colors.white, fontFamily: FontFamily.semibold },
+  row: { flexDirection: 'row', gap: Spacing.sm },
+  half: { flex: 1 },
   unitSuffix: {
-    ...Typography.label,
-    color: Colors.accentInk,
-    marginLeft: Spacing.xxs,
+    ...Typography.caption,
+    color: Colors.textLight,
+    marginLeft: Spacing.xs,
   },
 });
