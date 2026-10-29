@@ -128,20 +128,15 @@ export default function HomeExplorePage({ navigation, onGoHome, width, height }:
       ? getErrorMessage(categoriesQuery.error, 'Could not load categories. Please try again.')
       : null;
 
+  const {
+    isPending: categoriesPending,
+    fetchStatus,
+    data: categoriesData,
+    refetch: refetchCategories,
+  } = categoriesQuery;
   useEffect(() => {
-    if (
-      categoriesQuery.isPending &&
-      categoriesQuery.fetchStatus === 'idle' &&
-      !categoriesQuery.data
-    ) {
-      void categoriesQuery.refetch();
-    }
-  }, [
-    categoriesQuery.isPending,
-    categoriesQuery.fetchStatus,
-    categoriesQuery.data,
-    categoriesQuery.refetch,
-  ]);
+    if (categoriesPending && fetchStatus === 'idle' && !categoriesData) void refetchCategories();
+  }, [categoriesPending, fetchStatus, categoriesData, refetchCategories]);
 
   const categoryGap = Spacing.sm;
   const sidePad = Spacing.md;

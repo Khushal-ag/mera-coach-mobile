@@ -1,5 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -123,7 +132,7 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
                 color={Colors.authCtaGradientStart}
                 style={authFormStyles.inputIcon}
               />
-              <PhoneTextInput
+              <TextInput
                 style={authFormStyles.input}
                 placeholder="Your full name"
                 placeholderTextColor={Colors.textLight}

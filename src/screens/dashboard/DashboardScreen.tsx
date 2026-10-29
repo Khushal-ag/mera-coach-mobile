@@ -34,9 +34,8 @@ import PersonAvatar from '../../components/PersonAvatar';
 import { getClientList, getEnquiryLeads, getRecheckupList } from '../../api/clientApi';
 import { getCoachProfile, getCoachProfileFull } from '../../api/coachApi';
 import { queryKeys } from '../../api/queryKeys';
-import { getCurrentCoachCode, getCurrentCoachId, getCurrentCoachName } from '../../auth/session';
-import { buildCoachPaymentUrl } from '../../utils/premiumOffer';
-import { openPaymentUrl } from '../../utils/support';
+import { getCurrentCoachCode, getCurrentCoachName } from '../../auth/session';
+import { isSubscriptionRequired } from '../../config/appConfig';
 import { getErrorMessage } from '../../api/client';
 import { refreshControlTheme, useQueriesRefreshControl } from '../../hooks/useRefreshControl';
 import { describeValidity } from '../../utils/validity';
@@ -134,15 +133,10 @@ export default function DashboardScreen({
   const coachName = profileQuery.data?.name || getCurrentCoachName() || 'Coach';
   const coachPhotoUri = resolveCoachPhotoUrl(profileQuery.data ?? profileFullQuery.data ?? {});
   const greeting = greetingFor();
-  const validity = describeValidity(profileQuery.data?.validUpto);
-  const renew = () =>
-    void openPaymentUrl(
-      buildCoachPaymentUrl({
-        coachId: getCurrentCoachId(),
-        coachCode: getCurrentCoachCode(),
-        coachName: getCurrentCoachName(),
-      }),
-    );
+  // With the subscription limit off, validity gates nothing, so the pill (and its Renew prompt) stays hidden.
+  const validity = isSubscriptionRequired() ? describeValidity(profileQuery.data?.validUpto) : null;
+  // Renewing goes through the Subscription screen, which applies the platform payment rules and confirms the payment.
+  const renew = () => navigation.navigate('Premium');
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
     [profileFullQuery.data],
