@@ -29,12 +29,7 @@ export function getPaymentPageUrl(): string {
   return `${web.replace(/\/$/, '')}/premium`;
 }
 
-/**
- * Hard limit on Add Client.
- * EXPO_PUBLIC_SUBSCRIPTION_REQUIRED=yes, true, or 1 (case-insensitive, trimmed).
- * no, false, 0, empty, or unset leaves the limit off.
- * Read at call time so a build-time env change is the value that ships.
- */
+/** Hard limit on Add Client: EXPO_PUBLIC_SUBSCRIPTION_REQUIRED of yes, true or 1. Anything else leaves it off. */
 export function isSubscriptionRequired(): boolean {
   const raw = process.env.EXPO_PUBLIC_SUBSCRIPTION_REQUIRED?.trim().toLowerCase() ?? '';
   return raw === 'yes' || raw === 'true' || raw === '1';
@@ -43,11 +38,7 @@ export function isSubscriptionRequired(): boolean {
 /** Owner type of a coach's own uploaded files (post photos and videos). */
 export const COACH_GALLERY_REF_TYPE = 'COACH';
 
-/**
- * YouTube channel whose latest videos fill the dashboard carousel: the channel id ("UC" + 22 characters, not the
- * @handle) from EXPO_PUBLIC_YOUTUBE_CHANNEL_ID. Blank hides the carousel. Find a channel's id in YouTube Studio >
- * Settings > Channel > Advanced settings.
- */
+/** Channel id ("UC…", not the @handle) whose latest videos fill the dashboard carousel. Blank shows the tip banner. */
 export const YOUTUBE_CHANNEL_ID = process.env.EXPO_PUBLIC_YOUTUBE_CHANNEL_ID?.trim() ?? '';
 
 const DEFAULT_PAYMENT_PLATFORMS = 'android';

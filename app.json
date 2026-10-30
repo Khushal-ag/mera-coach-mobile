@@ -95,6 +95,12 @@
           "backgroundColor": "#03422f"
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Mera Coach to use your location to fill in your address, so it shows on your public profile."
+        }
+      ],
       "expo-font",
       "expo-status-bar",
       "expo-sharing",

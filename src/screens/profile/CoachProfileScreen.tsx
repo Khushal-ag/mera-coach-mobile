@@ -171,8 +171,10 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     queryFn: ({ signal }) => getCoachPremiumOffer(signal),
     staleTime: 0,
     refetchOnWindowFocus: true,
-    enabled: premiumRequired,
   });
+  // With the subscription limit off the card is hidden, unless the coach has bought a plan: they still need to see it.
+  const hasSubscription = (premiumQuery.data?.subscription.status ?? 'none') !== 'none';
+  const showSubscription = premiumRequired || hasSubscription;
   const profile = profileQuery.data;
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
@@ -183,7 +185,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     profileQuery,
     profileFullQuery,
     clientsQuery,
-    ...(premiumRequired ? [premiumQuery] : []),
+    premiumQuery,
   ]);
 
   // Only shown with no cached profile — a background refetch failure leaves stale data as-is.
@@ -250,6 +252,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
           await shareCoachPublicProfile({
             coachCode: getCurrentCoachCode(),
             coachName: profile?.name,
+            urlFriendlyName: profile?.urlFriendlyName,
           });
         } catch (err) {
           setActionError(getErrorMessage(err, 'Could not share your public profile link.'));
@@ -402,7 +405,7 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
           </>
         )}
 
-        {premiumRequired ? (
+        {showSubscription ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Subscription</Text>
             <View style={styles.underline} />

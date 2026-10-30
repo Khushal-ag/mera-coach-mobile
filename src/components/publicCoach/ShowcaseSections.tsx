@@ -113,12 +113,7 @@ function PackageCard({
 
   return (
     <View style={styles.packageCard}>
-      <TouchableOpacity
-        onPress={onSelect}
-        activeOpacity={PressOpacity.soft}
-        accessibilityRole="button"
-        accessibilityLabel={`Enquire about ${pkg.packageName}`}
-      >
+      <View>
         <View style={styles.packageHead}>
           <View style={styles.packageTitleBlock}>
             <Text style={styles.brand}>{pkg.brandName}</Text>
@@ -142,7 +137,7 @@ function PackageCard({
             </View>
           );
         })}
-      </TouchableOpacity>
+      </View>
       {whatsAppUrl ? (
         <TouchableOpacity
           style={styles.whatsAppBtn}
@@ -154,7 +149,18 @@ function PackageCard({
           <Ionicons name="logo-whatsapp" size={IconSize.md} color={Colors.white} />
           <Text style={styles.whatsAppLabel}>Enquire on WhatsApp</Text>
         </TouchableOpacity>
-      ) : null}
+      ) : (
+        // No WhatsApp number: the enquiry form is the only way in, so it gets its own button (the card itself stays static).
+        <TouchableOpacity
+          style={styles.whatsAppBtn}
+          onPress={onSelect}
+          activeOpacity={PressOpacity.default}
+          accessibilityRole="button"
+          accessibilityLabel={`Enquire about ${pkg.packageName}`}
+        >
+          <Text style={styles.whatsAppLabel}>Enquire now</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

@@ -13,10 +13,8 @@ export type PaymentConfirmation = 'idle' | 'confirming' | 'confirmed' | 'timeout
 type OfferQuery = { refetch: () => Promise<QueryObserverResult<PremiumOffer, unknown>> };
 
 /**
- * Website checkout happens outside the app, so the subscription changes while the app is in the background. This
- * watches for that: call `watch(current)` as the coach leaves for checkout, and the next time the app comes back (or
- * `check()` runs for a `paid=1` deep link) it re-reads the subscription every few seconds until the period differs
- * from the one recorded at `watch`, or about 30 seconds pass. The webhook can land a moment after the redirect.
+ * Checkout happens on the website. `watch(current)` records the subscription as the coach leaves; when the app comes back
+ * (or `check()` runs for a `paid=1` link) it re-reads it every few seconds, up to about 30, until it differs.
  */
 export function usePaymentConfirmation(offerQuery: OfferQuery) {
   const [state, setState] = useState<PaymentConfirmation>('idle');

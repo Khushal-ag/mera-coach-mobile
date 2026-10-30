@@ -19,6 +19,8 @@ export interface Coach {
   clients: number;
   /** Subscription end date (the coach ValidUpto) when the API provides it. */
   validUpto?: string;
+  /** Public address segment, for example "harish-bali-health-coach-mathura". */
+  urlFriendlyName?: string;
   /** Account/coach creation date when the API provides one (used to derive tenure). */
   createdAt?: string;
   /** Present when loaded via profile-by-id; used for WhatsApp. */

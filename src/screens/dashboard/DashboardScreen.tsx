@@ -45,6 +45,7 @@ import ProfileCompletionCard from '../../components/profile/ProfileCompletionCar
 import type { DashboardStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
 import { RETURN_TO_DASHBOARD } from '../../utils/navigationBack';
+import { useAutoFillLocation } from '../../hooks/useAutoFillLocation';
 import { useOpenAddClient } from '../../hooks/useOpenAddClient';
 
 function greetingFor(date = new Date()): string {
@@ -77,6 +78,7 @@ export default function DashboardScreen({
   const compact = screenWidth < COMPACT_WIDTH;
   const coachCode = getCurrentCoachCode();
   const { openAddClient, checkingSubscription, subscriptionError } = useOpenAddClient();
+  useAutoFillLocation();
   const [heroFade] = useState(() => new Animated.Value(0));
   const [heroSlide] = useState(() => new Animated.Value(14));
   const [metricsFade] = useState(() => new Animated.Value(0));

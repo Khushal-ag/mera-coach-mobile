@@ -138,6 +138,7 @@ function mapPublicCoach(raw: RawPublicCoach): Coach {
     tags: splitServiceNames(raw.serviceNames),
     clients: raw.happyClientCount ?? 0,
     validUpto: String(bag.validUpto ?? bag.ValidUpto ?? '').trim() || undefined,
+    urlFriendlyName: String(bag.urlFriendlyName ?? bag.UrlFriendlyName ?? '').trim() || undefined,
     createdAt: pickCoachCreatedAt(raw as unknown as Record<string, unknown>),
     logoUrl: media.logoUrl,
     profilePicUrl: media.profilePicUrl,

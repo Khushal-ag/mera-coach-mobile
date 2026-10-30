@@ -173,6 +173,7 @@ type ProfileHeroProps = {
   waBtnHeight: number;
   activePhoto: string | null;
   coachCode: string;
+  urlFriendlyName?: string;
   name: string;
   category?: string;
   bio: string;
@@ -190,6 +191,7 @@ const ProfileHero = React.memo(function ProfileHero({
   waBtnHeight,
   activePhoto,
   coachCode,
+  urlFriendlyName,
   name,
   category,
   bio,
@@ -254,7 +256,11 @@ const ProfileHero = React.memo(function ProfileHero({
 
   const shareProfile = () => {
     setActionError(null);
-    void shareCoachPublicProfile({ coachCode, coachName: name }).catch(err => {
+    void shareCoachPublicProfile({
+      coachCode,
+      coachName: name,
+      urlFriendlyName,
+    }).catch(err => {
       setActionError(getErrorMessage(err, 'Could not share this profile link.'));
     });
   };
@@ -807,6 +813,7 @@ function CoachProfilePage({
           waBtnHeight={waBtnHeight}
           activePhoto={activePhoto}
           coachCode={coach.id}
+          urlFriendlyName={coach.urlFriendlyName}
           name={coach.name}
           category={coach.category}
           bio={heroBio}
