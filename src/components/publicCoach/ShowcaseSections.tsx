@@ -29,13 +29,27 @@ const PILL_INK = '#04705D';
 const WHATSAPP_GREEN = '#1FA855';
 
 function PostMedia({ post, style }: { post: CoachPost; style: object }) {
-  const uri = post.mediaType === 'image' ? resolveMediaUrl(post.mediaUrl) : null;
-  return uri ? (
-    <Image source={{ uri }} style={style} resizeMode="cover" />
-  ) : (
-    <View style={[style, styles.videoPlate]}>
-      <Ionicons name="videocam" size={IconSize.xl} color={Colors.accentInk} />
-    </View>
+  const mediaUri = resolveMediaUrl(post.mediaUrl);
+  if (post.mediaType === 'image' && mediaUri) {
+    return <Image source={{ uri: mediaUri }} style={style} resizeMode="cover" />;
+  }
+  // A video has no thumbnail: tapping it plays it in the phone's own player or browser.
+  return (
+    <TouchableOpacity
+      style={[style, styles.videoPlate]}
+      onPress={() => {
+        if (mediaUri)
+          void Linking.openURL(mediaUri).catch(() =>
+            Alert.alert('Video', 'This video could not be opened.'),
+          );
+      }}
+      disabled={!mediaUri}
+      activeOpacity={PressOpacity.default}
+      accessibilityRole="button"
+      accessibilityLabel={post.title ? `Play video: ${post.title}` : 'Play video'}
+    >
+      <Ionicons name="play-circle" size={IconSize.xxl} color={Colors.accentInk} />
+    </TouchableOpacity>
   );
 }
 
