@@ -47,6 +47,7 @@ import { subscriptionCheckErrorMessage } from '../../utils/premiumOffer';
 import type { ProfileStackParamList, ProfileStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
 import { navigateToDashboard } from '../../utils/navigationBack';
+import { appAlert } from '../../utils/appDialog';
 import AppUpdateCard from '../../components/profile/AppUpdateCard';
 
 interface MenuItem {
@@ -263,13 +264,26 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
       case 'deleteAccount':
         return openAccountDeletionEmail();
       case 'logout':
-        // AppNavigator's useAuthState reacts to the session store and swaps back to
-        // the public screen tree on its own — no navigation call needed here.
-        try {
-          await logoutLocal();
-        } catch (err) {
-          setActionError(getErrorMessage(err, 'Could not log out. Please try again.'));
-        }
+        appAlert(
+          'Log out?',
+          'You will need to sign in again to manage your clients.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Log out',
+              style: 'destructive',
+              icon: 'log-out-outline',
+              // AppNavigator's useAuthState reacts to the session store and swaps back to
+              // the public screen tree on its own — no navigation call needed here.
+              onPress: () => {
+                logoutLocal().catch(err =>
+                  setActionError(getErrorMessage(err, 'Could not log out. Please try again.')),
+                );
+              },
+            },
+          ],
+          { icon: 'log-out-outline' },
+        );
         return;
     }
   };

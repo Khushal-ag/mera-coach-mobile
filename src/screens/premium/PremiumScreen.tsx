@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -74,6 +73,7 @@ import {
   bodyFont,
   headingFont,
 } from '../../constants/theme';
+import { appAlert } from '../../utils/appDialog';
 
 /** Keeps the coach portrait from collapsing before the copy is measured. */
 const HERO_MIN_HEIGHT = 176;
@@ -337,7 +337,7 @@ export default function PremiumScreen({ navigation, route }: DashboardStackScree
     if (!next) return;
     const name = next.planName || 'your next plan';
     const amount = next.amount > 0 ? formatInr(next.amount) : 'What you paid';
-    Alert.alert(
+    appAlert(
       `Cancel ${name}?`,
       `${amount} will be refunded to your original payment method. Your current plan stays active${
         endsOn ? ` until ${endsOn}` : ''

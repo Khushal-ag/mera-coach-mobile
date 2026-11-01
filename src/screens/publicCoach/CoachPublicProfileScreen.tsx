@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
-  Alert,
   ActivityIndicator,
   FlatList,
   useWindowDimensions,
@@ -82,6 +81,7 @@ import {
 import type { RootScreenProps } from '../../types/navigation';
 import type { Coach } from '../../types/models';
 import type { IoniconName } from '../../types/icons';
+import { appAlert } from '../../utils/appDialog';
 
 interface EnquiryForm {
   name: string;
@@ -457,9 +457,11 @@ const EnquiryBookingForm = React.memo(
           clientEmail: form.email.trim() || undefined,
           lookingFor: form.service.trim(),
         });
-        Alert.alert(
+        appAlert(
           'Enquiry Sent!',
           `Your enquiry has been sent to ${coachName}. They usually reply within 24 hours.`,
+          undefined,
+          { tone: 'success' },
         );
         setForm(BLANK_FORM);
       } catch (err) {

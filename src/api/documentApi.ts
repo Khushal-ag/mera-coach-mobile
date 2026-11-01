@@ -1,5 +1,8 @@
 import { ApiError, apiGet, apiPost } from './client';
 
+// Photos and videos travel as base64 JSON, so a slow mobile connection needs far longer than a normal call.
+const UPLOAD_TIMEOUT_MS = 120_000;
+
 interface UploadDocumentParams {
   base64DataUrl: string;
   coachCode: string;
@@ -25,6 +28,7 @@ async function uploadDocumentWithMeta(params: UploadDocumentParams): Promise<Upl
   const data = await apiPost<{ url?: string; docId?: number } | string>(
     '/v{version}/Document/upload',
     params,
+    { timeoutMs: UPLOAD_TIMEOUT_MS },
   );
   if (typeof data === 'string') {
     const url = data.trim();

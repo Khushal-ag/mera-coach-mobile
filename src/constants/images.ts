@@ -94,6 +94,6 @@ const AUTH_PHOTO_CONTENT_TOP = 1385;
 
 export const AUTH_PHOTO_BAND = (1857 - AUTH_PHOTO_CONTENT_TOP) / 1857;
 
-export const HOME_RUNNER_HEAD_TOP = 530;
+export const HOME_RUNNER_HEAD_TOP = 450;
 
 export const HOME_HERO_HEIGHT = 1843;

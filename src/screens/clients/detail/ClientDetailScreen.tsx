@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -59,6 +58,7 @@ import { toDisplayDob } from '../../../utils/validation';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
 import type { IoniconName } from '../../../types/icons';
 import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
+import { appAlert } from '../../../utils/appDialog';
 
 const Tone = {
   page: '#F5FEFD',
@@ -314,12 +314,17 @@ export default function ClientDetailScreen({
     };
     // WhatsApp first: most clients are on it, and a plain SMS link can be caught by WhatsApp itself, which then
     // asks "contact not on WhatsApp". Both options send the same message.
-    Alert.alert('Send feedback link', `How should we send it to ${displayName}?`, [
+    appAlert('Send feedback link', `How should we send it to ${displayName}?`, [
       {
         text: 'WhatsApp',
+        icon: 'logo-whatsapp',
         onPress: send(openFeedbackWhatsApp, 'Could not open WhatsApp. Try SMS instead.'),
       },
-      { text: 'SMS', onPress: send(openFeedbackSms, 'Could not open SMS. Try WhatsApp instead.') },
+      {
+        text: 'SMS',
+        icon: 'chatbubble-outline',
+        onPress: send(openFeedbackSms, 'Could not open SMS. Try WhatsApp instead.'),
+      },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };

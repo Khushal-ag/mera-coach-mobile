@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { Text, TextInput } from 'react-native';
 import { useFonts } from 'expo-font';
 import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -10,20 +9,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import AppDialogHost from './src/components/dialog/AppDialogHost';
 import { queryClient } from './src/api/queryClient';
 import { fontMap } from './src/constants/fonts';
 import { Colors } from './src/constants/theme';
 import type { RootStackParamList } from './src/types/navigation';
 import { APP_SCHEME, subscribePaidReturnDeepLinks } from './src/utils/appDeepLink';
+import './src/utils/capFontScale';
 
 void SplashScreen.preventAutoHideAsync();
-
-// Large system font sizes (common on Android) overflow fixed-height controls.
-// Let text grow a little for readability but cap it so layouts hold on every device.
-type WithDefaults = { defaultProps?: { maxFontSizeMultiplier?: number } };
-for (const Component of [Text, TextInput] as unknown as WithDefaults[]) {
-  Component.defaultProps = { ...Component.defaultProps, maxFontSizeMultiplier: 1.25 };
-}
 
 // Native scheme from app.json (`expo.scheme`) + path map for web / deep links.
 const linking: LinkingOptions<RootStackParamList> = {
@@ -113,6 +107,7 @@ export default function App() {
               <StatusBar style="dark" />
               <AppNavigator />
             </NavigationContainer>
+            <AppDialogHost />
           </QueryClientProvider>
         </ErrorBoundary>
       </SafeAreaProvider>

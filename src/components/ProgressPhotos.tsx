@@ -13,7 +13,6 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   StyleSheet,
   Modal,
   ScrollView,
@@ -39,6 +38,7 @@ import { getDocumentSavedById } from '../auth/session';
 import { queryKeys } from '../api/queryKeys';
 import { progressPhotosCoachCode, useProgressPhotosQuery } from '../hooks/useProgressPhotosQuery';
 import { resolveMediaUrl } from '../utils/mediaUrl';
+import { appAlert } from '../utils/appDialog';
 
 const DOC_TYPE = 'PROGRESS_PHOTO';
 const REF_TYPE = 'CLIENT';
@@ -168,7 +168,7 @@ const ProgressPhotos = forwardRef<ProgressPhotosHandle, Props>(function Progress
 
   const confirmDelete = useCallback(
     (item: DocumentListItem) => {
-      Alert.alert('Delete photo?', 'This progress photo will be removed permanently.', [
+      appAlert('Delete photo?', 'This progress photo will be removed permanently.', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',

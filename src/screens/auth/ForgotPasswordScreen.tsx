@@ -1,13 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -27,6 +19,7 @@ import { toUserMessage } from '../../api/client';
 import { passwordPolicyError, sanitizeEmailInput } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../../types/navigation';
+import { appAlert } from '../../utils/appDialog';
 
 type Step = 'request' | 'confirm';
 
@@ -83,9 +76,11 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
     try {
       await requestPasswordReset(email.trim());
       setResendIn(30);
-      Alert.alert(
+      appAlert(
         'Code sent',
         'If the account has an email, a new reset code is on its way. Check spam too.',
+        undefined,
+        { tone: 'success' },
       );
     } catch (err) {
       setBanner(toUserMessage(err, 'Could not send the code again. Please try again.'));
@@ -117,9 +112,14 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
     setSubmitting(true);
     try {
       await resetPassword({ token, newPassword });
-      Alert.alert('Password updated', 'Sign in with your new password.', [
-        { text: 'OK', onPress: goToLogin },
-      ]);
+      appAlert(
+        'Password updated',
+        'Sign in with your new password.',
+        [{ text: 'OK', onPress: goToLogin }],
+        {
+          tone: 'success',
+        },
+      );
     } catch (err) {
       setBanner(toUserMessage(err, 'Password reset could not be completed. Please try again.'));
     } finally {

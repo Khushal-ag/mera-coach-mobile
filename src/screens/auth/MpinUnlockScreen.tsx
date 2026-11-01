@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ImageBackground,
   TouchableOpacity,
-  Alert,
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
@@ -26,6 +25,7 @@ import BrandLogo from '../../components/BrandLogo';
 import MpinKeypad from '../../components/auth/MpinKeypad';
 import { attemptMpin, clearMpin, clearMpinSetupDeferred, markMpinUnlocked } from '../../auth/mpin';
 import { logoutLocal } from '../../auth/logout';
+import { appAlert } from '../../utils/appDialog';
 
 /**
  * Cold-start gate when a valid JWT and MPIN are present.
@@ -71,14 +71,13 @@ export default function MpinUnlockScreen() {
   );
 
   const onForgot = () => {
-    Alert.alert(
+    appAlert(
       'Forgot MPIN?',
       'You will sign in with your password, then you can create a new MPIN.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Use password',
-          style: 'destructive',
           onPress: () => {
             void (async () => {
               await clearMpin();
@@ -88,6 +87,7 @@ export default function MpinUnlockScreen() {
           },
         },
       ],
+      { tone: 'warning' },
     );
   };
 

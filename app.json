@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.henchsolutions.meracoach",
       "buildNumber": "1",
       "icon": "./assets/platform/icon.png",

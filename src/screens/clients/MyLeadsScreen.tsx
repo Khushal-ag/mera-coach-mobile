@@ -64,7 +64,8 @@ const LeadRow = React.memo(function LeadRow({
 
   const openTel = () => {
     if (!lead.clientMobile) return;
-    Linking.openURL(`tel:${lead.clientMobile}`).catch(() =>
+    // Lead mobiles are typed by the public, so only dialable characters reach the dialer.
+    Linking.openURL(`tel:${lead.clientMobile.replace(/[^\d+]/g, '')}`).catch(() =>
       onActionError('Could not open the phone dialer.'),
     );
   };

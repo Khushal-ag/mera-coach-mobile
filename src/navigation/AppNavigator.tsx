@@ -33,7 +33,7 @@ export default function AppNavigator() {
 
   const [minSplashElapsed, setMinSplashElapsed] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setMinSplashElapsed(true), 2500);
+    const timer = setTimeout(() => setMinSplashElapsed(true), 1200);
     return () => clearTimeout(timer);
   }, []);
 

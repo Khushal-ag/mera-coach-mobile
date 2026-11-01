@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import {
   View,
   Text,
@@ -9,7 +10,6 @@ import {
   Modal,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,6 +63,7 @@ import { navigateToDashboard } from '../../utils/navigationBack';
 import type { EventsStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/icons';
 import type { ClientSummary } from '../../types/models';
+import { appAlert } from '../../utils/appDialog';
 
 const CANVAS = '#F3FAF7';
 const FIELD_MINT = '#E7F6EC';
@@ -221,6 +222,12 @@ function PostForm({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+  const leaveSaved = useUnsavedChangesGuard(
+    title !== (existing?.title ?? '') ||
+      description !== (existing?.description ?? '') ||
+      location !== (existing?.location ?? '') ||
+      mediaUrl !== (existing?.mediaUrl ?? ''),
+  );
 
   const category = categories.find(c => c.code === categoryCode);
   const isGallery = categoryCode === POST_CATEGORY.gallery;
@@ -325,9 +332,12 @@ function PostForm({
         consentAccepted: consentRequired ? consent : false,
       });
       void queryClient.invalidateQueries({ queryKey: ['showcase'] });
-      Alert.alert('Published', 'Your post is on your public profile.', [
-        { text: 'OK', onPress: onDone },
-      ]);
+      appAlert(
+        'Published',
+        'Your post is on your public profile.',
+        [{ text: 'OK', onPress: leaveSaved(onDone) }],
+        { tone: 'success' },
+      );
     } catch (err) {
       showBanner(getErrorMessage(err, 'Could not publish. Please try again.'));
     } finally {
@@ -404,7 +414,7 @@ function PostForm({
           disabled={uploading}
           activeOpacity={PressOpacity.default}
           accessibilityRole="button"
-          accessibilityLabel={previewUri ? 'Change photo or video' : 'Click to upload'}
+          accessibilityLabel={previewUri ? 'Change photo or video' : 'Tap to upload'}
         >
           {previewUri ? (
             <View style={styles.previewWrap}>
@@ -425,7 +435,7 @@ function PostForm({
           ) : (
             <View style={styles.uploadEmpty}>
               {uploading ? <ActivityIndicator color={Colors.accentInk} /> : <UploadMark />}
-              <Text style={styles.uploadTitle}>Click to upload</Text>
+              <Text style={styles.uploadTitle}>Tap to upload</Text>
               <Text style={styles.uploadHint}>Photo or Video (Max 10MB)</Text>
             </View>
           )}

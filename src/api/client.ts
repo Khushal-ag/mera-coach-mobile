@@ -22,6 +22,9 @@ const API_VERSION = '1';
 // Allow slow first responses (cold API hosts); keep above ~15s.
 const REQUEST_TIMEOUT_MS = 30_000;
 
+/** `timeoutMs` overrides the default for slow-by-nature calls such as photo / video uploads. */
+export type ApiRequestOptions = RequestInit & { timeoutMs?: number };
+
 function isAbortError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   if (err.name === 'AbortError' || err.name === 'TimeoutError') return true;
@@ -70,7 +73,10 @@ function anySignal(signals: (AbortSignal | undefined | null)[]): {
   };
 }
 
-export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiFetch<T = unknown>(
+  path: string,
+  { timeoutMs = REQUEST_TIMEOUT_MS, ...options }: ApiRequestOptions = {},
+): Promise<T> {
   if (!BASE_URL) {
     throw new ApiError('API base URL is not configured. Set EXPO_PUBLIC_API_BASE_URL in .env.', 0);
   }
@@ -95,7 +101,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
 
   // fetch() has no built-in timeout — combine our timer with any caller signal (RQ).
   const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
   const { signal, cleanup: cleanupSignals } = anySignal([options.signal, timeoutController.signal]);
 
   let res: Response;
@@ -180,8 +186,13 @@ export function apiGet<T = unknown>(path: string, query?: Record<string, QueryVa
   return apiFetch<T>(query ? withQuery(path, query) : path);
 }
 
-export function apiPost<T = unknown>(path: string, body?: unknown): Promise<T> {
+export function apiPost<T = unknown>(
+  path: string,
+  body?: unknown,
+  options?: Pick<ApiRequestOptions, 'timeoutMs'>,
+): Promise<T> {
   return apiFetch<T>(path, {
+    ...options,
     method: 'POST',
     body: body === undefined ? undefined : JSON.stringify(body),
   });

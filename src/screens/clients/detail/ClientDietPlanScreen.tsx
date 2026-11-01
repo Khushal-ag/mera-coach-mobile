@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AssessmentWizardFlow from '../../addClient/AssessmentWizardFlow';
 import PdfDownloadShareButton from '../../../components/clients/PdfDownloadShareButton';
@@ -17,6 +17,7 @@ import {
 } from '../../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
 import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
+import { appAlert } from '../../../utils/appDialog';
 
 /** Opens checkup wizard on diet plan; saves via save-diet-plan only (no full finish). */
 export default function ClientDietPlanScreen({
@@ -99,7 +100,7 @@ export default function ClientDietPlanScreen({
       ? 'Diet plan saved. Assessment status: Complete. Use Share PDF to save or send it.'
       : 'Diet plan saved. Use Share PDF to save or send it.';
 
-    Alert.alert('Diet plan saved', message);
+    appAlert('Diet plan saved', message, undefined, { tone: 'success' });
   };
 
   const planSettled = !ids.assessmentCode || planQuery.isFetched || planQuery.isError;

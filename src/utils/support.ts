@@ -1,5 +1,6 @@
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import { PRIVACY_POLICY_URL, SUPPORT_EMAIL } from '../config/appConfig';
+import { appAlert } from './appDialog';
 
 /**
  * Open URL via Linking; on Android both canOpenURL/openURL can reject when no
@@ -14,12 +15,16 @@ async function openExternal(url: string, fallbackTitle: string, fallbackMessage:
   } catch {
     // fall through to the alert
   }
-  Alert.alert(fallbackTitle, fallbackMessage);
+  appAlert(fallbackTitle, fallbackMessage, undefined, { tone: 'warning' });
 }
 
 export function openSupportEmail(subject = 'Mera Coach App Support'): Promise<void> {
   const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
-  return openExternal(url, 'Email us', SUPPORT_EMAIL);
+  return openExternal(
+    url,
+    'No email app found',
+    `Write to us at ${SUPPORT_EMAIL} and we will get back to you.`,
+  );
 }
 
 export function openAccountDeletionEmail(): Promise<void> {
@@ -53,11 +58,15 @@ export async function openPaymentUrl(url: string): Promise<boolean> {
 
 export async function openPrivacyPolicyUrl(): Promise<void> {
   if (!PRIVACY_POLICY_URL) {
-    Alert.alert(
+    appAlert(
       'Privacy policy',
       'The full privacy policy is available in this screen. A web version will be linked here once published.',
     );
     return;
   }
-  await openExternal(PRIVACY_POLICY_URL, 'Privacy policy', PRIVACY_POLICY_URL);
+  await openExternal(
+    PRIVACY_POLICY_URL,
+    'Could not open the page',
+    `Open ${PRIVACY_POLICY_URL} in your browser to read the privacy policy.`,
+  );
 }

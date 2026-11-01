@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
@@ -40,6 +39,7 @@ import { formatPostDate } from '../../utils/formatPostDate';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { EventsStackScreenProps } from '../../types/navigation';
+import { appAlert } from '../../utils/appDialog';
 
 const CANVAS = '#F3FAF7';
 const PAGE_SIZE = 5;
@@ -93,7 +93,7 @@ export default function EventsScreen({ navigation }: EventsStackScreenProps<'Eve
   };
 
   const confirmRemove = (post: CoachPost) => {
-    Alert.alert('Remove post', `Remove ${post.title || 'this post'}?`, [
+    appAlert('Remove post', `Remove ${post.title || 'this post'}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => void persistRemove(post) },
     ]);

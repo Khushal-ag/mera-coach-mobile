@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -25,6 +25,7 @@ import { toUserMessage } from '../../api/client';
 import { passwordPolicyError } from '../../utils/validation';
 import type { ProfileStackScreenProps } from '../../types/navigation';
 import type { IoniconName } from '../../types/wizard';
+import { appAlert } from '../../utils/appDialog';
 
 interface PasswordFieldProps {
   label: string;
@@ -113,9 +114,12 @@ export default function ChangePasswordScreen({
     setSubmitting(true);
     try {
       await changePassword({ currentPassword, newPassword });
-      Alert.alert('Password Changed', 'Your password has been updated successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      appAlert(
+        'Password Changed',
+        'Your password has been updated successfully.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+        { tone: 'success' },
+      );
     } catch (err) {
       setError(toUserMessage(err, 'Something went wrong. Please try again.'));
     } finally {

@@ -1,6 +1,6 @@
-import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { appAlert, showPermissionNeeded } from './appDialog';
 
 export interface PickedPostMedia {
   uri: string;
@@ -14,24 +14,20 @@ export interface PickedPostMedia {
 type Source = 'camera' | 'library';
 
 function askSource(): Promise<Source | null> {
-  if (Platform.OS === 'ios') {
-    return new Promise(resolve => {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Take Photo', 'Photo or Video Library', 'Cancel'], cancelButtonIndex: 2 },
-        index => resolve(index === 0 ? 'camera' : index === 1 ? 'library' : null),
-      );
-    });
-  }
   return new Promise(resolve => {
-    Alert.alert(
+    appAlert(
       'Add photo or video',
       'Choose a source',
       [
-        { text: 'Camera', onPress: () => resolve('camera') },
-        { text: 'Library', onPress: () => resolve('library') },
+        { text: 'Take photo', icon: 'camera-outline', onPress: () => resolve('camera') },
+        {
+          text: 'Photo or video library',
+          icon: 'images-outline',
+          onPress: () => resolve('library'),
+        },
         { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
       ],
-      { cancelable: true, onDismiss: () => resolve(null) },
+      { icon: 'camera-outline', cancelable: true, onDismiss: () => resolve(null) },
     );
   });
 }
@@ -54,8 +50,7 @@ export async function pickPostMedia(): Promise<PickedPostMedia | null> {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert(
-      'Permission needed',
+    showPermissionNeeded(
       source === 'camera'
         ? 'Allow camera access to take a photo.'
         : 'Allow library access to choose media.',

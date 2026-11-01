@@ -1,5 +1,5 @@
-import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { appAlert, showPermissionNeeded } from './appDialog';
 
 interface PickedImage {
   uri: string;
@@ -8,32 +8,16 @@ interface PickedImage {
 }
 
 function promptImageSource(): Promise<'camera' | 'library' | null> {
-  if (Platform.OS === 'ios') {
-    return new Promise(resolve => {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Take Photo', 'Choose from Gallery', 'Cancel'],
-          cancelButtonIndex: 2,
-        },
-        index => {
-          if (index === 0) resolve('camera');
-          else if (index === 1) resolve('library');
-          else resolve(null);
-        },
-      );
-    });
-  }
   return new Promise(resolve => {
-    Alert.alert(
+    appAlert(
       'Add photo',
       'Choose a source',
       [
-        { text: 'Camera', onPress: () => resolve('camera') },
-        { text: 'Gallery', onPress: () => resolve('library') },
+        { text: 'Take photo', icon: 'camera-outline', onPress: () => resolve('camera') },
+        { text: 'Choose from gallery', icon: 'images-outline', onPress: () => resolve('library') },
         { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
       ],
-      // Android back/outside dismiss otherwise leaves this Promise hanging.
-      { cancelable: true, onDismiss: () => resolve(null) },
+      { icon: 'camera-outline', cancelable: true, onDismiss: () => resolve(null) },
     );
   });
 }
@@ -58,7 +42,7 @@ export async function pickImagesFromCameraOrLibrary(
   if (source === 'camera') {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow camera access to take a photo.');
+      showPermissionNeeded('Allow camera access to take a photo.');
       return [];
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -81,7 +65,7 @@ export async function pickImagesFromCameraOrLibrary(
 
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) {
-    Alert.alert('Permission needed', 'Allow photo library access to choose an image.');
+    showPermissionNeeded('Allow photo library access to choose an image.');
     return [];
   }
   const result = await ImagePicker.launchImageLibraryAsync({

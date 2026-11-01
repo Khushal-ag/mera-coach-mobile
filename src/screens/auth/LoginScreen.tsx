@@ -33,9 +33,7 @@ export default function LoginScreen({ navigation }: RootScreenProps<'Login'>) {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [sessionHint] = useState(() =>
-    didSessionExpireOnRestore()
-      ? 'Your session expired. Sign in once, then use your MPIN next time.'
-      : null,
+    didSessionExpireOnRestore() ? 'Your session expired. Please sign in again.' : null,
   );
   const {
     errorFields,

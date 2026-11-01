@@ -11,6 +11,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AUTH_BG_ASPECT, AUTH_PHOTO_BAND, BrandImages } from '../../constants/images';
 
 type AuthAtmosphereLayoutProps = {
@@ -43,6 +44,7 @@ export default function AuthAtmosphereLayout({
   contentContainerStyle,
 }: AuthAtmosphereLayoutProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const { coverWidth, coverHeight, photoClearance, offsetX, offsetY } = useMemo(
@@ -58,7 +60,7 @@ export default function AuthAtmosphereLayout({
       left: offsetX,
       top: offsetY,
       // When the form runs over the photo (a short phone), the photo is faded so form text stays readable.
-      opacity: overlapsPhoto ? 0.4 : 1,
+      opacity: overlapsPhoto ? 0.18 : 1,
     }),
     [coverWidth, coverHeight, offsetX, offsetY, overlapsPhoto],
   );
@@ -96,7 +98,11 @@ export default function AuthAtmosphereLayout({
           <View style={styles.scrollArea}>
             <ScrollView
               style={styles.scroll}
-              contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: styles.scrollContent.paddingBottom + insets.bottom },
+                contentContainerStyle,
+              ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               bounces={false}

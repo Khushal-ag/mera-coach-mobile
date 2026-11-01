@@ -1,15 +1,14 @@
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 import { getCurrentToken } from '../auth/session';
 import { withQuery } from '../api/client';
+import { appAlert } from './appDialog';
 
 type SharingModule = typeof import('expo-sharing');
 
-const REBUILD_MESSAGE =
-  'PDF sharing is not available in this build. Rebuild the native app so ExpoSharing is linked:\n\n' +
-  'iOS: npx expo prebuild --clean && npx expo run:ios\n' +
-  'Android: npx expo prebuild --clean && npx expo run:android';
+const SHARING_UNAVAILABLE_MESSAGE =
+  'Sharing is not available in this version of the app. Please update the app and try again.';
 
 /** Short coach-facing copy when PDF generation fails. */
 export const PDF_GENERATE_FAILED_MESSAGE =
@@ -20,8 +19,8 @@ function isMissingExpoSharingError(err: unknown): boolean {
   return /ExpoSharing|expo-sharing/i.test(msg);
 }
 
-function alertRebuildRequired(): void {
-  Alert.alert('Rebuild app required', REBUILD_MESSAGE);
+function alertSharingUnavailable(): void {
+  appAlert('Update needed', SHARING_UNAVAILABLE_MESSAGE, undefined, { tone: 'warning' });
 }
 
 /**
@@ -125,20 +124,20 @@ export async function downloadAndSharePdf(
   });
 
   if (Platform.OS === 'web') {
-    Alert.alert('PDF ready', 'PDF download is not supported in web preview.');
+    appAlert('PDF ready', 'PDF download is not supported in web preview.');
     return;
   }
 
   const Sharing = loadSharingModule();
   if (!Sharing) {
-    alertRebuildRequired();
+    alertSharingUnavailable();
     return;
   }
 
   try {
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) {
-      Alert.alert('PDF saved', `Saved to ${fileUri}`);
+      appAlert('PDF saved', `Saved to ${fileUri}`, undefined, { tone: 'success' });
       return;
     }
 
@@ -149,7 +148,7 @@ export async function downloadAndSharePdf(
     });
   } catch (err) {
     if (isMissingExpoSharingError(err)) {
-      alertRebuildRequired();
+      alertSharingUnavailable();
       return;
     }
     throw err;

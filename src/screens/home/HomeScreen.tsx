@@ -12,7 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BrandLogo from '../../components/BrandLogo';
 import HomeExplorePage from './HomeExplorePage';
-import { BrandImages, HOME_HERO_ASPECT, LOGO_ASPECT } from '../../constants/images';
+import {
+  BrandImages,
+  HOME_HERO_ASPECT,
+  HOME_HERO_HEIGHT,
+  HOME_RUNNER_HEAD_TOP,
+  LOGO_ASPECT,
+} from '../../constants/images';
 import {
   Colors,
   FontFamily,
@@ -40,11 +46,16 @@ function MarketingPage({
 }) {
   const insets = useSafeAreaInsets();
   const signedIn = useAuthState() === 'signedIn';
-  const homeLogoSize = (width * HOME_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full;
   const naturalHeroHeight = width / HOME_HERO_ASPECT;
   const heroFit = naturalHeroHeight > height ? height / naturalHeroHeight : 1;
   const heroWidth = width * heroFit;
   const heroHeight = naturalHeroHeight * heroFit;
+  // Keep the logo, tagline included, above the runners' heads on short screens.
+  const headY = height - heroHeight + (HOME_RUNNER_HEAD_TOP / HOME_HERO_HEIGHT) * heroHeight;
+  const homeLogoSize = Math.min(
+    (width * HOME_LOGO_WIDTH_FRAC) / LOGO_ASPECT.full,
+    Math.max(100, headY - (insets.top + Spacing.sm) - Spacing.sm),
+  );
 
   const onGetStarted = () => {
     if (signedIn) {

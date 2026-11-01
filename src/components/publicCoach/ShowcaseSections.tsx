@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -23,6 +23,7 @@ import { formatMoney } from '../../utils/formatMoney';
 import { formatPostDate } from '../../utils/formatPostDate';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { splitPackDetail } from '../../utils/packDetail';
+import { appAlert } from '../../utils/appDialog';
 
 const PILL_BG = '#E8F7F2';
 const PILL_INK = '#04705D';
@@ -40,7 +41,7 @@ function PostMedia({ post, style }: { post: CoachPost; style: object }) {
       onPress={() => {
         if (mediaUri)
           void Linking.openURL(mediaUri).catch(() =>
-            Alert.alert('Video', 'This video could not be opened.'),
+            appAlert('Video', 'This video could not be opened.', undefined, { tone: 'error' }),
           );
       }}
       disabled={!mediaUri}
@@ -107,7 +108,9 @@ function PackageCard({
     if (!whatsAppUrl) return;
     const message = `Hi ${coachName}, I would like to enquire about the "${pkg.packageName}" package (${formatMoney(pkg.totalAmount)}).`;
     Linking.openURL(whatsAppUrlWithText(whatsAppUrl, message)).catch(() =>
-      Alert.alert('Could not open WhatsApp', 'Please check that WhatsApp is installed.'),
+      appAlert('Could not open WhatsApp', 'Please check that WhatsApp is installed.', undefined, {
+        tone: 'error',
+      }),
     );
   };
 

@@ -7,7 +7,6 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
-  Alert,
   StyleSheet,
   useWindowDimensions,
 } from 'react-native';
@@ -56,6 +55,7 @@ import { sanitizePinInput, validateCoachProfileEdit } from '../../utils/validati
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { usePinLocationLookup } from '../../hooks/usePinLocationLookup';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { getDocumentSavedById, updateSessionFullName } from '../../auth/session';
 import { MASTER_STALE_MS } from '../../api/queryClient';
 import { queryKeys, invalidateCoachProfileCaches } from '../../api/queryKeys';
@@ -65,6 +65,7 @@ import { buildCoachDescriptionSuggestions } from '../../utils/coachDescriptionSu
 import type { ProfileStackScreenProps } from '../../types/navigation';
 import type { CoachProfileFull } from '../../api/coachApi';
 import type { CoachCategory } from '../../types/models';
+import { appAlert } from '../../utils/appDialog';
 
 /** Below this width the Previous / Save buttons drop their icon circles so the labels fit. */
 const COMPACT_WIDTH = 360;
@@ -168,6 +169,18 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [saving, setSaving] = useState(false);
+  const leaveSaved = useUnsavedChangesGuard(
+    coachName !== profile.coachName ||
+      businessName !== profile.businessName ||
+      tagline !== profile.tagline ||
+      coachDesc !== profile.coachDesc ||
+      locality !== profile.locality ||
+      addLine !== profile.addLine ||
+      pinCode !== profile.pinCode ||
+      logoUrl !== profile.logoUrl ||
+      profilePicUrl !== profile.profilePicUrl ||
+      coverUrl !== profile.coverUrl,
+  );
   const {
     errorFields,
     formErrorBanner,
@@ -352,9 +365,12 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
       });
       await updateSessionFullName(coachName.trim());
       invalidateCoachProfileCaches(queryClient, profile.coachCode);
-      Alert.alert('Profile Updated', 'Your changes have been saved.', [
-        { text: 'OK', onPress: onDone },
-      ]);
+      appAlert(
+        'Profile Updated',
+        'Your changes have been saved.',
+        [{ text: 'OK', onPress: leaveSaved(onDone) }],
+        { tone: 'success' },
+      );
     } catch (err) {
       setBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {

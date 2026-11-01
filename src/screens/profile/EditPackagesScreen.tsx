@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import {
   View,
   Text,
@@ -9,7 +10,6 @@ import {
   Switch,
   type LayoutChangeEvent,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,6 +44,7 @@ import {
 import { parseAmount } from '../../utils/formatMoney';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { PackagesStackScreenProps } from '../../types/navigation';
+import { appAlert } from '../../utils/appDialog';
 
 const CANVAS = '#F3FAF7';
 const FIELD = '#E7F6EC';
@@ -134,6 +135,12 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [isActive, setIsActive] = useState(existing?.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
+  const leaveSaved = useUnsavedChangesGuard(
+    name !== (existing?.packageName ?? '') ||
+      brandCode !== (existing?.brandCode ?? '') ||
+      total !== (existing ? String(existing.totalAmount) : '') ||
+      items.length !== (existing?.items.length ?? 0),
+  );
 
   const brandsQuery = useQuery({
     queryKey: queryKeys.productBrands,
@@ -253,9 +260,12 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         items,
       });
       void queryClient.invalidateQueries({ queryKey: ['showcase'] });
-      Alert.alert('Package published', 'It now shows on your public profile.', [
-        { text: 'OK', onPress: onDone },
-      ]);
+      appAlert(
+        'Package published',
+        'It now shows on your public profile.',
+        [{ text: 'OK', onPress: leaveSaved(onDone) }],
+        { tone: 'success' },
+      );
     } catch (err) {
       showBanner(getErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {

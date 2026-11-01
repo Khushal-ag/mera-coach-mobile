@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors, FontFamily, Radius, Shadow, Spacing, headingFont } from '../../constants/theme';
 import AppButton from '../../components/AppButton';
 import FormErrorBanner from '../../components/FormErrorBanner';
@@ -18,6 +18,7 @@ import { logoutLocal } from '../../auth/logout';
 import { isValidMpinFormat } from '../../utils/mpinCrypto';
 import { toUserMessage } from '../../api/client';
 import type { ProfileStackScreenProps } from '../../types/navigation';
+import { appAlert } from '../../utils/appDialog';
 
 type Step = 'current' | 'create' | 'confirm';
 
@@ -97,9 +98,12 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
       setError(null);
       try {
         await setMpin(value, getLastLoginId() ?? undefined);
-        Alert.alert('MPIN updated', 'Your MPIN has been saved.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        appAlert(
+          'MPIN updated',
+          'Your MPIN has been saved.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+          { tone: 'success' },
+        );
       } catch (err) {
         setError(toUserMessage(err, 'Could not save MPIN. Please try again.'));
         setPin('');
@@ -113,7 +117,7 @@ export default function ChangeMpinScreen({ navigation }: ProfileStackScreenProps
   );
 
   const onRemove = () => {
-    Alert.alert(
+    appAlert(
       'Remove MPIN?',
       'The app will stop asking for an MPIN when you open it. You can set one again from Profile.',
       [

@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import {
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -37,6 +36,7 @@ import { toUserMessage } from '../../api/client';
 import { sanitizeEmailInput, validateCoachRegister } from '../../utils/validation';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import type { RootScreenProps } from '../../types/navigation';
+import { appAlert } from '../../utils/appDialog';
 
 export default function RegisterScreen({ navigation }: RootScreenProps<'Register'>) {
   const insets = useSafeAreaInsets();
@@ -88,10 +88,11 @@ export default function RegisterScreen({ navigation }: RootScreenProps<'Register
 
       await clearSession();
 
-      Alert.alert(
+      appAlert(
         'Registration Successful',
         `Your account has been created. Your login password has been shared on ${email.trim()}. Please check your email and sign in to continue.`,
         [{ text: 'OK', onPress: () => navigation.replace('Login') }],
+        { tone: 'success' },
       );
     } catch (err) {
       setBanner(toUserMessage(err, 'Registration failed. Please try again.'));

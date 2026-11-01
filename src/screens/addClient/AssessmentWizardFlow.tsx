@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BackHandler, View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScreenPad, Spacing } from '../../constants/theme';
 import { wizardShellStyles } from '../../constants/wizardStyles';
@@ -19,6 +20,7 @@ import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
 import { computeBmiMetrics } from '../../utils/bmi';
+import { appAlert } from '../../utils/appDialog';
 import {
   validateClientPersonalProfile,
   validateClientLifestyleProfile,
@@ -140,7 +142,11 @@ export default function AssessmentWizardFlow({
     setBanner,
   } = useFormFieldErrors();
 
+  // Set once the coach edits anything, so leaving the first screen can ask before throwing the entry away.
+  const touched = useRef(false);
+
   const update = <K extends keyof ClientProfile>(key: K, val: ClientProfile[K]) => {
+    touched.current = true;
     setForm(f => (f[key] === val ? f : { ...f, [key]: val }));
     if (key === 'dietPlan') setHasUnsavedDietPlan(true);
     // DOB/Age are an OR rule — editing either can clear both highlights.
@@ -151,7 +157,41 @@ export default function AssessmentWizardFlow({
   const entry = flatNav[index]!;
   const isLast = index === flatNav.length - 1;
   // When opened mid-flow (e.g. diet plan shortcut), back from the start screen exits.
-  const goBack = () => (index <= startIndex ? onExit() : setIndex(i => i - 1));
+  const goBack = () => {
+    if (index > startIndex) {
+      setIndex(i => i - 1);
+      return;
+    }
+    if (!touched.current) {
+      onExit();
+      return;
+    }
+    appAlert(
+      'Leave without saving?',
+      'Details you have not saved yet will be lost.',
+      [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Leave', style: 'destructive', onPress: onExit },
+      ],
+      { icon: 'exit-outline' },
+    );
+  };
+
+  // Android's back button must step back through the wizard like the header arrow, not close it outright.
+  const goBackRef = useRef(goBack);
+  useEffect(() => {
+    goBackRef.current = goBack;
+  });
+  // Only while this screen is on top, so a report or plan pushed over it keeps the normal back behaviour.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        goBackRef.current();
+        return true;
+      });
+      return () => sub.remove();
+    }, []),
+  );
 
   const showApiError = (message: string) => {
     setApiError(message);

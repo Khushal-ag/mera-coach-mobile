@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Switch,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,6 +41,7 @@ import { refreshControlTheme, useRefreshControl } from '../../hooks/useRefreshCo
 import { formatMoney } from '../../utils/formatMoney';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { PackagesStackScreenProps } from '../../types/navigation';
+import { appAlert } from '../../utils/appDialog';
 
 const CANVAS = '#F3FAF7';
 const PAGE_SIZE = 5;
@@ -105,7 +105,7 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
   };
 
   const confirmRemove = (pkg: ShowcasePackage) => {
-    Alert.alert('Remove package', `Remove ${pkg.packageName || 'this package'}?`, [
+    appAlert('Remove package', `Remove ${pkg.packageName || 'this package'}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => void persistRemove(pkg) },
     ]);
