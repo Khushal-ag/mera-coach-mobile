@@ -30,7 +30,7 @@ import { YOUTUBE_EMBED_ORIGIN, isAllowedPlayerUrl, youTubeEmbedHtml } from '../.
  * first use, and fall back to opening YouTube when it is missing.
  */
 let webViewModule: typeof WebViewComponent | null | undefined;
-function getWebView(): typeof WebViewComponent | null {
+export function getWebView(): typeof WebViewComponent | null {
   if (webViewModule === undefined) {
     webViewModule = null;
     if (TurboModuleRegistry.get('RNCWebViewModule')) {

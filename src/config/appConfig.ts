@@ -35,6 +35,9 @@ export function isSubscriptionRequired(): boolean {
   return raw === 'yes' || raw === 'true' || raw === '1';
 }
 
+/** While subscriptions are off, a coach can keep this many clients. Add Client asks them to contact support beyond it. */
+export const FREE_CLIENT_LIMIT = 10;
+
 /** Owner type of a coach's own uploaded files (post photos and videos). */
 export const COACH_GALLERY_REF_TYPE = 'COACH';
 

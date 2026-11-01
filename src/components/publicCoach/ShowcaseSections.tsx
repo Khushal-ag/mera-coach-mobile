@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -12,6 +12,7 @@ import {
   headingFont,
 } from '../../constants/theme';
 import SectionTag from '../SectionTag';
+import PostVideoModal from './PostVideoModal';
 import { whatsAppUrlWithText } from '../../api/coachApi';
 import {
   POST_CATEGORY,
@@ -27,6 +28,7 @@ import { appAlert } from '../../utils/appDialog';
 
 const PILL_BG = '#E8F7F2';
 const PILL_INK = '#04705D';
+const VIDEO_PLATE = '#0E4A3C';
 const WHATSAPP_GREEN = '#1FA855';
 
 function PostMedia({ post, style }: { post: CoachPost; style: object }) {
@@ -34,23 +36,49 @@ function PostMedia({ post, style }: { post: CoachPost; style: object }) {
   if (post.mediaType === 'image' && mediaUri) {
     return <Image source={{ uri: mediaUri }} style={style} resizeMode="cover" />;
   }
-  // A video has no thumbnail: tapping it plays it in the phone's own player or browser.
+  return <PostVideo post={post} mediaUri={mediaUri} style={style} />;
+}
+
+// A video has no thumbnail: the tile shows a play icon and opens the video in an in-app player.
+function PostVideo({
+  post,
+  mediaUri,
+  style,
+}: {
+  post: CoachPost;
+  mediaUri: string;
+  style: object;
+}) {
+  const [open, setOpen] = useState(false);
   return (
-    <TouchableOpacity
-      style={[style, styles.videoPlate]}
-      onPress={() => {
-        if (mediaUri)
-          void Linking.openURL(mediaUri).catch(() =>
+    <>
+      <TouchableOpacity
+        style={[style, styles.videoPlate]}
+        onPress={() => setOpen(true)}
+        disabled={!mediaUri}
+        activeOpacity={PressOpacity.default}
+        accessibilityRole="button"
+        accessibilityLabel={post.title ? `Play video: ${post.title}` : 'Play video'}
+      >
+        <View style={styles.playRing}>
+          <Ionicons name="play" size={IconSize.xl} color={Colors.white} style={styles.playGlyph} />
+        </View>
+        <View style={styles.videoChip}>
+          <Ionicons name="videocam" size={12} color={Colors.white} />
+          <Text style={styles.videoChipText}>Video</Text>
+        </View>
+      </TouchableOpacity>
+      <PostVideoModal
+        uri={open ? mediaUri : null}
+        title={post.title}
+        onClose={() => setOpen(false)}
+        onUnavailable={uri =>
+          void Linking.openURL(uri).catch(() =>
             appAlert('Video', 'This video could not be opened.', undefined, { tone: 'error' }),
-          );
-      }}
-      disabled={!mediaUri}
-      activeOpacity={PressOpacity.default}
-      accessibilityRole="button"
-      accessibilityLabel={post.title ? `Play video: ${post.title}` : 'Play video'}
-    >
-      <Ionicons name="play-circle" size={IconSize.xxl} color={Colors.accentInk} />
-    </TouchableOpacity>
+          )
+        }
+      />
+    </>
   );
 }
 
@@ -191,7 +219,7 @@ export default function ShowcaseSections({
     <>
       {packages.length > 0 ? (
         <View style={styles.section}>
-          <SectionHeader icon="pricetags-outline" tag="Packages" title="Packages" />
+          <Text style={styles.title}>Packages</Text>
           <View style={styles.list}>
             {packages.map(pkg => (
               <PackageCard
@@ -208,7 +236,7 @@ export default function ShowcaseSections({
 
       {gallery.length > 0 ? (
         <View style={styles.section}>
-          <SectionHeader icon="images-outline" tag="Photos" title="Gallery" />
+          <Text style={styles.title}>Gallery</Text>
           <View style={styles.grid}>
             {gallery.map(post => (
               <View key={post.postId} style={styles.gridItem}>
@@ -226,7 +254,7 @@ export default function ShowcaseSections({
 
       {events.length > 0 ? (
         <View style={styles.section}>
-          <SectionHeader icon="calendar-outline" tag="Posts" title="Posts" />
+          <Text style={styles.title}>Posts</Text>
           <View style={styles.list}>
             {events.map(post => (
               <PostCard key={post.postId} post={post} wide />
@@ -259,7 +287,32 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   list: { gap: Spacing.sm },
-  videoPlate: { alignItems: 'center', justifyContent: 'center', backgroundColor: PILL_BG },
+  videoPlate: { alignItems: 'center', justifyContent: 'center', backgroundColor: VIDEO_PLATE },
+  playRing: {
+    width: 52,
+    height: 52,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  // A play triangle looks off-centre when it is centred, so nudge it right.
+  playGlyph: { marginLeft: 3 },
+  videoChip: {
+    position: 'absolute',
+    left: Spacing.xs,
+    bottom: Spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  videoChipText: { fontSize: 11, fontFamily: FontFamily.semibold, color: Colors.white },
   packageCard: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,

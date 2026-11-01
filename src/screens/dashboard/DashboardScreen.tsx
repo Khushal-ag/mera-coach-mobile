@@ -416,7 +416,11 @@ export default function DashboardScreen({
                 Add Client
               </Text>
               <Text style={styles.primaryCtaSub} numberOfLines={1}>
-                {checkingSubscription ? 'Checking your subscription' : 'Start a new assessment'}
+                {checkingSubscription
+                  ? isSubscriptionRequired()
+                    ? 'Checking your subscription'
+                    : 'Just a moment'
+                  : 'Start a new assessment'}
               </Text>
             </View>
             <View style={styles.primaryCtaArrow} pointerEvents="none">

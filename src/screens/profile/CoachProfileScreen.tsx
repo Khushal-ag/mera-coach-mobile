@@ -173,9 +173,8 @@ export default function CoachProfileScreen({ navigation }: ProfileStackScreenPro
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
-  // With the subscription limit off the card is hidden, unless the coach has bought a plan: they still need to see it.
-  const hasSubscription = (premiumQuery.data?.subscription.status ?? 'none') !== 'none';
-  const showSubscription = premiumRequired || hasSubscription;
+  // With the subscription limit off there is nothing to pay for, so the card (and its validity) stays hidden.
+  const showSubscription = premiumRequired;
   const profile = profileQuery.data;
   const profileCompletion = useMemo(
     () => (profileFullQuery.data ? getProfileCompletion(profileFullQuery.data) : null),
