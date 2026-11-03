@@ -200,9 +200,11 @@ const FIELD_BANNER_LABELS: Record<string, string> = {
 };
 
 /** User-facing summary for form error banners (replaces generic mandatory-fields copy). */
-export function buildValidationBanner(errors: FieldErrorMap): string {
+export function buildValidationBanner(errors: FieldErrorMap): string | null {
   const keys = Object.keys(errors);
   if (keys.length === 0) return MANDATORY_FIELDS_BANNER;
+  // Profile photo uses an inline field error when it is the only missing field.
+  if (keys.length === 1 && keys[0] === 'photos') return null;
   if (keys.length === 1) return errors[keys[0]!]!;
   const labels = keys.map(k => FIELD_BANNER_LABELS[k] ?? k.replace(/([A-Z])/g, ' $1').trim());
   const shown = labels.slice(0, 4);
@@ -307,7 +309,7 @@ export interface ValidateClientPersonalProfileOptions {
   hasExistingProfilePhoto?: boolean;
 }
 
-const CLIENT_PROFILE_PHOTO_REQUIRED = 'Client profile photo is required.';
+export const CLIENT_PROFILE_PHOTO_REQUIRED = 'Client profile photo is required.';
 
 /** Add Client step 1 validation (mirrors web). */
 export function validateClientPersonalProfile(

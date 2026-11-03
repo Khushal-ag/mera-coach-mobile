@@ -303,6 +303,12 @@ function EditProfileForm({
     } else if (pinLookup.location) {
       setCityCd(pinLookup.location.city);
       setStateCd(pinLookup.location.state);
+      if (pinLookup.location.countryCode) {
+        const code = pinLookup.location.countryCode;
+        const match = countries.find(c => c.code === code);
+        const nextLabel = match?.label ?? code;
+        if (!countryLabel.trim()) setCountryLabel(nextLabel);
+      }
     }
   }
 

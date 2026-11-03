@@ -115,6 +115,12 @@ describe('buildValidationBanner', () => {
       'Location is required.',
     );
   });
+
+  it('omits the top banner when only the profile photo is missing', () => {
+    expect(
+      buildValidationBanner({ photos: 'Client profile photo is required.' }),
+    ).toBeNull();
+  });
 });
 
 describe('firstPersonalProfileErrorField', () => {
@@ -174,6 +180,7 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     );
     expect(withoutPhoto.ok).toBe(false);
     expect(withoutPhoto.errors.photos).toBe('Client profile photo is required.');
+    expect(withoutPhoto.banner).toBeNull();
   });
 
   it('requires profile photo on checkup when the client has none (progress photos are separate)', () => {

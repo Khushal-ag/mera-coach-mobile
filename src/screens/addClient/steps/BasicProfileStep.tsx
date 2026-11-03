@@ -30,6 +30,7 @@ import PhoneTextInput from '../../../components/PhoneTextInput';
 import ProgressPhotos from '../../../components/ProgressPhotos';
 import { useClientPhotoUrl } from '../../../hooks/useClientPhotoUrl';
 import {
+  CLIENT_PROFILE_PHOTO_REQUIRED,
   cmToFeetInches,
   feetInchesToCm,
   firstPersonalProfileErrorField,
@@ -271,7 +272,12 @@ function newPhotoId(): string {
 }
 
 /** Add Client: one mandatory profile photo (also stored as the first progress photo). */
-function ClientPhotoField({ form, update, error }: StepProps<ClientProfile> & { error?: string }) {
+function ClientPhotoField({
+  form,
+  update,
+  error,
+  invalid,
+}: StepProps<ClientProfile> & { error?: string; invalid?: boolean }) {
   const photo = (form.photos ?? [])[0];
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -288,7 +294,7 @@ function ClientPhotoField({ form, update, error }: StepProps<ClientProfile> & { 
     update('photos', [next]);
   };
 
-  const hasErr = Boolean(photoError || error);
+  const hasErr = Boolean(photoError || error || invalid);
 
   return (
     <View style={styles.photoField}>
@@ -343,7 +349,8 @@ function ClientProfilePhotoField({
   form,
   update,
   error,
-}: StepProps<ClientProfile> & { clientCode: string; error?: string }) {
+  invalid,
+}: StepProps<ClientProfile> & { clientCode: string; error?: string; invalid?: boolean }) {
   const { photoUrl: savedProfileUrl } = useClientPhotoUrl(clientCode);
   const pending = (form.photos ?? [])[0];
   const displayUri = pending?.uri ?? savedProfileUrl;
@@ -362,7 +369,7 @@ function ClientProfilePhotoField({
     update('photos', [next]);
   };
 
-  const hasErr = Boolean(photoError || error);
+  const hasErr = Boolean(photoError || error || invalid);
 
   return (
     <View style={styles.photoField}>
@@ -467,6 +474,10 @@ const BasicProfileStep = forwardRef<BasicProfileStepHandle, BasicProfileStepProp
     ref,
   ) {
   const err = (field: string) => !!errorFields[field];
+  const validationErrorCount = Object.keys(errorFields).length;
+  /** Inline copy only when photo is the sole missing field; otherwise the top banner lists it. */
+  const inlinePhotoValidationError =
+    err('photos') && validationErrorCount === 1 ? CLIENT_PROFILE_PHOTO_REQUIRED : undefined;
   const cardYInScroll = useRef(0);
   const fieldYInCard = useRef<Record<string, number>>({});
 
@@ -507,7 +518,8 @@ const BasicProfileStep = forwardRef<BasicProfileStepHandle, BasicProfileStepProp
               clientCode={clientCode}
               form={form}
               update={update}
-              error={err('photos') ? 'Client profile photo is required.' : undefined}
+              error={inlinePhotoValidationError}
+              invalid={err('photos')}
             />
             <ProgressPhotos clientCode={clientCode} />
           </>
@@ -515,7 +527,8 @@ const BasicProfileStep = forwardRef<BasicProfileStepHandle, BasicProfileStepProp
           <ClientPhotoField
             form={form}
             update={update}
-            error={err('photos') ? 'Client profile photo is required.' : undefined}
+            error={inlinePhotoValidationError}
+            invalid={err('photos')}
           />
         )}
       </FieldSection>
