@@ -40,6 +40,7 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
 
 ## Take a look
 
+<div align="center">
 <table>
   <tr>
     <td align="center" width="50%">
@@ -78,6 +79,7 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
     </td>
   </tr>
 </table>
+</div>
 
 <p align="center"><sub>iOS Simulator · light mode · the clients shown are sample data</sub></p>
 
