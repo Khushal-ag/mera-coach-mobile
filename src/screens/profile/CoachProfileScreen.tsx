@@ -93,12 +93,6 @@ const settingsItems: MenuItem[] = [
     label: 'Change Password',
     route: 'ChangePassword',
   },
-  // MPIN flow commented out - login will happen using login id and password only
-  // {
-  //   icon: 'keypad-outline',
-  //   label: 'MPIN',
-  //   route: 'ChangeMpin',
-  // },
   {
     icon: 'help-circle-outline',
     label: 'Help & Support',

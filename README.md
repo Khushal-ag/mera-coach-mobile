@@ -9,19 +9,14 @@
 Visitors discover coaches and reach out.<br />
 Coaches manage clients, deliver assessments, and keep the public listing that brings leads in.
 
-[![Latest Release][badge-latest-release]][release-latest]
-&nbsp;
-[![Website][badge-website]][website]
-&nbsp;
-[![Releases][badge-releases]][releases]
-
 [![CI][badge-ci]][actions-ci]
 [![Release][badge-release-version]][releases]
 ![Android][badge-platforms]
+[![Website][badge-website]][website]
 
 <br />
 
-<img src="docs/screenshots/dashboard.png" width="400" alt="Coach dashboard — clients, leads, due checkups, and Add Client" />
+<img src=".github/readme/dashboard.jpg" width="400" alt="Coach dashboard — clients, leads, due checkups, and Add Client" />
 
 <sub><b>Dashboard</b> — the practice at a glance</sub>
 
@@ -31,94 +26,96 @@ Coaches manage clients, deliver assessments, and keep the public listing that br
 
 ## One place for the coaching journey
 
-|        | Journey            | What happens                                                                                         |
-| ------ | ------------------ | ---------------------------------------------------------------------------------------------------- |
-| **01** | **Discover**       | Marketing hero, then explore — banner, categories, features, Check Your BMI — no sign-in required    |
-| **02** | **Convert**        | Enquiry & BMI lead forms; WhatsApp when the coach has shared a number                                |
-| **03** | **Manage**         | Tabs: Dashboard, Packages, Events, Profile. Clients, leads, and due checkups sit under Dashboard     |
-| **04** | **Deliver**        | Assessment wizard → BMI report & multi-meal diet · PDF share · feedback SMS                          |
-| **05** | **Build presence** | Packages and Gallery & Events (one screen, three categories) each open a list; add is its own screen |
+|        | Journey            | What happens                                                                                             |
+| ------ | ------------------ | -------------------------------------------------------------------------------------------------------- |
+| **01** | **Discover**       | A marketing hero, then explore: banner, categories, features and Check Your BMI. No sign-in needed       |
+| **02** | **Convert**        | Enquiry and BMI lead forms, and WhatsApp when the coach has shared a number                              |
+| **03** | **Manage**         | Tabs: Dashboard, Packages, Posts, Profile. Clients, leads and due checkups sit under Dashboard           |
+| **04** | **Deliver**        | Assessment wizard, then a BMI report and a multi-meal diet plan. Share them as PDFs and ask for feedback |
+| **05** | **Build presence** | Packages and Posts each open a list; adding is its own screen                                            |
 
-Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS later) · API via `EXPO_PUBLIC_API_BASE_URL` (photos & PDFs on the same host)
+The mobile app for [mera-coach.com][website]. Android first, iOS later.
 
 ---
 
-## Product showcase
-
-### Discover
+## Take a look
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="docs/screenshots/explore.png" width="340" alt="Explore — coaching categories, features, and a BMI check" />
+      <img src=".github/readme/home.jpg" width="340" alt="Home: Grow Your Coaching Business, with Dashboard and Find a Coach" />
       <br />
-      <sub><b>Explore</b><br />Second home page — banner, categories, features, Check Your BMI</sub>
+      <sub><b>Home</b><br />The first screen: sign in or find a coach</sub>
     </td>
     <td align="center" width="50%">
-      <img src="docs/screenshots/find-coach.png" width="340" alt="Find Your Coach — search, city and rating filters, and coach result cards" />
+      <img src=".github/readme/add-client.jpg" width="340" alt="Add Client: photo, name, mobile and body stats" />
       <br />
-      <sub><b>Find a Coach</b><br />Search, city, and rating. Circle pages stay up even on one page</sub>
+      <sub><b>Add client</b><br />The first step of the assessment</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src=".github/readme/client-detail.jpg" width="340" alt="Client profile with body metrics and the checkup, BMI report, diet plan and feedback actions" />
+      <br />
+      <sub><b>Client profile</b><br />Metrics, and everything you can do for this client</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src=".github/readme/bmi-report.jpg" width="340" alt="BMI report with the BMI gauge and progress to target" />
+      <br />
+      <sub><b>BMI report</b><br />An assessment made shareable as a PDF</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src=".github/readme/posts.jpg" width="340" alt="Posts: gallery photos, workshops and success stories with an Add post button" />
+      <br />
+      <sub><b>Posts</b><br />Gallery, workshops and success stories for your public page</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src=".github/readme/profile.jpg" width="340" alt="Profile with cover photo, stats and share profile" />
+      <br />
+      <sub><b>Profile</b><br />Your public page, ready to share</sub>
     </td>
   </tr>
 </table>
 
-### Manage
-
-<div align="center">
-  <img src="docs/screenshots/client-detail.png" width="360" alt="Client detail with body metrics, goals, and checkup, BMI, diet, and feedback actions" />
-  <br />
-  <sub><b>Client detail</b><br />One client — metrics, goals, next actions</sub>
-</div>
-
-### Deliver
-
-<div align="center">
-  <img src="docs/screenshots/bmi-report.png" width="360" alt="BMI report with body composition summary, goal progress, history, and PDF download" />
-  <br />
-  <sub><b>BMI report</b><br />Assessment made shareable — composition, history, PDF</sub>
-</div>
-
-### Build presence
-
-<div align="center">
-  <img src="docs/screenshots/profile.png" width="360" alt="Profile — coach summary, with Packages and Gallery & Events" />
-  <br />
-  <sub><b>Profile</b><br />Account hub. Packages and Gallery & Events each start as a list</sub>
-</div>
-
-<p align="center"><sub>iOS Simulator · light mode</sub></p>
+<p align="center"><sub>iOS Simulator · light mode · the clients shown are sample data</sub></p>
 
 ---
 
 ## How it works
 
-1. **Explore & find** — Open the app as a visitor. Home is two pages: a marketing hero (Get Started, Find a Coach), then explore — banner, coach categories from the API, features, and Check Your BMI. Find a Coach filters by search, city, and rating.
-2. **Reach out** — Send an enquiry from a coach’s public page, or a BMI lead from Check Your BMI. Open WhatsApp when a mobile number is available. The profile shows one photo; side arrows move between coaches in the browse list.
-3. **Coach sign-in** — Register or log in. On return, unlock with MPIN. Land on Dashboard.
-4. **Run the practice** — Signed-in tabs are Dashboard, Packages, Events, and Profile. Dashboard tracks clients, enquiry leads, and due checkups. Add a client to start an assessment.
-5. **Assess & deliver** — Body stats → lifestyle → goals → BMI → multi-meal diet. Share BMI and diet PDFs. Ask for feedback via SMS (links to the site).
-6. **Shape the listing** — Packages and Gallery & Events open a list first. Adding is a separate screen with a back button. A package picks a product master and products from the database and the coach sets each price and the total. The product picker can be filtered by category, and a product's suggested price pre-fills. A switch on each package card shows or hides it on the public profile. A post picks one of three categories from the database (Gallery, Workshop & Event, Client Success), adds a photo or video, and is saved to the API; Client Success also needs a client and consent. Gallery photos carry a short tag.
+1. **Explore and find** — Open the app as a visitor. Home is a marketing hero, then explore: a banner, coach categories from the API, features, and Check Your BMI. Find a Coach filters by search, city and rating.
+2. **Reach out** — Send an enquiry from a coach's public page, or a BMI lead from Check Your BMI. Open WhatsApp when a mobile number is available. Side arrows on a profile move between coaches in the browse list.
+3. **Coach sign-in** — Register, or sign in with your login id and password, and land on the Dashboard.
+4. **Run the practice** — The signed-in tabs are Dashboard, Packages, Posts and Profile. The Dashboard tracks clients, enquiry leads and due checkups. Add a client to start an assessment.
+5. **Assess and deliver** — Body stats, lifestyle, goals, BMI, then a multi-meal diet. Share the BMI report and diet plan as PDFs. Ask for feedback by SMS; the link opens the website.
+6. **Shape the listing** — Packages and Posts open a list first. A package picks a product brand and products from the database; the coach sets each price and the total, and a switch shows or hides it on the public profile. A post picks a category (Gallery, Workshop & Event or Client Success), adds a photo or video, and is saved to the API. Client Success also needs a client and consent. Videos play inside the app.
 
 ---
 
 ## Features
 
-| Area                      | What you get                                                                                                                                                |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery**             | Two-page public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                                    |
-| **Practice hub**          | Tabs: Dashboard, Packages, Events (Gallery & Events), Profile · clients, leads, checkups due                                                                |
-| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download & share · feedback SMS                                                    |
-| **Public presence**       | One coach photo, arrows through the browse list · packages, gallery, events and success stories as sections · enquiry & BMI leads · WhatsApp when available |
-| **Account**               | Coach register / login · MPIN · password change · privacy & terms · support via `hello@mera-coach.com`                                                      |
+| Area                      | What you get                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery**             | Public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                       |
+| **Practice hub**          | Dashboard, Packages, Posts and Profile tabs · clients, leads, due checkups · tips video carousel                                      |
+| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download and share · feedback SMS                            |
+| **Public presence**       | One coach photo and arrows through the browse list · packages, gallery, events and success stories · enquiry and BMI leads · WhatsApp |
+| **Account**               | Register and sign in · password change · privacy and terms · in-app update prompt · support at `hello@mera-coach.com`                 |
 
 ---
 
-## Why Mera Coach
+## Plans and the client limit
 
-- **Discovery and delivery share one product** — visitors browse; coaches work the same app after sign-in.
-- **Assessment that finishes the job** — body stats through BMI and diet, with PDFs coaches can share.
-- **A listing that brings work in** — Packages and Gallery & Events are lists you add to; enquiries and WhatsApp close the loop.
-- **Thoughtful mobile UX** — Montserrat headings, Poppins body text, teal, terracotta, and mint, wave header on in-app screens (Dashboard uses its own header)
+One switch, `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED`, decides how the app treats subscriptions:
+
+| Setting                             | What coaches see                                                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Off** (`no`, `false`, `0`, unset) | No subscription, validity or payment screens. Every coach can add up to **10 clients**; at 10 the app explains the limit and offers support |
+| **On** (`yes`, `true`, `1`)         | The paid flow: validity shown, Pay Now opens the website checkout, and unpaid coaches cannot add clients                                    |
+
+The 10-client limit is checked in the app only; the API does not enforce it. Whether the app may send a coach to the website to pay is a separate switch, `EXPO_PUBLIC_EXTERNAL_PAYMENT_PLATFORMS` (see below). Store billing rules differ by platform, so check them before you turn payments on.
 
 ---
 
@@ -131,51 +128,38 @@ Mobile app for [mera-coach.com][website] · Expo · Android releases now (iOS la
 | Accent    | `accent`     | `#e8a317` |
 | Surface   | `background` | `#f5f7f5` |
 
-Primary is terracotta, secondary is teal, and the surface is mint. Those names and the hex values are `Colors` in `src/constants/theme.ts`.
+Primary is terracotta, secondary is teal and the surface is mint. The names and values are `Colors` in `src/constants/theme.ts`.
 
-**Type** — Montserrat headings (`headingFont`) · Poppins body text (`bodyFont`)
-
-**Chrome** — In-app screens use the wave header: back when the screen is pushed, title, and home. Tab roots (Packages, Events, Profile) have title and home, no back. Dashboard does not use the wave header.
-
-**Lists** — Find a Coach uses a circle page control and keeps it visible even on one page. Client, lead, checkup, event, and package lists use a square page control.
-
-**System** — Shared components (`AppButton`, `EmptyState`, `ReloadState`, `StickyFooter`, `WaveScreenHeader`) · 44pt touch targets · empty / error / reload states · sticky footers for primary CTAs · accessibility labels on interactive controls
-
-**Tokens** — `src/constants/theme.ts` · light UI only (`userInterfaceStyle: light`)
+- **Type:** Montserrat headings, Poppins body text.
+- **Chrome:** in-app screens use a wave header with back, title and home. Tab roots have a title and home but no back. The Dashboard has its own header.
+- **Lists:** Find a Coach uses a circle page control, kept visible even on one page. Client, lead, checkup, event and package lists use a square page control.
+- **System:** shared components (`AppButton`, `EmptyState`, `ReloadState`, `StickyFooter`, `WaveScreenHeader`), 44pt touch targets, empty, error and reload states, sticky footers for main actions and accessibility labels on interactive controls. Light UI only.
 
 ---
 
-## Download Mera Coach
+## Download
 
 | Channel                         | What you get                                                                                               |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **[GitHub Releases][releases]** | Android **APK** after a tag `vX.Y.Z` and a successful [Release][workflow-release] run — none published yet |
-| **iOS**                         | Not distributed yet (Apple Developer account required). Simulator / Expo Go still work for development     |
-| Google Play                     | Not linked here yet — use `eas submit --platform android` when a Play listing is ready                     |
+| **[GitHub Releases][releases]** | An Android **APK**, attached after a tag `vX.Y.Z` and a successful [Release][workflow-release] run         |
+| **Google Play**                 | Internal testing track today. Use `bun run ship:android` to send a build there (see Releasing)             |
+| **iOS**                         | Not distributed yet (an Apple Developer account is needed). The simulator and Expo Go work for development |
 
-Prefer Releases APK assets or the official Play listing once published. No fabricated store URLs.
-
-<div align="center">
-
-[![Android APK via Releases][badge-apk]][releases]
-
-</div>
+A sideloaded APK does not get the in-app update prompt. Only installs from Google Play do.
 
 ---
 
 ## Tech
 
-| Layer      | Choice                                                      |
-| ---------- | ----------------------------------------------------------- |
-| App        | Expo 57 · React Native 0.86 · React 19 · TypeScript         |
-| Navigation | React Navigation (native stack + bottom tabs)               |
-| Data       | TanStack Query · typed API modules under `src/api/`         |
-| Session    | `expo-secure-store`                                         |
-| Media      | Image picker · document upload · PDF share (`expo-sharing`) |
-| Build      | EAS Build · Bun                                             |
-| Quality    | ESLint · Prettier · Jest (`jest-expo`)                      |
-
-### Architecture
+| Layer      | Choice                                                    |
+| ---------- | --------------------------------------------------------- |
+| App        | Expo 57 · React Native 0.86 · React 19 · TypeScript       |
+| Navigation | React Navigation (native stack and bottom tabs)           |
+| Data       | TanStack Query · typed API modules under `src/api/`       |
+| Session    | `expo-secure-store`                                       |
+| Media      | Image picker · document upload · PDF share · in-app video |
+| Build      | EAS Build · Bun                                           |
+| Quality    | ESLint · Prettier · Jest (`jest-expo`)                    |
 
 ```mermaid
 flowchart LR
@@ -188,9 +172,9 @@ flowchart LR
     PublicPage --> Leads[Enquiry / BMI lead]
   end
   subgraph coaches [Coaches]
-    Auth[Login / Register / MPIN] --> Tabs["Dashboard · Packages · Events · Profile"]
+    Auth[Login / Register] --> Tabs["Dashboard · Packages · Posts · Profile"]
     Tabs --> Clients
-    Tabs --> Listing["Packages · Gallery & Events lists"]
+    Tabs --> Listing["Packages · Posts lists"]
     Clients --> Assess[Assessment · BMI · Diet · PDF]
   end
   App[Mera Coach app] --> API["REST API + /document"]
@@ -203,13 +187,16 @@ flowchart LR
 
 ```
 src/
-  api/           HTTP client & domain APIs
+  api/           HTTP client and one module per feature
   auth/          Session (SecureStore)
   components/    Shared UI
-  navigation/    Root stack + tabs (Dashboard, Packages, Events, Profile)
+  config/        Environment-driven settings and flags
+  navigation/    Root stack and tabs
   screens/       home, auth, dashboard, clients, checkups, profile, publicCoach, addClient
+  utils/         Formatting, validation, sharing helpers
 assets/brand/    Logo mark, wordmark, full lockup
-docs/            RELEASING.md · screenshots/
+.github/         CI and release workflows, PR template, README images
+scripts/         release.sh, ship-android.sh
 ```
 
 </details>
@@ -218,46 +205,40 @@ docs/            RELEASING.md · screenshots/
 
 ## Quick start
 
-**Need:** Bun (or Node 20+) · Expo Go or iOS / Android simulator
+**Need:** Bun (or Node 20+), and Expo Go or an iOS / Android simulator. The Mera Coach API must be reachable from your phone or simulator.
 
 ```bash
 git clone https://github.com/Khushal-ag/mera-coach-mobile.git
 cd mera-coach-mobile
 bun install
 cp .env.example .env   # set EXPO_PUBLIC_API_BASE_URL
-bun start              # then i / a / Expo Go QR
+bun start              # then i / a / scan the Expo Go QR
 ```
 
-| Variable                            | Required | Purpose                                                                                            |
-| ----------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `EXPO_PUBLIC_API_BASE_URL`          | Yes      | REST + `/document` media                                                                           |
-| `EXPO_PUBLIC_WEB_BASE_URL`          | No       | Feedback SMS site (default `https://mera-coach.com`)                                               |
-| `EXPO_PUBLIC_PAYMENT_URL`           | No       | Pay Now checkout (default `{WEB_BASE_URL}/premium`)                                                |
-| `EXPO_PUBLIC_PRIVACY_POLICY_URL`    | No       | Store listing privacy URL                                                                          |
-| `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED` | No       | `yes`, `true`, or `1` blocks unpaid coaches from Add Client. Off for `no`, `false`, `0`, or unset. |
+| Variable                                 | Required | Purpose                                                                                                         |
+| ---------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_BASE_URL`               | Yes      | API origin. Photos, videos and PDFs come from the same host. Must not be localhost for store or GitHub builds   |
+| `EXPO_PUBLIC_WEB_BASE_URL`               | No       | Website used for feedback SMS links (default `https://mera-coach.com`)                                          |
+| `EXPO_PUBLIC_PAYMENT_URL`                | No       | Pay Now checkout (default `{WEB_BASE_URL}/premium`; the coach id is added)                                      |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL`         | No       | Hosted privacy policy for store listings (default `{WEB_BASE_URL}/privacy`)                                     |
+| `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED`      | No       | The plans switch described above                                                                                |
+| `EXPO_PUBLIC_EXTERNAL_PAYMENT_PLATFORMS` | No       | Platforms that may open the website to pay: `ios`, `android`, `ios,android` or `none`. Blank means Android only |
+| `EXPO_PUBLIC_YOUTUBE_CHANNEL_ID`         | No       | Channel whose videos fill the Dashboard tips carousel                                                           |
 
-Never commit real `.env` values. Support: `hello@mera-coach.com`
+Never commit real `.env` values. Everything prefixed `EXPO_PUBLIC_` is readable from the built app, so it must never hold a secret.
 
-<details>
-<summary><b>Scripts</b></summary>
-
-| Command                                           | Description     |
-| ------------------------------------------------- | --------------- |
-| `bun start`                                       | Expo dev server |
-| `bun run ios` / `bun run android`                 | Native run      |
-| `bun run typecheck` · `bun run lint` · `bun test` | CI checks       |
-| `bun run fmt`                                     | Prettier        |
-| `bun run doctor`                                  | `expo-doctor`   |
-
-</details>
-
----
+| Command                                           | Description           |
+| ------------------------------------------------- | --------------------- |
+| `bun start`                                       | Expo dev server       |
+| `bun run ios` · `bun run android`                 | Native run            |
+| `bun run typecheck` · `bun run lint` · `bun test` | The checks CI runs    |
+| `bun run fmt` · `bun run fmt:check`               | Prettier              |
+| `bun run doctor`                                  | `expo-doctor`         |
+| `bun run ship:android` · `bun run release`        | Releasing (see below) |
 
 ### Native builds
 
-**Opening the app from a link.** `app.json` declares an Android App Link for `https://www.mera-coach.com/coach-login`, so the "Login to Mera Coach" button in the welcome email opens the app when it is installed and the website otherwise. It only works once the website serves `/.well-known/assetlinks.json` with the Play app-signing fingerprint (`ANDROID_APP_SHA256_FINGERPRINTS` on the website) and the app has been released with this change. iOS needs Universal Links, which need an Apple Developer account, so iOS is not set up yet.
-
-The app id is `com.henchsolutions.meracoach` on iOS and Android (`app.json`). `ios/` and `android/` are generated and git-ignored; regenerate with `npx expo prebuild --clean`.
+The app id is `com.henchsolutions.meracoach` on iOS and Android. `ios/` and `android/` are generated and git-ignored; regenerate them with `npx expo prebuild --clean`.
 
 ```bash
 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo run:ios --device "<simulator name>"
@@ -267,33 +248,89 @@ LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo run:ios --device "<simulator name>"
 - `ios/.xcode.env.local` should use `NODE_BINARY=/opt/homebrew/bin/node`, not a versioned Cellar path that breaks when node is upgraded.
 - Expo SDK 57 apps do not use the UIScene lifecycle, so they crash on launch on an iOS 27 simulator. Use an iOS 26.x simulator until the project moves to Expo SDK 58.
 - Picking a video for a post needs a native build that includes `expo-file-system`.
+- **Opening the app from a link:** `app.json` declares an Android App Link for `https://www.mera-coach.com/coach-login`, so the welcome email's "Login to Mera Coach" button opens the app when it is installed. It works once the website serves `/.well-known/assetlinks.json` with the Play app-signing fingerprint and the app has been released with this change. iOS would need Universal Links, which need an Apple Developer account.
 
-## Releases
+---
+
+## Releasing
+
+The app version lives in three places and they must match for every public release:
+
+| Location       | Field          | Example  |
+| -------------- | -------------- | -------- |
+| `package.json` | `version`      | `1.0.5`  |
+| `app.json`     | `expo.version` | `1.0.5`  |
+| Git tag        | `vX.Y.Z`       | `v1.0.5` |
+
+Use semver: **major** for breaking changes to what coaches rely on, **minor** for new features, **patch** for fixes and polish. Android `versionCode` is raised by EAS on every cloud build (`autoIncrement` with a remote app version source).
+
+### To Google Play (internal testing)
+
+```bash
+bun run ship:android            # build and send the current version
+bun run ship:android 1.0.6      # bump package.json and app.json to 1.0.6 first
+```
+
+This runs `eas build --platform android --profile production --auto-submit`. EAS builds the bundle and uploads it to the track set in `eas.json`, which is fixed to `internal`, so this command cannot reach production by accident. Commit the version bump afterwards. To promote a tested build, use **Promote release** in Play Console.
+
+<details>
+<summary><b>One-time setup: let EAS upload to Play</b></summary>
+
+1. Google Cloud Console: create or pick a project and enable the **Google Play Android Developer API**.
+2. IAM & Admin, Service accounts: create a service account, then add a JSON key and download it.
+3. Play Console, **Users and permissions**: invite the service account email with **Release to testing tracks** for Mera Coach. Play can take up to a day to activate it.
+4. Upload the key to EAS once so it never lives in the repo: `bunx eas-cli credentials`, then Android, production, **Google Service Account**, **Manage your Google Service Account Key for Play Store Submissions**. Delete the local copy afterwards.
+
+If the first run says the service account has no access, wait and retry. The very first upload of a new app cannot be automated; this app already has one.
+
+</details>
+
+### GitHub Release APK
 
 Production path: **tag `vX.Y.Z` → CI checks → EAS Android APK → GitHub Release**.
 
-- Version rule: `package.json` = `app.json` `expo.version` = tag `vX.Y.Z`
-- Android: `production-apk` → APK on the GitHub Release
-- iOS distribution: deferred until an Apple Developer account exists
-- Full guide: [`docs/RELEASING.md`][doc-releasing]
-
-<details>
-<summary><b>EAS builds (local)</b></summary>
-
 ```bash
-eas login
-eas build --profile preview --platform android        # internal APK
-eas build --profile production --platform android     # store AAB
-eas build --profile production-apk --platform android # GitHub APK
+bun run release                          # versions match on a clean, pushed main: tags and pushes
+./scripts/release.sh --bump X.Y.Z        # bump, commit, push main and tag
 ```
 
-</details>
+The script checks that `package.json` and `app.json` agree, creates the annotated tag and pushes it, which starts the [Release][workflow-release] workflow: it re-runs typecheck, lint and tests, builds the APK with the `production-apk` profile and attaches it to the Release. Running the workflow by hand needs a tag that already exists; it never creates tags.
+
+| Needed                 | Where                             | Purpose                                                       |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------- |
+| `EXPO_TOKEN` secret    | GitHub Actions                    | Lets CI run EAS builds. Create it at expo.dev → Access tokens |
+| `EXPO_PUBLIC_*` values | The Expo project's production env | Build-time settings. Keep them out of the repo                |
+| Android keystore       | EAS credentials                   | Signs the app                                                 |
+
+| EAS profile      | Purpose                                                        |
+| ---------------- | -------------------------------------------------------------- |
+| `development`    | Dev client, internal                                           |
+| `preview`        | Internal channel, Android APK                                  |
+| `production`     | Store builds (Android AAB)                                     |
+| `production-apk` | `production` with an Android APK, for GitHub Release downloads |
+
+Store submit by hand after an EAS build: `eas submit --platform android --profile production`. It needs a Play listing (privacy URL, screenshots, content rating). iOS submit waits for an Apple Developer account.
+
+### In-app update prompt
+
+Profile shows an "Update available" card, and a dot on the Profile tab, when the store has a newer version. It uses `expo-in-app-updates`:
+
+- **Android:** Google Play's own update overlay. It only answers for installs that came from Google Play, so it never appears on sideloaded APKs, on emulators without Google Play, or for a version code that is already installed.
+- **iOS:** looks the app up in the App Store. Set `ios.infoPlist.AppStoreID` in `app.json` once the listing exists.
+- Publishing a new version to the store is all it needs. Nothing to configure in the API.
+- The card also shows "Update ready, Restart now" when an over-the-air JavaScript update has been downloaded (`expo-updates`, production channel).
+
+`expo-in-app-updates` is a native module, so the first build that contains it must be a new store build with a bumped version. Because `runtimeVersion` follows the app version, never publish an OTA update from new code to installs of an older version. The app loads the module defensively, so an older build without it keeps working and just never shows the card.
+
+To test: install a build that has it from the Play link, upload a newer build to the same track, then open Profile. Play can take minutes to hours to tell the phone; opening the Play Store app and pulling to refresh can speed it up.
 
 ---
 
 ## Contributing
 
-See [`CONTRIBUTING.md`][doc-contributing]. Keep PRs focused; run typecheck, lint, and tests before opening.
+1. Keep changes focused. Avoid unrelated refactors.
+2. Run `bun run typecheck`, `bun run lint` and `bun test` before opening a pull request, and fill in the PR template.
+3. Do not commit `.env`, keystores or real credentials.
 
 ---
 
@@ -311,45 +348,14 @@ MIT — see [`LICENSE`][doc-license].
 
 </div>
 
-<!-- Link & asset references -->
-
-<!-- Brand / logos (hero/footer use HTML <img width/height>; refs kept for reuse) -->
-
-[logo-full]: assets/brand/logo-full.png
-[logo-mark]: assets/brand/logo-mark.png
-
-<!-- Screenshots (paths; showcase uses HTML <img width> for sizing on GitHub) -->
-
-[shot-explore]: docs/screenshots/explore.png
-[shot-find-coach]: docs/screenshots/find-coach.png
-[shot-dashboard]: docs/screenshots/dashboard.png
-[shot-client-detail]: docs/screenshots/client-detail.png
-[shot-bmi-report]: docs/screenshots/bmi-report.png
-[shot-profile]: docs/screenshots/profile.png
-
-<!-- Product / web -->
+<!-- Links -->
 
 [website]: https://mera-coach.com
-
-<!-- Badges -->
-
-[badge-latest-release]: https://img.shields.io/badge/Latest_Release-Download-1b4332?style=for-the-badge
-[badge-website]: https://img.shields.io/badge/Website-mera--coach.com-c04b2b?style=for-the-badge
-[badge-releases]: https://img.shields.io/badge/Releases-All_builds-c9882a?style=for-the-badge
 [badge-ci]: https://github.com/Khushal-ag/mera-coach-mobile/actions/workflows/ci.yml/badge.svg
 [badge-release-version]: https://img.shields.io/github/v/release/Khushal-ag/mera-coach-mobile?include_prereleases&label=release
 [badge-platforms]: https://img.shields.io/badge/Android-lightgrey
-[badge-apk]: https://img.shields.io/badge/Android_APK-via_GitHub_Releases-1b4332?style=for-the-badge
-
-<!-- GitHub (repo, releases, issues, actions) -->
-
-[release-latest]: https://github.com/Khushal-ag/mera-coach-mobile/releases/latest
+[badge-website]: https://img.shields.io/badge/Website-mera--coach.com-c04b2b
 [releases]: https://github.com/Khushal-ag/mera-coach-mobile/releases
 [actions-ci]: https://github.com/Khushal-ag/mera-coach-mobile/actions/workflows/ci.yml
-
-<!-- Docs -->
-
 [workflow-release]: .github/workflows/release.yml
-[doc-releasing]: docs/RELEASING.md
-[doc-contributing]: CONTRIBUTING.md
 [doc-license]: LICENSE

@@ -66,9 +66,6 @@ export const WAVE_HEADER_BITMAP = { width: 859, height: 387 } as const;
  */
 export const WAVE_HEADER_FRAME = { x: 3, y: 46, width: 851, height: 308 } as const;
 
-/** Width / height of the on-screen wave (WAVE_HEADER_FRAME). */
-export const WAVE_HEADER_ASPECT = WAVE_HEADER_FRAME.width / WAVE_HEADER_FRAME.height;
-
 /** Width / height of BrandImages.tipsCoach (779×479). */
 export const TIPS_COACH_ASPECT = 779 / 479;
 

@@ -26,7 +26,7 @@ export async function uploadDocument(params: UploadDocumentParams): Promise<stri
 /** Like uploadDocument, plus docId when the API includes it (progress-photo uploads). */
 async function uploadDocumentWithMeta(params: UploadDocumentParams): Promise<UploadDocumentResult> {
   const data = await apiPost<{ url?: string; docId?: number } | string>(
-    '/v{version}/Document/upload',
+    '/Document/upload',
     params,
     { timeoutMs: UPLOAD_TIMEOUT_MS },
   );
@@ -72,7 +72,7 @@ function normalizeDocId(raw: unknown): number {
 }
 
 export async function listDocuments(params: ListDocumentsParams): Promise<DocumentListItem[]> {
-  const data = await apiGet<DocumentListRaw[] | null>('/v{version}/Document/list', {
+  const data = await apiGet<DocumentListRaw[] | null>('/Document/list', {
     coachCode: params.coachCode,
     refCode: params.refCode,
     refType: params.refType,
@@ -106,5 +106,5 @@ export async function deleteDocument(params: DeleteDocumentParams): Promise<void
     throw new ApiError('Cannot delete photo: missing coach code.', 0);
   }
   // Soft-deletes the DB row even when the file is already missing (404).
-  await apiPost('/v{version}/Document/delete', { docId, coachCode });
+  await apiPost('/Document/delete', { docId, coachCode });
 }

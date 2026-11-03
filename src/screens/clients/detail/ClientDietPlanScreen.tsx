@@ -14,6 +14,7 @@ import {
   dietPlanPdfQuery,
   downloadAndSharePdf,
   PDF_GENERATE_FAILED_MESSAGE,
+  PDF_PATH,
 } from '../../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
 import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
@@ -61,7 +62,7 @@ export default function ClientDietPlanScreen({
     setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
-        '/v{version}/Client/diet-plan-pdf',
+        PDF_PATH.dietPlan,
         dietPlanPdfQuery({ coachCode, clientCode }),
         'diet-plan.pdf',
       );

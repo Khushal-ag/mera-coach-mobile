@@ -56,7 +56,6 @@ export type ProfileStackParamList = {
   ProfileHome: undefined;
   EditProfile: undefined;
   ChangePassword: undefined;
-  ChangeMpin: undefined;
   Legal: undefined;
   Leads: undefined;
   Reviews: undefined;
@@ -86,8 +85,6 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
-  MpinSetup: undefined;
-  MpinUnlock: undefined;
 };
 
 export type RootScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<

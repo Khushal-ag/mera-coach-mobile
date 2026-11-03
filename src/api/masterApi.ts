@@ -19,10 +19,9 @@ export async function fetchMasterItems(
   query: Record<string, string>,
   signal?: AbortSignal,
 ): Promise<RawMasterOption[]> {
-  const items = await apiFetch<RawMasterOption[]>(
-    withQuery('/v{version}/Master/GetMasterItem', query),
-    { signal },
-  );
+  const items = await apiFetch<RawMasterOption[]>(withQuery('/Master/GetMasterItem', query), {
+    signal,
+  });
   return items || [];
 }
 
@@ -45,7 +44,7 @@ export async function getLocationByPin(
   countryCode: string,
   pinCode: string,
 ): Promise<LocationByPin | null> {
-  return apiGet<LocationByPin | null>('/v{version}/Master/GetLocationByPin', {
+  return apiGet<LocationByPin | null>('/Master/GetLocationByPin', {
     countryCode,
     pinCode,
   });
@@ -62,12 +61,12 @@ export interface FoodMasterItem {
 export type FoodMaster = Record<string, FoodMasterItem[]>;
 
 export async function getFoodMaster(country: string, region: string): Promise<FoodMaster> {
-  const data = await apiGet<FoodMaster>('/v{version}/Master/food-master', { country, region });
+  const data = await apiGet<FoodMaster>('/Master/food-master', { country, region });
   return data ?? {};
 }
 
 export async function getFoodCalories(foodName: string, qty = 1): Promise<number> {
-  const data = await apiPost<{ cal?: number }>('/v{version}/Master/food-calories', {
+  const data = await apiPost<{ cal?: number }>('/Master/food-calories', {
     foodName,
     qty,
   });
@@ -117,6 +116,6 @@ export interface GenerateDietPlanParams {
 }
 
 export async function generateDietPlan(params: GenerateDietPlanParams): Promise<GeneratedDietPlan> {
-  const raw = await apiPost<unknown>('/v{version}/Master/generate-diet-plan', params);
+  const raw = await apiPost<unknown>('/Master/generate-diet-plan', params);
   return normalizeGeneratedDietPlan(raw);
 }

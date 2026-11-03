@@ -1,4 +1,5 @@
 import { apiGet } from './client';
+import { num, text } from './parse';
 
 export interface ReviewSummary {
   reviewCount: number;
@@ -36,15 +37,6 @@ export interface ReviewsPage {
 }
 
 const REVIEWS_PAGE_SIZE = 10;
-
-function num(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function text(value: unknown): string {
-  return typeof value === 'string' ? value : value == null ? '' : String(value);
-}
 
 function mapReviews(raw: unknown): ReviewsPage {
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -84,7 +76,7 @@ function mapReviews(raw: unknown): ReviewsPage {
 
 /** A coach's public reviews: each client's latest feedback, first names only. */
 export async function getCoachReviews(coachCode: string, page = 1): Promise<ReviewsPage> {
-  const raw = await apiGet<unknown>('/v{version}/Coach/reviews', {
+  const raw = await apiGet<unknown>('/Coach/reviews', {
     coachCode,
     page,
     pageSize: REVIEWS_PAGE_SIZE,
@@ -96,7 +88,7 @@ export async function getCoachReviews(coachCode: string, page = 1): Promise<Revi
 export async function getMyReviews(
   options: { clientCode?: string; page?: number } = {},
 ): Promise<ReviewsPage> {
-  const raw = await apiGet<unknown>('/v{version}/Coach/my-reviews', {
+  const raw = await apiGet<unknown>('/Coach/my-reviews', {
     clientCode: options.clientCode,
     page: options.page ?? 1,
     pageSize: REVIEWS_PAGE_SIZE,

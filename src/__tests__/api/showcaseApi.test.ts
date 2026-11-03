@@ -58,7 +58,7 @@ describe('masters', () => {
       { itemCode: 'Y1', itemName: 'Vestige Shake - 500 g', price: 666 },
     ]);
     const items = await getProductItems('HERBALIFE');
-    expect(mGet).toHaveBeenCalledWith('/v{version}/Showcase/products', { brandCode: 'HERBALIFE' });
+    expect(mGet).toHaveBeenCalledWith('/Showcase/products', { brandCode: 'HERBALIFE' });
     expect(items).toEqual([
       {
         code: '082K',
@@ -116,19 +116,19 @@ describe('packages', () => {
       items: [{ itemCode: 'HL_AFRESH', itemName: 'Afresh', amount: 500 }],
     };
     await savePackage(input);
-    expect(mPost).toHaveBeenCalledWith('/v{version}/Showcase/packages', input);
+    expect(mPost).toHaveBeenCalledWith('/Showcase/packages', input);
   });
 
   it('switches a package on or off', async () => {
     await setPackageActive(7, false);
-    expect(mPost).toHaveBeenCalledWith('/v{version}/Showcase/packages/7/active', {
+    expect(mPost).toHaveBeenCalledWith('/Showcase/packages/7/active', {
       isActive: false,
     });
   });
 
   it('deletes with DELETE', async () => {
     await deletePackage(7);
-    expect(mFetch).toHaveBeenCalledWith('/v{version}/Showcase/packages/7', { method: 'DELETE' });
+    expect(mFetch).toHaveBeenCalledWith('/Showcase/packages/7', { method: 'DELETE' });
   });
 });
 
@@ -151,7 +151,7 @@ describe('posts', () => {
 
   it('deletes with DELETE', async () => {
     await deletePost(3);
-    expect(mFetch).toHaveBeenCalledWith('/v{version}/Showcase/posts/3', { method: 'DELETE' });
+    expect(mFetch).toHaveBeenCalledWith('/Showcase/posts/3', { method: 'DELETE' });
   });
 });
 
@@ -167,7 +167,7 @@ describe('public showcase', () => {
       posts: [{ postId: 2, title: 'T', clientName: 'Priya', mediaType: 'image' }],
     });
     const showcase = await getPublicShowcase('rvxdcp');
-    expect(mGet).toHaveBeenCalledWith('/v{version}/Showcase/public', { coachCode: 'rvxdcp' });
+    expect(mGet).toHaveBeenCalledWith('/Showcase/public', { coachCode: 'rvxdcp' });
     expect(showcase.packages[0]).toMatchObject({ packageName: 'P', isActive: true });
     expect(showcase.posts[0]).toMatchObject({ clientName: 'Priya' });
   });

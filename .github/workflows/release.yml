@@ -233,7 +233,7 @@ jobs:
             echo "### Notes"
             echo ""
             echo "- API base URL and related \`EXPO_PUBLIC_*\` values are baked at EAS build time."
-            echo "- See \`docs/RELEASING.md\` in the repository for versioning and secrets."
+            echo "- See the Releasing section of \`README.md\` in the repository for versioning and secrets."
             echo ""
             if git describe --tags --abbrev=0 "${TAG}^" >/dev/null 2>&1; then
               PREV="$(git describe --tags --abbrev=0 "${TAG}^")"

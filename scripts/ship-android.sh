@@ -4,7 +4,7 @@
 #   bun run ship:android            # ship the current version (EAS raises the versionCode)
 #   bun run ship:android 1.0.2      # bump package.json + app.json to 1.0.2 first
 # Needs: `bunx eas-cli login` once, and the Google Play service account key uploaded to EAS
-# (see docs/RELEASING.md, "One command to Play").
+# (see the "Releasing" section of README.md).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

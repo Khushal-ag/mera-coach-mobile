@@ -1,5 +1,6 @@
 import { apiFetch, apiGet, apiPost } from './client';
 import { fetchMasterItems } from './masterApi';
+import { num, text } from './parse';
 
 export interface PackageItem {
   itemCode?: string | null;
@@ -97,15 +98,6 @@ export const POST_DESCRIPTION_MAX = 1000;
 export const POST_LOCATION_MAX = 200;
 export const PACKAGE_NAME_MAX = 100;
 
-function num(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function text(value: unknown): string {
-  return typeof value === 'string' ? value : value == null ? '' : String(value);
-}
-
 function mapPackage(raw: unknown): ShowcasePackage {
   const r = (raw ?? {}) as Record<string, unknown>;
   const items = Array.isArray(r.items) ? r.items : [];
@@ -164,7 +156,7 @@ export async function getProductBrands(): Promise<MasterChoice[]> {
 
 export async function getProductItems(brandCode: string): Promise<MasterChoice[]> {
   if (!brandCode) return [];
-  const rows = await apiGet<unknown[] | null>('/v{version}/Showcase/products', { brandCode });
+  const rows = await apiGet<unknown[] | null>('/Showcase/products', { brandCode });
   return (rows ?? []).map(raw => {
     const r = (raw ?? {}) as Record<string, unknown>;
     return {
@@ -180,39 +172,39 @@ export async function getProductItems(brandCode: string): Promise<MasterChoice[]
 // Coach's own packages and posts
 
 export async function getMyPackages(): Promise<ShowcasePackage[]> {
-  const rows = await apiGet<unknown[] | null>('/v{version}/Showcase/packages');
+  const rows = await apiGet<unknown[] | null>('/Showcase/packages');
   return (rows ?? []).map(mapPackage);
 }
 
 export async function savePackage(input: SavePackageInput): Promise<ShowcasePackage> {
-  return mapPackage(await apiPost<unknown>('/v{version}/Showcase/packages', input));
+  return mapPackage(await apiPost<unknown>('/Showcase/packages', input));
 }
 
 export async function setPackageActive(packageId: number, isActive: boolean): Promise<void> {
-  await apiPost(`/v{version}/Showcase/packages/${packageId}/active`, { isActive });
+  await apiPost(`/Showcase/packages/${packageId}/active`, { isActive });
 }
 
 export async function deletePackage(packageId: number): Promise<void> {
-  await apiFetch(`/v{version}/Showcase/packages/${packageId}`, { method: 'DELETE' });
+  await apiFetch(`/Showcase/packages/${packageId}`, { method: 'DELETE' });
 }
 
 export async function getMyPosts(): Promise<CoachPost[]> {
-  const rows = await apiGet<unknown[] | null>('/v{version}/Showcase/posts');
+  const rows = await apiGet<unknown[] | null>('/Showcase/posts');
   return (rows ?? []).map(mapPost);
 }
 
 export async function savePost(input: SavePostInput): Promise<CoachPost> {
-  return mapPost(await apiPost<unknown>('/v{version}/Showcase/posts', input));
+  return mapPost(await apiPost<unknown>('/Showcase/posts', input));
 }
 
 export async function deletePost(postId: number): Promise<void> {
-  await apiFetch(`/v{version}/Showcase/posts/${postId}`, { method: 'DELETE' });
+  await apiFetch(`/Showcase/posts/${postId}`, { method: 'DELETE' });
 }
 
 /** Packages and posts for a public coach page. */
 export async function getPublicShowcase(coachCode: string): Promise<Showcase> {
   if (!coachCode) return { packages: [], posts: [] };
-  const r = ((await apiGet<unknown>('/v{version}/Showcase/public', { coachCode })) ?? {}) as Record<
+  const r = ((await apiGet<unknown>('/Showcase/public', { coachCode })) ?? {}) as Record<
     string,
     unknown
   >;

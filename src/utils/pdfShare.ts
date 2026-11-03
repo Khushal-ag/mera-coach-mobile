@@ -42,8 +42,6 @@ function loadSharingModule(): SharingModule | null {
   }
 }
 
-const API_VERSION = '1';
-
 function apiBaseUrl(): string {
   const base = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (!base) throw new Error('API base URL is not configured.');
@@ -51,9 +49,14 @@ function apiBaseUrl(): string {
 }
 
 function buildApiUrl(path: string, query?: Record<string, string | undefined>): string {
-  const resolved = path.replace('{version}', API_VERSION);
-  return `${apiBaseUrl()}${query ? withQuery(resolved, query) : resolved}`;
+  return `${apiBaseUrl()}${query ? withQuery(path, query) : path}`;
 }
+
+/** API paths of the PDF reports. */
+export const PDF_PATH = {
+  bmiReport: '/Client/bmi-report-pdf',
+  dietPlan: '/Client/diet-plan-pdf',
+} as const;
 
 export function bmiReportPdfQuery(params: {
   coachCode: string;

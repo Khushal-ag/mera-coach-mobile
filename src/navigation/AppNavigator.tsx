@@ -12,9 +12,6 @@ import CoachPublicProfileScreen from '../screens/publicCoach/CoachPublicProfileS
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
-// MPIN flow commented out - login will happen using login id and pass only
-// import MpinSetupScreen from '../screens/auth/MpinSetupScreen';
-// import MpinUnlockScreen from '../screens/auth/MpinUnlockScreen';
 import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -40,24 +37,6 @@ export default function AppNavigator() {
   if (authStatus === 'loading' || !minSplashElapsed) {
     return <SplashScreen />;
   }
-
-  /* MPIN flow commented out - login will happen using login id and password only
-  if (authStatus === 'needsMpinUnlock') {
-    return (
-      <Stack.Navigator key="mpin-unlock" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="MpinUnlock" component={MpinUnlockScreen} />
-      </Stack.Navigator>
-    );
-  }
-
-  if (authStatus === 'needsMpinSetup') {
-    return (
-      <Stack.Navigator key="mpin-setup" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="MpinSetup" component={MpinSetupScreen} />
-      </Stack.Navigator>
-    );
-  }
-  */
 
   return (
     <Stack.Navigator key={authStatus} screenOptions={{ headerShown: false }}>

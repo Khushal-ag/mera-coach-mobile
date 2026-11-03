@@ -46,7 +46,7 @@ interface RegisterCoachParams {
 
 /** Credentials are emailed by the API — the app never reads the response body. */
 export async function registerCoach(params: RegisterCoachParams): Promise<void> {
-  await apiPost('/v{version}/Coach/save', params);
+  await apiPost('/Coach/save', params);
 }
 
 interface CoachPublicListParams {
@@ -151,7 +151,7 @@ export async function getCoachPublicList(
   signal?: AbortSignal,
 ): Promise<{ coaches: Coach[]; totalCount: number }> {
   const data = await apiFetch<CoachPublicListResponse | null>(
-    withQuery('/v{version}/Coach/public', {
+    withQuery('/Coach/public', {
       coachTypeCode: params.coachTypeCode || undefined,
       country: params.country || undefined,
       state: params.state || undefined,
@@ -191,7 +191,7 @@ export async function getCoachPublicCities(
   signal?: AbortSignal,
 ): Promise<string[]> {
   const data = await apiFetch<string[] | null>(
-    withQuery('/v{version}/Coach/public-cities', {
+    withQuery('/Coach/public-cities', {
       coachTypeCode: params.coachTypeCode || undefined,
       country: params.country || undefined,
       state: params.state || undefined,
@@ -201,19 +201,23 @@ export async function getCoachPublicCities(
   return (data ?? []).map(c => c.trim()).filter(Boolean);
 }
 
-export async function getCoachProfile(): Promise<Coach> {
-  const raw = await apiGet<RawPublicCoach | null>('/v{version}/Coach/profile');
+/** The signed-in coach's own profile as the API returns it. */
+async function fetchOwnProfile<T>(): Promise<T> {
+  const raw = await apiGet<T | null>('/Coach/profile');
   if (raw == null) {
     throw new ApiError('Coach profile not found.', 204);
   }
-  return mapPublicCoach(raw);
+  return raw;
+}
+
+export async function getCoachProfile(): Promise<Coach> {
+  return mapPublicCoach(await fetchOwnProfile<RawPublicCoach>());
 }
 
 export async function getCoachProfileByCode(coachCode: string): Promise<Coach> {
-  const raw = await apiGet<RawCoachProfileFull & RawPublicCoach>(
-    '/v{version}/Coach/profile-by-id',
-    { coachCode },
-  );
+  const raw = await apiGet<RawCoachProfileFull & RawPublicCoach>('/Coach/profile-by-id', {
+    coachCode,
+  });
   const resolvedCode = raw.coachCode?.trim() || coachCode;
   return {
     ...mapPublicCoach({
@@ -332,10 +336,7 @@ export interface CoachProfileFull {
 }
 
 export async function getCoachProfileFull(): Promise<CoachProfileFull> {
-  const raw = await apiGet<RawCoachProfileFull | null>('/v{version}/Coach/profile');
-  if (raw == null) {
-    throw new ApiError('Coach profile not found.', 204);
-  }
+  const raw = await fetchOwnProfile<RawCoachProfileFull>();
   const bag = raw as unknown as Record<string, unknown>;
   const media = readCoachMediaFields(bag);
   return {
@@ -372,7 +373,7 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
 
 /** Signed-in coach: paid flag, the app plan, and one suggested promo (or none). */
 export async function getCoachPremiumOffer(signal?: AbortSignal): Promise<PremiumOffer> {
-  const raw = await apiFetch<unknown>('/v{version}/Coach/premium', { signal });
+  const raw = await apiFetch<unknown>('/Coach/premium', { signal });
   if (raw == null || typeof raw !== 'object') {
     throw new ApiError('Premium plan could not be loaded.', 204);
   }
@@ -381,7 +382,7 @@ export async function getCoachPremiumOffer(signal?: AbortSignal): Promise<Premiu
 
 /** Every active subscription plan and the suggested promo. Prices come from the API. */
 export async function getCoachPremiumPlans(signal?: AbortSignal): Promise<PremiumCatalog> {
-  const raw = await apiFetch<unknown>('/v{version}/Coach/premium-plans', { signal });
+  const raw = await apiFetch<unknown>('/Coach/premium-plans', { signal });
   if (raw == null || typeof raw !== 'object') {
     throw new ApiError('Premium plans could not be loaded.', 204);
   }
@@ -397,7 +398,7 @@ interface CoachEnquiryParams {
 }
 
 export async function submitCoachEnquiry(params: CoachEnquiryParams): Promise<void> {
-  await apiPost('/v{version}/Coach/enquiry', params);
+  await apiPost('/Coach/enquiry', params);
 }
 
 interface BmiLeadParams {
@@ -413,7 +414,7 @@ interface BmiLeadParams {
 }
 
 export async function submitBmiLead(params: BmiLeadParams): Promise<void> {
-  await apiPost('/v{version}/Coach/bmi-lead', params);
+  await apiPost('/Coach/bmi-lead', params);
 }
 
 export async function getServicesForCategory(categoryCode: string): Promise<MasterOption[]> {
@@ -455,7 +456,7 @@ interface SaveCoachProfileParams {
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {
   // Visibility is recomputed on the server. Do not send a client flag.
-  await apiPost('/v{version}/Coach/save', params);
+  await apiPost('/Coach/save', params);
 }
 
 interface ChangePasswordParams {
@@ -465,7 +466,7 @@ interface ChangePasswordParams {
 
 /** Send plaintext — do not client-hash (double-hash fails with "Current password is incorrect"). */
 export async function changePassword(params: ChangePasswordParams): Promise<void> {
-  await apiPut('/v{version}/Coach/change-password', {
+  await apiPut('/Coach/change-password', {
     currentPassword: params.currentPassword,
     newPassword: params.newPassword,
   });
@@ -473,13 +474,13 @@ export async function changePassword(params: ChangePasswordParams): Promise<void
 
 /** The signed-in coach's paid orders, newest first. */
 export async function getCoachPaymentHistory(signal?: AbortSignal): Promise<PaymentHistoryItem[]> {
-  const raw = await apiFetch<unknown>('/v{version}/Coach/premium-history', { signal });
+  const raw = await apiFetch<unknown>('/Coach/premium-history', { signal });
   return mapPaymentHistory(raw);
 }
 
 /** Cancel the plan lined up next (one that has not started). The payment is refunded in full. */
 export async function cancelUpcomingPlan(): Promise<{ planName: string; refundAmount: number }> {
-  const raw = await apiPost<unknown>('/v{version}/Coach/premium-cancel-upcoming');
+  const raw = await apiPost<unknown>('/Coach/premium-cancel-upcoming');
   const bag = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const amount = Number(bag.refundAmount ?? bag.RefundAmount);
   return {

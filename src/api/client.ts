@@ -18,7 +18,6 @@ export {
 } from './clientErrors';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-const API_VERSION = '1';
 // Allow slow first responses (cold API hosts); keep above ~15s.
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -96,7 +95,7 @@ export async function apiFetch<T = unknown>(
     // Ignore NetInfo failures and proceed to fetch.
   }
 
-  const url = `${BASE_URL.replace(/\/$/, '')}${path.replace('{version}', API_VERSION)}`;
+  const url = `${BASE_URL.replace(/\/$/, '')}${path}`;
   const token = getCurrentToken();
 
   // fetch() has no built-in timeout — combine our timer with any caller signal (RQ).

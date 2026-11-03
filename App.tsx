@@ -66,7 +66,6 @@ const linking: LinkingOptions<RootStackParamList> = {
               GalleryHome: 'gallery',
               EditGallery: 'edit-gallery',
               ChangePassword: 'change-password',
-              ChangeMpin: 'change-mpin',
               Legal: 'legal',
               Leads: 'profile-leads',
             },

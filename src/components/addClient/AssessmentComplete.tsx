@@ -11,6 +11,7 @@ import {
   bmiReportPdfQuery,
   downloadAndSharePdf,
   PDF_GENERATE_FAILED_MESSAGE,
+  PDF_PATH,
 } from '../../utils/pdfShare';
 
 interface AssessmentCompleteProps {
@@ -50,7 +51,7 @@ export default function AssessmentComplete({
     setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
-        '/v{version}/Client/bmi-report-pdf',
+        PDF_PATH.bmiReport,
         bmiReportPdfQuery({ coachCode, clientCode, assessmentCode }),
         'bmi-report.pdf',
       );

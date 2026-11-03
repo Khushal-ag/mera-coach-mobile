@@ -47,7 +47,7 @@ interface GetClientListParams {
 
 export async function getClientList(params: GetClientListParams = {}): Promise<ClientSummary[]> {
   const coachCode = params.coachCode ?? getCurrentCoachCode();
-  const items = await apiPost<RawClientListItem[]>('/v{version}/Client/ClientList', {
+  const items = await apiPost<RawClientListItem[]>('/Client/ClientList', {
     coachCode,
     searchOption: params.searchOption,
     searchText: params.searchText,
@@ -94,7 +94,7 @@ export async function getRecheckupList(
   params: GetRecheckupListParams = {},
 ): Promise<RecheckupDueClient[]> {
   const coachCode = params.coachCode ?? getCurrentCoachCode();
-  const items = await apiPost<RawRecheckupListItem[]>('/v{version}/Client/recheckup-list', {
+  const items = await apiPost<RawRecheckupListItem[]>('/Client/recheckup-list', {
     coachCode,
     searchOption: params.searchOption ?? '',
     searchText: params.searchText ?? '',
@@ -145,7 +145,7 @@ export async function getClientDetail(params: {
   assessmentCode?: string;
 }): Promise<RawClientDetail> {
   // errorCode 1 = no records → empty success at transport; this call needs a payload.
-  const raw = await apiPost<RawClientDetail | null>('/v{version}/Client/ClientDetail', params);
+  const raw = await apiPost<RawClientDetail | null>('/Client/ClientDetail', params);
   if (raw == null) {
     throw new ApiError('Client not found.', 204);
   }
@@ -216,7 +216,7 @@ export async function saveClientDetail(
   ids: AssessmentIds,
 ): Promise<AssessmentIds> {
   const data = await apiPost<{ clientCode: string; assessmentCode: string }>(
-    '/v{version}/Client/save-client-detail',
+    '/Client/save-client-detail',
     {
       clientCode: ids.clientCode ?? '',
       assessmentCode: ids.assessmentCode ?? '',
@@ -242,7 +242,7 @@ export async function saveClientDetail(
 }
 
 export async function saveLifestyle(profile: ClientProfile, ids: AssessmentIds): Promise<void> {
-  await apiPost('/v{version}/Client/save-lifestyle', {
+  await apiPost('/Client/save-lifestyle', {
     ...assessmentContext(ids),
     foodPreference: profile.foodPreference,
     regionalCuisine: profile.regionalCuisine,
@@ -268,7 +268,7 @@ export async function saveMeals(diet: DietPlan, ids: AssessmentIds): Promise<voi
       curCalories: cal,
     };
   });
-  await apiPost('/v{version}/Client/save-meals', {
+  await apiPost('/Client/save-meals', {
     ...assessmentContext(ids),
     meals,
   });
@@ -279,7 +279,7 @@ export async function saveBmi(
   ids: AssessmentIds,
   totalDailyIntakeCal: number,
 ): Promise<void> {
-  await apiPost('/v{version}/Client/save-bmi', {
+  await apiPost('/Client/save-bmi', {
     assessmentCode: ids.assessmentCode,
     bmi: metrics.bmi,
     bmiCategory: metrics.bmiCategory,
@@ -303,7 +303,7 @@ export async function saveDietPlan(
   plan: GeneratedDietPlan,
   ids: AssessmentIds,
 ): Promise<SaveDietPlanResult> {
-  const data = await apiPost<SaveDietPlanResult | null>('/v{version}/Client/save-diet-plan', {
+  const data = await apiPost<SaveDietPlanResult | null>('/Client/save-diet-plan', {
     ...assessmentContext(ids),
     dailyCalTarget: plan.summary?.dailyCalTarget ?? 0,
     bmiCategory: plan.summary?.bmiCategory ?? '',
@@ -328,7 +328,7 @@ export async function saveDietPlan(
 }
 
 export async function markComplete(ids: AssessmentIds): Promise<void> {
-  await apiPost('/v{version}/Client/mark-complete', {
+  await apiPost('/Client/mark-complete', {
     assessmentCode: ids.assessmentCode,
     savedBy: savedByDisplayName(),
   });
@@ -382,7 +382,7 @@ interface BmiReport {
 }
 
 export async function getBmiReport(ids: AssessmentIds): Promise<BmiReport | null> {
-  const raw = await apiGet<BmiReport | null>('/v{version}/Client/bmi-report', {
+  const raw = await apiGet<BmiReport | null>('/Client/bmi-report', {
     coachCode: getCurrentCoachCode() ?? '',
     clientCode: ids.clientCode || undefined,
     assessmentCode: ids.assessmentCode || undefined,
@@ -397,7 +397,7 @@ export async function getBmiReport(ids: AssessmentIds): Promise<BmiReport | null
 
 /** Returns null when none exists (HTTP 204 / empty) or payload has no plan content. */
 export async function getDietPlanReport(ids: AssessmentIds): Promise<GeneratedDietPlan | null> {
-  const raw = await apiGet<unknown>('/v{version}/Client/diet-plan-report', {
+  const raw = await apiGet<unknown>('/Client/diet-plan-report', {
     coachCode: getCurrentCoachCode() ?? '',
     clientCode: ids.clientCode || undefined,
     assessmentCode: ids.assessmentCode || undefined,
@@ -446,7 +446,7 @@ function mapEnquiryLead(raw: RawEnquiryLead): EnquiryLead | null {
 }
 
 export async function getEnquiryLeads(coachCode?: string): Promise<EnquiryLead[]> {
-  const items = await apiGet<RawEnquiryLead[]>('/v{version}/Client/coach-enquiry-lead', {
+  const items = await apiGet<RawEnquiryLead[]>('/Client/coach-enquiry-lead', {
     mode: 'list',
     coachCode: coachCode ?? getCurrentCoachCode() ?? '',
   });
@@ -460,7 +460,7 @@ interface UpdateEnquiryLeadParams {
 }
 
 export async function updateEnquiryLead(params: UpdateEnquiryLeadParams): Promise<void> {
-  await apiPost('/v{version}/Client/coach-enquiry-lead', {
+  await apiPost('/Client/coach-enquiry-lead', {
     mode: 'update',
     leadId: params.leadId,
     ...(params.isContacted !== undefined ? { isContacted: params.isContacted } : {}),

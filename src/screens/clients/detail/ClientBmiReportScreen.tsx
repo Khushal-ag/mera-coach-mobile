@@ -45,6 +45,7 @@ import {
   bmiReportPdfQuery,
   downloadAndSharePdf,
   PDF_GENERATE_FAILED_MESSAGE,
+  PDF_PATH,
 } from '../../../utils/pdfShare';
 import type { ClientsStackScreenProps } from '../../../types/navigation';
 import { navigateBack, navigateToDashboard } from '../../../utils/navigationBack';
@@ -437,7 +438,7 @@ export default function ClientBmiReportScreen({
     setPreparingPdf(true);
     try {
       await downloadAndSharePdf(
-        '/v{version}/Client/bmi-report-pdf',
+        PDF_PATH.bmiReport,
         bmiReportPdfQuery({
           coachCode,
           clientCode: ids.clientCode,
