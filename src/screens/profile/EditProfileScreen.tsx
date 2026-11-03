@@ -47,10 +47,17 @@ import {
   getServicesForCategory,
   saveCoachProfile,
 } from '../../api/coachApi';
-import { getCountries, type MasterOption } from '../../api/masterApi';
+import { getProductBrands } from '../../api/showcaseApi';
+import {
+  getCountries,
+  getReportTemplates,
+  type MasterOption,
+  type ReportTemplate,
+} from '../../api/masterApi';
 import { uploadDocument } from '../../api/documentApi';
 import { getErrorMessage } from '../../api/client';
 import { LOCAL_LANGUAGE_OPTIONS } from '../../data/localLanguages';
+
 import { sanitizePinInput, validateCoachProfileEdit } from '../../utils/validation';
 import { getProfileCompletion } from '../../utils/profileCompletion';
 import { useFormFieldErrors } from '../../hooks/useFormFieldErrors';
@@ -86,6 +93,22 @@ export default function EditProfileScreen({ navigation }: ProfileStackScreenProp
     staleTime: MASTER_STALE_MS,
   });
 
+  const bmiTemplatesQuery = useQuery({
+    queryKey: queryKeys.reportTemplates('BMI'),
+    queryFn: () => getReportTemplates('BMI'),
+    staleTime: MASTER_STALE_MS,
+  });
+  const dietTemplatesQuery = useQuery({
+    queryKey: queryKeys.reportTemplates('DIET'),
+    queryFn: () => getReportTemplates('DIET'),
+    staleTime: MASTER_STALE_MS,
+  });
+  const productBrandsQuery = useQuery({
+    queryKey: queryKeys.productBrands,
+    queryFn: getProductBrands,
+    staleTime: MASTER_STALE_MS,
+  });
+
   const errorMessage =
     profileQuery.isError && !profileQuery.data
       ? getErrorMessage(profileQuery.error, 'Could not load your profile.')
@@ -114,6 +137,9 @@ export default function EditProfileScreen({ navigation }: ProfileStackScreenProp
           profile={profileQuery.data!}
           categories={categoriesQuery.data?.length ? categoriesQuery.data : []}
           countries={countriesQuery.data ?? []}
+          bmiTemplates={bmiTemplatesQuery.data ?? []}
+          dietTemplates={dietTemplatesQuery.data ?? []}
+          productBrands={productBrandsQuery.data ?? []}
           onDone={() => navigation.goBack()}
         />
       )}
@@ -125,15 +151,52 @@ interface EditProfileFormProps {
   profile: CoachProfileFull;
   categories: CoachCategory[];
   countries: MasterOption[];
+  bmiTemplates: ReportTemplate[];
+  dietTemplates: ReportTemplate[];
+  productBrands: MasterOption[];
   onDone: () => void;
 }
 
-function EditProfileForm({ profile, categories, countries, onDone }: EditProfileFormProps) {
+type Step = 1 | 2;
+const STEPS: { id: Step; label: string; fields: string[] }[] = [
+  { id: 1, label: 'Name & photo', fields: ['coachName'] },
+  {
+    id: 2,
+    label: 'Professional details',
+    fields: [
+      'brandCode',
+      'experienceYears',
+      'happyClientCount',
+      'coachDesc',
+      'addLine',
+      'pinCode',
+      'recheckupDays',
+      'certificationCount',
+    ],
+  },
+];
+
+function EditProfileForm({
+  profile,
+  categories,
+  countries,
+  bmiTemplates,
+  dietTemplates,
+  productBrands,
+  onDone,
+}: EditProfileFormProps) {
   const compact = useWindowDimensions().width < COMPACT_WIDTH;
   const scrollRef = useRef<ScrollView>(null);
   const savingRef = useRef(false);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<Step>(1);
+  // Blank = the coach never chose: the dropdown shows the list's default and the API uses its own default.
+  const [bmiReportTemplate, setBmiReportTemplate] = useState(profile.bmiReportTemplate);
+  const [dietChartTemplate, setDietChartTemplate] = useState(profile.dietChartTemplate);
+  const bmiShown =
+    bmiReportTemplate || (bmiTemplates.find(t => t.isDefault) ?? bmiTemplates[0])?.code;
+  const dietShown =
+    dietChartTemplate || (dietTemplates.find(t => t.isDefault) ?? dietTemplates[0])?.code;
   const [coachName, setCoachName] = useState(profile.coachName);
   const [businessName, setBusinessName] = useState(profile.businessName);
   const [experienceYears, setExperienceYears] = useState(String(profile.experienceYears ?? ''));
@@ -143,9 +206,10 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   );
   const [tagline, setTagline] = useState(profile.tagline);
   const [localLanguage, setLocalLanguage] = useState(profile.localLanguage);
+  const [brandCode, setBrandCode] = useState(profile.brandCode);
+  const savedBrandCode = profile.brandCode?.trim() ?? '';
+  const brandLocked = savedBrandCode.length > 0;
   const [recheckupDays, setRecheckupDays] = useState(String(profile.recheckupDays));
-  const [bmiReportTemplate, setBmiReportTemplate] = useState(profile.bmiReportTemplate);
-  const [dietChartTemplate, setDietChartTemplate] = useState(profile.dietChartTemplate);
   const [coachDesc, setCoachDesc] = useState(profile.coachDesc);
   const [locality, setLocality] = useState(profile.locality);
   const [addLine, setAddLine] = useState(profile.addLine);
@@ -173,6 +237,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     coachName !== profile.coachName ||
       businessName !== profile.businessName ||
       tagline !== profile.tagline ||
+      brandCode !== profile.brandCode ||
       coachDesc !== profile.coachDesc ||
       locality !== profile.locality ||
       addLine !== profile.addLine ||
@@ -305,6 +370,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     }
     const validation = validateCoachProfileEdit({
       coachName,
+      brandCode,
       pinCode,
       experienceYears,
       happyClientCount,
@@ -315,10 +381,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     });
     if (applyValidation(validation)) {
       if (!validation.ok) {
-        const step1Keys = ['coachName'];
-        if (step1Keys.some(k => validation.errors[k])) {
-          setStep(1);
-        }
+        const errorStep = STEPS.find(item => item.fields.some(k => validation.errors[k]));
+        if (errorStep) setStep(errorStep.id);
       }
       return;
     }
@@ -349,6 +413,9 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         certificationCount: parseInt(certificationCount, 10) || 0,
         tagline: tagline.trim(),
         localLanguage: localLanguage.trim(),
+        brandCode: brandLocked ? savedBrandCode : brandCode.trim(),
+        bmiReportTemplate,
+        dietChartTemplate,
         recheckupDays: parseInt(recheckupDays, 10),
         locality: locality.trim(),
         add_Line: addLineTrimmed,
@@ -360,8 +427,6 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
         profile_Pic_Url: profilePicUrl,
         cover_Url: coverUrl,
         coachDesc: coachDescTrimmed,
-        bmiReportTemplate: bmiReportTemplate.trim(),
-        dietChartTemplate: dietChartTemplate.trim(),
       });
       await updateSessionFullName(coachName.trim());
       invalidateCoachProfileCaches(queryClient, profile.coachCode);
@@ -409,6 +474,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
     addLine,
     pinCode,
     profilePicUrl,
+    brandCode,
   });
 
   return (
@@ -448,7 +514,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               hint="Your name appears on your public card"
             >
               <Field
-                label="Coach Name"
+                label="Display name"
                 value={coachName}
                 onChangeText={v => {
                   setCoachName(v);
@@ -510,10 +576,31 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               hint="Fields marked * are needed to appear on Find a Coach"
             >
               <Field label="Business Name" value={businessName} onChangeText={setBusinessName} />
+              <DropdownField
+                label="Product brand"
+                value={brandLocked ? savedBrandCode : brandCode}
+                options={productBrands}
+                onChange={v => {
+                  if (brandLocked) return;
+                  setBrandCode(v);
+                  clearFieldError('brandCode');
+                }}
+                placeholder="Select brand"
+                required
+                hasError={!!errorFields.brandCode}
+                labelStyle={styles.fieldLabel}
+                disabled={brandLocked}
+              />
+              <Text style={styles.fieldHint}>
+                Used for your product packages. Package creation uses this brand automatically.
+                Brand is fixed after you save it once.
+              </Text>
+              {/* Full width: a tagline is a sentence and does not fit in half a phone screen. */}
+              <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
               <View style={styles.row}>
                 <View style={styles.half}>
                   <Field
-                    label="Experience(yrs)"
+                    label="Experience (years)"
                     value={experienceYears}
                     onChangeText={v => {
                       setExperienceYears(v);
@@ -552,8 +639,14 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 keyboardType="numeric"
                 hasError={!!errorFields.certificationCount}
               />
-              {/* Full width: a tagline is a sentence and does not fit in half a phone screen. */}
-              <Field label="Tagline" value={tagline} onChangeText={setTagline} required />
+              <DropdownField
+                label="Local language"
+                value={localLanguage}
+                options={LOCAL_LANGUAGE_OPTIONS}
+                onChange={setLocalLanguage}
+                placeholder="Select language"
+                labelStyle={styles.fieldLabel}
+              />
 
               <MultiSelectField
                 label="Services"
@@ -566,10 +659,10 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
               />
             </FormSection>
 
-            <FormSection icon="clipboard-outline" title="About/ Description">
+            <FormSection icon="clipboard-outline" title="About">
               <View style={styles.field}>
                 <FormFieldLabel required style={styles.fieldLabel}>
-                  About/ Description
+                  About
                 </FormFieldLabel>
                 <TextInput
                   style={[styles.textarea, errorFields.coachDesc && styles.textareaError]}
@@ -610,7 +703,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
             <FormSection
               icon="calendar-outline"
               title="Assessment period"
-              hint="How many days after an assessment a client is due for the next one. Clients past this period show as due on your checkup list."
+              hint="Days after an assessment when a client is due for the next one. Clients past this period show as due on your checkup list."
             >
               <View style={styles.periodRow}>
                 {[7, 14, 30].map(days => {
@@ -636,7 +729,7 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
                 })}
               </View>
               <Field
-                label="Days between assessments"
+                label="Assessment period (days)"
                 value={recheckupDays}
                 onChangeText={v => {
                   setRecheckupDays(v.replace(/\D/g, '').slice(0, 3));
@@ -650,30 +743,22 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
 
             <FormSection
               icon="document-text-outline"
-              title="Plan & report settings"
-              hint="Used for diet plans and BMI reports. Language is stored as a code (e.g. hi)."
+              title="Report settings"
+              hint="The look of your BMI report and diet plan PDFs"
             >
               <DropdownField
-                label="Local language"
-                value={localLanguage}
-                options={LOCAL_LANGUAGE_OPTIONS}
-                onChange={setLocalLanguage}
-                placeholder="Select language"
+                label="BMI report template"
+                value={bmiShown ?? ''}
+                options={bmiTemplates}
+                onChange={setBmiReportTemplate}
                 labelStyle={styles.fieldLabel}
               />
-              <Field
-                label="BMI report template"
-                value={bmiReportTemplate}
-                onChangeText={setBmiReportTemplate}
-                onFocus={scrollLowerFieldsIntoView}
-                autoCapitalize="none"
-              />
-              <Field
+              <DropdownField
                 label="Diet plan template"
-                value={dietChartTemplate}
-                onChangeText={setDietChartTemplate}
-                onFocus={scrollLowerFieldsIntoView}
-                autoCapitalize="none"
+                value={dietShown ?? ''}
+                options={dietTemplates}
+                onChange={setDietChartTemplate}
+                labelStyle={styles.fieldLabel}
               />
             </FormSection>
 
@@ -857,11 +942,8 @@ function EditProfileForm({ profile, categories, countries, onDone }: EditProfile
   );
 }
 
-function StepIndicator({ step, onSelect }: { step: 1 | 2; onSelect: (step: 1 | 2) => void }) {
-  const items: { id: 1 | 2; label: string }[] = [
-    { id: 1, label: 'Name & photo' },
-    { id: 2, label: 'Professional details' },
-  ];
+function StepIndicator({ step, onSelect }: { step: Step; onSelect: (step: Step) => void }) {
+  const items = STEPS;
   return (
     <View style={styles.stepRow}>
       {items.map((item, index) => {

@@ -42,6 +42,8 @@ export function useAutoFillLocation() {
           certificationCount: profile.certificationCount,
           tagline: profile.tagline,
           localLanguage: profile.localLanguage,
+          bmiReportTemplate: profile.bmiReportTemplate,
+          dietChartTemplate: profile.dietChartTemplate,
           recheckupDays: profile.recheckupDays,
           locality: profile.locality || place.locality,
           add_Line: profile.addLine || place.addLine,
@@ -53,8 +55,6 @@ export function useAutoFillLocation() {
           profile_Pic_Url: profile.profilePicUrl,
           cover_Url: profile.coverUrl,
           coachDesc: profile.coachDesc,
-          bmiReportTemplate: profile.bmiReportTemplate,
-          dietChartTemplate: profile.dietChartTemplate,
         });
         invalidateCoachProfileCaches(queryClient, profile.coachCode);
       } catch {

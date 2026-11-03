@@ -14,6 +14,24 @@ const SHARING_UNAVAILABLE_MESSAGE =
 export const PDF_GENERATE_FAILED_MESSAGE =
   "Couldn't generate PDF right now. Please try again later.";
 
+/** Coach-facing copy when meracoachapi returns 503 (non-Windows PDF host). */
+export const PDF_HOST_UNAVAILABLE_MESSAGE =
+  "PDF download isn't available on this server right now. Try again later or use the web dashboard to print the report.";
+
+export function isPdfHostUnavailableError(message: string): boolean {
+  return /not available on this host|print instead/i.test(message);
+}
+
+export function friendlyPdfError(message: string): {
+  tone: 'error' | 'info';
+  text: string;
+} {
+  if (isPdfHostUnavailableError(message)) {
+    return { tone: 'info', text: PDF_HOST_UNAVAILABLE_MESSAGE };
+  }
+  return { tone: 'error', text: message };
+}
+
 function isMissingExpoSharingError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err ?? '');
   return /ExpoSharing|expo-sharing/i.test(msg);
@@ -107,8 +125,19 @@ export async function downloadAndSharePdf(
   });
 
   if (!response.ok) {
-    // Never surface raw PDF-engine error dumps to the coach.
-    throw new Error(PDF_GENERATE_FAILED_MESSAGE);
+    // Prefer the API's soft-fail message (e.g. PDF unavailable on macOS host)
+    // over a raw engine dump; fall back to the generic coach-facing copy.
+    let message = PDF_GENERATE_FAILED_MESSAGE;
+    try {
+      const body = (await response.json()) as {
+        errorObj?: { errorMessage?: string }[];
+      };
+      const apiMsg = body.errorObj?.[0]?.errorMessage?.trim();
+      if (apiMsg) message = apiMsg;
+    } catch {
+      // Non-JSON error body — keep the generic message.
+    }
+    throw new Error(friendlyPdfError(message).text);
   }
 
   const filename = filenameFromDisposition(

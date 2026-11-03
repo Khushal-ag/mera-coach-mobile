@@ -2,6 +2,7 @@ import {
   resolveMasterCode,
   resolveMasterCodes,
   resolveMasterLabel,
+  resolveMasterLabels,
   type MasterOption,
 } from '../../utils/masterResolve';
 
@@ -26,6 +27,19 @@ describe('resolveMasterLabel', () => {
 
   it('hides unresolved item codes until options load', () => {
     expect(resolveMasterLabel('PC0007', OPTIONS)).toBe('');
+  });
+
+  it('maps NONE_OF_THE_BELOW wire code to label', () => {
+    expect(resolveMasterLabel('NONE_OF_THE_BELOW', OPTIONS)).toBe('None of the below');
+    expect(resolveMasterLabel('none_of_the_below', OPTIONS)).toBe('None of the below');
+  });
+});
+
+describe('resolveMasterLabels', () => {
+  it('joins comma-separated codes and wire tokens', () => {
+    expect(resolveMasterLabels('NONE_OF_THE_BELOW, LI0001', OPTIONS)).toBe(
+      'None of the below, Vegetarian',
+    );
   });
 });
 

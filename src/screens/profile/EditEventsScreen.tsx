@@ -49,7 +49,8 @@ import {
   POST_DESCRIPTION_MAX,
   POST_LOCATION_MAX,
   POST_MEDIA_DOC_TYPE,
-  POST_MEDIA_MAX_BYTES,
+  POST_IMAGE_MAX_BYTES,
+  POST_VIDEO_MAX_BYTES,
   POST_TITLE_MAX,
   type CoachPost,
   type PostCategoryOption,
@@ -270,10 +271,13 @@ function PostForm({
     if (uploading) return;
     const picked = await pickPostMedia();
     if (!picked) return;
-    if (picked.bytes > POST_MEDIA_MAX_BYTES || !picked.base64) {
-      showBanner('Photo or video must be 10MB or smaller.');
+    if (picked.bytes > (picked.isVideo ? POST_VIDEO_MAX_BYTES : POST_IMAGE_MAX_BYTES)) {
+      showBanner(
+        picked.isVideo ? 'Video must be 25MB or smaller.' : 'Photo must be 5MB or smaller.',
+      );
       return;
     }
+    if (!picked.base64) return;
 
     const previous = { url: mediaUrl, video: isVideo, name: pickedName };
     setPickedName(fileNameFromUri(picked.uri));
@@ -436,7 +440,7 @@ function PostForm({
             <View style={styles.uploadEmpty}>
               {uploading ? <ActivityIndicator color={Colors.accentInk} /> : <UploadMark />}
               <Text style={styles.uploadTitle}>Tap to upload</Text>
-              <Text style={styles.uploadHint}>Photo or Video (Max 10MB)</Text>
+              <Text style={styles.uploadHint}>Photo (Max 5MB) or Video (Max 25MB)</Text>
             </View>
           )}
         </TouchableOpacity>

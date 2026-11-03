@@ -75,6 +75,7 @@ export const queryKeys = {
   myReviews: (clientCode?: string) => ['reviews', 'mine', clientCode ?? 'all'] as const,
   publicShowcase: (coachCode: string) => ['showcase', 'public', coachCode] as const,
   postCategories: ['master', 'postCategories'] as const,
+  reportTemplates: (type: string) => ['master', 'reportTemplates', type] as const,
   productBrands: ['master', 'productBrands'] as const,
   productItems: (brandCode: string) => ['master', 'productItems', brandCode] as const,
   coachProfileByCode: (coachCode: string) => ['coachProfileByCode', coachCode] as const,

@@ -12,7 +12,8 @@ import {
   validateLogin,
   validateCoachRegister,
   passwordPolicyError,
-  MANDATORY_FIELDS_BANNER,
+  buildValidationBanner,
+  firstPersonalProfileErrorField,
 } from '../../utils/validation';
 import type { ClientProfile } from '../../types/models';
 
@@ -99,11 +100,40 @@ function emptyProfile(overrides: Partial<ClientProfile> = {}): ClientProfile {
   } as ClientProfile;
 }
 
+describe('buildValidationBanner', () => {
+  it('lists missing field labels when several fail', () => {
+    expect(
+      buildValidationBanner({
+        location: 'Location is required.',
+        age: 'Age is required.',
+      }),
+    ).toBe('Please complete: Location, Age');
+  });
+
+  it('uses the single field message when only one fails', () => {
+    expect(buildValidationBanner({ location: 'Location is required.' })).toBe(
+      'Location is required.',
+    );
+  });
+});
+
+describe('firstPersonalProfileErrorField', () => {
+  it('follows the on-screen field order', () => {
+    expect(
+      firstPersonalProfileErrorField({
+        weight: 'Weight is required.',
+        location: 'Location is required.',
+        name: 'Full name is required.',
+      }),
+    ).toBe('name');
+  });
+});
+
 describe('validateClientPersonalProfile (aggregate)', () => {
   it('returns all missing required fields at once', () => {
     const result = validateClientPersonalProfile(emptyProfile());
     expect(result.ok).toBe(false);
-    expect(result.banner).toBe(MANDATORY_FIELDS_BANNER);
+    expect(result.banner).toMatch(/Please complete:/);
     expect(Object.keys(result.errors).sort()).toEqual(
       ['age', 'gender', 'height', 'location', 'name', 'phone', 'photos', 'weight'].sort(),
     );
@@ -138,12 +168,30 @@ describe('validateClientPersonalProfile (aggregate)', () => {
     photos: [{ id: '1', uri: 'photo.jpg' }],
   };
 
-  it('requires at least one client photo', () => {
+  it('requires a client profile photo on add client', () => {
     const withoutPhoto = validateClientPersonalProfile(
       emptyProfile({ ...base, age: '30', photos: [] }),
     );
     expect(withoutPhoto.ok).toBe(false);
-    expect(withoutPhoto.errors.photos).toBe('Client photo is required.');
+    expect(withoutPhoto.errors.photos).toBe('Client profile photo is required.');
+  });
+
+  it('requires profile photo on checkup when the client has none (progress photos are separate)', () => {
+    const checkup = validateClientPersonalProfile(
+      emptyProfile({ ...base, age: '30', photos: [] }),
+      { requirePhoto: false },
+    );
+    expect(checkup.ok).toBe(false);
+    expect(checkup.errors.photos).toBe('Client profile photo is required.');
+  });
+
+  it('allows checkup without pending photos when PROFILE_PIC already exists', () => {
+    const checkup = validateClientPersonalProfile(
+      emptyProfile({ ...base, age: '30', photos: [] }),
+      { requirePhoto: false, hasExistingProfilePhoto: true },
+    );
+    expect(checkup.ok).toBe(true);
+    expect(checkup.errors.photos).toBeUndefined();
   });
 
   it('requires age but not date of birth', () => {

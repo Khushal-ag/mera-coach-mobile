@@ -4,7 +4,12 @@ import { normalizeGeneratedDietPlan } from '../utils/normalizeDietPlan';
 import type { MasterOption } from '../utils/masterResolve';
 
 export type { MasterOption };
-export { resolveMasterLabel, resolveMasterCode, resolveMasterCodes } from '../utils/masterResolve';
+export {
+  resolveMasterLabel,
+  resolveMasterLabels,
+  resolveMasterCode,
+  resolveMasterCodes,
+} from '../utils/masterResolve';
 
 interface RawMasterOption {
   itemCode: string;
@@ -27,6 +32,22 @@ export async function fetchMasterItems(
 
 function mapMasterOptions(items: RawMasterOption[]): MasterOption[] {
   return items.map(i => ({ code: i.itemCode, label: i.itemName }));
+}
+
+/** A BMI report or diet plan design from MstReportTemplate. `code` is the file name the API renders. */
+export interface ReportTemplate extends MasterOption {
+  isDefault: boolean;
+}
+
+export async function getReportTemplates(type: 'BMI' | 'DIET'): Promise<ReportTemplate[]> {
+  const items = await fetchMasterItems({
+    ItemType: type === 'BMI' ? 'BMITEMPLATE' : 'DIETTEMPLATE',
+  });
+  return items.map(i => ({
+    code: i.itemCode,
+    label: i.itemName,
+    isDefault: i.description === 'default',
+  }));
 }
 
 export async function getCountries(): Promise<MasterOption[]> {

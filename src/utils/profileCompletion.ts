@@ -21,6 +21,7 @@ export type ProfileCompletionInput = {
   addLine?: string | null;
   add_Line?: string | null;
   profilePicUrl?: string | null;
+  brandCode?: string | null;
   /** Stored directory flag from the API. When present, it decides public status. */
   isProfileVisible?: boolean;
   /**
@@ -79,6 +80,12 @@ export function getProfileCompletion(profile: ProfileCompletionInput): ProfileCo
       key: 'tagline',
       label: 'Tagline',
       done: hasText(profile.tagline),
+      where: 'Professional details',
+    },
+    {
+      key: 'brand',
+      label: 'Product brand',
+      done: hasText(profile.brandCode),
       where: 'Professional details',
     },
     {

@@ -6,6 +6,7 @@ const completeProfile = {
   coachTypeCode: 'NUT',
   cityCd: 'Pune',
   tagline: 'Strength first',
+  brandCode: 'HERBALIFE',
   coachDesc: 'Helping clients reach goals',
   serviceCodes: ['SRV1'],
   experienceYears: 5,
@@ -32,6 +33,7 @@ describe('getProfileCompletion', () => {
       'Coach category',
       'City',
       'Tagline',
+      'Product brand',
       'About / description',
       'Services',
       'Years of experience',
@@ -107,6 +109,6 @@ describe('getProfileCompletion', () => {
     });
     expect(result.isPublicReady).toBe(false);
     expect(result.missingLabels).toEqual(['Profile photo', 'Tagline']);
-    expect(result.percent).toBe(Math.round((9 / 11) * 100));
+    expect(result.percent).toBe(Math.round((10 / 12) * 100));
   });
 });

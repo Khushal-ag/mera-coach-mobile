@@ -1,6 +1,6 @@
 import { apiFetch, apiGet, apiPost } from './client';
 import { fetchMasterItems } from './masterApi';
-import { num, text } from './parse';
+import { num, pick, text } from './parse';
 
 export interface PackageItem {
   itemCode?: string | null;
@@ -89,7 +89,9 @@ export const POST_CATEGORY = {
 
 /** Document type for a post's photo or video. */
 export const POST_MEDIA_DOC_TYPE = 'POST_MEDIA';
-export const POST_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
+/** Same limits as the API (DocumentAppService): photos 5 MB, videos 25 MB. */
+export const POST_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const POST_VIDEO_MAX_BYTES = 25 * 1024 * 1024;
 export const PACKAGE_MAX_ITEMS = 30;
 export const PACKAGE_MAX_AMOUNT = 99_999_999;
 export const MAX_PACKAGES = 10;
@@ -160,11 +162,11 @@ export async function getProductItems(brandCode: string): Promise<MasterChoice[]
   return (rows ?? []).map(raw => {
     const r = (raw ?? {}) as Record<string, unknown>;
     return {
-      code: text(r.itemCode),
-      label: text(r.itemName),
-      price: num(r.price),
-      category: text(r.category),
-      packSize: text(r.packSize),
+      code: text(pick(r, 'itemCode', 'ItemCode')),
+      label: text(pick(r, 'itemName', 'ItemName')),
+      price: num(pick(r, 'price', 'Price')),
+      category: text(pick(r, 'category', 'Category')),
+      packSize: text(pick(r, 'packSize', 'PackSize')),
     };
   });
 }

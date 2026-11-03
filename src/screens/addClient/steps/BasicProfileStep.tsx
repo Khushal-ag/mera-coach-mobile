@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  type ScrollView,
+} from 'react-native';
 import { pickImagesFromCameraOrLibrary } from '../../../utils/imagePicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -20,11 +28,14 @@ import FormErrorBanner from '../../../components/FormErrorBanner';
 import { DobWheelField } from '../../../components/form/DobWheelField';
 import PhoneTextInput from '../../../components/PhoneTextInput';
 import ProgressPhotos from '../../../components/ProgressPhotos';
+import { useClientPhotoUrl } from '../../../hooks/useClientPhotoUrl';
 import {
   cmToFeetInches,
   feetInchesToCm,
+  firstPersonalProfileErrorField,
   sanitizeEmailInput,
   stripNonDigits,
+  type FieldErrorMap,
 } from '../../../utils/validation';
 import type { ClientProfile, PendingClientPhoto } from '../../../types/models';
 import type { IoniconName, StepProps, UpdateFn } from '../../../types/wizard';
@@ -259,7 +270,7 @@ function newPhotoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/** One mandatory client photo. It becomes the profile picture and the first progress photo. */
+/** Add Client: one mandatory profile photo (also stored as the first progress photo). */
 function ClientPhotoField({ form, update, error }: StepProps<ClientProfile> & { error?: string }) {
   const photo = (form.photos ?? [])[0];
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -282,11 +293,11 @@ function ClientPhotoField({ form, update, error }: StepProps<ClientProfile> & { 
   return (
     <View style={styles.photoField}>
       <FormFieldLabel style={{ marginBottom: 6 }} required>
-        Client Photo
+        Client profile photo
       </FormFieldLabel>
       <Text style={styles.photoHint}>
         Saved as the client&apos;s profile picture and as their first progress photo. Add more
-        progress photos later from the client profile.
+        progress photos below after the client is saved.
       </Text>
       <FormErrorBanner message={photoError || error} />
       {photo ? (
@@ -326,11 +337,99 @@ function ClientPhotoField({ form, update, error }: StepProps<ClientProfile> & { 
   );
 }
 
+/** Checkup: profile avatar (PROFILE_PIC) — separate from optional progress photos. */
+function ClientProfilePhotoField({
+  clientCode,
+  form,
+  update,
+  error,
+}: StepProps<ClientProfile> & { clientCode: string; error?: string }) {
+  const { photoUrl: savedProfileUrl } = useClientPhotoUrl(clientCode);
+  const pending = (form.photos ?? [])[0];
+  const displayUri = pending?.uri ?? savedProfileUrl;
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const pickPhoto = async () => {
+    setPhotoError(null);
+    const assets = await pickImagesFromCameraOrLibrary({ quality: 0.7, selectionLimit: 1 });
+    const asset = assets[0];
+    if (!asset) return;
+    const next: PendingClientPhoto = {
+      id: newPhotoId(),
+      uri: asset.uri,
+      dataUrl: `data:${asset.mimeType};base64,${asset.base64}`,
+    };
+    update('photos', [next]);
+  };
+
+  const hasErr = Boolean(photoError || error);
+
+  return (
+    <View style={styles.photoField}>
+      <FormFieldLabel style={{ marginBottom: 6 }} required>
+        Client profile photo
+      </FormFieldLabel>
+      <Text style={styles.photoHint}>
+        Used as the client&apos;s avatar in your client list. This is not the same as progress
+        photos — add those separately below.
+      </Text>
+      <FormErrorBanner message={photoError || error} />
+      {displayUri ? (
+        <View style={styles.photoThumbWrap}>
+          <Image source={{ uri: displayUri }} style={styles.photoThumb} />
+          {pending ? (
+            <TouchableOpacity
+              style={styles.photoRemoveBtn}
+              onPress={() => update('photos', [])}
+              accessibilityRole="button"
+              accessibilityLabel="Remove selected profile photo"
+              activeOpacity={PressOpacity.default}
+              hitSlop={HitSlop.sm}
+            >
+              <View style={styles.photoRemoveIcon}>
+                <Ionicons name="close-outline" size={IconSize.sm} color={Colors.destructive} />
+              </View>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={[styles.photoEmpty, hasErr && styles.photoEmptyError]}
+          onPress={pickPhoto}
+          accessibilityRole="button"
+          accessibilityLabel="Add client profile photo"
+        >
+          <Ionicons
+            name="camera-outline"
+            size={IconSize.xxl}
+            color={hasErr ? Colors.destructive : Colors.accentInk}
+          />
+          <Text style={[styles.photoEmptyText, hasErr && styles.photoEmptyTextError]}>
+            Tap to add profile photo *
+          </Text>
+        </TouchableOpacity>
+      )}
+      {displayUri && !pending ? (
+        <TouchableOpacity
+          onPress={pickPhoto}
+          accessibilityRole="button"
+          accessibilityLabel="Change client profile photo"
+          style={styles.changeProfilePhotoBtn}
+        >
+          <Text style={styles.changeProfilePhotoText}>Change profile photo</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
 interface BasicProfileStepProps extends StepProps<ClientProfile> {
   /** Fields that failed the last aggregate validation pass. */
   errorFields?: ErrorFields;
   /** Scroll parent so lower fields clear the keyboard. */
   onLowerFieldFocus?: () => void;
+  /** Parent wizard scroll view — scrolls to the first invalid field on Next. */
+  scrollRef?: React.RefObject<ScrollView | null>;
   /**
    * When set (checkup / after first personal save), use live Document API photos
    * like web AddClient?clientCode=. New Add Client uses pending local picks instead.
@@ -338,26 +437,89 @@ interface BasicProfileStepProps extends StepProps<ClientProfile> {
   clientCode?: string;
 }
 
-export default function BasicProfileStep({
-  form,
-  update,
-  errorFields = {},
-  onLowerFieldFocus,
-  clientCode,
-}: BasicProfileStepProps) {
+export interface BasicProfileStepHandle {
+  scrollToFirstError: (errors: FieldErrorMap) => void;
+}
+
+function FieldSection({
+  fieldKey,
+  onFieldLayout,
+  children,
+}: {
+  fieldKey: string;
+  onFieldLayout: (fieldKey: string, y: number) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      onLayout={e => {
+        onFieldLayout(fieldKey, e.nativeEvent.layout.y);
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+const BasicProfileStep = forwardRef<BasicProfileStepHandle, BasicProfileStepProps>(
+  function BasicProfileStep(
+    { form, update, errorFields = {}, onLowerFieldFocus, scrollRef, clientCode },
+    ref,
+  ) {
   const err = (field: string) => !!errorFields[field];
+  const cardYInScroll = useRef(0);
+  const fieldYInCard = useRef<Record<string, number>>({});
+
+  const onFieldLayout = useCallback((fieldKey: string, y: number) => {
+    fieldYInCard.current[fieldKey] = y;
+  }, []);
+
+  const scrollToFirstError = useCallback(
+    (errors: FieldErrorMap) => {
+      const field = firstPersonalProfileErrorField(errors);
+      if (!field) return;
+      const yInCard = fieldYInCard.current[field];
+      if (yInCard == null) {
+        scrollRef?.current?.scrollToEnd({ animated: true });
+        return;
+      }
+      scrollRef?.current?.scrollTo({
+        y: Math.max(0, cardYInScroll.current + yInCard - 24),
+        animated: true,
+      });
+    },
+    [scrollRef],
+  );
+
+  useImperativeHandle(ref, () => ({ scrollToFirstError }), [scrollToFirstError]);
 
   return (
-    <View style={styles.card}>
-      {clientCode ? (
-        <ProgressPhotos clientCode={clientCode} />
-      ) : (
-        <ClientPhotoField
-          form={form}
-          update={update}
-          error={err('photos') ? 'Client photo is required.' : undefined}
-        />
-      )}
+    <View
+      style={styles.card}
+      onLayout={e => {
+        cardYInScroll.current = e.nativeEvent.layout.y;
+      }}
+    >
+      <FieldSection fieldKey="photos" onFieldLayout={onFieldLayout}>
+        {clientCode ? (
+          <>
+            <ClientProfilePhotoField
+              clientCode={clientCode}
+              form={form}
+              update={update}
+              error={err('photos') ? 'Client profile photo is required.' : undefined}
+            />
+            <ProgressPhotos clientCode={clientCode} />
+          </>
+        ) : (
+          <ClientPhotoField
+            form={form}
+            update={update}
+            error={err('photos') ? 'Client profile photo is required.' : undefined}
+          />
+        )}
+      </FieldSection>
+      <FieldSection fieldKey="name" onFieldLayout={onFieldLayout}>
       <Field
         label="Full Name"
         icon="person-outline"
@@ -368,6 +530,8 @@ export default function BasicProfileStep({
         required
         hasError={err('name')}
       />
+      </FieldSection>
+      <FieldSection fieldKey="phone" onFieldLayout={onFieldLayout}>
       <Field
         label="Mobile Number"
         icon="call-outline"
@@ -380,6 +544,8 @@ export default function BasicProfileStep({
         required
         hasError={err('phone')}
       />
+      </FieldSection>
+      <FieldSection fieldKey="email" onFieldLayout={onFieldLayout}>
       <Field
         label="Email (optional)"
         icon="mail-outline"
@@ -391,6 +557,8 @@ export default function BasicProfileStep({
         update={update}
         hasError={err('email')}
       />
+      </FieldSection>
+      <FieldSection fieldKey="location" onFieldLayout={onFieldLayout}>
       <Field
         label="Location"
         icon="location-outline"
@@ -401,9 +569,13 @@ export default function BasicProfileStep({
         required
         hasError={err('location')}
       />
+      </FieldSection>
 
-      <DobWheelField form={form} update={update} hasError={err('dob')} />
+      <FieldSection fieldKey="dob" onFieldLayout={onFieldLayout}>
+        <DobWheelField form={form} update={update} hasError={err('dob')} />
+      </FieldSection>
 
+      <FieldSection fieldKey="age" onFieldLayout={onFieldLayout}>
       <Field
         label="Age"
         icon="calendar-outline"
@@ -416,37 +588,43 @@ export default function BasicProfileStep({
         hasError={err('age')}
         onFocus={onLowerFieldFocus}
       />
+      </FieldSection>
 
-      <View style={styles.field}>
-        <FormFieldLabel required>Gender</FormFieldLabel>
-        <View style={styles.pickerRow}>
-          {GENDER_OPTIONS.map(opt => (
-            <TouchableOpacity
-              key={opt.value}
-              style={[
-                styles.pill,
-                form.gender === opt.value && styles.pillActive,
-                err('gender') && styles.pillError,
-              ]}
-              onPress={() => update('gender', opt.value)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: form.gender === opt.value }}
-            >
-              <Text style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <FieldSection fieldKey="gender" onFieldLayout={onFieldLayout}>
+        <View style={styles.field}>
+          <FormFieldLabel required>Gender</FormFieldLabel>
+          <View style={styles.pickerRow}>
+            {GENDER_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[
+                  styles.pill,
+                  form.gender === opt.value && styles.pillActive,
+                  err('gender') && styles.pillError,
+                ]}
+                onPress={() => update('gender', opt.value)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: form.gender === opt.value }}
+              >
+                <Text style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
+      </FieldSection>
 
-      <HeightField
-        form={form}
-        update={update}
-        hasError={err('height')}
-        onLowerFieldFocus={onLowerFieldFocus}
-      />
+      <FieldSection fieldKey="height" onFieldLayout={onFieldLayout}>
+        <HeightField
+          form={form}
+          update={update}
+          hasError={err('height')}
+          onLowerFieldFocus={onLowerFieldFocus}
+        />
+      </FieldSection>
 
+      <FieldSection fieldKey="weight" onFieldLayout={onFieldLayout}>
       <Field
         label="Weight (kg)"
         icon="scale-outline"
@@ -459,9 +637,13 @@ export default function BasicProfileStep({
         hasError={err('weight')}
         onFocus={onLowerFieldFocus}
       />
+      </FieldSection>
     </View>
   );
-}
+  },
+);
+
+export default BasicProfileStep;
 
 const FIELD_MINT = '#E7F6EC';
 
@@ -507,6 +689,12 @@ const styles = StyleSheet.create({
   photoEmptyText: { ...Typography.label, color: Colors.textLight },
   photoEmptyTextError: {
     color: Colors.destructive,
+  },
+  changeProfilePhotoBtn: { marginTop: Spacing.xs, alignSelf: 'flex-start' },
+  changeProfilePhotoText: {
+    ...Typography.caption,
+    fontFamily: FontFamily.semibold,
+    color: Colors.primary,
   },
   photoRemoveBtn: {
     position: 'absolute',

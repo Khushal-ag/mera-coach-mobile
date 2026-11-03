@@ -278,6 +278,10 @@ interface RawCoachProfileFull {
   certificationCount?: number;
   tagline?: string;
   localLanguage?: string;
+  brandCode?: string;
+  brandName?: string;
+  bmiReportTemplate?: string;
+  dietChartTemplate?: string;
   recheckupDays?: number;
   locality?: string;
   add_Line?: string;
@@ -289,8 +293,6 @@ interface RawCoachProfileFull {
   profile_Pic_Url?: string;
   cover_Url?: string;
   coachDesc?: string;
-  bmiReportTemplate?: string;
-  dietChartTemplate?: string;
   IsProfileVisible?: boolean | number | string;
   isProfileVisible?: boolean | number | string;
   Is_profileVisible?: boolean | number | string;
@@ -312,6 +314,10 @@ export interface CoachProfileFull {
   certificationCount: number;
   tagline: string;
   localLanguage: string;
+  brandCode: string;
+  brandName: string;
+  bmiReportTemplate: string;
+  dietChartTemplate: string;
   /** Days between client assessments. */
   recheckupDays: number;
   locality: string;
@@ -324,8 +330,6 @@ export interface CoachProfileFull {
   profilePicUrl: string;
   coverUrl: string;
   coachDesc: string;
-  bmiReportTemplate: string;
-  dietChartTemplate: string;
   /** undefined if API omits the field. Stored directory flag — not a client override. */
   isProfileVisible?: boolean;
   /**
@@ -353,6 +357,10 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     certificationCount: raw.certificationCount ?? 0,
     tagline: raw.tagline ?? '',
     localLanguage: raw.localLanguage ?? '',
+    brandCode: raw.brandCode ?? '',
+    brandName: raw.brandName ?? '',
+    bmiReportTemplate: raw.bmiReportTemplate ?? '',
+    dietChartTemplate: raw.dietChartTemplate ?? '',
     recheckupDays: raw.recheckupDays && raw.recheckupDays > 0 ? raw.recheckupDays : 7,
     locality: raw.locality ?? '',
     addLine: raw.add_Line ?? '',
@@ -364,8 +372,6 @@ export async function getCoachProfileFull(): Promise<CoachProfileFull> {
     profilePicUrl: media.profilePicUrl,
     coverUrl: media.coverUrl,
     coachDesc: raw.coachDesc ?? '',
-    bmiReportTemplate: raw.bmiReportTemplate ?? '',
-    dietChartTemplate: raw.dietChartTemplate ?? '',
     isProfileVisible: parseIsProfileVisible(bag),
     missingPublicFields: parseMissingPublicFields(bag),
   };
@@ -438,6 +444,9 @@ interface SaveCoachProfileParams {
   certificationCount?: number;
   tagline?: string;
   localLanguage?: string;
+  brandCode?: string;
+  bmiReportTemplate?: string;
+  dietChartTemplate?: string;
   /** Days between client assessments, 1 to 365. */
   recheckupDays?: number;
   locality?: string;
@@ -450,8 +459,6 @@ interface SaveCoachProfileParams {
   profile_Pic_Url?: string;
   cover_Url?: string;
   coachDesc?: string;
-  bmiReportTemplate?: string;
-  dietChartTemplate?: string;
 }
 
 export async function saveCoachProfile(params: SaveCoachProfileParams): Promise<void> {

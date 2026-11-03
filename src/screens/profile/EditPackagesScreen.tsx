@@ -30,6 +30,7 @@ import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
+import { getCoachProfileFull } from '../../api/coachApi';
 import {
   getMyPackages,
   getProductBrands,
@@ -41,7 +42,13 @@ import {
   type PackageItem,
   type ShowcasePackage,
 } from '../../api/showcaseApi';
-import { parseAmount } from '../../utils/formatMoney';
+import { formatMoney, parseAmount } from '../../utils/formatMoney';
+import {
+  firstItemOverMrp,
+  itemAmountOverMrp,
+  packageTotalOverMrp,
+  sumItemMrp,
+} from '../../utils/packageValidation';
 import { navigateToDashboard } from '../../utils/navigationBack';
 import type { PackagesStackScreenProps } from '../../types/navigation';
 import { appAlert } from '../../utils/appDialog';
@@ -123,7 +130,35 @@ export default function EditPackagesScreen({
 function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone: () => void }) {
   const queryClient = useQueryClient();
   const scrollRef = useRef<ScrollView>(null);
-  const [brandCode, setBrandCode] = useState(existing?.brandCode ?? '');
+  const profileQuery = useQuery({
+    queryKey: queryKeys.coachProfileFull,
+    queryFn: getCoachProfileFull,
+    staleTime: 10 * 60_000,
+    refetchOnMount: 'always',
+  });
+  const brandCode =
+    profileQuery.data?.brandCode?.trim() ?? existing?.brandCode?.trim() ?? '';
+  const productBrandsQuery = useQuery({
+    queryKey: queryKeys.productBrands,
+    queryFn: getProductBrands,
+    staleTime: 10 * 60_000,
+  });
+  const brandDisplayName = useMemo(() => {
+    if (!brandCode) return '';
+    const fromProfile = profileQuery.data?.brandName?.trim();
+    if (fromProfile) return fromProfile;
+    const fromPackage = existing?.brandName?.trim();
+    if (fromPackage) return fromPackage;
+    return (
+      productBrandsQuery.data?.find(brand => brand.code === brandCode)?.label.trim() ??
+      brandCode
+    );
+  }, [
+    brandCode,
+    profileQuery.data?.brandName,
+    existing?.brandName,
+    productBrandsQuery.data,
+  ]);
   const [name, setName] = useState(existing?.packageName ?? '');
   const [items, setItems] = useState<PackageItem[]>(existing?.items ?? []);
   const [total, setTotal] = useState(existing ? String(existing.totalAmount) : '');
@@ -131,22 +166,16 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [category, setCategory] = useState('');
   const [productCode, setProductCode] = useState('');
   const [price, setPrice] = useState('');
-  const [sheet, setSheet] = useState<'brand' | 'category' | 'product' | null>(null);
+  const [sheet, setSheet] = useState<'category' | 'product' | null>(null);
   const [isActive, setIsActive] = useState(existing?.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const leaveSaved = useUnsavedChangesGuard(
     name !== (existing?.packageName ?? '') ||
-      brandCode !== (existing?.brandCode ?? '') ||
       total !== (existing ? String(existing.totalAmount) : '') ||
       items.length !== (existing?.items.length ?? 0),
   );
 
-  const brandsQuery = useQuery({
-    queryKey: queryKeys.productBrands,
-    queryFn: getProductBrands,
-    staleTime: 10 * 60_000,
-  });
   const productsQuery = useQuery({
     queryKey: queryKeys.productItems(brandCode),
     queryFn: () => getProductItems(brandCode),
@@ -172,11 +201,54 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
       .map(product => ({ code: product.code, label: product.label }));
   }, [available, categoryValue]);
   const selectedProduct = shownProducts.find(product => product.code === productCode) ?? null;
-  const brandLabel =
-    brandsQuery.data?.find(brand => brand.code === brandCode)?.label ||
-    (brandCode && existing?.brandCode === brandCode ? existing.brandName : '');
-  // One brand per package: it locks once items are added.
-  const brandLocked = items.length > 0;
+  const mrpByItemCode = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const product of productsQuery.data ?? []) {
+      map.set(product.code, product.price ?? 0);
+    }
+    return map;
+  }, [productsQuery.data]);
+
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+
+  const selectedMaster = useMemo(
+    () =>
+      productsQuery.data?.find(product => product.code === selectedProduct?.code),
+    [productsQuery.data, selectedProduct?.code],
+  );
+
+  const addPriceMrpError = useMemo(() => {
+    const amount = parseAmount(price);
+    if (amount == null || !selectedMaster) return null;
+    const mrp = selectedMaster.price ?? 0;
+    if (itemAmountOverMrp(amount, mrp)) {
+      return `Price cannot be higher than the product MRP (${formatMoney(mrp)}).`;
+    }
+    return null;
+  }, [price, selectedMaster]);
+
+  const editAmountMrpError = useMemo(() => {
+    if (editingIndex == null) return null;
+    const amount = parseAmount(editAmount);
+    if (amount == null) return null;
+    const code = items[editingIndex]?.itemCode?.trim();
+    const mrp = code ? mrpByItemCode.get(code) : undefined;
+    if (mrp != null && itemAmountOverMrp(amount, mrp)) {
+      return `Price cannot be higher than the product MRP (${formatMoney(mrp)}).`;
+    }
+    return null;
+  }, [editAmount, editingIndex, items, mrpByItemCode]);
+
+  const totalMrpError = useMemo(() => {
+    const totalAmount = parseAmount(total);
+    if (totalAmount == null || !items.length) return null;
+    const mrpSum = sumItemMrp(items, mrpByItemCode);
+    if (packageTotalOverMrp(totalAmount, mrpSum)) {
+      return `Package total cannot be higher than the combined MRP (${formatMoney(mrpSum)}).`;
+    }
+    return null;
+  }, [total, items, mrpByItemCode]);
 
   // Where each input sits in the scroll content, so the focused one can be lifted above the keyboard.
   const fieldY = useRef<Record<string, number>>({});
@@ -196,8 +268,6 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editAmount, setEditAmount] = useState('');
   const startEdit = (index: number) => {
     setEditingIndex(index);
     setEditAmount(String(items[index].amount));
@@ -206,6 +276,13 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     const amount = parseAmount(editAmount);
     if (amount == null || amount <= 0) return showBanner('Enter a valid amount.');
     if (amount > PACKAGE_MAX_AMOUNT) return showBanner('That price is too high.');
+    const code = items[index].itemCode?.trim();
+    const mrp = code ? mrpByItemCode.get(code) : undefined;
+    if (mrp != null && itemAmountOverMrp(amount, mrp)) {
+      return showBanner(
+        `Price cannot be higher than the product MRP (${formatMoney(mrp)}).`,
+      );
+    }
     setBanner(null);
     setEditingIndex(null);
     applyItems(items.map((item, i) => (i === index ? { ...item, amount } : item)));
@@ -219,12 +296,23 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   };
 
   const addItem = () => {
-    if (!brandCode) return showBanner('Choose a product brand.');
+    if (!brandCode) {
+      return showBanner('Set a product brand on your profile before adding products.');
+    }
     if (!categoryValue) return showBanner('Select a category.');
     if (!selectedProduct) return showBanner('Select a product to add.');
     const amount = parseAmount(price);
     if (amount == null || amount <= 0) return showBanner('Enter a price for this product.');
     if (amount > PACKAGE_MAX_AMOUNT) return showBanner('That price is too high.');
+    const master = productsQuery.data?.find(
+      product => product.code === selectedProduct.code,
+    );
+    const mrp = master?.price ?? 0;
+    if (itemAmountOverMrp(amount, mrp)) {
+      return showBanner(
+        `Price cannot be higher than the product MRP (${formatMoney(mrp)}).`,
+      );
+    }
     if (items.length >= PACKAGE_MAX_ITEMS) {
       return showBanner(`A package can hold up to ${PACKAGE_MAX_ITEMS} products.`);
     }
@@ -243,11 +331,25 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const handleSave = async () => {
     if (saving) return;
     const totalAmount = parseAmount(total);
-    if (!brandCode) return showBanner('Choose a product brand.');
+    if (!brandCode) {
+      return showBanner('Set a product brand on your profile before saving packages.');
+    }
     if (!name.trim()) return showBanner('Enter a package name.');
     if (!items.length) return showBanner('Add at least one product.');
     if (totalAmount == null || totalAmount <= 0) return showBanner('Enter the package total.');
     if (totalAmount > PACKAGE_MAX_AMOUNT) return showBanner('The total is too high.');
+    const overItem = firstItemOverMrp(items, mrpByItemCode);
+    if (overItem) {
+      return showBanner(
+        `${overItem.itemName} cannot be priced above its MRP (${formatMoney(overItem.mrp)}).`,
+      );
+    }
+    const mrpSum = sumItemMrp(items, mrpByItemCode);
+    if (packageTotalOverMrp(totalAmount, mrpSum)) {
+      return showBanner(
+        `Package total cannot be higher than the combined MRP (${formatMoney(mrpSum)}).`,
+      );
+    }
     setBanner(null);
     setSaving(true);
     try {
@@ -283,29 +385,16 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
       >
         <FormErrorBanner message={banner} />
 
-        <Text style={styles.label}>Product brand</Text>
-        <TouchableOpacity
-          style={[styles.field, styles.selectField, brandLocked && styles.locked]}
-          disabled={brandLocked || brandsQuery.isPending || !brandsQuery.data?.length}
-          onPress={() => setSheet('brand')}
-          activeOpacity={PressOpacity.default}
-          accessibilityRole="button"
-          accessibilityLabel="Product brand"
-          accessibilityState={{ disabled: brandLocked }}
-        >
-          <Text style={brandLabel ? styles.value : styles.placeholder} numberOfLines={1}>
-            {brandLabel || (brandsQuery.isPending ? 'Loading...' : 'Select a brand')}
+        {brandCode && brandDisplayName ? (
+          <Text style={styles.brandMeta} accessibilityRole="text">
+            Product brand:{' '}
+            <Text style={styles.brandMetaValue}>{brandDisplayName}</Text>
           </Text>
-          <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
-        </TouchableOpacity>
-        {brandsQuery.isError && !brandsQuery.data?.length ? (
-          <Text style={styles.hint}>Could not load product brands.</Text>
-        ) : brandsQuery.data?.length === 0 ? (
+        ) : !brandCode && !profileQuery.isPending ? (
           <Text style={styles.hint}>
-            No product brands are available yet. They will appear here once added.
+            Choose a product brand under Edit profile → Professional details before you add
+            products.
           </Text>
-        ) : brandLocked ? (
-          <Text style={styles.hint}>Remove all products to change the brand.</Text>
         ) : null}
 
         <Text style={styles.label}>Package name</Text>
@@ -338,11 +427,9 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           <Text style={categoryValue ? styles.value : styles.placeholder} numberOfLines={1}>
             {categoryValue
               ? levelLabel(categoryValue)
-              : !brandCode
-                ? 'Select a brand first'
-                : productsQuery.isPending
-                  ? 'Loading...'
-                  : 'Select a category'}
+              : productsQuery.isPending
+                ? 'Loading...'
+                : 'Select a category'}
           </Text>
           <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
         </TouchableOpacity>
@@ -370,27 +457,37 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           <Ionicons name="chevron-down-outline" size={IconSize.md} color={Colors.textLight} />
         </TouchableOpacity>
         <Text style={styles.label}>Price</Text>
-        <View style={styles.priceRow} onLayout={e => trackField('price', e)}>
-          <TextInput
-            onFocus={() => revealField('price')}
-            style={[styles.field, styles.input, styles.priceInput]}
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor={Colors.textLight}
-            accessibilityLabel="Price"
-          />
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={addItem}
-            activeOpacity={PressOpacity.default}
-            accessibilityRole="button"
-            accessibilityLabel="Add product"
-          >
-            <Ionicons name="add" size={IconSize.md} color={Colors.white} />
-            <Text style={styles.addLabel}>ADD</Text>
-          </TouchableOpacity>
+        <View onLayout={e => trackField('price', e)}>
+          <View style={styles.priceRow}>
+            <TextInput
+              onFocus={() => revealField('price')}
+              style={[
+                styles.field,
+                styles.input,
+                styles.priceInput,
+                addPriceMrpError && styles.fieldErrorBorder,
+              ]}
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={Colors.textLight}
+              accessibilityLabel="Price"
+            />
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={addItem}
+              activeOpacity={PressOpacity.default}
+              accessibilityRole="button"
+              accessibilityLabel="Add product"
+            >
+              <Ionicons name="add" size={IconSize.md} color={Colors.white} />
+              <Text style={styles.addLabel}>ADD</Text>
+            </TouchableOpacity>
+          </View>
+          {addPriceMrpError ? (
+            <Text style={styles.fieldError}>{addPriceMrpError}</Text>
+          ) : null}
         </View>
 
         <Text style={styles.sectionTitle}>Package Items</Text>
@@ -412,14 +509,23 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
                   {item.itemName}
                 </Text>
                 {editing ? (
-                  <TextInput
-                    style={[styles.itemAmount, styles.colAmount, styles.itemAmountInput]}
-                    value={editAmount}
-                    onChangeText={setEditAmount}
-                    keyboardType="decimal-pad"
-                    autoFocus
-                    accessibilityLabel={`Amount for ${item.itemName}`}
-                  />
+                  <View style={styles.colAmount}>
+                    <TextInput
+                      style={[
+                        styles.itemAmount,
+                        styles.itemAmountInput,
+                        editAmountMrpError && styles.fieldErrorBorder,
+                      ]}
+                      value={editAmount}
+                      onChangeText={setEditAmount}
+                      keyboardType="decimal-pad"
+                      autoFocus
+                      accessibilityLabel={`Amount for ${item.itemName}`}
+                    />
+                    {editAmountMrpError ? (
+                      <Text style={styles.itemFieldError}>{editAmountMrpError}</Text>
+                    ) : null}
+                  </View>
                 ) : (
                   <Text style={[styles.itemAmount, styles.colAmount]}>{item.amount}</Text>
                 )}
@@ -452,21 +558,28 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
             );
           })}
           <View style={styles.totalRow}>
-            <View style={styles.totalPill} onLayout={e => trackField('total', e)}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <TextInput
-                onFocus={() => revealField('total')}
-                style={styles.totalInput}
-                value={total}
-                onChangeText={value => {
-                  setTotal(value);
-                  setTotalEdited(true);
-                }}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                placeholderTextColor={Colors.textLight}
-                accessibilityLabel="Total"
-              />
+            <View style={styles.totalBlock} onLayout={e => trackField('total', e)}>
+              <View
+                style={[styles.totalPill, totalMrpError && styles.fieldErrorBorder]}
+              >
+                <Text style={styles.totalLabel}>Total</Text>
+                <TextInput
+                  onFocus={() => revealField('total')}
+                  style={styles.totalInput}
+                  value={total}
+                  onChangeText={value => {
+                    setTotal(value);
+                    setTotalEdited(true);
+                  }}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textLight}
+                  accessibilityLabel="Total"
+                />
+              </View>
+              {totalMrpError ? (
+                <Text style={styles.fieldError}>{totalMrpError}</Text>
+              ) : null}
             </View>
           </View>
           <View style={styles.noteRow}>
@@ -510,24 +623,6 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
         </TouchableOpacity>
       </KeyboardSafeScroll>
 
-      <OptionSheet
-        visible={sheet === 'brand'}
-        title="Product brand"
-        options={brandsQuery.data ?? []}
-        selectedCode={brandCode}
-        onClose={() => setSheet(null)}
-        onSelect={option => {
-          if (option.code === brandCode) {
-            setSheet(null);
-            return;
-          }
-          setBrandCode(option.code);
-          setCategory('');
-          setProductCode('');
-          setPrice('');
-          setSheet(null);
-        }}
-      />
       <OptionSheet
         visible={sheet === 'category'}
         title="Category"
@@ -584,6 +679,16 @@ const styles = StyleSheet.create({
   value: { ...Typography.body, flex: 1, color: Colors.textDark },
   placeholder: { ...Typography.body, flex: 1, color: Colors.textLight },
   hint: { ...Typography.label, color: Colors.textLight, marginTop: Spacing.xs },
+  brandMeta: { ...Typography.label, color: Colors.textLight, marginBottom: Spacing.sm },
+  brandMetaValue: { color: Colors.textDark, fontFamily: FontFamily.semibold },
+  fieldError: { ...Typography.label, color: Colors.destructive, marginTop: Spacing.xs },
+  fieldErrorBorder: { borderWidth: 1, borderColor: Colors.destructive },
+  itemFieldError: {
+    ...Typography.label,
+    color: Colors.destructive,
+    fontSize: 10,
+    marginTop: 2,
+  },
   priceRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
   priceInput: { flex: 1 },
   addBtn: {
@@ -657,6 +762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
+  totalBlock: { flex: 1, maxWidth: 220, alignItems: 'stretch' },
   totalPill: {
     flex: 1,
     maxWidth: 220,

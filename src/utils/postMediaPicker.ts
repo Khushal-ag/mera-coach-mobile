@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { POST_VIDEO_MAX_BYTES } from '../api/showcaseApi';
 import { appAlert, showPermissionNeeded } from './appDialog';
 
 export interface PickedPostMedia {
@@ -72,7 +73,7 @@ export async function pickPostMedia(): Promise<PickedPostMedia | null> {
   if (asset.type === 'video') {
     const bytes = asset.fileSize ?? 0;
     // Only read the file into memory once it is within the upload limit.
-    if (bytes > 10 * 1024 * 1024) {
+    if (bytes > POST_VIDEO_MAX_BYTES) {
       return {
         uri: asset.uri,
         base64: '',

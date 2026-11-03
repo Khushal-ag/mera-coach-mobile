@@ -46,6 +46,7 @@ interface DropdownFieldProps {
   labelStyle?: StyleProp<TextStyle>;
   leftIcon?: IoniconName;
   tone?: 'default' | 'mint';
+  disabled?: boolean;
 }
 
 export default function DropdownField({
@@ -60,6 +61,7 @@ export default function DropdownField({
   labelStyle,
   leftIcon,
   tone = 'default',
+  disabled = false,
 }: DropdownFieldProps) {
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
@@ -81,8 +83,12 @@ export default function DropdownField({
           tone === 'mint' && styles.boxMint,
           hasError && styles.boxError,
           hasError && tone === 'mint' && styles.boxMintError,
+          disabled && styles.boxDisabled,
         ]}
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          if (!disabled) setOpen(true);
+        }}
+        disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={label ? `${label}: ${display || placeholder || 'Select'}` : undefined}
       >
@@ -183,6 +189,10 @@ const styles = StyleSheet.create({
   boxMintError: {
     borderWidth: 1.5,
     borderColor: Colors.destructive,
+  },
+  boxDisabled: {
+    opacity: 0.65,
+    backgroundColor: Colors.border + '33',
   },
   valueMint: { color: Colors.accentInk },
   value: {

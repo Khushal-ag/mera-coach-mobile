@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -30,9 +30,11 @@ import ReloadState from '../../components/ReloadState';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
+import { getCoachProfileFull } from '../../api/coachApi';
 import {
   deletePackage,
   getMyPackages,
+  getProductBrands,
   MAX_PACKAGES,
   setPackageActive,
   type ShowcasePackage,
@@ -49,6 +51,26 @@ const PAGE_SIZE = 5;
 export default function PackagesScreen({ navigation }: PackagesStackScreenProps<'PackagesHome'>) {
   const queryClient = useQueryClient();
   const packagesQuery = useQuery({ queryKey: queryKeys.myPackages, queryFn: getMyPackages });
+  const profileQuery = useQuery({
+    queryKey: queryKeys.coachProfileFull,
+    queryFn: getCoachProfileFull,
+    staleTime: 10 * 60_000,
+  });
+  const productBrandsQuery = useQuery({
+    queryKey: queryKeys.productBrands,
+    queryFn: getProductBrands,
+    staleTime: 10 * 60_000,
+  });
+  const coachBrandCode = profileQuery.data?.brandCode?.trim() ?? '';
+  const coachBrandName = useMemo(() => {
+    if (!coachBrandCode) return '';
+    const fromProfile = profileQuery.data?.brandName?.trim();
+    if (fromProfile) return fromProfile;
+    return (
+      productBrandsQuery.data?.find(brand => brand.code === coachBrandCode)?.label.trim() ??
+      coachBrandCode
+    );
+  }, [coachBrandCode, profileQuery.data?.brandName, productBrandsQuery.data]);
   const refreshControl = useRefreshControl(packagesQuery);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
@@ -131,6 +153,16 @@ export default function PackagesScreen({ navigation }: PackagesStackScreenProps<
       <View style={styles.bannerPad}>
         <FormErrorBanner message={actionError} />
         <FormErrorBanner message={refreshControl.refreshError} />
+        {coachBrandCode && coachBrandName ? (
+          <Text style={styles.brandMeta}>
+            Product brand: <Text style={styles.brandMetaValue}>{coachBrandName}</Text>
+          </Text>
+        ) : !profileQuery.isPending && !coachBrandCode ? (
+          <Text style={styles.brandHint}>
+            Set a product brand under Edit profile → Professional details before you create
+            packages.
+          </Text>
+        ) : null}
       </View>
 
       {packagesQuery.isPending ? (
@@ -251,7 +283,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,
   },
-  bannerPad: { paddingHorizontal: ScreenPad.horizontal },
+  bannerPad: { paddingHorizontal: ScreenPad.horizontal, gap: Spacing.xs },
+  brandMeta: { ...Typography.label, color: Colors.textLight },
+  brandMetaValue: { color: Colors.textDark, fontFamily: FontFamily.semibold },
+  brandHint: { ...Typography.label, color: Colors.textLight },
   bodyContent: {
     paddingHorizontal: ScreenPad.horizontal,
     paddingTop: Spacing.md,

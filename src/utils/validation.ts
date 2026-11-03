@@ -165,6 +165,64 @@ export interface FormValidationResult {
 
 export const MANDATORY_FIELDS_BANNER = 'Please fill all mandatory fields';
 
+/** Visual order on Basic Profile step — used to scroll to the first invalid field. */
+export const PERSONAL_PROFILE_FIELD_ORDER = [
+  'photos',
+  'name',
+  'phone',
+  'email',
+  'location',
+  'dob',
+  'age',
+  'gender',
+  'height',
+  'weight',
+] as const;
+
+const FIELD_BANNER_LABELS: Record<string, string> = {
+  photos: 'Client profile photo',
+  name: 'Full name',
+  phone: 'Mobile number',
+  email: 'Email address',
+  location: 'Location',
+  dob: 'Date of birth',
+  age: 'Age',
+  gender: 'Gender',
+  height: 'Height',
+  weight: 'Weight',
+  physicalActivity: 'Physical activity',
+  workType: 'Work type',
+  sleepDuration: 'Sleep duration',
+  foodPreference: 'Food preference',
+  regionalCuisine: 'Regional cuisine',
+  medicalConditions: 'Medical conditions',
+  foodAllergies: 'Food allergies',
+};
+
+/** User-facing summary for form error banners (replaces generic mandatory-fields copy). */
+export function buildValidationBanner(errors: FieldErrorMap): string {
+  const keys = Object.keys(errors);
+  if (keys.length === 0) return MANDATORY_FIELDS_BANNER;
+  if (keys.length === 1) return errors[keys[0]!]!;
+  const labels = keys.map(k => FIELD_BANNER_LABELS[k] ?? k.replace(/([A-Z])/g, ' $1').trim());
+  const shown = labels.slice(0, 4);
+  const rest = labels.length - shown.length;
+  if (rest > 0) {
+    return `Please complete: ${shown.join(', ')} (+${rest} more)`;
+  }
+  return `Please complete: ${shown.join(', ')}`;
+}
+
+export function firstPersonalProfileErrorField(errors: FieldErrorMap): string | null {
+  for (const field of PERSONAL_PROFILE_FIELD_ORDER) {
+    if (errors[field]) return field;
+  }
+  const extra = Object.keys(errors).find(
+    k => !PERSONAL_PROFILE_FIELD_ORDER.includes(k as (typeof PERSONAL_PROFILE_FIELD_ORDER)[number]),
+  );
+  return extra ?? null;
+}
+
 /** Age is required. Date of Birth is optional; picking one fills in the age. */
 function collectDobAndAgeErrors(dob: string, age: string): FieldErrorMap {
   const errors: FieldErrorMap = {};
@@ -179,7 +237,7 @@ function collectDobAndAgeErrors(dob: string, age: string): FieldErrorMap {
 function resultFromErrors(errors: FieldErrorMap): FormValidationResult {
   const keys = Object.keys(errors);
   if (keys.length === 0) return { ok: true, errors: {}, banner: null };
-  return { ok: false, errors, banner: MANDATORY_FIELDS_BANNER };
+  return { ok: false, errors, banner: buildValidationBanner(errors) };
 }
 
 function putError(errors: FieldErrorMap, field: string, message: string | null) {
@@ -239,11 +297,33 @@ function validateNonNegativeInt(
   return null;
 }
 
+export interface ValidateClientPersonalProfileOptions {
+  /**
+   * Add Client requires a pending local profile photo before save.
+   * Checkup skips this when the client already has a Document API PROFILE_PIC.
+   */
+  requirePhoto?: boolean;
+  /** True when Document/list already has a client PROFILE_PIC (checkup). */
+  hasExistingProfilePhoto?: boolean;
+}
+
+const CLIENT_PROFILE_PHOTO_REQUIRED = 'Client profile photo is required.';
+
 /** Add Client step 1 validation (mirrors web). */
-export function validateClientPersonalProfile(form: ClientProfile): FormValidationResult {
+export function validateClientPersonalProfile(
+  form: ClientProfile,
+  options: ValidateClientPersonalProfileOptions = {},
+): FormValidationResult {
+  const requirePendingPhoto = options.requirePhoto !== false;
+  const hasProfilePhoto =
+    options.hasExistingProfilePhoto === true ||
+    (form.photos ?? []).some(p => p.uri?.trim() || p.dataUrl?.trim());
   const errors: FieldErrorMap = {};
-  if (!form.photos || form.photos.length === 0) {
-    errors.photos = 'Client photo is required.';
+  if (requirePendingPhoto && !hasProfilePhoto) {
+    errors.photos = CLIENT_PROFILE_PHOTO_REQUIRED;
+  } else if (options.requirePhoto === false && !hasProfilePhoto) {
+    // Checkup: progress photos are separate; profile picture is still required once per client.
+    errors.photos = CLIENT_PROFILE_PHOTO_REQUIRED;
   }
   putError(errors, 'name', validateRequired(form.name, 'Full name'));
   // Client mobile: digits only, up to 10 (enforced as the coach types). No format rule.
@@ -348,6 +428,7 @@ export function validateLogin(fields: { email: string; password: string }): Form
 /** Edit Profile. Category, mobile and email are fixed at sign up and are not checked here. */
 export function validateCoachProfileEdit(fields: {
   coachName: string;
+  brandCode: string;
   pinCode: string;
   experienceYears: string;
   happyClientCount: string;
@@ -358,6 +439,7 @@ export function validateCoachProfileEdit(fields: {
 }): FormValidationResult {
   const errors: FieldErrorMap = {};
   putError(errors, 'coachName', validateRequired(fields.coachName, 'Coach name'));
+  putError(errors, 'brandCode', validateRequired(fields.brandCode, 'Product brand'));
   putError(errors, 'pinCode', validatePinCode(fields.pinCode, true));
   putError(
     errors,

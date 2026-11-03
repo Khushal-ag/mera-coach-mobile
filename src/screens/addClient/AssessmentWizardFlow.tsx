@@ -6,6 +6,7 @@ import { ScreenPad, Spacing } from '../../constants/theme';
 import { wizardShellStyles } from '../../constants/wizardStyles';
 import { COACH_TYPES, DEFAULT_COACH_TYPE } from '../../config/coachTypes';
 import { SCREEN_REGISTRY } from './screenRegistry';
+import BasicProfileStep, { type BasicProfileStepHandle } from './steps/BasicProfileStep';
 import FormErrorBanner from '../../components/FormErrorBanner';
 import GreenSubmitButton from '../../components/GreenSubmitButton';
 import WaveScreenHeader from '../../components/WaveScreenHeader';
@@ -19,6 +20,7 @@ import { isDietEmpty } from '../../data/dietCatalog';
 import { getErrorMessage } from '../../api/client';
 import { queryKeys } from '../../api/queryKeys';
 import { getCurrentCoachCode } from '../../auth/session';
+import { useClientPhotoUrl } from '../../hooks/useClientPhotoUrl';
 import { computeBmiMetrics } from '../../utils/bmi';
 import { appAlert } from '../../utils/appDialog';
 import {
@@ -92,6 +94,7 @@ export default function AssessmentWizardFlow({
 }: AssessmentWizardFlowProps) {
   const queryClient = useQueryClient();
   const scrollRef = useRef<ScrollView>(null);
+  const basicProfileStepRef = useRef<BasicProfileStepHandle>(null);
   const scrollLowerFieldsIntoView = useScrollLowerFieldsIntoView(scrollRef);
   const coachType = COACH_TYPES[DEFAULT_COACH_TYPE]!;
 
@@ -198,6 +201,19 @@ export default function AssessmentWizardFlow({
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
+  const focusFirstValidationError = (screenId: string, errors: Record<string, string>) => {
+    if (screenId === 'basicProfile') {
+      setTimeout(() => basicProfileStepRef.current?.scrollToFirstError(errors), 0);
+      return;
+    }
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const { photoUrl: existingProfilePhotoUrl } = useClientPhotoUrl(
+    flow === 'checkup' ? ids.clientCode : undefined,
+  );
+  const requireClientPhoto = flow === 'add' || !ids.clientCode;
+
   const completeAssessment = async (
     nextIds: AssessmentIds,
     metrics: ReturnType<typeof computeBmiMetrics>,
@@ -225,10 +241,13 @@ export default function AssessmentWizardFlow({
         : entry.screenId === 'healthGoals'
           ? validateClientHealthGoals
           : null;
-    if (screenCheck && applyValidation(screenCheck(form))) {
-      setApiError('');
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-      return;
+    if (screenCheck) {
+      const screenResult = screenCheck(form);
+      if (applyValidation(screenResult)) {
+        setApiError('');
+        focusFirstValidationError(entry.screenId, screenResult.errors);
+        return;
+      }
     }
 
     const nextEntry = flatNav[index + 1];
@@ -241,17 +260,22 @@ export default function AssessmentWizardFlow({
     const phaseId = phases[entry.phaseIndex]!.id;
 
     if (phaseId === 'personal') {
-      if (applyValidation(validateClientPersonalProfile(form))) {
+      const personalResult = validateClientPersonalProfile(form, {
+        requirePhoto: requireClientPhoto,
+        hasExistingProfilePhoto: !!existingProfilePhotoUrl,
+      });
+      if (applyValidation(personalResult)) {
         setApiError('');
-        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        focusFirstValidationError(entry.screenId, personalResult.errors);
         return;
       }
     }
 
     if (phaseId === 'lifestyle') {
-      if (applyValidation(validateClientLifestyleProfile(form))) {
+      const lifestyleResult = validateClientLifestyleProfile(form);
+      if (applyValidation(lifestyleResult)) {
         setApiError('');
-        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        focusFirstValidationError(entry.screenId, lifestyleResult.errors);
         return;
       }
     }
@@ -363,6 +387,7 @@ export default function AssessmentWizardFlow({
       ? {
           errorFields,
           onLowerFieldFocus: scrollLowerFieldsIntoView,
+          scrollRef,
           clientCode: ids.clientCode || undefined,
         }
       : entry.screenId === 'lifestylePreferences' || entry.screenId === 'healthGoals'
@@ -395,12 +420,21 @@ export default function AssessmentWizardFlow({
 
         <FormErrorBanner message={bannerMessage} />
 
-        <StepComponent
-          form={form}
-          update={update}
-          {...(screen.componentProps || {})}
-          {...stepExtraProps}
-        />
+        {entry.screenId === 'basicProfile' ? (
+          <BasicProfileStep
+            ref={basicProfileStepRef}
+            form={form}
+            update={update}
+            {...stepExtraProps}
+          />
+        ) : (
+          <StepComponent
+            form={form}
+            update={update}
+            {...(screen.componentProps || {})}
+            {...stepExtraProps}
+          />
+        )}
       </KeyboardSafeScroll>
 
       {showFinishBtn ? (
