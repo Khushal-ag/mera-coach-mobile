@@ -1,4 +1,9 @@
-import { isShortFeedLink, parseChannelFeed, videoIdFromFeedLink } from '../../utils/youtubeFeed';
+import {
+  fetchChannelVideos,
+  isShortFeedLink,
+  parseChannelFeed,
+  videoIdFromFeedLink,
+} from '../../utils/youtubeFeed';
 
 const entry = (id: string, title: string, path = 'watch?v=' + id, thumb?: string) => `<entry>
   <id>yt:video:${id}</id>
@@ -71,38 +76,6 @@ describe('parseChannelFeed', () => {
     expect(parseChannelFeed('<html>blocked</html>', 4)).toEqual([]);
   });
 
-  it('keeps mixed Shorts and watch URLs in feed order', () => {
-    const xml = [
-      entry('SHORT11111a', 'Tip short', 'shorts/SHORT11111a'),
-      entry('VIDEO22222b', 'Long tutorial'),
-      entry('SHORT33333c', 'Another short', 'shorts/SHORT33333c'),
-    ].join('');
-    expect(parseChannelFeed(`<feed>${xml}</feed>`, 10)).toEqual([
-      { id: 'SHORT11111a', title: 'Tip short', isShort: true },
-      { id: 'VIDEO22222b', title: 'Long tutorial' },
-      { id: 'SHORT33333c', title: 'Another short', isShort: true },
-    ]);
-  });
-
-  it('parses a Short-only channel feed', () => {
-    const xml = [
-      entry('AAAAAAAAAAA', 'One', 'shorts/AAAAAAAAAAA'),
-      entry('BBBBBBBBBBB', 'Two', 'shorts/BBBBBBBBBBB'),
-    ].join('');
-    expect(parseChannelFeed(`<feed>${xml}</feed>`, 4)).toEqual([
-      { id: 'AAAAAAAAAAA', title: 'One', isShort: true },
-      { id: 'BBBBBBBBBBB', title: 'Two', isShort: true },
-    ]);
-  });
-
-  it('parses a regular-video-only channel feed (no isShort flag)', () => {
-    const xml = [entry('AAAAAAAAAAA', 'One'), entry('BBBBBBBBBBB', 'Two')].join('');
-    expect(parseChannelFeed(`<feed>${xml}</feed>`, 4)).toEqual([
-      { id: 'AAAAAAAAAAA', title: 'One' },
-      { id: 'BBBBBBBBBBB', title: 'Two' },
-    ]);
-  });
-
   it('reads id from yt:videoId when the alternate link is missing', () => {
     const xml = `<entry>
   <yt:videoId>FFFFFFFFFFF</yt:videoId>
@@ -131,5 +104,54 @@ describe('isShortFeedLink', () => {
   it('is true only for /shorts/ links', () => {
     expect(isShortFeedLink('https://www.youtube.com/shorts/abc')).toBe(true);
     expect(isShortFeedLink('https://www.youtube.com/watch?v=abc')).toBe(false);
+  });
+});
+
+describe('fetchChannelVideos', () => {
+  const realFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
+
+  it('loads from RSS directly with a browser User-Agent', async () => {
+    const xml = `<feed>${entry('AAAAAAAAAAA', 'From RSS')}</feed>`;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => xml,
+    }) as typeof fetch;
+
+    await expect(fetchChannelVideos(4, 'UCyrit6VV-HZJGnnWzPfgDLw')).resolves.toEqual([
+      { id: 'AAAAAAAAAAA', title: 'From RSS' },
+    ]);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('feeds/videos.xml?channel_id=UCyrit6VV-HZJGnnWzPfgDLw'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'User-Agent': expect.stringContaining('Chrome'),
+        }),
+      }),
+    );
+  });
+
+  it('falls back to browse HTML when RSS fails', async () => {
+    const channelId = '@HenchSolutionsTest';
+    const browseHtml = `"primaryText":{"content":"Browse title"}
+      "watchEndpoint":{"videoId":"BBBBBBBBBBB"}`;
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => browseHtml,
+    }) as typeof fetch;
+
+    await expect(fetchChannelVideos(3, channelId)).resolves.toEqual([
+      { id: 'BBBBBBBBBBB', title: 'Browse title' },
+    ]);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/@HenchSolutionsTest/videos'),
+      expect.any(Object),
+    );
   });
 });

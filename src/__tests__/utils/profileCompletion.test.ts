@@ -69,6 +69,8 @@ describe('getProfileCompletion', () => {
     const result = getProfileCompletion(completeProfile);
     expect(result.isPublicReady).toBe(true);
     expect(result.percent).toBe(100);
+    expect(result.doneCount).toBe(12);
+    expect(result.totalCount).toBe(12);
     expect(result.missingLabels).toEqual([]);
   });
 
@@ -109,6 +111,19 @@ describe('getProfileCompletion', () => {
     });
     expect(result.isPublicReady).toBe(false);
     expect(result.missingLabels).toEqual(['Profile photo', 'Tagline']);
+    expect(result.doneCount).toBe(10);
+    expect(result.totalCount).toBe(12);
     expect(result.percent).toBe(Math.round((10 / 12) * 100));
+  });
+
+  it('reports counts for partially complete profiles', () => {
+    const result = getProfileCompletion({
+      ...completeProfile,
+      brandCode: '',
+    });
+    expect(result.doneCount).toBe(11);
+    expect(result.totalCount).toBe(12);
+    expect(result.missingLabels).toEqual(['Product brand']);
+    expect(result.percent).toBe(92);
   });
 });

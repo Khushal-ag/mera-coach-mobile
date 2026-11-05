@@ -406,31 +406,26 @@ export default function DashboardScreen({
           accessibilityLabel="Add Client"
           accessibilityState={{ disabled: checkingSubscription, busy: checkingSubscription }}
         >
-          <View style={styles.primaryCtaFace}>
-            <View style={styles.primaryCtaCurve} pointerEvents="none" />
-            <View style={styles.primaryCtaIcon}>
-              <Ionicons name="person-add" size={IconSize.xl} color={Colors.white} />
-            </View>
-            <View style={styles.primaryCtaCopy}>
-              <Text style={styles.primaryCtaTitle} numberOfLines={1}>
-                Add Client
-              </Text>
-              <Text style={styles.primaryCtaSub} numberOfLines={1}>
-                {checkingSubscription
-                  ? isSubscriptionRequired()
-                    ? 'Checking your subscription'
-                    : 'Just a moment'
-                  : 'Start a new assessment'}
-              </Text>
-            </View>
-            <View style={styles.primaryCtaArrow} pointerEvents="none">
-              {checkingSubscription ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <Ionicons name="arrow-forward-outline" size={IconSize.lg} color={Colors.white} />
-              )}
-            </View>
+          <View style={styles.primaryCtaIcon}>
+            <Ionicons name="person-add" size={IconSize.xl} color={Colors.white} />
           </View>
+          <View style={styles.primaryCtaCopy}>
+            <Text style={styles.primaryCtaTitle} numberOfLines={1}>
+              Add Client
+            </Text>
+            <Text style={styles.primaryCtaSub} numberOfLines={1}>
+              {checkingSubscription
+                ? isSubscriptionRequired()
+                  ? 'Checking your subscription'
+                  : 'Just a moment'
+                : 'Start a new assessment'}
+            </Text>
+          </View>
+          {checkingSubscription ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Ionicons name="chevron-forward" size={IconSize.lg} color={Colors.white} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -563,56 +558,32 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   primaryCta: {
-    borderRadius: Radius.md,
-    backgroundColor: Colors.addClientBanner,
-    ...Shadow.sm,
-  },
-  primaryCtaFace: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    height: 68,
-    backgroundColor: Colors.addClientBanner,
+    gap: Spacing.md,
+    minHeight: 60,
     borderRadius: Radius.md,
-    paddingLeft: Spacing.sm,
-    paddingRight: Spacing.md,
-    overflow: 'hidden',
-  },
-  // Decorative circle behind the arrow. Placed by percentage of the card width, not from the right edge,
-  // so its edge never cuts through the title or subtitle on any screen width.
-  primaryCtaCurve: {
-    position: 'absolute',
-    left: '80%',
-    top: -118,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: Colors.addClientBannerLight,
+    backgroundColor: Colors.addClientBanner,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Shadow.sm,
   },
   primaryCtaIcon: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: Radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.32)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  primaryCtaCopy: { flex: 1, zIndex: 1, minWidth: 0 },
-  primaryCtaArrow: {
-    zIndex: 1,
-    width: 28,
-    height: 28,
+    backgroundColor: Colors.onDarkOverlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primaryCtaCopy: { flex: 1, minWidth: 0 },
   primaryCtaTitle: {
     ...Typography.tileValue,
     color: Colors.white,
   },
   primaryCtaSub: {
     ...Typography.caption,
-    color: Colors.white,
+    color: Colors.onDarkCaption,
     marginTop: Spacing.xxs,
   },
   summaryRow: {

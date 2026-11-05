@@ -217,15 +217,15 @@ cp .env.example .env   # set EXPO_PUBLIC_API_BASE_URL
 bun start              # then i / a / scan the Expo Go QR
 ```
 
-| Variable                                 | Required | Purpose                                                                                                                                                                                               |
-| ---------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EXPO_PUBLIC_API_BASE_URL`               | Yes      | API origin. Photos, videos and PDFs come from the same host. Must not be localhost for store or GitHub builds                                                                                         |
-| `EXPO_PUBLIC_WEB_BASE_URL`               | No       | Website used for feedback SMS links (default `https://mera-coach.com`)                                                                                                                                |
-| `EXPO_PUBLIC_PAYMENT_URL`                | No       | Pay Now checkout (default `{WEB_BASE_URL}/premium`; the coach id is added)                                                                                                                            |
-| `EXPO_PUBLIC_PRIVACY_POLICY_URL`         | No       | Hosted privacy policy for store listings (default `{WEB_BASE_URL}/privacy`)                                                                                                                           |
-| `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED`      | No       | The plans switch described above                                                                                                                                                                      |
-| `EXPO_PUBLIC_EXTERNAL_PAYMENT_PLATFORMS` | No       | Platforms that may open the website to pay: `ios`, `android`, `ios,android` or `none`. Blank means Android only                                                                                       |
-| `EXPO_PUBLIC_YOUTUBE_CHANNEL_ID`         | No       | UC channel id (e.g. Hench Solutions [@HenchSolutions](https://www.youtube.com/@HenchSolutions)). Dashboard carousel uses the public RSS feed; channels may mix Shorts and regular uploads in one list |
+| Variable                                 | Required | Purpose                                                                                                                       |
+| ---------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_BASE_URL`               | Yes      | API origin. Photos, videos and PDFs come from the same host. Must not be localhost for store or GitHub builds                 |
+| `EXPO_PUBLIC_WEB_BASE_URL`               | No       | Website used for feedback SMS links (default `https://mera-coach.com`)                                                        |
+| `EXPO_PUBLIC_PAYMENT_URL`                | No       | Pay Now checkout (default `{WEB_BASE_URL}/premium`; the coach id is added)                                                    |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL`         | No       | Hosted privacy policy for store listings (default `{WEB_BASE_URL}/privacy`)                                                   |
+| `EXPO_PUBLIC_SUBSCRIPTION_REQUIRED`      | No       | The plans switch described above                                                                                              |
+| `EXPO_PUBLIC_EXTERNAL_PAYMENT_PLATFORMS` | No       | Platforms that may open the website to pay: `ios`, `android`, `ios,android` or `none`. Blank means Android only               |
+| `EXPO_PUBLIC_YOUTUBE_CHANNEL_ID`         | Yes*     | UC channel id (or `@handle`) for the dashboard tips carousel. Loaded directly from YouTube (RSS, then channel `/videos` HTML) |
 
 Never commit real `.env` values. Everything prefixed `EXPO_PUBLIC_` is readable from the built app, so it must never hold a secret.
 

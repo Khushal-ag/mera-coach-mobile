@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mera Coach",
     "slug": "meracoach",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/platform/icon.png",
     "scheme": "meracoach",

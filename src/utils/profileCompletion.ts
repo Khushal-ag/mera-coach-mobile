@@ -33,6 +33,8 @@ export type ProfileCompletionInput = {
 
 export type ProfileCompletion = {
   percent: number;
+  doneCount: number;
+  totalCount: number;
   items: ProfileCompletionItem[];
   isPublicReady: boolean;
   missingLabels: string[];
@@ -138,6 +140,8 @@ export function getProfileCompletion(profile: ProfileCompletionInput): ProfileCo
 
   return {
     percent,
+    doneCount,
+    totalCount: items.length,
     items,
     isPublicReady,
     missingLabels: items.filter(item => !item.done).map(item => item.label),

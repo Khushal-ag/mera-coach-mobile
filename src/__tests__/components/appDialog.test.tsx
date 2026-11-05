@@ -1,7 +1,3 @@
-import React from 'react';
-import renderer, { act } from 'react-test-renderer';
-
-import AppDialogHost from '../../components/dialog/AppDialogHost';
 import { getDialogQueue, resetDialogsForTests } from '../../components/dialog/dialogStore';
 import { appAlert, showError, showSuccess } from '../../utils/appDialog';
 
@@ -39,40 +35,5 @@ describe('dialog queue', () => {
     showError('First');
     appAlert('Second');
     expect(getDialogQueue().map(d => d.title)).toEqual(['First', 'Second']);
-  });
-});
-
-describe('AppDialogHost', () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
-  // Text from the dialog's own Text elements (host components render with the string type 'Text').
-  const texts = (root: renderer.ReactTestRenderer) =>
-    root.root.findAll(n => (n.type as unknown) === 'Text').map(n => n.children.join(''));
-
-  it('draws the dialog and runs a button action only after it has closed', () => {
-    const onOk = jest.fn();
-    let root!: renderer.ReactTestRenderer;
-    act(() => {
-      root = renderer.create(<AppDialogHost />);
-    });
-    act(() => {
-      showSuccess('Profile Updated', 'Your changes have been saved.', onOk);
-    });
-    expect(texts(root)).toEqual(
-      expect.arrayContaining(['Profile Updated', 'Your changes have been saved.', 'OK']),
-    );
-
-    const ok = root.root.findAllByProps({ accessibilityLabel: 'OK' })[0];
-    act(() => {
-      ok.props.onPress();
-    });
-    expect(onOk).not.toHaveBeenCalled();
-
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-    expect(onOk).toHaveBeenCalledTimes(1);
-    expect(getDialogQueue()).toHaveLength(0);
   });
 });

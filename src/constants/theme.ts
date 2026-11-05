@@ -24,10 +24,7 @@ export const Colors = {
   border: '#d5ddd8',
   /** Add Client banner border (Figma). */
   bannerBorder: '#F0F4F4',
-  /** Add Client banner — light yellow-green base (Views curve, no LinearGradient). */
-  addClientBannerLight: '#5CB650',
-  /** Add Client banner — deeper green overlapping the right curve. */
-  addClientBannerDark: '#2F8F62',
+  /** Dashboard Add Client CTA fill. */
   addClientBanner: '#329450',
   /** Dashboard greeting — muted green (not black, not bright teal). */
   greetingMuted: '#5A9A8C',

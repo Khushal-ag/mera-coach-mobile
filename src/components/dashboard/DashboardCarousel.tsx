@@ -21,8 +21,11 @@ import {
   Typography,
 } from '../../constants/theme';
 import { youTubeThumbnailCandidates } from '../../utils/youtube';
-import { fetchChannelVideos, type DashboardVideo } from '../../utils/youtubeFeed';
-import { YOUTUBE_CHANNEL_ID } from '../../config/appConfig';
+import {
+  fetchChannelVideos,
+  youtubeCarouselEnabled,
+  type DashboardVideo,
+} from '../../utils/youtubeFeed';
 import TipBanner, { type TipBannerProps } from './TipBanner';
 import VideoPlayerModal from './VideoPlayerModal';
 import { THUMB_ASPECT, carouselCardWidth, carouselThumbHeight } from './carouselLayout';
@@ -98,7 +101,7 @@ function VideoThumbnail({
  */
 export default function DashboardCarousel(bannerProps: TipBannerProps) {
   const [videos, setVideos] = useState<DashboardVideo[]>([]);
-  const [loading, setLoading] = useState(Boolean(YOUTUBE_CHANNEL_ID));
+  const [loading, setLoading] = useState(youtubeCarouselEnabled());
   const [playing, setPlaying] = useState<DashboardVideo | null>(null);
   // Position in `slides`, which for more than one video is [last, ...videos, first] so the row can loop both ways.
   const [pos, setPos] = useState(1);
@@ -107,7 +110,7 @@ export default function DashboardCarousel(bannerProps: TipBannerProps) {
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!YOUTUBE_CHANNEL_ID) return;
+    if (!youtubeCarouselEnabled()) return;
     let active = true;
     fetchChannelVideos(VIDEO_COUNT)
       .then(latest => active && setVideos(latest))
