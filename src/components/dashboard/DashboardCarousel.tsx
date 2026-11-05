@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
+  PixelRatio,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -19,15 +20,17 @@ import {
   Spacing,
   Typography,
 } from '../../constants/theme';
-import { youTubeThumbnailUrl } from '../../utils/youtube';
+import { youTubeThumbnailCandidates } from '../../utils/youtube';
 import { fetchChannelVideos, type DashboardVideo } from '../../utils/youtubeFeed';
 import { YOUTUBE_CHANNEL_ID } from '../../config/appConfig';
 import TipBanner, { type TipBannerProps } from './TipBanner';
 import VideoPlayerModal from './VideoPlayerModal';
+import { THUMB_ASPECT, carouselCardWidth, carouselThumbHeight } from './carouselLayout';
+
+export { THUMB_ASPECT, carouselCardWidth, carouselThumbHeight };
 
 // At least the screen padding, so the neighbouring cards stay fully off screen.
 const CARD_GAP = ScreenPad.horizontal;
-const THUMB_ASPECT = 16 / 9;
 const VIDEO_COUNT = 4;
 const AUTO_ADVANCE_MS = 5000;
 // Longer than a programmatic scroll animation, used to settle if the platform sends no scroll-end event for it.
@@ -36,6 +39,57 @@ const SETTLE_FALLBACK_MS = 700;
 interface Slide {
   key: string;
   video: DashboardVideo;
+}
+
+function VideoThumbnail({
+  videoId,
+  isShort,
+  feedThumbnailUrl,
+}: {
+  videoId: string;
+  isShort?: boolean;
+  feedThumbnailUrl?: string;
+}) {
+  const candidates = React.useMemo(
+    () =>
+      youTubeThumbnailCandidates(videoId, {
+        short: isShort,
+        prepend: feedThumbnailUrl ? [feedThumbnailUrl] : undefined,
+      }),
+    [videoId, isShort, feedThumbnailUrl],
+  );
+  const [index, setIndex] = useState(0);
+  const [exhausted, setExhausted] = useState(false);
+  const attemptRef = useRef(0);
+
+  const uri = candidates[index];
+
+  const onLoadError = () => {
+    const next = attemptRef.current + 1;
+    if (next >= candidates.length) {
+      if (__DEV__) {
+        console.warn('[VideoThumbnail] All thumbnail URLs failed', {
+          videoId,
+          isShort,
+          candidates,
+        });
+      }
+      setExhausted(true);
+      return;
+    }
+    attemptRef.current = next;
+    setIndex(next);
+  };
+
+  if (exhausted || !uri) {
+    return (
+      <View style={styles.thumbPlaceholder} accessibilityLabel="Video thumbnail unavailable">
+        <Ionicons name="videocam-outline" size={IconSize.lg} color={Colors.textLight} />
+      </View>
+    );
+  }
+
+  return <Image source={{ uri }} style={styles.thumb} resizeMode="cover" onError={onLoadError} />;
 }
 
 /**
@@ -68,7 +122,10 @@ export default function DashboardCarousel(bannerProps: TipBannerProps) {
 
   // Sized from the live window so rotation, split-screen and foldables do not leave a stale card. The next card peeks in.
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = screenWidth - ScreenPad.horizontal * 2;
+  const cardWidth = carouselCardWidth(screenWidth);
+  const thumbHeight = carouselThumbHeight(cardWidth);
+  const dpr = PixelRatio.get();
+  const snapToDevicePixel = (value: number) => Math.round(value * dpr) / dpr;
   const step = cardWidth + CARD_GAP;
 
   // The first and last videos are repeated at the opposite ends, so moving past the last card slides on to the first and
@@ -153,11 +210,11 @@ export default function DashboardCarousel(bannerProps: TipBannerProps) {
             accessibilityRole="button"
             accessibilityLabel={`Play video: ${item.title}`}
           >
-            <View style={{ height: Math.round(cardWidth / THUMB_ASPECT) }}>
-              <Image
-                source={{ uri: youTubeThumbnailUrl(item.id) }}
-                style={styles.thumb}
-                resizeMode="cover"
+            <View style={[styles.thumbWrap, { height: snapToDevicePixel(thumbHeight) }]}>
+              <VideoThumbnail
+                videoId={item.id}
+                isShort={item.isShort}
+                feedThumbnailUrl={item.thumbnailUrl}
               />
               <View style={styles.watchPill} pointerEvents="none">
                 <Ionicons name="play" size={IconSize.xs} color={Colors.white} />
@@ -216,7 +273,18 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     ...Shadow.sm,
   },
-  thumb: { width: '100%', height: '100%', backgroundColor: Colors.tipsPanel },
+  thumbWrap: {
+    width: '100%',
+    overflow: 'hidden',
+    backgroundColor: Colors.disabledBg,
+  },
+  thumb: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  thumbPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.disabledBg,
+  },
   watchPill: {
     position: 'absolute',
     left: Spacing.xs,

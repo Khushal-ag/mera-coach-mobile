@@ -39,7 +39,9 @@ export async function commitPersonal(
     const coachCode = getCurrentCoachCode() ?? '';
     const savedBy = getDocumentSavedById();
     // The photo is optional: a failed upload must not roll back the client, but it must be told.
-    const docTypes = ids.clientCode ? (['PROFILE_PIC'] as const) : (['PROFILE_PIC', 'PROGRESS_PHOTO'] as const);
+    const docTypes = ids.clientCode
+      ? (['PROFILE_PIC'] as const)
+      : (['PROFILE_PIC', 'PROGRESS_PHOTO'] as const);
     for (const docType of docTypes) {
       try {
         await uploadDocument({

@@ -13,8 +13,9 @@ describe('packageValidation', () => {
 
   it('returns the first item that exceeds MRP', () => {
     const mrp = new Map([['X', 50]]);
-    expect(
-      firstItemOverMrp([{ itemCode: 'X', itemName: 'Item', amount: 60 }], mrp),
-    ).toEqual({ itemName: 'Item', mrp: 50 });
+    expect(firstItemOverMrp([{ itemCode: 'X', itemName: 'Item', amount: 60 }], mrp)).toEqual({
+      itemName: 'Item',
+      mrp: 50,
+    });
   });
 });

@@ -307,9 +307,11 @@ function HistoryCard({
           </View>
         ) : null}
         <View style={styles.historySpacer} />
-        {expanded ? null : (
-          <Ionicons name="chevron-down-outline" size={IconSize.md} color={Tone.chevron} />
-        )}
+        <Ionicons
+          name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+          size={IconSize.md}
+          color={Tone.chevron}
+        />
       </Pressable>
       {expanded && metrics.length > 0 ? (
         <View style={styles.historyRows}>
@@ -532,7 +534,7 @@ export default function ClientBmiReportScreen({
             <View style={styles.section}>
               <SectionTitle>Summary</SectionTitle>
               {currentBmi != null || bodyFatPct != null ? (
-                <View style={styles.summaryTop}>
+                <View style={[styles.summaryTop, bodyFatPct == null && styles.summaryTopSolo]}>
                   {currentBmi != null ? (
                     <BmiSummaryGauge
                       width={gaugeWidth}
@@ -752,6 +754,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: SUMMARY_GAP,
   },
+  summaryTopSolo: { justifyContent: 'center' },
   gauge: { alignItems: 'center' },
   arcBox: { position: 'relative' },
   gaugeReadout: {

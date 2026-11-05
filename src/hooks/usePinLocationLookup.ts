@@ -43,9 +43,9 @@ export function usePinLocationLookup(
   });
 
   const mapped =
-    enabled && query.isSuccess ?
-      mapPinLookupToFields(query.data, lookupCountry, debouncedPin)
-    : null;
+    enabled && query.isSuccess
+      ? mapPinLookupToFields(query.data, lookupCountry, debouncedPin)
+      : null;
   const city = mapped?.city ?? '';
   const state = mapped?.state ?? '';
   const emptySuccess = query.isSuccess && !city && !state;
@@ -62,9 +62,9 @@ export function usePinLocationLookup(
     lookingUp: enabled && query.isFetching,
     error,
     location:
-      enabled && query.isSuccess && mapped ?
-        { city, state, countryCode: mapped.countryCode }
-      : null,
+      enabled && query.isSuccess && mapped
+        ? { city, state, countryCode: mapped.countryCode }
+        : null,
     lookupKey,
     dataUpdatedAt: query.dataUpdatedAt,
     isError: !!error,

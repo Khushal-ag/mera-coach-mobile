@@ -17,7 +17,9 @@ export {
   type ApiResponseBody,
 } from './clientErrors';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+function apiBaseUrl(): string | undefined {
+  return process.env.EXPO_PUBLIC_API_BASE_URL;
+}
 // Allow slow first responses (cold API hosts); keep above ~15s.
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -76,6 +78,7 @@ export async function apiFetch<T = unknown>(
   path: string,
   { timeoutMs = REQUEST_TIMEOUT_MS, ...options }: ApiRequestOptions = {},
 ): Promise<T> {
+  const BASE_URL = apiBaseUrl();
   if (!BASE_URL) {
     throw new ApiError('API base URL is not configured. Set EXPO_PUBLIC_API_BASE_URL in .env.', 0);
   }

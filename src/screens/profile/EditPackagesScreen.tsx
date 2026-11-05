@@ -136,8 +136,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     staleTime: 10 * 60_000,
     refetchOnMount: 'always',
   });
-  const brandCode =
-    profileQuery.data?.brandCode?.trim() ?? existing?.brandCode?.trim() ?? '';
+  const brandCode = profileQuery.data?.brandCode?.trim() ?? existing?.brandCode?.trim() ?? '';
   const productBrandsQuery = useQuery({
     queryKey: queryKeys.productBrands,
     queryFn: getProductBrands,
@@ -150,15 +149,9 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     const fromPackage = existing?.brandName?.trim();
     if (fromPackage) return fromPackage;
     return (
-      productBrandsQuery.data?.find(brand => brand.code === brandCode)?.label.trim() ??
-      brandCode
+      productBrandsQuery.data?.find(brand => brand.code === brandCode)?.label.trim() ?? brandCode
     );
-  }, [
-    brandCode,
-    profileQuery.data?.brandName,
-    existing?.brandName,
-    productBrandsQuery.data,
-  ]);
+  }, [brandCode, profileQuery.data?.brandName, existing?.brandName, productBrandsQuery.data]);
   const [name, setName] = useState(existing?.packageName ?? '');
   const [items, setItems] = useState<PackageItem[]>(existing?.items ?? []);
   const [total, setTotal] = useState(existing ? String(existing.totalAmount) : '');
@@ -213,8 +206,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
   const [editAmount, setEditAmount] = useState('');
 
   const selectedMaster = useMemo(
-    () =>
-      productsQuery.data?.find(product => product.code === selectedProduct?.code),
+    () => productsQuery.data?.find(product => product.code === selectedProduct?.code),
     [productsQuery.data, selectedProduct?.code],
   );
 
@@ -279,9 +271,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     const code = items[index].itemCode?.trim();
     const mrp = code ? mrpByItemCode.get(code) : undefined;
     if (mrp != null && itemAmountOverMrp(amount, mrp)) {
-      return showBanner(
-        `Price cannot be higher than the product MRP (${formatMoney(mrp)}).`,
-      );
+      return showBanner(`Price cannot be higher than the product MRP (${formatMoney(mrp)}).`);
     }
     setBanner(null);
     setEditingIndex(null);
@@ -304,14 +294,10 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
     const amount = parseAmount(price);
     if (amount == null || amount <= 0) return showBanner('Enter a price for this product.');
     if (amount > PACKAGE_MAX_AMOUNT) return showBanner('That price is too high.');
-    const master = productsQuery.data?.find(
-      product => product.code === selectedProduct.code,
-    );
+    const master = productsQuery.data?.find(product => product.code === selectedProduct.code);
     const mrp = master?.price ?? 0;
     if (itemAmountOverMrp(amount, mrp)) {
-      return showBanner(
-        `Price cannot be higher than the product MRP (${formatMoney(mrp)}).`,
-      );
+      return showBanner(`Price cannot be higher than the product MRP (${formatMoney(mrp)}).`);
     }
     if (items.length >= PACKAGE_MAX_ITEMS) {
       return showBanner(`A package can hold up to ${PACKAGE_MAX_ITEMS} products.`);
@@ -387,8 +373,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
 
         {brandCode && brandDisplayName ? (
           <Text style={styles.brandMeta} accessibilityRole="text">
-            Product brand:{' '}
-            <Text style={styles.brandMetaValue}>{brandDisplayName}</Text>
+            Product brand: <Text style={styles.brandMetaValue}>{brandDisplayName}</Text>
           </Text>
         ) : !brandCode && !profileQuery.isPending ? (
           <Text style={styles.hint}>
@@ -485,9 +470,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
               <Text style={styles.addLabel}>ADD</Text>
             </TouchableOpacity>
           </View>
-          {addPriceMrpError ? (
-            <Text style={styles.fieldError}>{addPriceMrpError}</Text>
-          ) : null}
+          {addPriceMrpError ? <Text style={styles.fieldError}>{addPriceMrpError}</Text> : null}
         </View>
 
         <Text style={styles.sectionTitle}>Package Items</Text>
@@ -559,9 +542,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
           })}
           <View style={styles.totalRow}>
             <View style={styles.totalBlock} onLayout={e => trackField('total', e)}>
-              <View
-                style={[styles.totalPill, totalMrpError && styles.fieldErrorBorder]}
-              >
+              <View style={[styles.totalPill, totalMrpError && styles.fieldErrorBorder]}>
                 <Text style={styles.totalLabel}>Total</Text>
                 <TextInput
                   onFocus={() => revealField('total')}
@@ -577,9 +558,7 @@ function PackageForm({ existing, onDone }: { existing?: ShowcasePackage; onDone:
                   accessibilityLabel="Total"
                 />
               </View>
-              {totalMrpError ? (
-                <Text style={styles.fieldError}>{totalMrpError}</Text>
-              ) : null}
+              {totalMrpError ? <Text style={styles.fieldError}>{totalMrpError}</Text> : null}
             </View>
           </View>
           <View style={styles.noteRow}>

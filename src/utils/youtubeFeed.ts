@@ -5,9 +5,26 @@ export interface DashboardVideo {
   /** YouTube video id, the part after `v=`. */
   id: string;
   title: string;
+  /** True when the feed link is a `/shorts/` URL (portrait thumbnail). */
+  isShort?: boolean;
+  /** Still URL from the feed's `media:thumbnail` (shard host, e.g. i3.ytimg.com). */
+  thumbnailUrl?: string;
 }
 
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+
+/** Video id from a feed alternate link (`watch?v=` or `/shorts/`). */
+export function videoIdFromFeedLink(link: string): string {
+  return (
+    /[?&]v=([A-Za-z0-9_-]{11})/.exec(link)?.[1] ??
+    /\/shorts\/([A-Za-z0-9_-]{11})/.exec(link)?.[1] ??
+    ''
+  );
+}
+
+export function isShortFeedLink(link: string): boolean {
+  return /\/shorts\//.test(link);
+}
 
 function decodeEntities(text: string): string {
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
@@ -20,15 +37,24 @@ function decodeEntities(text: string): string {
   });
 }
 
-/** The newest regular videos in a channel's public Atom feed. Shorts are skipped because they are vertical. */
+/** The newest videos in a channel's public Atom feed, including Shorts (same video ids as watch URLs). */
 export function parseChannelFeed(xml: string, limit: number): DashboardVideo[] {
   const videos: DashboardVideo[] = [];
   for (const entry of xml.match(/<entry>[\s\S]*?<\/entry>/g) ?? []) {
-    const id = /<yt:videoId>([^<]+)<\/yt:videoId>/.exec(entry)?.[1]?.trim() ?? '';
-    const title = /<title>([^<]*)<\/title>/.exec(entry)?.[1] ?? '';
     const link = /<link rel="alternate" href="([^"]+)"/.exec(entry)?.[1] ?? '';
-    if (!isYouTubeVideoId(id) || !title.trim() || link.includes('/shorts/')) continue;
-    videos.push({ id, title: decodeEntities(title).trim() });
+    const fromTag = /<yt:videoId>([^<]+)<\/yt:videoId>/.exec(entry)?.[1]?.trim() ?? '';
+    const fromLink = videoIdFromFeedLink(link);
+    const id = fromTag || fromLink;
+    const title = /<title>([^<]*)<\/title>/.exec(entry)?.[1] ?? '';
+    if (!isYouTubeVideoId(id) || !title.trim()) continue;
+    const isShort = isShortFeedLink(link);
+    const thumbnailUrl = /<media:thumbnail url="([^"]+)"/.exec(entry)?.[1]?.trim();
+    videos.push({
+      id,
+      title: decodeEntities(title).trim(),
+      ...(isShort ? { isShort: true } : {}),
+      ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    });
     if (videos.length >= limit) break;
   }
   return videos;

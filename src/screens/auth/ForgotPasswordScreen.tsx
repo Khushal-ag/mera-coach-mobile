@@ -92,9 +92,9 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
 
   const handleReset = async () => {
     if (submittingRef.current) return;
-    const token = code.trim();
-    if (!token) {
-      setBanner('Enter the reset code from your email.');
+    const token = code.replace(/\D/g, '');
+    if (token.length !== 6) {
+      setBanner('Enter the 6-digit reset code from your email.');
       return;
     }
     const passwordError = passwordPolicyError(newPassword);
@@ -156,7 +156,7 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
               <Text style={authFormStyles.title}>Forgot Password?</Text>
               <Text style={authFormStyles.sub}>
                 Enter your email or mobile number. If that account has an email, we&apos;ll send a
-                reset code.
+                6-digit reset code.
               </Text>
 
               <View
@@ -199,8 +199,8 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
             <>
               <Text style={authFormStyles.title}>Set a new password</Text>
               <Text style={authFormStyles.sub}>
-                Enter the code we emailed you. It expires in 30 minutes and works once. Check your
-                spam folder if it does not arrive.
+                Enter the 6-digit code we emailed you. It expires in 30 minutes and works once.
+                Check your spam folder if it does not arrive.
               </Text>
 
               <View style={authFormStyles.inputWrap}>
@@ -212,14 +212,15 @@ export default function ForgotPasswordScreen({ navigation }: RootScreenProps<'Fo
                 />
                 <TextInput
                   style={authFormStyles.input}
-                  placeholder="Reset code"
+                  placeholder="6-digit reset code"
                   placeholderTextColor={Colors.textLight}
-                  autoCapitalize="characters"
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
                   autoCorrect={false}
-                  maxLength={64}
+                  maxLength={6}
                   value={code}
-                  onChangeText={setCode}
-                  accessibilityLabel="Reset code"
+                  onChangeText={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
+                  accessibilityLabel="6-digit reset code"
                 />
               </View>
 

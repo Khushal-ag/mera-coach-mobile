@@ -1,19 +1,14 @@
-import {
-  mapPinLookupToFields,
-  resolveCountryCodeForPinLookup,
-} from '../../utils/pinLocation';
+import { mapPinLookupToFields, resolveCountryCodeForPinLookup } from '../../utils/pinLocation';
 
 describe('resolveCountryCodeForPinLookup', () => {
   it('maps India name to IN', () => {
-    expect(
-      resolveCountryCodeForPinLookup({ apiCountry: 'India', pinCode: '560001' }),
-    ).toBe('IN');
+    expect(resolveCountryCodeForPinLookup({ apiCountry: 'India', pinCode: '560001' })).toBe('IN');
   });
 
   it('defaults to IN for 6-digit PIN when API omits country', () => {
-    expect(
-      resolveCountryCodeForPinLookup({ lookupCountryCode: 'IN', pinCode: '560001' }),
-    ).toBe('IN');
+    expect(resolveCountryCodeForPinLookup({ lookupCountryCode: 'IN', pinCode: '560001' })).toBe(
+      'IN',
+    );
   });
 });
 

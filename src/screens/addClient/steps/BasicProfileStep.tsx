@@ -473,186 +473,188 @@ const BasicProfileStep = forwardRef<BasicProfileStepHandle, BasicProfileStepProp
     { form, update, errorFields = {}, onLowerFieldFocus, scrollRef, clientCode },
     ref,
   ) {
-  const err = (field: string) => !!errorFields[field];
-  const validationErrorCount = Object.keys(errorFields).length;
-  /** Inline copy only when photo is the sole missing field; otherwise the top banner lists it. */
-  const inlinePhotoValidationError =
-    err('photos') && validationErrorCount === 1 ? CLIENT_PROFILE_PHOTO_REQUIRED : undefined;
-  const cardYInScroll = useRef(0);
-  const fieldYInCard = useRef<Record<string, number>>({});
+    const err = (field: string) => !!errorFields[field];
+    const validationErrorCount = Object.keys(errorFields).length;
+    /** Inline copy only when photo is the sole missing field; otherwise the top banner lists it. */
+    const inlinePhotoValidationError =
+      err('photos') && validationErrorCount === 1 ? CLIENT_PROFILE_PHOTO_REQUIRED : undefined;
+    const cardYInScroll = useRef(0);
+    const fieldYInCard = useRef<Record<string, number>>({});
 
-  const onFieldLayout = useCallback((fieldKey: string, y: number) => {
-    fieldYInCard.current[fieldKey] = y;
-  }, []);
+    const onFieldLayout = useCallback((fieldKey: string, y: number) => {
+      fieldYInCard.current[fieldKey] = y;
+    }, []);
 
-  const scrollToFirstError = useCallback(
-    (errors: FieldErrorMap) => {
-      const field = firstPersonalProfileErrorField(errors);
-      if (!field) return;
-      const yInCard = fieldYInCard.current[field];
-      if (yInCard == null) {
-        scrollRef?.current?.scrollToEnd({ animated: true });
-        return;
-      }
-      scrollRef?.current?.scrollTo({
-        y: Math.max(0, cardYInScroll.current + yInCard - 24),
-        animated: true,
-      });
-    },
-    [scrollRef],
-  );
+    const scrollToFirstError = useCallback(
+      (errors: FieldErrorMap) => {
+        const field = firstPersonalProfileErrorField(errors);
+        if (!field) return;
+        const yInCard = fieldYInCard.current[field];
+        if (yInCard == null) {
+          scrollRef?.current?.scrollToEnd({ animated: true });
+          return;
+        }
+        scrollRef?.current?.scrollTo({
+          y: Math.max(0, cardYInScroll.current + yInCard - 24),
+          animated: true,
+        });
+      },
+      [scrollRef],
+    );
 
-  useImperativeHandle(ref, () => ({ scrollToFirstError }), [scrollToFirstError]);
+    useImperativeHandle(ref, () => ({ scrollToFirstError }), [scrollToFirstError]);
 
-  return (
-    <View
-      style={styles.card}
-      onLayout={e => {
-        cardYInScroll.current = e.nativeEvent.layout.y;
-      }}
-    >
-      <FieldSection fieldKey="photos" onFieldLayout={onFieldLayout}>
-        {clientCode ? (
-          <>
-            <ClientProfilePhotoField
-              clientCode={clientCode}
+    return (
+      <View
+        style={styles.card}
+        onLayout={e => {
+          cardYInScroll.current = e.nativeEvent.layout.y;
+        }}
+      >
+        <FieldSection fieldKey="photos" onFieldLayout={onFieldLayout}>
+          {clientCode ? (
+            <>
+              <ClientProfilePhotoField
+                clientCode={clientCode}
+                form={form}
+                update={update}
+                error={inlinePhotoValidationError}
+                invalid={err('photos')}
+              />
+              <ProgressPhotos clientCode={clientCode} />
+            </>
+          ) : (
+            <ClientPhotoField
               form={form}
               update={update}
               error={inlinePhotoValidationError}
               invalid={err('photos')}
             />
-            <ProgressPhotos clientCode={clientCode} />
-          </>
-        ) : (
-          <ClientPhotoField
+          )}
+        </FieldSection>
+        <FieldSection fieldKey="name" onFieldLayout={onFieldLayout}>
+          <Field
+            label="Full Name"
+            icon="person-outline"
+            field="name"
+            placeholder="Client's full name"
             form={form}
             update={update}
-            error={inlinePhotoValidationError}
-            invalid={err('photos')}
+            required
+            hasError={err('name')}
           />
-        )}
-      </FieldSection>
-      <FieldSection fieldKey="name" onFieldLayout={onFieldLayout}>
-      <Field
-        label="Full Name"
-        icon="person-outline"
-        field="name"
-        placeholder="Client's full name"
-        form={form}
-        update={update}
-        required
-        hasError={err('name')}
-      />
-      </FieldSection>
-      <FieldSection fieldKey="phone" onFieldLayout={onFieldLayout}>
-      <Field
-        label="Mobile Number"
-        icon="call-outline"
-        field="phone"
-        placeholder="10-digit mobile number"
-        keyboardType="phone-pad"
-        inputMode="phone"
-        form={form}
-        update={update}
-        required
-        hasError={err('phone')}
-      />
-      </FieldSection>
-      <FieldSection fieldKey="email" onFieldLayout={onFieldLayout}>
-      <Field
-        label="Email (optional)"
-        icon="mail-outline"
-        field="email"
-        placeholder="client@email.com"
-        keyboardType="email-address"
-        inputMode="email"
-        form={form}
-        update={update}
-        hasError={err('email')}
-      />
-      </FieldSection>
-      <FieldSection fieldKey="location" onFieldLayout={onFieldLayout}>
-      <Field
-        label="Location"
-        icon="location-outline"
-        field="location"
-        placeholder="City / Area"
-        form={form}
-        update={update}
-        required
-        hasError={err('location')}
-      />
-      </FieldSection>
+        </FieldSection>
+        <FieldSection fieldKey="phone" onFieldLayout={onFieldLayout}>
+          <Field
+            label="Mobile Number"
+            icon="call-outline"
+            field="phone"
+            placeholder="10-digit mobile number"
+            keyboardType="phone-pad"
+            inputMode="phone"
+            form={form}
+            update={update}
+            required
+            hasError={err('phone')}
+          />
+        </FieldSection>
+        <FieldSection fieldKey="email" onFieldLayout={onFieldLayout}>
+          <Field
+            label="Email (optional)"
+            icon="mail-outline"
+            field="email"
+            placeholder="client@email.com"
+            keyboardType="email-address"
+            inputMode="email"
+            form={form}
+            update={update}
+            hasError={err('email')}
+          />
+        </FieldSection>
+        <FieldSection fieldKey="location" onFieldLayout={onFieldLayout}>
+          <Field
+            label="Location"
+            icon="location-outline"
+            field="location"
+            placeholder="City / Area"
+            form={form}
+            update={update}
+            required
+            hasError={err('location')}
+          />
+        </FieldSection>
 
-      <FieldSection fieldKey="dob" onFieldLayout={onFieldLayout}>
-        <DobWheelField form={form} update={update} hasError={err('dob')} />
-      </FieldSection>
+        <FieldSection fieldKey="dob" onFieldLayout={onFieldLayout}>
+          <DobWheelField form={form} update={update} hasError={err('dob')} />
+        </FieldSection>
 
-      <FieldSection fieldKey="age" onFieldLayout={onFieldLayout}>
-      <Field
-        label="Age"
-        icon="calendar-outline"
-        field="age"
-        placeholder="Years"
-        required
-        keyboardType="numeric"
-        form={form}
-        update={update}
-        hasError={err('age')}
-        onFocus={onLowerFieldFocus}
-      />
-      </FieldSection>
+        <FieldSection fieldKey="age" onFieldLayout={onFieldLayout}>
+          <Field
+            label="Age"
+            icon="calendar-outline"
+            field="age"
+            placeholder="Years"
+            required
+            keyboardType="numeric"
+            form={form}
+            update={update}
+            hasError={err('age')}
+            onFocus={onLowerFieldFocus}
+          />
+        </FieldSection>
 
-      <FieldSection fieldKey="gender" onFieldLayout={onFieldLayout}>
-        <View style={styles.field}>
-          <FormFieldLabel required>Gender</FormFieldLabel>
-          <View style={styles.pickerRow}>
-            {GENDER_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[
-                  styles.pill,
-                  form.gender === opt.value && styles.pillActive,
-                  err('gender') && styles.pillError,
-                ]}
-                onPress={() => update('gender', opt.value)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: form.gender === opt.value }}
-              >
-                <Text style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+        <FieldSection fieldKey="gender" onFieldLayout={onFieldLayout}>
+          <View style={styles.field}>
+            <FormFieldLabel required>Gender</FormFieldLabel>
+            <View style={styles.pickerRow}>
+              {GENDER_OPTIONS.map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.pill,
+                    form.gender === opt.value && styles.pillActive,
+                    err('gender') && styles.pillError,
+                  ]}
+                  onPress={() => update('gender', opt.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: form.gender === opt.value }}
+                >
+                  <Text
+                    style={[styles.pillText, form.gender === opt.value && styles.pillActiveText]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
-      </FieldSection>
+        </FieldSection>
 
-      <FieldSection fieldKey="height" onFieldLayout={onFieldLayout}>
-        <HeightField
-          form={form}
-          update={update}
-          hasError={err('height')}
-          onLowerFieldFocus={onLowerFieldFocus}
-        />
-      </FieldSection>
+        <FieldSection fieldKey="height" onFieldLayout={onFieldLayout}>
+          <HeightField
+            form={form}
+            update={update}
+            hasError={err('height')}
+            onLowerFieldFocus={onLowerFieldFocus}
+          />
+        </FieldSection>
 
-      <FieldSection fieldKey="weight" onFieldLayout={onFieldLayout}>
-      <Field
-        label="Weight (kg)"
-        icon="scale-outline"
-        field="weight"
-        placeholder="e.g. 70"
-        keyboardType="numeric"
-        form={form}
-        update={update}
-        required
-        hasError={err('weight')}
-        onFocus={onLowerFieldFocus}
-      />
-      </FieldSection>
-    </View>
-  );
+        <FieldSection fieldKey="weight" onFieldLayout={onFieldLayout}>
+          <Field
+            label="Weight (kg)"
+            icon="scale-outline"
+            field="weight"
+            placeholder="e.g. 70"
+            keyboardType="numeric"
+            form={form}
+            update={update}
+            required
+            hasError={err('weight')}
+            onFocus={onLowerFieldFocus}
+          />
+        </FieldSection>
+      </View>
+    );
   },
 );
 

@@ -20,5 +20,17 @@ function CappedTextInput(props: TextInputProps) {
 }
 Object.assign(CappedTextInput, NativeTextInput);
 
-Object.defineProperty(rn, 'Text', { get: () => CappedText, configurable: true });
-Object.defineProperty(rn, 'TextInput', { get: () => CappedTextInput, configurable: true });
+function patchExport(key: 'Text' | 'TextInput', value: typeof CappedText | typeof CappedTextInput) {
+  try {
+    Object.defineProperty(rn, key, { get: () => value, configurable: true });
+  } catch {
+    try {
+      rn[key] = value;
+    } catch {
+      // Bun test preloads capped Text/TextInput on the react-native mock (read-only exports).
+    }
+  }
+}
+
+patchExport('Text', CappedText);
+patchExport('TextInput', CappedTextInput);

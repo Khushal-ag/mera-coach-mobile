@@ -1,5 +1,5 @@
-import { apiFetch, apiGet, apiPost } from '../../api/client';
-import { fetchMasterItems } from '../../api/masterApi';
+import * as client from '../../api/client';
+import * as masterApi from '../../api/masterApi';
 import {
   deletePackage,
   deletePost,
@@ -13,19 +13,21 @@ import {
   setPackageActive,
 } from '../../api/showcaseApi';
 
-jest.mock('../../api/client', () => ({
-  apiFetch: jest.fn(),
-  apiGet: jest.fn(),
-  apiPost: jest.fn(),
-}));
-jest.mock('../../api/masterApi', () => ({ fetchMasterItems: jest.fn() }));
+const mGet = jest.spyOn(client, 'apiGet');
+const mPost = jest.spyOn(client, 'apiPost');
+const mFetch = jest.spyOn(client, 'apiFetch');
+const mMaster = jest.spyOn(masterApi, 'fetchMasterItems');
 
-const mGet = apiGet as jest.Mock;
-const mPost = apiPost as jest.Mock;
-const mFetch = apiFetch as jest.Mock;
-const mMaster = fetchMasterItems as jest.Mock;
+beforeEach(() => {
+  mGet.mockReset();
+  mPost.mockReset();
+  mFetch.mockReset();
+  mMaster.mockReset();
+});
 
-beforeEach(() => jest.clearAllMocks());
+afterAll(() => {
+  jest.restoreAllMocks();
+});
 
 describe('masters', () => {
   it('reads the rules of a post category from its description', async () => {

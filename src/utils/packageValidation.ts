@@ -9,10 +9,7 @@ export function itemAmountOverMrp(amount: number, mrp: number): boolean {
   return roundRupee(amount) > roundRupee(mrp);
 }
 
-export function packageTotalOverMrp(
-  totalAmount: number,
-  mrpSum: number,
-): boolean {
+export function packageTotalOverMrp(totalAmount: number, mrpSum: number): boolean {
   return roundRupee(totalAmount) > roundRupee(mrpSum);
 }
 

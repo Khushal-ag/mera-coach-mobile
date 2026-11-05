@@ -1,8 +1,5 @@
 /** Read the first defined key from a camelCase / PascalCase ASP.NET payload. */
-export function pick<T>(
-  obj: Record<string, unknown>,
-  ...keys: string[]
-): T | undefined {
+export function pick<T>(obj: Record<string, unknown>, ...keys: string[]): T | undefined {
   for (const key of keys) {
     if (obj[key] !== undefined && obj[key] !== null) return obj[key] as T;
   }

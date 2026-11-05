@@ -117,9 +117,7 @@ describe('buildValidationBanner', () => {
   });
 
   it('omits the top banner when only the profile photo is missing', () => {
-    expect(
-      buildValidationBanner({ photos: 'Client profile photo is required.' }),
-    ).toBeNull();
+    expect(buildValidationBanner({ photos: 'Client profile photo is required.' })).toBeNull();
   });
 });
 
