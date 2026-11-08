@@ -1,6 +1,6 @@
 {
   "name": "meracoachmobil",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",
@@ -57,7 +57,7 @@
     "web": "expo start --web",
     "prebuild": "expo prebuild",
     "doctor": "expo-doctor",
-    "lint": "expo lint",
+    "lint": "expo lint && tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "fmt": "prettier --write .",

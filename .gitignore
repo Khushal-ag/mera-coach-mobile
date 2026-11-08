@@ -49,3 +49,6 @@ qa-screenshots/
 /ios
 /android
 *.aab
+
+# Firebase service-account key (a secret). google-services.json is a client config and is fine to commit.
+*-firebase-adminsdk-*.json

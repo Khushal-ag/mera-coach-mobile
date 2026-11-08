@@ -108,15 +108,15 @@ describe('isShortFeedLink', () => {
 });
 
 describe('fetchChannelVideos', () => {
-  const realFetch = global.fetch;
+  const realFetch = globalThis.fetch;
 
   afterEach(() => {
-    global.fetch = realFetch;
+    globalThis.fetch = realFetch;
   });
 
   it('loads from RSS directly with a browser User-Agent', async () => {
     const xml = `<feed>${entry('AAAAAAAAAAA', 'From RSS')}</feed>`;
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
       text: async () => xml,
@@ -125,7 +125,7 @@ describe('fetchChannelVideos', () => {
     await expect(fetchChannelVideos(4, 'UCyrit6VV-HZJGnnWzPfgDLw')).resolves.toEqual([
       { id: 'AAAAAAAAAAA', title: 'From RSS' },
     ]);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('feeds/videos.xml?channel_id=UCyrit6VV-HZJGnnWzPfgDLw'),
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -140,7 +140,7 @@ describe('fetchChannelVideos', () => {
     const browseHtml = `"primaryText":{"content":"Browse title"}
       "watchEndpoint":{"videoId":"BBBBBBBBBBB"}`;
 
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
       text: async () => browseHtml,
@@ -149,7 +149,7 @@ describe('fetchChannelVideos', () => {
     await expect(fetchChannelVideos(3, channelId)).resolves.toEqual([
       { id: 'BBBBBBBBBBB', title: 'Browse title' },
     ]);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/@HenchSolutionsTest/videos'),
       expect.any(Object),
     );

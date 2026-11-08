@@ -70,9 +70,8 @@ export function parseChannelFeed(xml: string, limit: number): DashboardVideo[] {
   return videos;
 }
 
-const FEED_TIMEOUT_MS = 8000;
+const FEED_TIMEOUT_MS = 6000;
 const CACHE_MS = 10 * 60 * 1000;
-const RSS_ATTEMPTS = 3;
 
 let cache: { key: string; at: number; videos: DashboardVideo[] } | null = null;
 
@@ -96,10 +95,6 @@ function rssFeedUrls(channelId: string): string[] {
     );
   }
   return urls;
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function fetchTextWithTimeout(
@@ -127,34 +122,36 @@ async function fetchChannelVideosDirect(
     Accept: 'application/atom+xml, application/xml, text/xml, */*',
     'User-Agent': YOUTUBE_DESKTOP_USER_AGENT,
   };
-
-  for (const feedUrl of rssFeedUrls(channelId)) {
-    for (let attempt = 0; attempt < RSS_ATTEMPTS; attempt++) {
-      if (attempt > 0) await delay(2000 * attempt);
-      try {
-        const xml = await fetchTextWithTimeout(feedUrl, { headers: rssHeaders }, FEED_TIMEOUT_MS);
-        if (!xml.includes('<entry>')) break;
-        const fromFeed = parseChannelFeed(xml, parseLimit);
-        if (fromFeed.length > 0) return fromFeed.slice(0, limit);
-        break;
-      } catch {
-        // try next attempt / URL
-      }
-    }
-  }
-
-  const browseUrl = channelVideosBrowseUrl(channelId);
   const browseHeaders: HeadersInit = {
     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
     'User-Agent': YOUTUBE_DESKTOP_USER_AGENT,
   };
-  const html = await fetchTextWithTimeout(browseUrl, { headers: browseHeaders }, FEED_TIMEOUT_MS);
-  const fromBrowse = parseChannelBrowseHtml(html, parseLimit);
-  if (fromBrowse.length === 0) {
+
+  // Every source starts at once and the first one with videos wins. Trying them one after another (with retries)
+  // made the carousel wait 15-20s whenever YouTube's feeds answered 404, which they often do.
+  const fromRss = rssFeedUrls(channelId).map(async feedUrl => {
+    const xml = await fetchTextWithTimeout(feedUrl, { headers: rssHeaders }, FEED_TIMEOUT_MS);
+    const videos = parseChannelFeed(xml, parseLimit);
+    if (videos.length === 0) throw new Error('empty feed');
+    return videos;
+  });
+  const fromBrowse = (async () => {
+    const html = await fetchTextWithTimeout(
+      channelVideosBrowseUrl(channelId),
+      { headers: browseHeaders },
+      FEED_TIMEOUT_MS,
+    );
+    const videos = parseChannelBrowseHtml(html, parseLimit);
+    if (videos.length === 0) throw new Error('empty page');
+    return videos;
+  })();
+
+  try {
+    return (await Promise.any([...fromRss, fromBrowse])).slice(0, limit);
+  } catch {
     throw new Error('YouTube channel videos unavailable');
   }
-  return fromBrowse.slice(0, limit);
 }
 
 /** Latest videos for the dashboard carousel (RSS, then channel /videos HTML). */
