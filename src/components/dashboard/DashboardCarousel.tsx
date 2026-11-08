@@ -281,9 +281,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: Colors.disabledBg,
   },
-  thumb: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  thumb: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   thumbPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.disabledBg,

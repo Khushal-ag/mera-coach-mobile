@@ -20,7 +20,7 @@ function hangingFetch() {
 describe('apiFetch timeout', () => {
   const realFetch = globalThis.fetch;
   const realBase = process.env.EXPO_PUBLIC_API_BASE_URL;
-  const useRealTimers = typeof Bun !== 'undefined';
+  const useRealTimers = 'Bun' in globalThis;
 
   beforeEach(() => {
     process.env.EXPO_PUBLIC_API_BASE_URL = 'https://api.example.test';

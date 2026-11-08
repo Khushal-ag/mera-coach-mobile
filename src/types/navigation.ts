@@ -16,6 +16,7 @@ export type DashboardStackParamList = {
   DashboardHome: undefined;
   Leads: undefined;
   Notifications: undefined;
+  NotificationSettings: undefined;
   ClientListHome: undefined;
   ClientDetail: WithReturnTo<{ client?: ClientSummary }> | undefined;
   AddClient: { returnTo?: NavigationReturnTo } | undefined;
