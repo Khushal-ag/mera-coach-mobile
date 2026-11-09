@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "866743970746",
-    "project_id": "mera-coach",
-    "storage_bucket": "mera-coach.firebasestorage.app"
+    "project_number": "804221990237",
+    "project_id": "mera-coach-d3d31",
+    "storage_bucket": "mera-coach-d3d31.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:866743970746:android:1b512e1ded325d1d5a0b83",
+        "mobilesdk_app_id": "1:804221990237:android:5439f5a43a5694084124b4",
         "android_client_info": {
           "package_name": "com.henchsolutions.meracoach"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAV11Ar0-ot7Xhb_UL6sk_uCveKoRVzRq8"
+          "current_key": "AIzaSyCkSdU9RBGEVjXuKD3IuDf2OdR0wcBf174"
         }
       ],
       "services": {
