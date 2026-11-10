@@ -14,6 +14,7 @@ export const Colors = {
   secondaryDark: '#11685c',
   secondaryLight: '#d6ede5',
   accent: '#e8a317',
+  accentDark: '#8a5a00',
   accentLight: '#fdf3e0',
   background: '#f5f7f5',
   backgroundTan: '#eef2ef',
