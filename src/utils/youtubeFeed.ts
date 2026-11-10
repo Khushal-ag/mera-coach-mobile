@@ -71,6 +71,8 @@ export function parseChannelFeed(xml: string, limit: number): DashboardVideo[] {
 }
 
 const FEED_TIMEOUT_MS = 6000;
+const FEED_ROUNDS = 3;
+const FEED_RETRY_DELAY_MS = 700;
 const CACHE_MS = 10 * 60 * 1000;
 
 let cache: { key: string; at: number; videos: DashboardVideo[] } | null = null;
@@ -130,27 +132,34 @@ async function fetchChannelVideosDirect(
 
   // Every source starts at once and the first one with videos wins. Trying them one after another (with retries)
   // made the carousel wait 15-20s whenever YouTube's feeds answered 404, which they often do.
-  const fromRss = rssFeedUrls(channelId).map(async feedUrl => {
-    const xml = await fetchTextWithTimeout(feedUrl, { headers: rssHeaders }, FEED_TIMEOUT_MS);
-    const videos = parseChannelFeed(xml, parseLimit);
-    if (videos.length === 0) throw new Error('empty feed');
-    return videos;
-  });
-  const fromBrowse = (async () => {
-    const html = await fetchTextWithTimeout(
-      channelVideosBrowseUrl(channelId),
-      { headers: browseHeaders },
-      FEED_TIMEOUT_MS,
-    );
-    const videos = parseChannelBrowseHtml(html, parseLimit);
-    if (videos.length === 0) throw new Error('empty page');
-    return videos;
-  })();
-
-  try {
+  const raceSources = async () => {
+    const fromRss = rssFeedUrls(channelId).map(async feedUrl => {
+      const xml = await fetchTextWithTimeout(feedUrl, { headers: rssHeaders }, FEED_TIMEOUT_MS);
+      const videos = parseChannelFeed(xml, parseLimit);
+      if (videos.length === 0) throw new Error('empty feed');
+      return videos;
+    });
+    const fromBrowse = (async () => {
+      const html = await fetchTextWithTimeout(
+        channelVideosBrowseUrl(channelId),
+        { headers: browseHeaders },
+        FEED_TIMEOUT_MS,
+      );
+      const videos = parseChannelBrowseHtml(html, parseLimit);
+      if (videos.length === 0) throw new Error('empty page');
+      return videos;
+    })();
     return (await Promise.any([...fromRss, fromBrowse])).slice(0, limit);
-  } catch {
-    throw new Error('YouTube channel videos unavailable');
+  };
+
+  // YouTube now and then answers every source with a 404, an empty page or a stall, so a failed round is tried again.
+  for (let round = 1; ; round++) {
+    try {
+      return await raceSources();
+    } catch {
+      if (round === FEED_ROUNDS) throw new Error('YouTube channel videos unavailable');
+      await new Promise(resolve => setTimeout(resolve, FEED_RETRY_DELAY_MS));
+    }
   }
 }
 

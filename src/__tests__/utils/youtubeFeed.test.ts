@@ -154,4 +154,31 @@ describe('fetchChannelVideos', () => {
       expect.any(Object),
     );
   });
+
+  it('tries again when every source fails in the first round', async () => {
+    const xml = `<feed>${entry('CCCCCCCCCCC', 'Second round')}</feed>`;
+    let calls = 0;
+    // Round one is the three sources at once (two RSS feeds and the channel page), all answering 404.
+    globalThis.fetch = jest.fn(async () =>
+      ++calls <= 3
+        ? { ok: false, status: 404, text: async () => '' }
+        : { ok: true, status: 200, text: async () => xml },
+    ) as unknown as typeof fetch;
+
+    await expect(fetchChannelVideos(4, 'UCretryRetryRetryRetry01')).resolves.toEqual([
+      { id: 'CCCCCCCCCCC', title: 'Second round' },
+    ]);
+  });
+
+  it('gives up after the last round', async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => '',
+    }) as typeof fetch;
+
+    await expect(fetchChannelVideos(4, 'UCgiveUpGiveUpGiveUpGv02')).rejects.toThrow(
+      'YouTube channel videos unavailable',
+    );
+  });
 });
