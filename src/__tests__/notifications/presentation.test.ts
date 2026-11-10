@@ -26,7 +26,10 @@ describe('splitBody', () => {
       lead: 'Your plan ends tomorrow, so renew it today.',
       rest: '',
     });
-    expect(splitBody('No full stop here at all')).toEqual({ lead: 'No full stop here at all', rest: '' });
+    expect(splitBody('No full stop here at all')).toEqual({
+      lead: 'No full stop here at all',
+      rest: '',
+    });
     expect(splitBody('   ')).toEqual({ lead: '', rest: '' });
   });
 });

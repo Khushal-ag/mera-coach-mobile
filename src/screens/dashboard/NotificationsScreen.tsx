@@ -61,7 +61,11 @@ const GROUP_STYLE: Record<string, { icon: IoniconName; color: string; tint: stri
     tint: Colors.metricClientsBg,
   },
 };
-const DEFAULT_GROUP_STYLE = { icon: 'notifications', color: Colors.secondary, tint: Colors.secondaryLight } as const;
+const DEFAULT_GROUP_STYLE = {
+  icon: 'notifications',
+  color: Colors.secondary,
+  tint: Colors.secondaryLight,
+} as const;
 
 /**
  * A collapsed row is a preview (title, time and two lines of the text). Tapping it opens the full text with the action
