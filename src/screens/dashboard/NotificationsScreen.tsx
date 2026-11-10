@@ -1,7 +1,20 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Text, FlatList, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  LayoutAnimation,
+  RefreshControl,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQueryClient,
+  type InfiniteData,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -26,85 +39,155 @@ import {
   markNotificationsRead,
   markNotificationUnread,
   type AppNotification,
+  type NotificationPage,
 } from '../../api/notificationApi';
 import { queryKeys } from '../../api/queryKeys';
 import { refreshControlTheme, useRefreshControl } from '../../hooks/useRefreshControl';
 import { timeAgo } from '../../notifications/formatTime';
 import { openNotification } from '../../notifications/openTarget';
+import { actionLabel, splitBody } from '../../notifications/presentation';
 import { appAlert } from '../../utils/appDialog';
 import type { IoniconName } from '../../types/icons';
 import type { DashboardStackScreenProps, RootStackParamList } from '../../types/navigation';
 
-const GROUP_ICON: Record<string, IoniconName> = {
-  LEADS_CLIENTS: 'people-outline',
-  BUSINESS: 'briefcase-outline',
-  SUBSCRIPTION: 'ribbon-outline',
-  FEEDBACK: 'chatbubble-ellipses-outline',
+/** Each group gets its own colour and icon so the kind of alert reads at a glance. */
+const GROUP_STYLE: Record<string, { icon: IoniconName; color: string; tint: string }> = {
+  LEADS_CLIENTS: { icon: 'people', color: Colors.secondary, tint: Colors.secondaryLight },
+  BUSINESS: { icon: 'briefcase', color: Colors.primary, tint: Colors.primaryLight },
+  SUBSCRIPTION: { icon: 'ribbon', color: Colors.accent, tint: Colors.accentLight },
+  FEEDBACK: {
+    icon: 'chatbubble-ellipses',
+    color: Colors.addClientBanner,
+    tint: Colors.metricClientsBg,
+  },
 };
+const DEFAULT_GROUP_STYLE = { icon: 'notifications', color: Colors.secondary, tint: Colors.secondaryLight } as const;
 
+/**
+ * A collapsed row is a preview (title, time and two lines of the text). Tapping it opens the full text with the action
+ * button, and that is what marks it read; tapping again folds it back.
+ */
 const NotificationRow = React.memo(function NotificationRow({
   item,
-  onPress,
+  expanded,
+  onToggle,
+  onOpen,
   onToggleRead,
   onDelete,
 }: {
   item: AppNotification;
-  onPress: (item: AppNotification) => void;
+  expanded: boolean;
+  onToggle: (item: AppNotification) => void;
+  onOpen: (item: AppNotification) => void;
   onToggleRead: (item: AppNotification) => void;
   onDelete: (item: AppNotification) => void;
 }) {
+  const group = GROUP_STYLE[item.groupCode] ?? DEFAULT_GROUP_STYLE;
+  const { lead, rest } = splitBody(item.body);
+  const action = actionLabel(item.type, item.route);
   return (
     <TouchableOpacity
-      style={[styles.card, !item.isRead && styles.cardUnread]}
-      onPress={() => onPress(item)}
+      style={[
+        styles.card,
+        item.isRead ? styles.cardRead : styles.cardUnread,
+        expanded && { borderColor: group.color },
+      ]}
+      onPress={() => onToggle(item)}
       activeOpacity={PressOpacity.default}
       accessibilityRole="button"
-      accessibilityLabel={`${item.isRead ? '' : 'Unread. '}${item.title}. ${item.body}`}
+      accessibilityState={{ expanded }}
+      accessibilityLabel={`${item.isRead ? '' : 'Unread. '}${item.title}. ${
+        expanded ? 'Tap to close' : 'Tap to read'
+      }`}
     >
-      <View style={styles.iconWell}>
-        <Ionicons
-          name={GROUP_ICON[item.groupCode] ?? 'notifications-outline'}
-          size={IconSize.lg}
-          color={Colors.secondary}
-        />
+      {item.isRead ? null : <View style={[styles.accentBar, { backgroundColor: group.color }]} />}
+      <View
+        style={[styles.iconWell, { backgroundColor: group.tint }, item.isRead && styles.iconRead]}
+      >
+        <Ionicons name={group.icon} size={IconSize.lg} color={group.color} />
       </View>
       <View style={styles.cardText}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, !item.isRead && styles.titleUnread]} numberOfLines={1}>
+          <Text
+            style={[styles.title, item.isRead ? styles.titleRead : styles.titleUnread]}
+            numberOfLines={2}
+          >
             {item.title}
           </Text>
-          {!item.isRead ? <View style={styles.dot} /> : null}
-        </View>
-        <Text style={styles.body} numberOfLines={3}>
-          {item.body}
-        </Text>
-        <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
-      </View>
-      <View style={styles.actions}>
-        <TouchableOpacity
-          onPress={() => onToggleRead(item)}
-          hitSlop={HitSlop.sm}
-          accessibilityRole="button"
-          accessibilityLabel={item.isRead ? 'Mark as unread' : 'Mark as read'}
-        >
+          {item.isRead ? null : <View style={styles.dot} />}
+          <View style={styles.spacer} />
+          <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
           <Ionicons
-            name={item.isRead ? 'mail-unread-outline' : 'mail-open-outline'}
-            size={IconSize.lg}
-            color={Colors.secondary}
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={IconSize.sm}
+            color={Colors.textLight}
           />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => onDelete(item)}
-          hitSlop={HitSlop.sm}
-          accessibilityRole="button"
-          accessibilityLabel="Delete notification"
-        >
-          <Ionicons name="trash-outline" size={IconSize.lg} color={Colors.destructive} />
-        </TouchableOpacity>
+        </View>
+        {expanded ? (
+          <>
+            {/* The first sentence says what happened, the rest what to do about it. */}
+            <Text style={styles.lead}>{lead}</Text>
+            {rest ? <Text style={styles.rest}>{rest}</Text> : null}
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[styles.actionPill, { backgroundColor: group.tint }]}
+                onPress={() => onOpen(item)}
+                activeOpacity={PressOpacity.default}
+                accessibilityRole="button"
+                accessibilityLabel={action}
+              >
+                <Text style={[styles.actionText, { color: group.color }]}>{action}</Text>
+                <Ionicons name="arrow-forward" size={IconSize.sm} color={group.color} />
+              </TouchableOpacity>
+              <View style={styles.tools}>
+                <TouchableOpacity
+                  onPress={() => onToggleRead(item)}
+                  hitSlop={HitSlop.sm}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.isRead ? 'Mark as unread' : 'Mark as read'}
+                >
+                  <Ionicons
+                    name={item.isRead ? 'mail-unread-outline' : 'mail-open-outline'}
+                    size={IconSize.lg}
+                    color={Colors.secondary}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => onDelete(item)}
+                  hitSlop={HitSlop.sm}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete notification"
+                >
+                  <Ionicons name="trash-outline" size={IconSize.lg} color={Colors.destructive} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.preview} numberOfLines={2}>
+            {item.body}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
 });
+
+/** Marks one alert read in the cached list straight away, so the row and the unread count change as it opens. */
+function markReadInCache(queryClient: QueryClient, id: number) {
+  queryClient.setQueryData<InfiniteData<NotificationPage>>(
+    queryKeys.notifications,
+    old =>
+      old && {
+        ...old,
+        pages: old.pages.map((page, index) => ({
+          ...page,
+          unreadCount: index === 0 ? Math.max(0, page.unreadCount - 1) : page.unreadCount,
+          items: page.items.map(n => (n.id === id ? { ...n, isRead: true } : n)),
+        })),
+      },
+  );
+}
 
 export default function NotificationsScreen({
   navigation,
@@ -126,6 +209,23 @@ export default function NotificationsScreen({
   const refreshLists = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
     [queryClient],
+  );
+
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // Opening a row to read it is what marks it read.
+  const toggleExpand = useCallback(
+    (item: AppNotification) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setExpandedId(current => (current === item.id ? null : item.id));
+      if (!item.isRead) {
+        markReadInCache(queryClient, item.id);
+        markNotificationsRead(item.id)
+          .catch(() => undefined)
+          .finally(refreshLists);
+      }
+    },
+    [queryClient, refreshLists],
   );
 
   const open = useCallback(
@@ -196,11 +296,14 @@ export default function NotificationsScreen({
       ) : (
         <FlatList
           data={items}
+          extraData={expandedId}
           keyExtractor={item => String(item.id)}
           renderItem={({ item }) => (
             <NotificationRow
               item={item}
-              onPress={open}
+              expanded={item.id === expandedId}
+              onToggle={toggleExpand}
+              onOpen={open}
               onToggleRead={toggleRead}
               onDelete={remove}
             />
@@ -286,39 +389,73 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    backgroundColor: Colors.white,
     borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+    overflow: 'hidden',
   },
-  cardUnread: { borderColor: Colors.secondary, backgroundColor: Colors.secondaryLight },
+  // Unread stands out on a white card with a coloured edge and a dot; read ones sit flat on the page colour.
+  cardUnread: { backgroundColor: Colors.white },
+  cardRead: { backgroundColor: Colors.backgroundTan },
+  accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
   iconWell: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.white,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconRead: { opacity: 0.6 },
   cardText: { flex: 1 },
-  actions: { justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  spacer: { flex: 1 },
   title: { ...Typography.headline, fontSize: 14, lineHeight: 20, flexShrink: 1 },
-  titleUnread: { color: Colors.accentInk },
+  titleUnread: { fontFamily: FontFamily.bold, color: Colors.textDark },
+  titleRead: { fontFamily: FontFamily.medium, color: Colors.textLight },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
-  body: {
+  preview: {
     fontFamily: FontFamily.regular,
     fontSize: 13,
     lineHeight: 19,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  lead: {
+    fontFamily: FontFamily.medium,
+    fontSize: 14,
+    lineHeight: 20,
     color: Colors.textDark,
     marginTop: 2,
   },
+  rest: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.textLight,
+    marginTop: Spacing.xxs,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    borderRadius: Radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
+  },
+  actionText: { fontFamily: FontFamily.semibold, fontSize: 12, lineHeight: 16 },
+  tools: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   time: {
     fontFamily: FontFamily.regular,
     fontSize: 11,
     color: Colors.textLight,
-    marginTop: Spacing.xxs,
   },
 });
