@@ -51,20 +51,38 @@ import type { IoniconName } from '../../types/icons';
 import type { DashboardStackScreenProps, RootStackParamList } from '../../types/navigation';
 
 /** Each group gets its own colour and icon so the kind of alert reads at a glance. */
-const GROUP_STYLE: Record<string, { icon: IoniconName; color: string; tint: string }> = {
-  LEADS_CLIENTS: { icon: 'people', color: Colors.secondary, tint: Colors.secondaryLight },
-  BUSINESS: { icon: 'briefcase', color: Colors.primary, tint: Colors.primaryLight },
-  SUBSCRIPTION: { icon: 'ribbon', color: Colors.accent, tint: Colors.accentLight },
-  FEEDBACK: {
-    icon: 'chatbubble-ellipses',
-    color: Colors.addClientBanner,
-    tint: Colors.metricClientsBg,
-  },
-};
+const GROUP_STYLE: Record<string, { icon: IoniconName; color: string; tint: string; ink: string }> =
+  {
+    LEADS_CLIENTS: {
+      icon: 'people',
+      color: Colors.secondary,
+      tint: Colors.secondaryLight,
+      ink: Colors.secondaryDark,
+    },
+    BUSINESS: {
+      icon: 'briefcase',
+      color: Colors.primary,
+      tint: Colors.primaryLight,
+      ink: Colors.primaryDark,
+    },
+    SUBSCRIPTION: {
+      icon: 'ribbon',
+      color: Colors.accent,
+      tint: Colors.accentLight,
+      ink: Colors.accentDark,
+    },
+    FEEDBACK: {
+      icon: 'chatbubble-ellipses',
+      color: Colors.addClientBanner,
+      tint: Colors.metricClientsBg,
+      ink: Colors.accentInk,
+    },
+  };
 const DEFAULT_GROUP_STYLE = {
   icon: 'notifications',
   color: Colors.secondary,
   tint: Colors.secondaryLight,
+  ink: Colors.secondaryDark,
 } as const;
 
 /**
@@ -140,8 +158,8 @@ const NotificationRow = React.memo(function NotificationRow({
                 accessibilityRole="button"
                 accessibilityLabel={action}
               >
-                <Text style={[styles.actionText, { color: group.color }]}>{action}</Text>
-                <Ionicons name="arrow-forward" size={IconSize.sm} color={group.color} />
+                <Text style={[styles.actionText, { color: group.ink }]}>{action}</Text>
+                <Ionicons name="arrow-forward" size={IconSize.sm} color={group.ink} />
               </TouchableOpacity>
               <View style={styles.tools}>
                 <TouchableOpacity
