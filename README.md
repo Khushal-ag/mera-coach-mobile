@@ -98,13 +98,14 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
 
 ## Features
 
-| Area                      | What you get                                                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery**             | Public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                       |
-| **Practice hub**          | Dashboard, Packages, Posts and Profile tabs · clients, leads, due checkups · tips video carousel                                      |
-| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download and share · feedback SMS                            |
-| **Public presence**       | One coach photo and arrows through the browse list · packages, gallery, events and success stories · enquiry and BMI leads · WhatsApp |
-| **Account**               | Register and sign in · password change · privacy and terms · in-app update prompt · support at `hello@mera-coach.com`                 |
+| Area                      | What you get                                                                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery**             | Public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                                            |
+| **Practice hub**          | Dashboard, Packages, Posts and Profile tabs · clients, leads, due checkups · tips video carousel                                                           |
+| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download and share · feedback SMS                                                 |
+| **Public presence**       | One coach photo and arrows through the browse list · packages, gallery, events and success stories · enquiry and BMI leads · WhatsApp                      |
+| **Notifications**         | Push reminders for leads, check-ups, packages, events, gallery, feedback and plan expiry · a notification list with an unread badge · four on/off switches |
+| **Account**               | Register and sign in · password change · privacy and terms · in-app update prompt · support at `hello@mera-coach.com`                                      |
 
 ---
 
@@ -250,6 +251,11 @@ LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx expo run:ios --device "<simulator name>"
 - `ios/.xcode.env.local` should use `NODE_BINARY=/opt/homebrew/bin/node`, not a versioned Cellar path that breaks when node is upgraded.
 - Expo SDK 57 apps do not use the UIScene lifecycle, so they crash on launch on an iOS 27 simulator. Use an iOS 26.x simulator until the project moves to Expo SDK 58.
 - Picking a video for a post needs a native build that includes `expo-file-system`.
+- **Ship this as a new version, for example `bun run ship:android 1.1.0`.** It is the first build with native push code. `runtimeVersion` follows the app version, so an `eas update` of this JavaScript on the old 1.0.9 runtime would crash every installed 1.0.9 app. Never publish an update of this code to a runtime built before it, and rebuild any dev client made before it, or the app will crash on launch.
+- **Push notifications:** the app uses `expo-notifications`, so it needs a native build that includes it (rebuild the dev client). Alerts are sent by the API through Expo's push service. Push only works on a real phone, never in a simulator.
+  - **Android needs Firebase.** Create a Firebase project for `com.henchsolutions.meracoach`, put its `google-services.json` in the project root (git-ignored) and set `android.googleServicesFile` in `app.json`; for EAS builds keep the file as an EAS file secret instead. Upload the project's FCM service-account key to EAS (`eas credentials`). Without this the app still runs, the notification list works, but no push arrives.
+  - **How it works:** after sign-in the app asks once (with a short explanation) for permission, then registers its Expo push token with `POST /Notification/device`. Sign-out removes it. Tapping an alert opens the matching screen (`src/notifications/notificationTarget.ts`).
+  - **Testing one:** run the API with the scheduler on, sign in on a real phone, then add a lead for that coach and wait for the next 15-minute run (reminders only go out 9am to 8pm IST), or submit feedback through the web form for an instant alert.
 - **Opening the app from a link:** `app.json` declares an Android App Link for `https://www.mera-coach.com/coach-login`, so the welcome email's "Login to Mera Coach" button opens the app when it is installed. It works once the website serves `/.well-known/assetlinks.json` with the Play app-signing fingerprint and the app has been released with this change. iOS would need Universal Links, which need an Apple Developer account.
 
 ---

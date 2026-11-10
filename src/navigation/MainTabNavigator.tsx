@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useAppUpdate } from '../hooks/useAppUpdate';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +26,7 @@ import MyLeadsScreen from '../screens/clients/MyLeadsScreen';
 import ReCheckupListScreen from '../screens/checkups/ReCheckupListScreen';
 import CoachProfileScreen from '../screens/profile/CoachProfileScreen';
 import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
+import NotificationSettingsScreen from '../screens/dashboard/NotificationSettingsScreen';
 import ClientBmiScreen from '../screens/clients/detail/ClientBmiScreen';
 import ClientBmiReportScreen from '../screens/clients/detail/ClientBmiReportScreen';
 import ClientDietPlanScreen from '../screens/clients/detail/ClientDietPlanScreen';
@@ -67,6 +69,7 @@ function DashboardStackNavigator() {
       <DashboardStack.Screen name="DashboardHome" component={DashboardScreen} />
       <DashboardStack.Screen name="Leads" component={MyLeadsScreen} />
       <DashboardStack.Screen name="Notifications" component={NotificationsScreen} />
+      <DashboardStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <DashboardStack.Screen name="ClientListHome" component={ClientListScreen} />
       <DashboardStack.Screen name="ClientDetail" component={ClientDetailScreen} />
       <DashboardStack.Screen name="AddClient" component={AddClientScreen} />
@@ -116,6 +119,7 @@ export default function MainTabNavigator() {
   const bottomPad = Math.max(insets.bottom, 6);
   // A dot on the Profile tab points coaches to the update card there.
   const updateAvailable = useAppUpdate().available;
+  usePushNotifications();
 
   return (
     <Tab.Navigator

@@ -69,7 +69,8 @@
         "backgroundImage": "./assets/platform/android-icon-background.png",
         "monochromeImage": "./assets/platform/android-icon-monochrome.png"
       },
-      "icon": "./assets/platform/icon.png"
+      "icon": "./assets/platform/icon.png",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/platform/favicon.png",
@@ -78,6 +79,10 @@
     "plugins": [
       "./plugins/withAndroidPlayCompliance.js",
       "expo-secure-store",
+      [
+        "expo-notifications",
+        { "icon": "./assets/platform/notification-icon.png", "color": "#178676" }
+      ],
       [
         "expo-image-picker",
         {

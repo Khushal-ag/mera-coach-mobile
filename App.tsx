@@ -16,8 +16,10 @@ import { Colors } from './src/constants/theme';
 import type { RootStackParamList } from './src/types/navigation';
 import { APP_SCHEME, subscribePaidReturnDeepLinks } from './src/utils/appDeepLink';
 import './src/utils/capFontScale';
+import { configureNotificationHandler } from './src/notifications/pushRegistration';
 
 void SplashScreen.preventAutoHideAsync();
+configureNotificationHandler();
 
 // Native scheme from app.json (`expo.scheme`) + path map for web / deep links.
 const linking: LinkingOptions<RootStackParamList> = {
@@ -37,6 +39,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               DashboardHome: 'dashboard',
               Leads: 'leads',
               Notifications: 'notifications',
+              NotificationSettings: 'notification-settings',
               ClientListHome: 'clients',
               ClientDetail: 'client-detail',
               AddClient: 'add-client',

@@ -47,6 +47,7 @@ import type { IoniconName } from '../../types/icons';
 import { RETURN_TO_DASHBOARD } from '../../utils/navigationBack';
 import { useAutoFillLocation } from '../../hooks/useAutoFillLocation';
 import { useOpenAddClient } from '../../hooks/useOpenAddClient';
+import { useUnreadNotifications } from '../../hooks/useUnreadNotifications';
 
 function greetingFor(date = new Date()): string {
   const h = date.getHours();
@@ -111,6 +112,7 @@ export default function DashboardScreen({
     };
   }, [heroFade, heroSlide, metricsFade, metricsSlide]);
 
+  const unreadNotifications = useUnreadNotifications();
   const clientsQuery = useQuery({
     queryKey: queryKeys.clientList(coachCode),
     queryFn: () => getClientList(),
@@ -254,7 +256,11 @@ export default function DashboardScreen({
                 style={styles.chromeIconBtn}
                 onPress={() => navigation.navigate('Notifications')}
                 accessibilityRole="button"
-                accessibilityLabel="Notifications"
+                accessibilityLabel={
+                  unreadNotifications > 0
+                    ? `Notifications, ${unreadNotifications} unread`
+                    : 'Notifications'
+                }
                 activeOpacity={PressOpacity.default}
                 hitSlop={HitSlop.sm}
               >
@@ -263,6 +269,13 @@ export default function DashboardScreen({
                   size={IconSize.xxl}
                   color={Colors.secondary}
                 />
+                {unreadNotifications > 0 ? (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </Text>
+                  </View>
+                ) : null}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.profileBtn}
@@ -509,6 +522,19 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     marginTop: Spacing.xxs,
   },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellBadgeText: { fontFamily: FontFamily.bold, fontSize: 10, lineHeight: 13, color: Colors.white },
   chromeIconBtn: {
     width: IconSize.xxl,
     height: IconSize.xxl,

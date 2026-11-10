@@ -6,3 +6,6 @@ web-build
 ios
 android
 bun.lock
+
+# Firebase's generated client config
+google-services.json
