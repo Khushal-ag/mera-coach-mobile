@@ -24,6 +24,7 @@ if [[ -n "$VERSION" ]]; then
       fs.writeFileSync(file, JSON.stringify(json, null, 2) + '\n');
     }
   " "$VERSION"
+  bunx prettier --write package.json app.json > /dev/null  # JSON.stringify above expands short arrays
   echo "Version set to $VERSION in package.json and app.json."
 fi
 

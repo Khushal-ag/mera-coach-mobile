@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   View,
   Text,
   Image,
@@ -95,6 +96,31 @@ function VideoThumbnail({
   return <Image source={{ uri }} style={styles.thumb} resizeMode="cover" onError={onLoadError} />;
 }
 
+/** Pulsing placeholder shown while the latest videos load, sized like a real card. */
+function SkeletonCard({ width, thumbHeight }: { width: number; thumbHeight: number }) {
+  const [pulse] = useState(() => new Animated.Value(0.5));
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.5, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  return (
+    <Animated.View style={[styles.card, { width, opacity: pulse }]}>
+      <View style={[styles.thumbWrap, { height: thumbHeight }]} />
+      <View style={styles.skeletonTitle}>
+        <View style={styles.skeletonLine} />
+        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+      </View>
+    </Animated.View>
+  );
+}
+
 /**
  * Dashboard carousel of the channel's latest YouTube videos; tapping a thumbnail plays it in the app. Shows the tip banner
  * instead when no channel is configured or its videos cannot be loaded.
@@ -175,20 +201,35 @@ export default function DashboardCarousel(bannerProps: TipBannerProps) {
     [],
   );
 
-  if (loading) return null;
-  if (videos.length === 0) return <TipBanner {...bannerProps} />;
+  if (videos.length === 0 && !loading) return <TipBanner {...bannerProps} />;
+
+  const header = (
+    <View style={styles.header}>
+      <View style={styles.bulbWrap}>
+        <Ionicons name="play" size={IconSize.xs} color={Colors.white} />
+      </View>
+      <View style={styles.headerCopy}>
+        <Text style={styles.headerTitle}>Watch and learn</Text>
+        <Text style={styles.headerSub}>Quick app tutorials and tips</Text>
+      </View>
+    </View>
+  );
+
+  // Same heading as the loaded carousel, with a pulsing placeholder card where the videos will appear.
+  if (loading) {
+    return (
+      <View accessibilityRole="progressbar" accessibilityLabel="Loading videos">
+        {header}
+        <View style={styles.list}>
+          <SkeletonCard width={cardWidth} thumbHeight={snapToDevicePixel(thumbHeight)} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View>
-      <View style={styles.header}>
-        <View style={styles.bulbWrap}>
-          <Ionicons name="play" size={IconSize.xs} color={Colors.white} />
-        </View>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle}>Watch and learn</Text>
-          <Text style={styles.headerSub}>Quick app tutorials and tips</Text>
-        </View>
-      </View>
+      {header}
 
       <FlatList
         ref={listRef}
@@ -307,6 +348,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     minHeight: Typography.bodyStrong.lineHeight * 2 + Spacing.sm * 2,
   },
+  skeletonTitle: {
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    minHeight: Typography.bodyStrong.lineHeight * 2 + Spacing.sm * 2,
+  },
+  skeletonLine: { height: 12, borderRadius: 6, backgroundColor: Colors.disabledBg },
+  skeletonLineShort: { width: '60%' },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
