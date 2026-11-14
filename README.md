@@ -78,10 +78,22 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
       <sub><b>Profile</b><br />Your public page, ready to share</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src=".github/readme/notifications.jpg" width="340" alt="Notifications: a short preview per alert, unread alerts highlighted and read ones greyed" />
+      <br />
+      <sub><b>Notifications</b><br />A preview per alert, with unread ones highlighted</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src=".github/readme/notification-open.jpg" width="340" alt="An opened notification showing the full text and a Contact lead button" />
+      <br />
+      <sub><b>Tap to read</b><br />The full text and a button for the next step. Opening it marks it read</sub>
+    </td>
+  </tr>
 </table>
 </div>
 
-<p align="center"><sub>iOS Simulator · light mode · the clients shown are sample data</sub></p>
+<p align="center"><sub>iOS Simulator (Notifications: Android emulator) · light mode · the clients shown are sample data</sub></p>
 
 ---
 
@@ -90,7 +102,7 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
 1. **Explore and find** — Open the app as a visitor. Home is a marketing hero, then explore: a banner, coach categories from the API, features, and Check Your BMI. Find a Coach filters by search, city and rating.
 2. **Reach out** — Send an enquiry from a coach's public page, or a BMI lead from Check Your BMI. Open WhatsApp when a mobile number is available. Side arrows on a profile move between coaches in the browse list.
 3. **Coach sign-in** — Register, or sign in with your login id and password, and land on the Dashboard.
-4. **Run the practice** — The signed-in tabs are Dashboard, Packages, Posts and Profile. The Dashboard tracks clients, enquiry leads and due checkups. Add a client to start an assessment.
+4. **Run the practice** — The signed-in tabs are Dashboard, Packages, Posts and Profile. The Dashboard tracks clients, enquiry leads and due checkups. Add a client to start an assessment. The bell on the Dashboard opens the notification list.
 5. **Assess and deliver** — Body stats, lifestyle, goals, BMI, then a multi-meal diet. Share the BMI report and diet plan as PDFs. Ask for feedback by SMS; the link opens the website.
 6. **Shape the listing** — Packages and Posts open a list first. A package picks a product brand and products from the database; the coach sets each price and the total, and a switch shows or hides it on the public profile. A post picks a category (Gallery, Workshop & Event or Client Success), adds a photo or video, and is saved to the API. Client Success also needs a client and consent. Videos play inside the app.
 
@@ -104,7 +116,7 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
 | **Practice hub**          | Dashboard, Packages, Posts and Profile tabs · clients, leads, due checkups · tips video carousel                                                           |
 | **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download and share · feedback SMS                                                 |
 | **Public presence**       | One coach photo and arrows through the browse list · packages, gallery, events and success stories · enquiry and BMI leads · WhatsApp                      |
-| **Notifications**         | Push reminders for leads, check-ups, packages, events, gallery, feedback and plan expiry · a notification list with an unread badge · four on/off switches |
+| **Notifications**         | Push reminders for leads, check-ups, packages, events, gallery, feedback and plan expiry · a notification list with an unread badge: each alert shows a short preview, a tap expands it and marks it read, and a button opens the matching screen · four on/off switches |
 | **Account**               | Register and sign in · password change · privacy and terms · in-app update prompt · support at `hello@mera-coach.com`                                      |
 
 ---
@@ -266,9 +278,9 @@ The app version lives in three places and they must match for every public relea
 
 | Location       | Field          | Example  |
 | -------------- | -------------- | -------- |
-| `package.json` | `version`      | `1.0.5`  |
-| `app.json`     | `expo.version` | `1.0.5`  |
-| Git tag        | `vX.Y.Z`       | `v1.0.5` |
+| `package.json` | `version`      | `1.1.0`  |
+| `app.json`     | `expo.version` | `1.1.0`  |
+| Git tag        | `vX.Y.Z`       | `v1.1.0` |
 
 Use semver: **major** for breaking changes to what coaches rely on, **minor** for new features, **patch** for fixes and polish. Android `versionCode` is raised by EAS on every cloud build (`autoIncrement` with a remote app version source).
 
@@ -276,7 +288,7 @@ Use semver: **major** for breaking changes to what coaches rely on, **minor** fo
 
 ```bash
 bun run ship:android            # build and send the current version
-bun run ship:android 1.0.6      # bump package.json and app.json to 1.0.6 first
+bun run ship:android 1.1.1      # bump package.json and app.json to 1.1.1 first
 ```
 
 This runs `eas build --platform android --profile production --auto-submit`. EAS builds the bundle and uploads it to the track set in `eas.json`, which is fixed to `internal`, so this command cannot reach production by accident. Commit the version bump afterwards. To promote a tested build, use **Promote release** in Play Console.
