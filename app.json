@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mera Coach",
     "slug": "meracoach",
-    "version": "1.0.10",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/platform/icon.png",
     "scheme": "meracoach",
@@ -81,7 +81,10 @@
       "expo-secure-store",
       [
         "expo-notifications",
-        { "icon": "./assets/platform/notification-icon.png", "color": "#178676" }
+        {
+          "icon": "./assets/platform/notification-icon.png",
+          "color": "#178676"
+        }
       ],
       [
         "expo-image-picker",
