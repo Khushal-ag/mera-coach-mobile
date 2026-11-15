@@ -110,14 +110,14 @@ The mobile app for [mera-coach.com][website]. Android first, iOS later.
 
 ## Features
 
-| Area                      | What you get                                                                                                                                               |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery**             | Public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                                            |
-| **Practice hub**          | Dashboard, Packages, Posts and Profile tabs · clients, leads, due checkups · tips video carousel                                                           |
-| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download and share · feedback SMS                                                 |
-| **Public presence**       | One coach photo and arrows through the browse list · packages, gallery, events and success stories · enquiry and BMI leads · WhatsApp                      |
+| Area                      | What you get                                                                                                                                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Discovery**             | Public home · categories from the API · Check Your BMI · Find a Coach (city, rating, search) without signing in                                                                                                                                                          |
+| **Practice hub**          | Dashboard, Packages, Posts and Profile tabs · clients, leads, due checkups · tips video carousel                                                                                                                                                                         |
+| **Assessment & delivery** | Add-client wizard · BMI report with history · multi-meal diet plan · PDF download and share · feedback SMS                                                                                                                                                               |
+| **Public presence**       | One coach photo and arrows through the browse list · packages, gallery, events and success stories · enquiry and BMI leads · WhatsApp                                                                                                                                    |
 | **Notifications**         | Push reminders for leads, check-ups, packages, events, gallery, feedback and plan expiry · a notification list with an unread badge: each alert shows a short preview, a tap expands it and marks it read, and a button opens the matching screen · four on/off switches |
-| **Account**               | Register and sign in · password change · privacy and terms · in-app update prompt · support at `hello@mera-coach.com`                                      |
+| **Account**               | Register and sign in · password change · privacy and terms · in-app update prompt · support at `hello@mera-coach.com`                                                                                                                                                    |
 
 ---
 
